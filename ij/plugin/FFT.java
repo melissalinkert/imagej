@@ -4,7 +4,6 @@ import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.plugin.ContrastEnhancer;
-import ij.measure.Calibration;
 import java.awt.*;
 import java.util.*;
 
@@ -19,10 +18,6 @@ in the public domain by Stanford University in 1995 and is now freely available.
 */
 public class FFT implements  PlugIn, Measurements {
 
-	public static boolean displayRawPS;
-	public static boolean displayFHT;
-	public static String fileName;
-	
 	private ImagePlus imp;
 	private String arg;
 	private FHT transform;
@@ -35,24 +30,20 @@ public class FFT implements  PlugIn, Measurements {
 	private int slice = 1;
 
 	public void run(String arg) {
-		if (arg.equals("options"))
- 			{showDialog(); return;}
 		imp = IJ.getImage();
 		if (arg.equals("redisplay"))
  			{redisplayPowerSpectrum(); return;}
  		ImageProcessor ip = imp.getProcessor();
-		Object obj = imp.getProperty("FHT");
-		FHT fht = (obj instanceof FHT)?(FHT)obj:null;
+		FHT fht = (FHT)imp.getProperty("FHT");
 		stackSize = imp.getStackSize();
 		boolean inverse;
 		if (fht==null && arg.equals("inverse")) {
-			IJ.error("FFT", "Frequency domain image required");
+			IJ.showMessage("FFT", "Frequency domain image required");
 			return;
 		}
-		if (fht!=null) {
+		if (fht!=null)
 			inverse = true;
-			imp.killRoi();
-		} else {
+		else {
 			if (imp.getRoi()!=null)
 				ip = ip.crop();
 			fht = newFHT(ip);
@@ -60,11 +51,8 @@ public class FFT implements  PlugIn, Measurements {
 		}
 		if (inverse)
 			doInverseTransform(fht, ip);
-		else {
-			if (displayRawPS || displayFHT)
-				fileName = imp.getTitle();
-			doForewardTransform(fht, ip);	
-		}	 
+		else
+			doForewardTransform(fht, ip);		 
 		IJ.showProgress(1.0);
 	}
 	
@@ -88,7 +76,7 @@ public class FFT implements  PlugIn, Measurements {
 			case 24:
 				showStatus("Setting brightness");
 				if (fht.rgb==null || ip2==null) {
-					IJ.error("FFT", "Unable to set brightness");
+					IJ.showMessage("FFT", "Unable to set brightness");
 					return;
 				}
 				ColorProcessor rgb = (ColorProcessor)fht.rgb.duplicate();
@@ -103,10 +91,7 @@ public class FFT implements  PlugIn, Measurements {
 		String title = imp.getTitle();
 		if (title.startsWith("FFT of "))
 			title = title.substring(7, title.length());
-		ImagePlus imp2 = new ImagePlus("Inverse FFT of "+title, ip2);
-		if (imp2.getWidth()==imp.getWidth())
-			imp2.setCalibration(imp.getCalibration());
-		imp2.show();
+		new ImagePlus("Inverse FFT of "+title, ip2).show();
 	}
 
 	public void doForewardTransform(FHT fht, ImageProcessor ip) {
@@ -117,7 +102,6 @@ public class FFT implements  PlugIn, Measurements {
 		ImagePlus imp2 = new ImagePlus("FFT of "+imp.getTitle(), ps);
 		imp2.show();
 		imp2.setProperty("FHT", fht);
-		imp2.setCalibration(imp.getCalibration());
 	}
 	
 	FHT newFHT(ImageProcessor ip) {
@@ -211,21 +195,9 @@ public class FFT implements  PlugIn, Measurements {
 	public void redisplayPowerSpectrum() {
 		FHT fht = (FHT)imp.getProperty("FHT");
 		if (fht==null)
-			{IJ.error("FFT", "Frequency domain image required"); return;}
+			{IJ.showMessage("FFT", "Frequency domain image required"); return;}
 		ImageProcessor ps = fht.getPowerSpectrum();
 		imp.setProcessor(null, ps);
-	}
-	
-	void showDialog() {
-		GenericDialog gd = new GenericDialog("FFT Options");
-		gd.addMessage("Display:");
-		gd.addCheckbox("Raw 32-bit Power Spectrum", displayRawPS);
-		gd.addCheckbox("Fast Hartley Transform", displayFHT);
-		gd.showDialog();
-		if (gd.wasCanceled())
-			return;
-		displayRawPS = gd.getNextBoolean();
-		displayFHT = gd.getNextBoolean();
 	}
 	
 }

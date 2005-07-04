@@ -71,11 +71,10 @@ public class PolygonFiller {
 				tmp=x1;
 				x1=x2; x2=tmp;
 			}
-			double slope = (double)(x2-x1)/(y2-y1);
-			ex[edges] = x1 + slope/2.0; 
+			ex[edges] = x1;
 			ey1[edges] = y1;
 			ey2[edges] = y2;
-			eslope[edges] = slope;
+			eslope[edges] = (double)(x2-x1)/(y2-y1);
 			edges++;   
 		}
 		for (int i=0; i<edges; i++)
@@ -104,44 +103,47 @@ public class PolygonFiller {
 		ip.fill(getMask(r.width, r.height));
 	}
 
-	/** Returns a byte mask containing a filled version of the polygon. */
-	public ImageProcessor getMask(int width, int height) {
+	/** Returns a mask containing a filled version of the polygon. */
+	public int[] getMask(int width, int height) {
 		allocateArrays(n);
 		buildEdgeTable(x, y, n);
 		//printEdges();
 		int x1, x2, offset, index;
-		ImageProcessor mask = new ByteProcessor(width, height);
-		byte[] pixels = (byte[])mask.getPixels();
+		int size = width*height;
+		int[] mask = new int[size];
+		for (int i=0; i<size; i++) 
+			mask[i] = WHITE;
 		for (int y=0; y<height; y++) {
 			removeInactiveEdges(y);
 			activateEdges(y);
 			offset = y*width;
 			for (int i=0; i<activeEdges; i+=2) {
-				x1 = (int)(ex[aedge[i]]+0.5);
+				x1 = (int)Math.round(ex[aedge[i]]);
 				if (x1<0) x1=0;
 				if (x1>width) x1 = width;
-				x2 = (int)(ex[aedge[i+1]]+0.5); 
+				x2 = (int)Math.round(ex[aedge[i+1]]);
 				if (x2<0) x2=0; 
 				if (x2>width) x2 = width;
 				//IJ.log(y+" "+x1+"  "+x2);
 				for (int x=x1; x<x2; x++)
-					pixels[offset+x] = -1; // 255 (white)
+					mask[offset+x] = BLACK;
 			}			
-			updateXCoordinates();
+			updateXCoordinates(y);
 		}
 		return mask;
 	}	
 
 	/** Updates the x coordinates in the active edges list and sorts the list if necessary. */
-	void updateXCoordinates() {
+	void updateXCoordinates(int y) {
 		int index;
 		double x1=-Double.MAX_VALUE, x2;
 		boolean sorted = true;
 		for (int i=0; i<activeEdges; i++) {
 			index = aedge[i];
-			x2 = ex[index] + eslope[index];
+			 x2 = ex[index] + eslope[index];
 			ex[index] = x2;
 			if (x2<x1) sorted = false;
+			//IJ.log(y+" "+IJ.d2s(x1,2)+"  "+IJ.d2s(x2,2)+" "+sorted);
 			x1 = x2;
 		}
 		if (!sorted) 
@@ -207,7 +209,7 @@ public class PolygonFiller {
 		}
 	}
 
-	/*
+	/** Currently not used. */
 	void quickSort(int[] a) {
 		quickSort(a, 0, a.length-1);
 	}
@@ -226,6 +228,5 @@ public class PolygonFiller {
 		if (from < j) quickSort(a, from, j);
 		if (i < to) quickSort(a,  i, to);
 	}
-	*/
 
 }

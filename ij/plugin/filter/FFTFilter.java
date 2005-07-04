@@ -40,7 +40,7 @@ public class FFTFilter implements  PlugInFilter, Measurements {
  		stackSize = imp.getStackSize();
 		fht  = (FHT)imp.getProperty("FHT");
 		if (fht!=null) {
-			IJ.error("FFT Filter", "Spatial domain image required");
+			IJ.showMessage("FFT Filter", "Spatial domain image required");
 			return DONE;
 		}
 		if (!showBandpassDialog(imp))
@@ -416,7 +416,7 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 		if(gd.wasCanceled())
 			return false;
 		if(gd.invalidNumber()) {
-			IJ.error("Error", "Invalid input number");
+			IJ.showMessage("Error", "Invalid input number");
 			return false;
 		}				
 		filterLargeDia = gd.getNextNumber();

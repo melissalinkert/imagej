@@ -1,6 +1,5 @@
 package ij.process;
 import ij.*;
-import ij.plugin.FFT;
 import java.awt.image.ColorModel; 
 
 /**
@@ -125,8 +124,8 @@ public class FHT extends FloatProcessor {
 
 		int mRow, mCol;
 		float A,B,C,D,E;
-		for (int row=0; row<=maxN/2; row++) { // Now calculate actual Hartley transform
-			for (int col=0; col<=maxN/2; col++) {
+		for (int row=0; row<maxN/2; row++) { // Now calculate actual Hartley transform
+			for (int col=0; col<maxN/2; col++) {
 				mRow = (maxN - row) % maxN;
 				mCol = (maxN - col)  % maxN;
 				A = x[row * maxN + col];	//  see Bracewell, 'Fast 2D Hartley Transf.' IEEE Procs. 9/86
@@ -314,15 +313,6 @@ public class FHT extends FloatProcessor {
 		}
 		ImageProcessor ip = new ByteProcessor(maxN, maxN, ps, null);
 		swapQuadrants(ip);
-		if (FFT.displayRawPS) {
-			ImageProcessor ip2 = new FloatProcessor(maxN, maxN, fps, null);
-			swapQuadrants(ip2);
-			new ImagePlus("PS of "+FFT.fileName, ip2).show();
-		}
-		if (FFT.displayFHT) {
-			ImageProcessor ip3 = new FloatProcessor(maxN, maxN, fht, null);
-			new ImagePlus("FHT of "+FFT.fileName, ip3.duplicate()).show();
-		}
 		return ip;
 	}
 
@@ -437,9 +427,7 @@ public class FHT extends FloatProcessor {
 					tmp[r * maxN + c] = (float)(h1[r * maxN + c] * h2e + h1[rowMod * maxN + colMod] * h2o);
 			}
 		}
-		FHT fht2 =  new FHT(new FloatProcessor(maxN, maxN, tmp, null));
-		fht2.isFrequencyDomain = true;
-		return fht2;
+		return new FHT(new FloatProcessor(maxN, maxN, tmp, null));
 	}
 		
 	/** Returns the image resulting from the point by point Hartley division
@@ -465,9 +453,7 @@ public class FHT extends FloatProcessor {
 				out[r*maxN+c] = (float)(tmp/mag);
 			}
 		}
-		FHT fht2 = new FHT(new FloatProcessor(maxN, maxN, out, null));
-		fht2.isFrequencyDomain = true;
-		return fht2;
+		return new FHT(new FloatProcessor(maxN, maxN, out, null));
 	}
 			
 	/** Enables/disables display of the progress bar during transforms. */

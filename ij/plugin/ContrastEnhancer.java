@@ -11,13 +11,10 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 	int max, range;
 	boolean classicEqualization;
 	int stackSize;
-	boolean updateSelectionOnly;
 	
 	static boolean equalize;
 	static boolean normalize;
 	static boolean processStack;
-	static boolean useStackHistogram;
-	static boolean entireImage;
 	static double saturated = 0.5;
 
 	public void run(String arg) {
@@ -26,8 +23,6 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		imp.trimProcessor();
 		if (!showDialog(imp))
 			return;
-		Roi roi = imp.getRoi();
-		if (roi!=null) roi.endPaste();
 		if (stackSize==1)
 			Undo.setup(Undo.TRANSFORM, imp);
 		else
@@ -43,21 +38,13 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 
 	boolean showDialog(ImagePlus imp) {
 		int bitDepth = imp.getBitDepth();
-		Roi roi = imp.getRoi();
-		boolean areaRoi = roi!=null && roi.isArea();
 		GenericDialog gd = new GenericDialog("Enhance Contrast");
 		gd.addNumericField("Saturated Pixels:", saturated, 1, 4, "%");
 		if (bitDepth!=24)
 			gd.addCheckbox("Normalize", normalize);
-		if (areaRoi) {
-			String label = bitDepth==24?"Update Entire Image":"Update All When Normalizing";
-			gd.addCheckbox(label, entireImage);
-		}
 		gd.addCheckbox("Equalize Histogram", equalize);
-		if (stackSize>1) {
-			gd.addCheckbox("Normalize_All "+stackSize+" Slices", processStack);
-			gd.addCheckbox("Use Stack Histogram", useStackHistogram);
-		}
+		if (stackSize>1)
+			gd.addCheckbox("Process Entire Stack", processStack);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return false;
@@ -65,16 +52,9 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		if (bitDepth!=24)
 			normalize = gd.getNextBoolean();
 		else
-			normalize = false;
-		if (areaRoi) {
-			entireImage = gd.getNextBoolean();
-			updateSelectionOnly = !entireImage;
-			if (!normalize && bitDepth!=24) 
-				updateSelectionOnly = false;
-		}
+			normalize = false;		
 		equalize = gd.getNextBoolean();
 		processStack = stackSize>1?gd.getNextBoolean():false;
-		useStackHistogram = stackSize>1?gd.getNextBoolean():false;
 		if (saturated<0.0) saturated = 0.0;
 		if (saturated>100.0) saturated = 100;
 		if (processStack)
@@ -83,34 +63,19 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 	}
  
 	public void stretchHistogram(ImagePlus imp, double saturated) {
-		ImageStatistics stats = null;
-		if (useStackHistogram)
-			stats = new StackStatistics(imp);
 		if (processStack) {
 			ImageStack stack = imp.getStack();
 			for (int i=1; i<=stackSize; i++) {
 				IJ.showProgress(i, stackSize);
 				ImageProcessor ip = stack.getProcessor(i);
-				ip.setRoi(imp.getRoi());
-				if (!useStackHistogram)
-					stats = ImageStatistics.getStatistics(ip, MIN_MAX, null);
-				stretchHistogram(ip, saturated, stats);
+				stretchHistogram(ip, saturated);
 			}
-		} else {
-			ImageProcessor ip = imp.getProcessor();
-			ip.setRoi(imp.getRoi());
-			if (stats==null)
-				stats = ImageStatistics.getStatistics(ip, MIN_MAX, null);
-			stretchHistogram(ip, saturated, stats);
-		}
-	}
-	
-	public void stretchHistogram(ImageProcessor ip, double saturated) {
-		useStackHistogram = false;
-		stretchHistogram(new ImagePlus("", ip), saturated);
+		} else
+			stretchHistogram(imp.getProcessor(), saturated);
 	}
 
-	public void stretchHistogram(ImageProcessor ip, double saturated, ImageStatistics stats) {
+	public void stretchHistogram(ImageProcessor ip, double saturated) {
+		ImageStatistics stats = ImageStatistics.getStatistics(ip, MIN_MAX, null);
 		int hmin, hmax;
 		int threshold;
 		int[] histogram = stats.histogram;		
@@ -124,37 +89,33 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		do {
 			i++;
 			count += histogram[i];
-			found = count>threshold;
+			found = count>=threshold;
 		} while (!found && i<255);
-		hmin = i;
+		if (i > 0)
+			hmin = i-1;
+		else
+			hmin = 0;
 				
 		i = 256;
 		count = 0;
 		do {
 			i--;
 			count += histogram[i];
-			found = count>threshold;
-			//IJ.log(i+" "+count+" "+found);
+			found = count>=threshold;
 		} while (!found && i>0);
-		hmax = i;
+		if (i < 255)
+			hmax = i+1;
+		else
+			hmax = 255;
 				
 		//IJ.log(hmin+" "+hmax+" "+threshold);
 		if (hmax>hmin) {
 			double min = stats.histMin+hmin*stats.binSize;
 			double max = stats.histMin+hmax*stats.binSize;
-			if (!updateSelectionOnly)
-				ip.resetRoi();
 			if (normalize)
 				normalize(ip, min, max);
-			else {
-				if (updateSelectionOnly) {
-					ImageProcessor mask = ip.getMask();
-					if (mask!=null) ip.snapshot();
-					ip.setMinAndMax(min, max);
-					if (mask!=null) ip.reset(mask);
-				} else
-					ip.setMinAndMax(min, max);
-			}
+			else
+				ip.setMinAndMax(min, max);
 		}
 	}
 	
@@ -177,17 +138,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 			else
 				lut[i] = (int)(((double)(i-min)/(max-min))*max2);
 		}
-		applyTable(ip, lut);
-	}
-	
-	void applyTable(ImageProcessor ip, int[] lut) {
-		if (updateSelectionOnly) {
-			ImageProcessor mask = ip.getMask();
-			if (mask!=null) ip.snapshot();
-				ip.applyTable(lut);
-			if (mask!=null) ip.reset(mask);
-		} else
-			ip.applyTable(lut);
+		ip.applyTable(lut);
 	}
 
 	void normalizeFloat(ImageProcessor ip, double min, double max) {
@@ -266,7 +217,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		}
 		lut[max] = max;
 		
-		applyTable(ip, lut);
+		ip.applyTable(lut);
 	}
 
 	private double getWeightedValue(int[] histogram, int i) {
