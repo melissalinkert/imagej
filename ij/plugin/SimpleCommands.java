@@ -9,6 +9,8 @@ public class SimpleCommands implements PlugIn {
 
 	public void run(String arg) {
 		ImagePlus imp = WindowManager.getCurrentImage();
+		if (arg.equals("about"))
+			{showAboutBox(); return;}
 		if (imp==null)
 			{IJ.noImage(); return;}
 		if (arg.equals("unlock"))
@@ -20,11 +22,9 @@ public class SimpleCommands implements PlugIn {
 	void unlock(ImagePlus imp) {
 		boolean wasUnlocked = imp.lockSilently();
 		if (wasUnlocked)
-			IJ.showStatus("\""+imp.getTitle()+"\" is not locked");
-		else {
-			IJ.showStatus("\""+imp.getTitle()+"\" is now unlocked");
-			IJ.beep();
-		}
+			IJ.showMessage("Unlocker", "\""+imp.getTitle()+"\" is not locked.");
+		else
+			IJ.showMessage("Unlocker", "\""+imp.getTitle()+"\" is now unlocked.");
 		imp.unlock();
 	}
 
@@ -37,5 +37,17 @@ public class SimpleCommands implements PlugIn {
 		else
 			imp.setTitle(gd.getNextString());
 	}
-		
+	
+	void showAboutBox() {
+		MessageDialog d = new MessageDialog(IJ.getInstance(), "About ImageJ...",
+			"         ImageJ " + ImageJ.VERSION + "\n" +
+			" \n" +
+			"Wayne Rasband (wayne@codon.nih.gov)\n" +
+			"National Institutes of Health, USA\n" +
+			"http://rsb.info.nih.gov/ij/\n" +
+			" \n" +
+			"ImageJ is in the public domain."
+		);
+	}
+	
 }
