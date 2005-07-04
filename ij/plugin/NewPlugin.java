@@ -4,65 +4,30 @@ import ij.*;
 import ij.gui.*;
 import ij.plugin.frame.Editor;
 
-/** This class creates a new macro or the Java source for a new plugin. */
+/** This class creates new plugins in Java source form. */
 public class NewPlugin implements PlugIn {
 
-	public static final int MACRO=0, PLUGIN=1, PLUGIN_FILTER=2, PLUGIN_FRAME=3, TEXT_FILE=4;
+	public static final int PLUGIN=0, PLUGIN_FILTER=1, PLUGIN_FRAME=2;
 	
-    private static int type = MACRO;
-    private static String name = "Macro";
-    private static String[] types = {"Macro", "Plugin", "Plugin Filter", "Plugin Frame", "Text File"};
-	private Editor ed;
+    private static int type = PLUGIN;
+    private static String name = "Plugin_.java";
+    private static String[] types = {"Plugin", "Filter", "Frame"};
     
     public void run(String arg) {
-		if (arg.equals("")&&!showDialog())
+		if (!showDialog())
 			return;
-		if (arg.equals("")) {
-			if (type==MACRO || type==TEXT_FILE) {
-				if (type==TEXT_FILE && name.equals("Macro"))
-					name = "Untitled.txt";
-    			createMacro(name);
-    		} else
-    			createPlugin(name, type, arg);
-    	} else
-    		createPlugin("Converted_Macro.java", PLUGIN, arg);
+    	createPlugin(name, type);
     	IJ.register(NewPlugin.class);
     }
     
-	public void createMacro(String name) {
-		ed = (Editor)IJ.runPlugIn("ij.plugin.frame.Editor", "");
+	public void createPlugin(String name, int type) {
+		Editor ed = (Editor)IJ.runPlugIn("ij.plugin.frame.Editor", "");
 		if (ed==null)
 			return;
-		if (name.endsWith(".java"))
-			name = name.substring(0, name.length()-5);
-		//if (name.endsWith("_"))
-		//	name = name.substring(0, name.length()-1);
-		if (!(name.endsWith(".txt")))
-			name += ".txt";
-		ed.create(name, "");
-	}
-
-	public void createPlugin(String name, int type, String methods) {
-  		ed = (Editor)IJ.runPlugIn("ij.plugin.frame.Editor", "");
-		if (ed==null) return;
-		if (name.equals("Macro") || name.equals("Macro.txt") || name.equals("Untitled.txt")) {
-			switch (type) {
-				case PLUGIN: name = "My_Plugin.java"; break;
-				case PLUGIN_FILTER:  name = "Filter_Plugin.java"; break;
-				case PLUGIN_FRAME:  name = "Plugin_Frame.java"; break;
-			}
-		}
 		String pluginName = name;
-		if (!(name.endsWith(".java") || name.endsWith(".JAVA"))) {
-			if (pluginName.endsWith(".txt"))
-				pluginName = pluginName.substring(0, pluginName.length()-4);
+		if (!(name.endsWith(".java") || name.endsWith(".JAVA")))
 			pluginName += ".java";
-		}
-		//if (name.indexOf('_')==-1) {
-		//	pluginName = pluginName.substring(0, pluginName.length()-5);
-		//	pluginName = pluginName + "_.java";
-		//}
-		String className = pluginName.substring(0, pluginName.length()-5);
+		String className = pluginName.substring(0,pluginName.length()-5);
 		String text = "";
 		text += "import ij.*;\n";
 		text += "import ij.process.*;\n";
@@ -75,10 +40,7 @@ public class NewPlugin implements PlugIn {
 				text += "public class "+className+" implements PlugIn {\n";
 				text += "\n";
 				text += "\tpublic void run(String arg) {\n";
-				if (methods.equals(""))
-					text += "\t\tIJ.showMessage(\""+className+"\",\"Hello world!\");\n";
-				else
-					text += methods;
+				text += "\t\tIJ.showMessage(\""+className+"\",\"Hello world!\");\n";
 				text += "\t}\n";
 				break;
 			case PLUGIN_FILTER:
@@ -107,11 +69,11 @@ public class NewPlugin implements PlugIn {
 				text += "\n";
 				text += "\tpublic "+className+"() {\n";
 				text += "\t\tsuper(\""+className+"\");\n";
-				text += "\t\tTextArea ta = new TextArea(15, 50);\n";
+				text += "\t\tTextArea ta = new TextArea();\n";
 				text += "\t\tadd(ta);\n";
 				text += "\t\tpack();\n";
 				text += "\t\tGUI.center(this);\n";
-				text += "\t\tshow();\n";
+				text += "\t\tsetVisible(true);\n";
 				text += "\t}\n";
 				break;
 		}
@@ -121,7 +83,7 @@ public class NewPlugin implements PlugIn {
 	}
 	
 	public boolean showDialog() {
-		GenericDialog gd = new GenericDialog("New...");
+		GenericDialog gd = new GenericDialog("New Plugin...");
 		gd.addStringField("Name:", name, 16);
 		gd.addChoice("Type:", types, types[type]);
 		gd.showDialog();
@@ -130,11 +92,6 @@ public class NewPlugin implements PlugIn {
 		name = gd.getNextString();
 		type = gd.getNextChoiceIndex();
 		return true;
-	}
-	
-	/** Returns the Editor the newly created macro or plugin was opened in. */
-	public Editor getEditor() {
-		return ed;
 	}
 
 }
