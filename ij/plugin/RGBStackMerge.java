@@ -30,12 +30,12 @@ public class RGBStackMerge implements PlugIn {
         String none = "*None*";
         titles[wList.length] = none;
 
-        GenericDialog gd = new GenericDialog("RGB Merge");
-        gd.addChoice("Red:", titles, titles[0]);
-        gd.addChoice("Green:", titles, titles[1]);
+        GenericDialog gd = new GenericDialog("RGB Stack Merge");
+        gd.addChoice("Red Stack:", titles, titles[0]);
+        gd.addChoice("Green Stack:", titles, titles[1]);
         String title3 = titles.length>2?titles[2]:none;
-        gd.addChoice("Blue:", titles, title3);
-        gd.addCheckbox("Keep source images", false);
+        gd.addChoice("Blue Stack:", titles, title3);
+        gd.addCheckbox("Keep source stacks", false);
         gd.showDialog();
         if (gd.wasCanceled())
             return;
@@ -58,7 +58,7 @@ public class RGBStackMerge implements PlugIn {
             }
         }
         if (width==0) {
-            IJ.error("There must be at least one source image or stack.");
+            IJ.error("There must be at least one 8-bit or RGB source stack.");
             return;
         }
         for (int i=0; i<3; i++) {
@@ -68,12 +68,12 @@ public class RGBStackMerge implements PlugIn {
                     IJ.error("The source stacks must all have the same number of slices.");
                     return;
                 }
-                //if (!(img.getType()==ImagePlus.GRAY8||img.getType()==ImagePlus.COLOR_RGB)) {
-                //    IJ.error("The source stacks must be 8-bit grayscale or RGB.");
-                //    return;
-                //}
+                if (!(img.getType()==ImagePlus.GRAY8||img.getType()==ImagePlus.COLOR_RGB)) {
+                    IJ.error("The source stacks must be 8-bit grayscale or RGB.");
+                    return;
+                }
                 if (img.getWidth()!=width || image[i].getHeight()!=height) {
-                    IJ.error("The source images or stacks must have the same width and height.");
+                    IJ.error("The source stacks must have the same width and height.");
                     return;
                 }
             }
@@ -92,10 +92,7 @@ public class RGBStackMerge implements PlugIn {
                         win.close();
                 }
             }
-        ImagePlus imp2 = new ImagePlus("RGB", rgb);
-        if (image[0]!=null)
-            imp2.setCalibration(image[0].getCalibration());
-        imp2.show();
+        new ImagePlus("RGB", rgb).show();
     }
     
     public ImageStack mergeStacks(int w, int h, int d, ImageStack red, ImageStack green, ImageStack blue, boolean keep) {
@@ -106,24 +103,24 @@ public class RGBStackMerge implements PlugIn {
         int slice = 1;
         blank = new byte[w*h];
         byte[] redPixels, greenPixels, bluePixels;
-        boolean invertedRed = red!=null?red.getProcessor(1).isInvertedLut():false;
-        boolean invertedGreen = green!=null?green.getProcessor(1).isInvertedLut():false;
-        boolean invertedBlue = blue!=null?blue.getProcessor(1).isInvertedLut():false;
+            boolean invertedRed = red!=null?red.getProcessor(1).isInvertedLut():false;
+            boolean invertedGreen = green!=null?green.getProcessor(1).isInvertedLut():false;
+            boolean invertedBlue = blue!=null?blue.getProcessor(1).isInvertedLut():false;
         try {
             for (int i=1; i<=d; i++) {
             cp = new ColorProcessor(w, h);
                 redPixels = getPixels(red, slice, 0);
                 greenPixels = getPixels(green, slice, 1);
                 bluePixels = getPixels(blue, slice, 2);
-                if (invertedRed) redPixels = invert(redPixels);
-                if (invertedGreen) greenPixels = invert(greenPixels);
-                if (invertedBlue) bluePixels = invert(bluePixels);
+                if (invertedRed) invert(redPixels);
+                if (invertedGreen) invert(greenPixels);
+                if (invertedBlue) invert(bluePixels);
                 cp.setRGB(redPixels, greenPixels, bluePixels);
             if (keep) {
                 slice++;
-                //if (invertedRed) invert(redPixels);
-                //if (invertedGreen) invert(greenPixels);
-                //if (invertedBlue) invert(bluePixels);
+                    if (invertedRed) invert(redPixels);
+                    if (invertedGreen) invert(greenPixels);
+                    if (invertedBlue) invert(bluePixels);
             } else {
                     if (red!=null) red.deleteSlice(1);
                 if (green!=null &&green!=red) green.deleteSlice(1);
@@ -144,16 +141,9 @@ public class RGBStackMerge implements PlugIn {
      byte[] getPixels(ImageStack stack, int slice, int color) {
          if (stack==null)
             return blank;
-        Object pixels = stack.getPixels(slice);
-        if (!(pixels instanceof int[])) {
-        	if (pixels instanceof byte[])
-            	return (byte[])pixels;
-            else {
-            	ImageProcessor ip = stack.getProcessor(slice);
-            	ip = ip.convertToByte(true);
-            	return (byte[])ip.getPixels();
-            }
-        } else { //RGB
+        if (stack.getPixels(slice) instanceof byte[])
+            return (byte[])stack.getPixels(slice);
+        else {
             byte[] r,g,b;
             int size = stack.getWidth()*stack.getHeight();
             r = new byte[size];
@@ -162,21 +152,19 @@ public class RGBStackMerge implements PlugIn {
             ColorProcessor cp = (ColorProcessor)stack.getProcessor(slice);
             cp.getRGB(r, g, b);
             switch (color) {
-                case 0: return r;
-                case 1: return g;
-                case 2: return b;
+                case 0: return r;;
+                case 1: return g;;
+                case 2: return b;;
             }
         }
         return null;
     }
 
-    byte[] invert(byte[] pixels) {
-        byte[] pixels2 = new byte[pixels.length];
-        System.arraycopy(pixels, 0, pixels2, 0, pixels.length);
-        for (int i=0; i<pixels2.length; i++)
-            pixels2[i] = (byte)(255-pixels2[i]&255);
-        return pixels2;
+    void invert(byte[] pixels) {
+        for (int i=0; i<pixels.length; i++)
+            pixels[i] = (byte)(255-pixels[i]&255);
     }
 
 }
+
 
