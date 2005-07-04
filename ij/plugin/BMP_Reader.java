@@ -31,19 +31,14 @@ public class BMP_Reader extends ImagePlus implements PlugIn {
                 try {
                         is = new FileInputStream(path);
                         bmp.read(is);
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                         String msg = e.getMessage();
                         if (msg==null || msg.equals(""))
                                 msg = ""+e;
-                        IJ.error("BMP Decoder", msg);
+                        IJ.showMessage("BMP Decoder", msg);
                         return;
-                } finally {
-					if( is!=null) {
-						try {
-							is.close();
-						} catch (IOException e) {}
-					}
-				}
+                }
 
                 MemoryImageSource mis = bmp.makeImageSource();
                 if (mis==null) IJ.write("mis=null");
@@ -55,8 +50,6 @@ public class BMP_Reader extends ImagePlus implements PlugIn {
                 setImage(img);
                 setTitle(name);
                 setFileInfo(fi);
-                if (bmp.topDown)
-                    getProcessor().flipVertical();
                 if (arg.equals(""))
                     show();
         }
@@ -83,8 +76,7 @@ class BMPDecoder {
         int noOfEntries;
 
         byte[] byteData;                // Unpacked data
-        int[] intData;                     // Unpacked data
-        boolean topDown;
+        int[] intData;                  // Unpacked data
 
 
         private int readInt() throws IOException {
@@ -131,6 +123,7 @@ class BMPDecoder {
                 int vertResolution;             // vertical resolution, pixels/meter (may be 0)
                 int colorsUsed;                 // no. of colors in palette (if 0, calculate)
                 int colorsImportant;    // no. of important colors (appear first in palette) (0 means all are important)
+                boolean topDown;
                 int noOfPixels;
 
                 size = readInt();
@@ -146,13 +139,16 @@ class BMPDecoder {
                 colorsImportant = readInt();
 
                 topDown = (height < 0);
-                if (topDown) height = -height;
                 noOfPixels = width * height;
 
                 // Scan line is padded with zeroes to be a multiple of four bytes
                 scanLineSize = ((width * bitsPerPixel + 31) / 32) * 4;
 
-                actualSizeOfBitmap = scanLineSize * height;
+                if (sizeOfBitmap != 0)
+                        actualSizeOfBitmap = sizeOfBitmap;
+                else
+                        // a value of 0 doesn't mean zero - it means we have to calculate it
+                        actualSizeOfBitmap = scanLineSize * height;
 
                 if (colorsUsed != 0)
                         actualColorsUsed = colorsUsed;

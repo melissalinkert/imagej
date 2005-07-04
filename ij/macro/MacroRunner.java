@@ -19,7 +19,7 @@ public class MacroRunner implements Runnable {
 		this.macro = macro;
 		thread = new Thread(this, "Macro$"); 
 		thread.setPriority(Math.max(thread.getPriority()-2, Thread.MIN_PRIORITY));
-		start();
+		thread.start();
 	}
 
 	/** Create a new object that interprets macro source in a separate thread. */
@@ -46,7 +46,7 @@ public class MacroRunner implements Runnable {
 		}
 		thread = new Thread(this, "Macro$"); 
 		thread.setPriority(Math.max(thread.getPriority()-2, Thread.MIN_PRIORITY));
-		start();
+		thread.start();
 	}
 
 	/** Create a new object that runs a tokenized macro in a separate thread. */
@@ -56,14 +56,7 @@ public class MacroRunner implements Runnable {
 		this.name = name;
 		thread = new Thread(this, name+"_Macro$");
 		thread.setPriority(Math.max(thread.getPriority()-2, Thread.MIN_PRIORITY));
-		start();
-	}
-
-	void start() {
-		if(IJ.noGUI)
-			thread.run();
-		else
-			thread.start();
+		thread.start();
 	}
 
 	public void run() {
@@ -71,15 +64,14 @@ public class MacroRunner implements Runnable {
 			if (pgm==null)
 				new Interpreter().run(macro);
 			else
-				new Interpreter().runMacro(pgm, address, name);
+					new Interpreter().runMacro(pgm, address, name);
 		} catch(Throwable e) {
-			Interpreter.abort();
 			IJ.showStatus("");
 			IJ.showProgress(1.0);
 			ImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.unlock();
 			String msg = e.getMessage();
-			if (e instanceof RuntimeException && msg!=null && e.getMessage().equals(Macro.MACRO_CANCELED))
+			if (e instanceof RuntimeException && msg!=null && e.getMessage().equals("Macro canceled"))
 				return;
 			CharArrayWriter caw = new CharArrayWriter();
 			PrintWriter pw = new PrintWriter(caw);
@@ -87,7 +79,7 @@ public class MacroRunner implements Runnable {
 			String s = caw.toString();
 			if (IJ.isMacintosh())
 				s = Tools.fixNewLines(s);
-			//Don't show exceptions resulting from window being closed
+			// Don't show exceptions resulting from window being closed
 			if (!(s.indexOf("NullPointerException")>=0 && s.indexOf("ij.process")>=0))
 				new TextWindow("Exception", s, 350, 250);
 		}

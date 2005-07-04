@@ -2,72 +2,39 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.measure.*;
+import ij.measure.Calibration;
 import java.awt.*;
 
 
 /** This plugin implements the commands in the Edit/Section submenu. */
-public class Selection implements PlugIn, Measurements {
+public class Selection implements PlugIn {
 	ImagePlus imp;
 	float[] kernel = {1f, 1f, 1f, 1f, 1f};
 	float[] kernel3 = {1f, 1f, 1f};
-	static String angle = "15"; // degrees
-	static String enlarge = "15"; // pixels
-	static String bandSize = "15"; // pixels
 
+	/** 'arg' must be "all", "none", "restore" or "spline". */
 	public void run(String arg) {
 		imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
     	if (arg.equals("all"))
-    		imp.setRoi(0,0,imp.getWidth(),imp.getHeight());
-    	else if (arg.equals("none"))
-    		imp.killRoi();
-    	else if (arg.equals("restore"))
-    		imp.restoreRoi();
-    	else if (arg.equals("spline"))
-    		fitSpline();
-    	else if (arg.equals("ellipse"))
-    		drawEllipse(imp);
-    	else if (arg.equals("hull"))
-    		convexHull(imp);
-    	else if (arg.equals("mask"))
-    		createMask(imp);    	
-    	else if (arg.equals("inverse"))
-    		invert(imp); 
-    	else
-    		runMacro(arg);
-	}
-	
-	void runMacro(String arg) {
-		Roi roi = imp.getRoi();
-		if (roi==null) {
-			IJ.error("Selection required");
-			return;
-		}
-		roi = (Roi)roi.clone();
-		if (arg.equals("rotate")) {
-			String value = IJ.runMacroFile("ij.jar:RotateSelection", angle);
-			if (value!=null) angle = value;    	
-		} else if (arg.equals("enlarge")) {
-			String value = IJ.runMacroFile("ij.jar:EnlargeSelection", enlarge); 
-			if (value!=null) enlarge = value; 
-			Roi.previousRoi = roi;
-		} else if (arg.equals("band")) {
-			String value = IJ.runMacroFile("ij.jar:MakeSelectionBand", bandSize); 
-			if (value!=null) bandSize = value;    	
-			Roi.previousRoi = roi;
-		}
+    		{imp.setRoi(0,0,imp.getWidth(),imp.getHeight()); return;}
+    	if (arg.equals("none"))
+    		{imp.killRoi(); return;}
+    	if (arg.equals("restore"))
+    		{imp.restoreRoi(); return;}
+    	if (arg.equals("spline"))
+    		{fitSpline(); return;}
 	}
 	
 	void fitSpline() {
 		Roi roi = imp.getRoi();
 		if (roi==null)
-			{IJ.error("Spline", "Selection required"); return;}
+			{IJ.showMessage("Spline", "Selection required"); return;}
 		int type = roi.getType();
 		boolean segmentedSelection = type==Roi.POLYGON||type==Roi.POLYLINE;
 		if (!(segmentedSelection||type==Roi.FREEROI||type==Roi.TRACED_ROI||type==Roi.FREELINE))
-			{IJ.error("Spline", "Polygon or polyline selection required"); return;}
+			{IJ.showMessage("Spline", "Polygon or polyline selection required"); return;}
 		PolygonRoi p = (PolygonRoi)roi;
 		double length = getLength(p);
 		if (!segmentedSelection)
@@ -99,7 +66,7 @@ public class Selection implements PlugIn, Measurements {
 		int[] y = roi.getYCoordinates();
 		int n = roi.getNCoordinates();
 		float[] curvature = getCurvature(x, y, n);
-		Rectangle r = roi.getBounds();
+		Rectangle r = roi.getBoundingRect();
 		double threshold = rodbard(length);
 		//IJ.log("trim: "+length+" "+threshold);
 		double distance = Math.sqrt((x[1]-x[0])*(x[1]-x[0])+(y[1]-y[0])*(y[1]-y[0]));
@@ -165,135 +132,5 @@ public class Selection implements PlugIn, Measurements {
 		return curvature;
 	}
 	
-	void drawEllipse(ImagePlus imp) {
-		IJ.showStatus("Fitting ellipse");
-		Roi roi = imp.getRoi();
-		if (roi==null)
-			{IJ.error("Fit Ellipse", "Selection required"); return;}
-		if (roi.isLine())
-			{IJ.error("Fit Ellipse", "\"Fit Ellipse\" does not work with line selections"); return;}
-		ImageProcessor ip = imp.getProcessor();
-		ImageStatistics stats;
-		if (roi.getType()==Roi.COMPOSITE)
-			stats = imp.getStatistics();
-		else {
-			ip.setRoi(roi.getPolygon());
-			stats = ImageStatistics.getStatistics(ip, AREA+MEAN+MODE+MIN_MAX, null);
-		}
-		EllipseFitter ef = new EllipseFitter();
-		ef.fit(ip, stats);
-		ef.makeRoi(ip);
-		imp.setRoi(new PolygonRoi(ef.xCoordinates, ef.yCoordinates, ef.nCoordinates, roi.FREEROI));
-		IJ.showStatus("");
-	}
-
-	void convexHull(ImagePlus imp) {
-		Roi roi = imp.getRoi();
-		int type = roi!=null?roi.getType():-1;
-		if (!(type==Roi.FREEROI||type==Roi.TRACED_ROI||type==Roi.POLYGON||type==Roi.POINT))
-			{IJ.error("Convex Hull", "Polygonal or point selection required"); return;}
-		imp.setRoi(makeConvexHull(imp, (PolygonRoi)roi));
-	}
-
-	// Finds the convex hull using the gift wrap algorithm
-	Roi makeConvexHull(ImagePlus imp, PolygonRoi roi) {
-		int n = roi.getNCoordinates();
-		int[] xCoordinates = roi.getXCoordinates();
-		int[] yCoordinates = roi.getYCoordinates();
-		Rectangle r = roi.getBounds();
-		int xbase = r.x;
-		int ybase = r.y;
-		int[] xx = new int[n];
-		int[] yy = new int[n];
-		int n2 = 0;
-		int p1 = findFirstPoint(xCoordinates, yCoordinates, n, imp); 
-		int pstart = p1;
-		int x1, y1, x2, y2, x3, y3, p2, p3;
-		int determinate;
-		do {
-			x1 = xCoordinates[p1];
-			y1 = yCoordinates[p1];
-			p2 = p1+1; if (p2==n) p2=0;
-			x2 = xCoordinates[p2];
-			y2 = yCoordinates[p2];
-			p3 = p2+1; if (p3==n) p3=0;
-			do {
-				x3 = xCoordinates[p3];
-				y3 = yCoordinates[p3];
-				determinate = x1*(y2-y3)-y1*(x2-x3)+(y3*x2-y2*x3);
-				if (determinate>0)
-					{x2=x3; y2=y3; p2=p3;}
-				p3 += 1;
-				if (p3==n) p3 = 0;
-			} while (p3!=p1);
-			if (n2<n) { 
-				xx[n2] = xbase + x1;
-				yy[n2] = ybase + y1;
-				n2++;
-			}
-			p1 = p2;
-		} while (p1!=pstart);
-		return new PolygonRoi(xx, yy, n2, roi.POLYGON);
-	}
-	
-	// Finds the index of the upper right point that is guaranteed to be on convex hull
-	int findFirstPoint(int[] xCoordinates, int[] yCoordinates, int n, ImagePlus imp) {
-		int smallestY = imp.getHeight();
-		int x, y;
-		for (int i=0; i<n; i++) {
-			y = yCoordinates[i];
-			if (y<smallestY)
-			smallestY = y;
-		}
-		int smallestX = imp.getWidth();
-		int p1 = 0;
-		for (int i=0; i<n; i++) {
-			x = xCoordinates[i];
-			y = yCoordinates[i];
-			if (y==smallestY && x<smallestX) {
-				smallestX = x;
-				p1 = i;
-			}
-		}
-		return p1;
-	}
-	
-	void createMask(ImagePlus imp) {
-		Roi roi = imp.getRoi();
-		if (roi==null || !(roi.isArea()||roi.getType()==Roi.POINT))
-			{IJ.error("Create Mask", "Area selection required"); return;}
-		ImagePlus maskImp = null;
-		Frame frame = WindowManager.getFrame("Mask");
-		if (frame!=null && (frame instanceof ImageWindow))
-			maskImp = ((ImageWindow)frame).getImagePlus();
-		if (maskImp==null) {
-			ImageProcessor ip = new ByteProcessor(imp.getWidth(), imp.getHeight());
-			ip.invertLut();
-			maskImp = new ImagePlus("Mask", ip);
-			maskImp.show();
-		}
-		ImageProcessor ip = maskImp.getProcessor();
-		ip.setRoi(roi);
-		ip.setValue(255);
-		ip.fill(ip.getMask());
-		maskImp.updateAndDraw();
-	}
-
-	void invert(ImagePlus imp) {
-		if (!IJ.isJava2())
-			{IJ.error("Inverse", "Java 1.2 or later required"); return;}
-		Roi roi = imp.getRoi();
-		if (roi==null || !roi.isArea())
-			{IJ.error("Inverse", "Area selection required"); return;}
-		ShapeRoi s1, s2;
-		if (roi instanceof ShapeRoi)
-			s1 = (ShapeRoi)roi;
-		else
-			s1 = new ShapeRoi(roi);
-		
-		s2 = new ShapeRoi(new Roi(0,0, imp.getWidth(), imp.getHeight()));
-		imp.setRoi(s1.xor(s2));
-	}
-
 }
 

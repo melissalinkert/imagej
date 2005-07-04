@@ -4,55 +4,38 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.util.*;
-import ij.plugin.frame.ContrastAdjuster;
 import java.awt.*;
 import java.util.*;
+
 /** This plugin implements the Image/Lookup Tables/Apply LUT command. */
 public class LutApplier implements PlugInFilter {
 	ImagePlus imp;
 	int min, max;
-	boolean canceled;
+
 	public int setup(String arg, ImagePlus imp) {
 		this.imp = imp;
-		int baseOptions = DOES_8G+DOES_8C+DOES_RGB+SUPPORTS_MASKING;
-		if (imp!=null && imp.getType()==ImagePlus.COLOR_RGB)
-			return baseOptions+NO_UNDO;
-		else
-			return baseOptions;
+		return DOES_8G+DOES_8C;
 	}
+
 	public void run(ImageProcessor ip) {
 		apply(imp, ip);
 	}
 	
 	void apply(ImagePlus imp, ImageProcessor ip) {
-        if (ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD) {
-            imp.unlock();
-			IJ.runPlugIn("ij.plugin.Thresholder", "skip");
-            return;
-        }
 		min = (int)ip.getMin();
 		max = (int)ip.getMax();
 		if (min==0 && max==255) {
-				IJ.error("Apply LUT", "The display range must first be updated\n"
-                +"using Image>Adjust>Brightness/Contrast\n"
-                +"or threshold levels defined using\n"
-                +"Image>Adjust>Threshold.");
+				IJ.showMessage("Apply LUT", "The display range must first be updated \nusing Image->Adjust->Brightness/Contrast.");
 				return;
 		}
+		ip.resetMinAndMax();
 		if (imp.getType()==ImagePlus.COLOR_RGB) {
 			if (imp.getStackSize()>1)
 				applyRGBStack(imp);
-			else {
-				ip.reset();
-				Undo.setup(Undo.TRANSFORM, imp);
-				ip.setMinAndMax(min, max);
-				//ip.snapshot();
-			}
-			if (canceled) ip.reset();
-			resetContrastAdjuster();
+			else
+				ip.snapshot();
 			return;
 		}
-		ip.resetMinAndMax();
 		int[] table = new int[256];
 		for (int i=0; i<256; i++) {
 			if (i<=min)
@@ -75,26 +58,16 @@ public class LutApplier implements PlugInFilter {
 				ip.applyTable(table);
 		} else
 			ip.applyTable(table);
-		resetContrastAdjuster();
 	}
-	
-	void resetContrastAdjuster() {
-        Frame frame = WindowManager.getFrame("B&C");
-        if (frame==null)
-            frame = WindowManager.getFrame("W&L");
-        if (frame!=null && (frame instanceof ContrastAdjuster))
-            ((ContrastAdjuster)frame).updateAndDraw();
-	}
+
 	void applyRGBStack(ImagePlus imp) {
 		int current = imp.getCurrentSlice();
 		int n = imp.getStackSize();
 		if (!IJ.showMessageWithCancel("Update Entire Stack?",
 		"Apply brightness and contrast settings\n"+
 		"to all "+n+" slices in the stack?\n \n"+
-		"NOTE: There is no Undo for this operation.")) {
-			canceled = true;
+		"NOTE: There is no Undo for this operation."))
 			return;
-		}
 		for (int i=1; i<=n; i++) {
 			if (i!=current) {
 				imp.setSlice(i);
