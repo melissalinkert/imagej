@@ -44,7 +44,7 @@ public class AVIWriter implements PlugInFilter {
             writeImage(imp);
             IJ.showStatus("");
         } catch (IOException e) {
-            IJ.error("AVI Writer", "An error occured writing the file.\n \n" + e);
+            IJ.showMessage("AVI Writer", "An error occured writing the file.\n \n" + e);
         }
         IJ.showStatus("");
     }
@@ -101,7 +101,6 @@ public class AVIWriter implements PlugInFilter {
         String fileDir = sd.getDirectory();
         file = new File(fileDir + fileName);
         raFile = new RandomAccessFile(file, "rw");
-        if (IJ.isJava2()) raFile.setLength(0);
         imp.startTiming();
         writeString("RIFF"); // signature
         saveFileSize = raFile.getFilePointer();
@@ -120,7 +119,7 @@ public class AVIWriter implements PlugInFilter {
         writeString("avih"); // Write the avih sub-CHUNK        
         writeInt(0x38); // Write the length of the avih sub-CHUNK (38H) not including the
                                   // the first 8 bytes for avihSignature and the length
-        microSecPerFrame = (int)((1.0/getFrameRate())*1.0e6);
+        microSecPerFrame = (int)((1.0/Animator.getFrameRate())*1.0e6);
         //IJ.write("microSecPerFrame: "+microSecPerFrame);
         writeInt(microSecPerFrame); // dwMicroSecPerFrame - Write the microseconds per frame
         writeInt(0); // dwMaxBytesPerSec (maximum data rate of the file in bytes per second)
@@ -175,7 +174,7 @@ public class AVIWriter implements PlugInFilter {
        writeInt(0); // dwPriority
        writeInt(0); // dwInitialFrames
        writeInt(1); // dwScale
-       writeInt((int)getFrameRate()); //  dwRate - frame rate for video streams
+       writeInt((int)Animator.getFrameRate()); //  dwRate - frame rate for video streams
        writeInt(0); // dwStart - this field is usually set to zero
        writeInt(tDim*zDim); // dwLength - playing time of AVI file as defined by scale and rate
                                       // Set equal to the number of frames
@@ -280,8 +279,7 @@ public class AVIWriter implements PlugInFilter {
         bufferWrite = new byte[bytesPerPixel*xDim*yDim];
         
          for (z = 0; z < zDim; z++) {
-              IJ.showProgress(z, zDim);
-              if ((z%10)==0) IJ.showStatus("AVI...: "+z+"/"+zDim);
+              IJ.showProgress((double)z /zDim);
               raFile.write(dataSignature);
               savedbLength[z] = raFile.getFilePointer();
               writeInt(bytesPerPixel*xDim*yDim); // Write the data length
@@ -388,13 +386,6 @@ public class AVIWriter implements PlugInFilter {
                 lutWrite[4*i+3] = (byte)0;
             }
         }
-    }
-    
-    double getFrameRate() {
-		double rate = Animator.getFrameRate();
-		if (rate<=1.0) rate = 1.0;
-		if (rate>60.0) rate = 60.0;
-		return rate;
     }
     
     final void writeString(String s) throws IOException {

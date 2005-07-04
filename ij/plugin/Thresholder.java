@@ -14,7 +14,6 @@ public class Thresholder implements PlugIn, Measurements {
 	private double minThreshold;
 	private double maxThreshold;
 	boolean autoThreshold;
-	boolean skipDialog;
 	ImageStack stack1;
 	static boolean fill1 = true;
 	static boolean fill2 = true;
@@ -22,18 +21,16 @@ public class Thresholder implements PlugIn, Measurements {
 
 
 	public void run(String arg) {
-		skipDialog = arg.equals("skip");
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
-		if (imp.getStackSize()==1) {
+		//if (imp.getType()==ImagePlus.COLOR_RGB)
+		//	{IJ.error("RGB images are not supported."); return;}
+		if (imp.getStackSize()==1)
 			Undo.setup(Undo.COMPOUND_FILTER, imp);
-			applyThreshold(imp);
-			Undo.setup(Undo.COMPOUND_FILTER_DONE, imp);
-		} else {
+		else
 			Undo.reset();
-			applyThreshold(imp);
-		}
+		applyThreshold(imp);
 	}
 
 	void applyThreshold(ImagePlus imp) {
@@ -45,14 +42,21 @@ public class Thresholder implements PlugIn, Measurements {
 		double saveMaxThreshold = ip.getMaxThreshold();
 		double saveMin = ip.getMin();
 		double saveMax = ip.getMax();
-		if (ip instanceof ByteProcessor)
-			{saveMin =0; saveMax = 255;}
 		autoThreshold = saveMinThreshold==ImageProcessor.NO_THRESHOLD;
+		if (!(imp.getType()==ImagePlus.GRAY8))
+			convertToByte(imp);
+		ip = imp.getProcessor();
+		if (autoThreshold)
+			autoThreshold(imp);
+		else {
+			if (Recorder.record)
+				Recorder.record("setThreshold", (int)saveMinThreshold, (int)saveMaxThreshold);
+ 			minThreshold = ((saveMinThreshold-saveMin)/(saveMax-saveMin))*255.0;
+ 			maxThreshold = ((saveMaxThreshold-saveMin)/(saveMax-saveMin))*255.0;
+		}
 					
 		boolean useBlackAndWhite = true;
-		if (skipDialog)
-			fill1 = fill2 = useBlackAndWhite = true;
-		else if (!autoThreshold) {
+		if (!autoThreshold) {
 			GenericDialog gd = new GenericDialog("Apply Lut");
 			gd.addCheckbox("Thresholded pixels to foreground color", fill1);
 			gd.addCheckbox("Remaining pixels to background color", fill2);
@@ -64,19 +68,9 @@ public class Thresholder implements PlugIn, Measurements {
 			fill1 = gd.getNextBoolean();
 			fill2 = gd.getNextBoolean();
 			useBW = useBlackAndWhite = gd.getNextBoolean();
-		} else
-			fill1 = fill2 = true;
-
-		if (!(imp.getType()==ImagePlus.GRAY8))
-			convertToByte(imp);
-		ip = imp.getProcessor();
-		if (autoThreshold)
-			autoThreshold(imp);
-		else {
-			if (Recorder.record)
-				Recorder.record("setThreshold", (int)saveMinThreshold, (int)saveMaxThreshold);
- 			minThreshold = ((saveMinThreshold-saveMin)/(saveMax-saveMin))*255.0;
- 			maxThreshold = ((saveMaxThreshold-saveMin)/(saveMax-saveMin))*255.0;
+		} else {
+			fill1 = true;
+			fill2 = true;
 		}
 
 		int fcolor, bcolor;
@@ -116,8 +110,6 @@ public class Thresholder implements PlugIn, Measurements {
 			new StackProcessor(imp.getStack(), ip).applyTable(lut);
 		else
 			ip.applyTable(lut);
-		if (fill1=true && fill2==true && ((fcolor==0&&bcolor==255)||(fcolor==255&&bcolor==0)))
-			imp.getProcessor().setThreshold(fcolor, fcolor, ImageProcessor.NO_LUT_UPDATE);
 		imp.updateAndDraw();
 		imp.unlock();
 	}
@@ -132,14 +124,14 @@ public class Thresholder implements PlugIn, Measurements {
 		int nSlices = imp.getStackSize();
 		String label;
 		for(int i=1; i<=nSlices; i++) {
-			label = stack1.getSliceLabel(i);
+			label = stack1.getSliceLabel(1);
 			ip = stack1.getProcessor(i);
 			ip.setMinAndMax(min, max);
 			stack2.addSlice(label, ip.convertToByte(true));
 		}
 		imp.setStack(null, stack2);
 		imp.setSlice(currentSlice);
-		imp.setCalibration(imp.getCalibration()); //update calibration
+		imp.getCalibration().disableDensityCalibration();
 	}
 	
 	void autoThreshold(ImagePlus imp) {

@@ -12,47 +12,34 @@ public class ScaleBar implements PlugIn {
     static final String[] locations = {"Upper Right", "Lower Right", "Lower Left", "Upper Left", "At Selection"};
     static final int UPPER_RIGHT=0, LOWER_RIGHT=1, LOWER_LEFT=2, UPPER_LEFT=3, AT_SELECTION=4;
     static final String[] colors = {"White","Black","Light Gray","Gray","Dark Gray","Red","Green","Blue","Yellow"};
-    static final String[] checkboxLabels = {"Bold Text", "Hide Text"};
     static double barWidth;
     static int defaultBarHeight = 3;
     static int barHeightInPixels = defaultBarHeight;
     static String location = locations[UPPER_RIGHT];
     static String color = colors[0];
     static boolean boldText = true;
-    static boolean hideText;
     static int fontSize;
-    static boolean labelAll;
     ImagePlus imp;
     double imageWidth;
     double mag;
     int xloc, yloc;
     int barWidthInPixels;
-    int roiX=-1, roiY, roiWidth, roiHeight;
-    boolean[] checkboxStates = new boolean[2];
-
+    int roiX=-1, roiY, roiWidth, roiHeight ;
  
     public void run(String arg) {
         imp = WindowManager.getCurrentImage();
-        if (imp!=null) {
-            if (showDialog(imp) && imp.getStackSize()>1 && labelAll)
-            	labelSlices(imp);
-        } else
+        if (imp!=null)
+            showDialog(imp);
+        else {
             IJ.noImage();
+            return;
+        } 
      }
 
-    void labelSlices(ImagePlus imp) {
-		int slice = imp.getCurrentSlice();
-		for (int i=1; i<=imp.getStackSize(); i++) {
-			imp.setSlice(i);
-			drawScaleBar(imp);
-		}
-		imp.setSlice(slice);		
-    }
-    
     boolean showDialog(ImagePlus imp) {
         Roi roi = imp.getRoi();
         if (roi!=null) {
-            Rectangle r = roi.getBounds();
+            Rectangle r = roi.getBoundingRect();
             roiX = r.x;
             roiY = r.y; 
             roiWidth = r.width;
@@ -83,7 +70,6 @@ public class ScaleBar implements PlugIn {
             if (barWidth>5.0)
                 barWidth = (int)barWidth;
         }
-        int stackSize = imp.getStackSize();
         int digits = (int)barWidth==barWidth?0:1;
         if (barWidth<1.0)
             digits = 2;
@@ -91,17 +77,14 @@ public class ScaleBar implements PlugIn {
         if (mag<1.0 && barHeightInPixels<defaultBarHeight/mag)
             barHeightInPixels = (int)(defaultBarHeight/mag);
         imp.getProcessor().snapshot();
-        if (!IJ.macroRunning()) updateScalebar();
+        updateScalebar();
         GenericDialog gd = new BarDialog("Scale Bar");
         gd.addNumericField("Width in "+units+": ", barWidth, digits);
-        gd.addNumericField("Height in pixels: ", barHeightInPixels, 0);
+        gd.addNumericField("Height in Pixels: ", barHeightInPixels, 0);
         gd.addNumericField("Font Size: ", fontSize, 0);
         gd.addChoice("Color: ", colors, color);
         gd.addChoice("Location: ", locations, location);
-        checkboxStates[0] = boldText; checkboxStates[1] = hideText;
-		gd.addCheckboxGroup(1, 2, checkboxLabels, checkboxStates);
-		if (stackSize>1)
-			gd.addCheckbox("Label all Slices", labelAll);
+        gd.addCheckbox("Bold Text", boldText);
         gd.showDialog();
         if (gd.wasCanceled()) {
             imp.getProcessor().reset();
@@ -114,18 +97,14 @@ public class ScaleBar implements PlugIn {
         color = gd.getNextChoice();
         location = gd.getNextChoice();
         boldText = gd.getNextBoolean();
-        hideText = gd.getNextBoolean();
-        if (stackSize>1)
-        	labelAll = gd.getNextBoolean();
-        if (IJ.macroRunning()) updateScalebar();
-         return true;
+        return true;
     }
 
     void drawScaleBar(ImagePlus imp) {
           if (!updateLocation())
             return;
         ImageProcessor ip = imp.getProcessor();
-        Undo.setup(Undo.FILTER, imp);
+        Undo.setup(Undo.COMPOUND_FILTER, imp);
         Color color = getColor();
         //if (!(color==Color.white || color==Color.black)) {
         //    ip = ip.convertToRGB();
@@ -136,7 +115,7 @@ public class ScaleBar implements PlugIn {
         int y = yloc;
         ip.setRoi(x, y, barWidthInPixels, barHeightInPixels);
         ip.fill();
-        ip.resetRoi();
+        ip.setRoi(null);
 
         int fontType = boldText?Font.BOLD:Font.PLAIN;
         ip.setFont(new Font("SansSerif", fontType, fontSize));
@@ -147,8 +126,7 @@ public class ScaleBar implements PlugIn {
         String label = IJ.d2s(barWidth, digits) + " "+ imp.getCalibration().getUnits();
         x = x +(barWidthInPixels - ip.getStringWidth(label))/2;
         y = y + barHeightInPixels + fontSize + fontSize/4;
-        if (!hideText)
-            ip.drawString(label, x, y);   
+        ip.drawString(label, x, y);   
         imp.updateAndDraw();
     }
  
@@ -233,7 +211,6 @@ public class ScaleBar implements PlugIn {
             Choice loc = (Choice)(choice.elementAt(1));
             location = loc.getSelectedItem();
             boldText = ((Checkbox)(checkbox.elementAt(0))).getState();
-            hideText = ((Checkbox)(checkbox.elementAt(1))).getState();
             updateScalebar();
         }
 

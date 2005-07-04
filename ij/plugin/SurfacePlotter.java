@@ -40,10 +40,12 @@ public class SurfacePlotter implements PlugIn {
 	
 	public void run(String arg) {
 		img = WindowManager.getCurrentImage();
+
+		
 		if (img==null)
 			{IJ.noImage(); return;}
 		if (img.getType()==ImagePlus.COLOR_RGB)
-			{IJ.error("Surface Plotter", "Grayscale or pseudo-color image required"); return;}
+			{IJ.showMessage("Surface Plotter", "Grayscale or pseudo-color image required"); return;}
 		invertedLut = img.getProcessor().isInvertedLut();
 		if (firstTime) {
 			if (invertedLut)
@@ -74,8 +76,7 @@ public class SurfacePlotter implements PlugIn {
 				IJ.showStatus("Drawing slice " + i + "..." + " (" + (100*(i-1)/stackSource.getSize()) + "% done)");
 				ip = stackSource.getProcessor(i);
 				plot = makeSurfacePlot(ip);
-				ImageWindow win = plots.getWindow();
-				if (win!=null && win.isClosed()) break;
+				if (plots.getWindow().isClosed()) break;
 				stack.setPixels(plot.getPixels(), i);
 				plots.setSlice(i);
 			}
@@ -140,16 +141,19 @@ public class SurfacePlotter implements PlugIn {
 		double xinc = 0.8*plotWidth*Math.sin(angle)/polygons;
 		double yinc = 0.8*plotWidth*Math.cos(angle)/polygons;
 		IJ.showProgress(0.01);
-		ip.setInterpolate(!oneToOne);
+		ip.setInterpolate(true);
 		ip = ip.resize(plotWidth, polygons);
 		int width = ip.getWidth();
 		int height = ip.getHeight();
 		double min = ip.getMin();
 		double max = ip.getMax();
 				
-		if(invertedLut) ip.invert();
-		if(whiteBackground) ip.invert();
-		if (smooth) ip.smooth();
+		if(invertedLut)
+			ip.invert();
+		if(whiteBackground)
+			ip.invert();		
+		if (smooth)
+			ip.smooth();
 
 		x = new int[width+2];
 		y = new int[width+2];
@@ -275,26 +279,12 @@ public class SurfacePlotter implements PlugIn {
 			s = "";
 		w =  ip2.getFontMetrics().stringWidth(s);
 		drawAxis(ip2, (int) p1x, (int) p1y-255, (int) p1x, (int) p1y , s, 10, -1, 0, 1);
-		double min, max;
-		if (img.getBitDepth()==8) {
-			min = 0;
-			max = 255;
-		} else {
-			min = img.getProcessor().getMin();
-			max = img.getProcessor().getMax();
-		}
-		//IJ.log("");
-		//IJ.log(min+"  "+max+"  "+cal.getCValue((int)min)+"  "+cal.getCValue((int)max));
-		//ip2.putPixelValue(0,0,0);
-		//boolean zeroIsBlack
-		//IJ.log(ip2.getPixelValue(+"  "+max+"  "+cal.getCValue((int)min)+"  "+cal.getCValue((int)max));
+		double min = img.getProcessor().getMin();
+		double max = img.getProcessor().getMax();
 		if (cal.calibrated()) {
 			min = cal.getCValue((int)min);
 			max = cal.getCValue((int)max);
 		}
-		//if (invertedPixelValues)
-		//	{double t=max; max=min; min=t;}
-		ip2.setAntialiasedText(true);
 		s = String.valueOf( (double) Math.round(max*10)/10);
 		w =  ip.getFontMetrics().stringWidth(s);
 		h =  ip.getFontMetrics().getHeight();
@@ -304,6 +294,7 @@ public class SurfacePlotter implements PlugIn {
 		ip2.drawString(s, (int) p1x-15-w, (int) p1y +h/2);
 		
 		//x-axis
+
 		s = (double) Math.round(roi.height*cal.pixelHeight*10)/10+" "+cal.getUnits();
 		w =  ip2.getFontMetrics().stringWidth(s);
 		drawAxis(ip2, (int) p1x, (int) p1y, (int) p2x, (int) p2y, s, 10, -1, 1, 1);
@@ -340,6 +331,12 @@ public class SurfacePlotter implements PlugIn {
 		
 		ip.drawLine(x1, y1, x2, y2);
 		
+		//IJ.write("m="+m);
+		//IJ.write("mTangent="+mTangent);
+		//IJ.write("theta="+theta);
+		//IJ.write("dx="+dx);
+		//IJ.write("dy="+dy);
+				
 		ip.drawLine(x1, y1, x1+dx, y1-dy);
 		ip.drawLine(x2, y2, x2+dx, y2-dy);
 		ImageProcessor ipText = drawString( ip, label, (int) (Math.atan(m)/2/Math.PI*360) );
@@ -387,7 +384,6 @@ public class SurfacePlotter implements PlugIn {
 		ipText.setColor(Color.white);
 		ipText.fill();
 		ipText.setColor(Color.black);
-		ipText.setAntialiasedText(true);
 		ipText.drawString(s, tW/2-w/2, ipH/2+h/2);
 		ipText.setInterpolate(true);
 		ipText.rotate(-a);
