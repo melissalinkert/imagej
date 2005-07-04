@@ -2,7 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import ij.plugin.frame.Recorder;
+//import ij.plugin.*;
 import java.awt.*;
 import java.awt.image.*;
 import ij.util.*;
@@ -31,8 +31,6 @@ public class LUT_Editor implements PlugIn, ActionListener{
     		IJ.showMessage("LUT Editor", "LUT must have 256 entries");
     		return;
     	}
-		boolean recording = Recorder.record;
-		Recorder.record = false;
         int red=0, green=0, blue=0;
         GenericDialog gd = new GenericDialog("LUT Editor");
         Panel buttonPanel = new Panel(new GridLayout(4, 1, 0, 5));
@@ -53,12 +51,11 @@ public class LUT_Editor implements PlugIn, ActionListener{
         panel.add(buttonPanel);
         gd.addPanel(panel, GridBagConstraints.CENTER, new Insets(10, 0, 0, 0));
         gd.showDialog();
-		Recorder.record = recording;
         if (gd.wasCanceled()){
             colorPanel.cancelLUT();
             return;
         } else
-        	colorPanel.applyLUT();
+        colorPanel.applyLUT();
     }
 
     void save() {
