@@ -3,7 +3,6 @@ import ij.*;
 import ij.text.*;
 import ij.util.*;
 import java.util.*;
-import java.awt.*;
 import java.awt.event.*;
 
 /** Lists ImageJ commands or keyboard shortcuts in a text window. */
@@ -29,13 +28,6 @@ public class CommandLister implements PlugIn {
 	public void listShortcuts() {
 		Hashtable shortcuts = Menus.getShortcuts();
 		Vector v = new Vector();
-		addShortcutsToVector(shortcuts, v);
-		Hashtable macroShortcuts = Menus.getMacroShortcuts();
-		addShortcutsToVector(macroShortcuts, v);
-		showList("Keyboard Shortcuts", "Hot Key\tCommand", v);
-	}
-	
-	void addShortcutsToVector(Hashtable shortcuts, Vector v) {
 		for (Enumeration en=shortcuts.keys(); en.hasMoreElements();) {
 			Integer key = (Integer)en.nextElement();
 			int keyCode = key.intValue();
@@ -57,17 +49,16 @@ public class CommandLister implements PlugIn {
 				shortcut = " " + shortcut; 
 			v.addElement(shortcut+"\t"+(String)shortcuts.get(key));
 		}
+		showList("Keyboard Shortcuts", "Hot Key\tCommand", v);
 	}
-
+	
 	void showList(String title, String headings, Vector v) {
+		TextWindow tw = new TextWindow(title, "", 300, 400);
+		tw.getTextPanel().setColumnHeadings(headings);
 		String[] list = new String[v.size()];
 		v.copyInto((String[])list);
 		StringSorter.sort(list);
-		StringBuffer sb = new StringBuffer();
-		for (int i=0; i<list.length; i++) {
-			sb.append(list[i]);
-			sb.append("\n");
-		}
-		TextWindow tw = new TextWindow(title, headings, sb.toString(), 300, 400);
+		for (int i=0; i<list.length; i++)
+			tw.append(list[i]);
 	}
 }

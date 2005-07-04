@@ -166,16 +166,12 @@ class TextCanvas extends Canvas {
 	}
 	
 	void calcAutoWidth(int column) {
-		if (tp.sColHead==null || column>=tp.iColWidth.length)
-			return;
-		if(fMetrics==null)
-			fMetrics=gImage.getFontMetrics();
 		int w=15;
 		int maxRows;
 		if (tp.iColCount==1)
 			maxRows = 100;
 		else {
-			maxRows = 20;
+			maxRows = 10;
 			if (column==0 && tp.sColHead[0].equals(" "))
 				w += 5;
 			else {

@@ -8,16 +8,14 @@ import ij.process.*;
 import ij.io.*;
 import ij.gui.*;
 import ij.measure.*;
-import ij.plugin.filter.Analyzer;
 import ij.util.Tools;
-import ij.macro.Interpreter;
 
 /**
 This is an extended image class that supports 8-bit, 16-bit,
 32-bit (real) and RGB images. It also provides support for
 3D image stacks.
 @see ij.process.ImageProcessor
-@see ij.ImageStack
+@see ImageStack
 @see ij.gui.ImageWindow
 @see ij.gui.ImageCanvas
 */
@@ -69,9 +67,6 @@ public class ImagePlus implements ImageObserver, Measurements {
 	private FileInfo fileInfo;
 	protected int width;
 	protected int height;
-	private int nSlices = 1;
-	private int nChannels = 1;
-	private int nFrames = 1;
 	private int imageType = GRAY8;
 	private ImageStack stack;
 	private int currentSlice;
@@ -86,10 +81,6 @@ public class ImagePlus implements ImageObserver, Measurements {
 	private long startTime;
 	private Calibration calibration;
 	private static Calibration globalCalibration;
-	private boolean activated;
-	private boolean ignoreFlush;
-	private boolean errorLoadingImage;
-	private static ImagePlus clipboard;
 
     /** Constructs an uninitialized ImagePlus. */
     public ImagePlus() {
@@ -98,9 +89,7 @@ public class ImagePlus implements ImageObserver, Measurements {
     }
     
     /** Constructs an ImagePlus from an AWT Image. The first argument
-		will be used as the title of the window that displays the image.
-		Throws an IllegalStateException if an error occurs 
-		while loading the image. */
+		will be used as the title of the window that displays the image. */
     public ImagePlus(String title, Image img) {
 		this.title = title;
     	ID = --currentID;
@@ -114,33 +103,27 @@ public class ImagePlus implements ImageObserver, Measurements {
    		ID = --currentID;
     }
     
-	/** Constructs an ImagePlus from a TIFF, BMP, DICOM, FITS,
-		PGM, GIF or JPRG specified by a path or from a TIFF, DICOM,
-		GIF or JPEG specified by a URL. */
-    public ImagePlus(String pathOrURL) {
+    /** Constructs an ImagePlus from a TIFF, ZIP compressed TIFF, 
+    	GIF or JPEG specified by a URL. */
+    public ImagePlus(String url) {
     	Opener opener = new Opener();
-    	ImagePlus imp = null;
-    	boolean isURL = pathOrURL.indexOf("://")>0;
-    	if (isURL)
-    		imp = opener.openURL(pathOrURL);
-    	else
-    		imp = opener.openImage(pathOrURL);
+    	ImagePlus imp = opener.openURL(url);
     	if (imp!=null) {
     		if (imp.getStackSize()>1)
     			setStack(imp.getTitle(), imp.getStack());
     		else
      			setProcessor(imp.getTitle(), imp.getProcessor());
-     		setCalibration(imp.getCalibration());
-     		properties = imp.getProperties();
-   			if (isURL)
-   				this.url = pathOrURL;
+   			this.url = url;
    			ID = --currentID;
     	}
     }
 
 	/** Constructs an ImagePlus from a stack. */
     public ImagePlus(String title, ImageStack stack) {
-    	setStack(title, stack);
+    	if (stack.getSize()==1)
+			setProcessor(title, stack.getProcessor(1));
+		else
+    		setStack(title, stack);
     	ID = --currentID;
     }
     
@@ -152,14 +135,10 @@ public class ImagePlus implements ImageObserver, Measurements {
 		if (locked) {
 			IJ.beep();
 			IJ.showStatus("\"" + title + "\" is locked");
-			if (IJ.macroRunning()) {
-				IJ.error("Image is locked");
-				Macro.abort();
-			}
 			return false;
         } else {
         	locked = true;
-			if (IJ.debugMode) IJ.log(title + ": lock");
+			if (IJ.debugMode) IJ.write(title + ": lock");
 			return true;
         }
 	}
@@ -171,7 +150,6 @@ public class ImagePlus implements ImageObserver, Measurements {
 			return false;
         else {
         	locked = true;
-			if (IJ.debugMode) IJ.log(title + ": lock silently");
 			return true;
         }
 	}
@@ -179,21 +157,21 @@ public class ImagePlus implements ImageObserver, Measurements {
 	/** Unlocks the image. */
 	public synchronized void unlock() {
 		locked = false;
-		if (IJ.debugMode) IJ.log(title + ": unlock");
+		if (IJ.debugMode) IJ.write(title + ": unlock");
 	}
 		
 	private void waitForImage(Image img) {
 		if (comp==null) {
 			comp = IJ.getInstance();
 			if (comp==null)
-				comp = new Canvas();
+				comp = new Frame();
 		}
 		imageLoaded = false;
 		if (!comp.prepareImage(img, this)) {
 			double progress;
-			while (!imageLoaded && !errorLoadingImage) {
+			while (!imageLoaded) {
 				//IJ.showStatus(imageUpdateY+" "+imageUpdateW);
-				IJ.wait(30);
+				IJ.wait(50);
 				if (imageUpdateW>1) {
 					progress = (double)imageUpdateY/imageUpdateW;
 					if (!(progress<1.0)) {
@@ -207,7 +185,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 		}
 	}
 	
-	/** Draws the image. If there is an ROI, its
+	/** Displays this image. If there is an ROI, its
 		outline is also displayed.  Does nothing if there
 		is no window associated with this image (i.e. show()
 		has not been called).*/
@@ -234,11 +212,12 @@ public class ImagePlus implements ImageObserver, Measurements {
 		nothing if there is no window associated with
 		this image (i.e. show() has not been called).*/
 	public void updateAndDraw() {
-		if (ip != null) {
-			if (win!=null)
-				win.getCanvas().setImageUpdated();
-			draw();
-		}
+		if (ip == null)
+			return;
+		if (win!=null)
+			win.getCanvas().setImageUpdated();
+		draw();
+		Thread.yield();
 	}
 	
 	/** Calls draw to draw the image and also repaints the
@@ -262,25 +241,34 @@ public class ImagePlus implements ImageObserver, Measurements {
 		}
 	}
 		
-	/** ImageCanvas.paint() calls this method when the
-		ImageProcessor has generated new image. */
+	static int counter;
+	
+	/** ImageCanvas.paint() calls this method when the ImageProcessor
+		has generated new image. Do not call at other times because 
+		flushing the image while it's being painted can hang the JVM. */
 	public void updateImage() {
-		if (ip!=null)
-			img = ip.createImage();
+		if (ip!=null) {
+			//if (img!=null)
+			//	img.flush();
+			//img = ip.createImage();
+			if (img==null)
+				img = ip.createImage();
+			else {
+ 				img.flush();
+ 				if (img.getSource()!=ip.getImageSource())
+					img = ip.createImage();
+  			}
+		}
 	}
 
-	/** Closes the window, if any, that is displaying this image. */
+	/** Closes the window, if any, that is displaying this image. This image
+		must be locked to prevent disposal of the pixel arrays. */
 	public void hide() {
-		if (win==null) {
-			Interpreter.removeBatchModeImage(this);
+		if (win==null)
 			return;
-		}
-		boolean unlocked = lockSilently();
 		changes = false;
 		win.close();
 		win = null;
-		if (unlocked)
-			unlock();
 	}
 
 	/** Opens a window to display this image and clears the status bar. */
@@ -293,55 +281,16 @@ public class ImagePlus implements ImageObserver, Measurements {
 	public void show(String statusMessage) {
 		if (win!=null)
 			return;
-		if ((IJ.macroRunning() && ij==null) || Interpreter.isBatchMode() || IJ.noGUI) {
-			WindowManager.setTempCurrentImage(this);
-			Interpreter.addBatchModeImage(this);
-			return;
-		}
-		if (Prefs.useInvertingLut && getBitDepth()==8 && ip!=null && !ip.isInvertedLut()&& !ip.isColorLut())
-			invertLookupTable();
 		if (img==null && ip!=null)
 			img = ip.createImage();
 		if ((img!=null) && (width>=0) && (height>=0)) {
-			activated = false;
 			if (stack!=null && stack.getSize()>1)
 				win = new StackWindow(this);
 			else
 				win = new ImageWindow(this);
-			if (roi!=null) roi.setImage(this);
 			draw();
 			IJ.showStatus(statusMessage);
-			if (IJ.macroRunning()) { // wait for image to become activated
-				//IJ.log("Waiting for image to be activated");
-				long start = System.currentTimeMillis();
-				while (!activated) {
-					IJ.wait(5);
-					if ((System.currentTimeMillis()-start)>2000) {
-						WindowManager.setTempCurrentImage(this);
-						break; // 2 second timeout
-					}
-				}
-				//IJ.log(""+(System.currentTimeMillis()-start));
-			}
 		}
-	}
-	
-	void invertLookupTable() {
-		int nImages = getStackSize();
-		ip.invertLut();
-		if (nImages==1)
-			ip.invert();
-		else {
-			ImageStack stack2 = getStack();
-			for (int i=1; i<=nImages; i++)
-				stack2.getProcessor(i).invert();
-			stack2.setColorModel(ip.getColorModel());
-		}
-	}
-
-	/** Called by ImageWindow.windowActivated(). */
-	public void setActivated() {
-		activated = true;
 	}
 		
 	/** Returns the current AWT image. */
@@ -356,23 +305,14 @@ public class ImagePlus implements ImageObserver, Measurements {
 		return ID;
 	}
 	
-	/** Replaces the AWT image, if any, with the one specified. 
-		Throws an IllegalStateException if an error occurs 
-		while loading the image. */
+	/** Replaces the AWT image, if any, with the one specified. */
 	public void setImage(Image img) {
 		roi = null;
-		errorLoadingImage = false;
 		waitForImage(img);
-		if (errorLoadingImage)
-			throw new IllegalStateException ("Error loading image");
 		this.img = img;
-		int newWidth = img.getWidth(ij);
-		int newHeight = img.getHeight(ij);
-		boolean dimensionsChanged = newWidth!=width || newHeight!=height;
-		width = newWidth;
-		height = newHeight;
+		width = img.getWidth(ij);
+		height = img.getHeight(ij);
 		ip = null;
-		stack = null;
 		LookUpTable lut = new LookUpTable(img);
 		int type;
 		if (lut.getMapSize() > 0) {
@@ -383,41 +323,20 @@ public class ImagePlus implements ImageObserver, Measurements {
 		} else
 			type = COLOR_RGB;
 		setType(type);
-		setupProcessor();
-		this.img = ip.createImage();
-		if (win!=null) {
-			if (dimensionsChanged)
-				win = new ImageWindow(this);
-			else
-				repaintWindow();
-		}
 	}
 	
 	/** Replaces the ImageProcessor, if any, with the one specified.
 		Set 'title' to null to leave the image title unchanged. */
 	public void setProcessor(String title, ImageProcessor ip) {
-        int stackSize = getStackSize();
-        if (stackSize>1 && (ip.getWidth()!=width || ip.getHeight()!=height))
-            throw new IllegalArgumentException("ip wrong size");
-		if (stackSize<=1) {
-			stack = null;
-			currentSlice = 1;
-		}
-		setProcessor2(title, ip, null);
-	}
-	
-	void setProcessor2(String title, ImageProcessor ip, ImageStack newStack) {
-		if (title!=null) setTitle(title);
+		if (title!=null) this.title = title;
 		this.ip = ip;
 		if (ij!=null) ip.setProgressBar(ij.getProgressBar());
-        int stackSize = 1;
-		if (stack!=null) {
-			stackSize = stack.getSize();
-			if (currentSlice>stackSize) currentSlice = stackSize;
-		}
-		img = null;
-		boolean dimensionsChanged = width>0 && height>0 && (width!=ip.getWidth() || height!=ip.getHeight());
-		if (dimensionsChanged) roi = null;
+		roi = null;
+		if (stack!=null && stack.getSize()<2)
+			stack = null;
+		img = ip.createImage();
+		boolean newSize = width!=ip.getWidth() || height!=ip.getHeight();
+		LookUpTable lut = new LookUpTable(img);
 		int type;
 		if (ip instanceof ByteProcessor)
 			type = GRAY8;
@@ -433,49 +352,30 @@ public class ImagePlus implements ImageObserver, Measurements {
 			setType(type);
 		width = ip.getWidth();
 		height = ip.getHeight();
-		if (win!=null) {
-			if (dimensionsChanged && stackSize==1)
-                win.updateImage(this);
-			else if (newStack==null)
-				repaintWindow();
+		if (win!=null && newSize) {
+			 // replaces this window
+			//if (getStackSize()>1)
+			//	win = new StackWindow(this);
+			//else
+				win = new ImageWindow(this);
 		}
 	}
-
+	
 	/** Replaces the stack, if any, with the one specified.
 		Set 'title' to null to leave the title unchanged. */
     public void setStack(String title, ImageStack stack) {
-   		int stackSize = stack.getSize();
-   		if (stackSize==0)
-   			throw new IllegalArgumentException("Stack is empty");
-    	boolean stackSizeChanged = this.stack!=null && stackSize!=getStackSize();
-    	if (currentSlice<1) currentSlice = 1;
-    	boolean resetCurrentSlice = currentSlice>stackSize;
-    	if (resetCurrentSlice)
-    		currentSlice = stackSize;
-		//IJ.log("setStack: "+stack+"  "+stackSizeChanged+"  "+resetCurrentSlice);
-    	ImageProcessor ip = stack.getProcessor(currentSlice);
-    	boolean dimensionsChanged = width>0 && height>0 && (width!=ip.getWidth()||height!=ip.getHeight());
+    	currentSlice = 1;
+    	ImageProcessor processor = stack.getProcessor(currentSlice);
     	this.stack = stack;
-    	setProcessor2(title, ip, stack);
-		if (win==null) return;
-		if (stackSize==1 && win instanceof StackWindow)
-			win = new ImageWindow(this);   // replaces this window
-		else if (dimensionsChanged && !stackSizeChanged)
-			win.updateImage(this);
-		else if (stackSize>1 && !(win instanceof StackWindow))
-			win = new StackWindow(this);   // replaces this window
-		else if (stackSize>1 && dimensionsChanged)
-			win = new StackWindow(this);   // replaces this window
-		else
-			repaintWindow();
-		if (resetCurrentSlice) setSlice(currentSlice);
+    	setProcessor(title, processor);
+    	if (win!=null && win instanceof StackWindow)
+    		((StackWindow)win).showSlice(1);
     }
     
 	/**	Saves this image's FileInfo so it can be later
 		retieved using getOriginalFileInfo(). */
 	public void setFileInfo(FileInfo fi) {
-		if (fi!=null)
-			fi.pixels = null;
+		fi.pixels = null;
 		fileInfo = fi;
 	}
 		
@@ -500,18 +400,18 @@ public class ImagePlus implements ImageObserver, Measurements {
 	void setupProcessor() {
 		if (imageType==COLOR_RGB) {
 			if (ip == null || ip instanceof ByteProcessor) {
-				ip = new ColorProcessor(getImage());
-				if (IJ.debugMode) IJ.log(title + ": new ColorProcessor");
+				ip = new ColorProcessor(img);
+				if (IJ.debugMode) IJ.write(title + ": new ColorProcessor");
 			}
 		}
 		else if (ip==null || (ip instanceof ColorProcessor)) {
-			ip = new ByteProcessor(getImage());
-			if (IJ.debugMode) IJ.log(title + ": new ByteProcessor");
+			ip = new ByteProcessor(img);
+			if (IJ.debugMode) IJ.write(title + ": new ByteProcessor");
 		}
-		if (roi!=null && roi.isArea())
-			ip.setRoi(roi.getBounds());
+		if (roi!=null && roi.getType()<Roi.LINE)
+			ip.setRoi(roi.getBoundingRect());
 		else
-			ip.resetRoi();
+			ip.setRoi(null);
 	}
 	
 	public boolean isProcessor() {
@@ -537,7 +437,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 		the current ImageProcessor to null. */
 	public synchronized void trimProcessor() {
 		if (ip!=null && !locked) {
-			if (ip!=null && IJ.debugMode) IJ.log(title + ": trimProcessor");
+			if (ip!=null && IJ.debugMode) IJ.write(title + ": trimProcessor");
 			ip.setPixels(ip.getPixels()); // sets snapshot buffer to null
 		}
 	}
@@ -546,21 +446,11 @@ public class ImagePlus implements ImageObserver, Measurements {
 	public void killProcessor() {
 	}
 	
-	/** For images with irregular ROIs, returns a byte mask, otherwise, returns
-		null. Mask pixels have a non-zero value. */
-	public ImageProcessor getMask() {
-		if (roi==null) {
-			if (ip!=null) ip.resetRoi();
+	public int[] getMask () {
+		if (roi!=null && roi.getType()<Roi.LINE)
+			return roi.getMask();
+		else
 			return null;
-		}
-		ImageProcessor mask = roi.getMask();
-		if (mask==null)
-			return null;
-		if (ip!=null) {
-			ip.setMask(mask);
-			ip.setRoi(roi.getBounds());
-		}
-		return mask;
 	}
 
 	/** Returns an ImageStatistics object generated using the standard
@@ -572,34 +462,20 @@ public class ImagePlus implements ImageObserver, Measurements {
 	/** Returns an ImageStatistics object generated using the
 		 specified measurement options. */
 	public ImageStatistics getStatistics(int mOptions) {
-		return getStatistics(mOptions, 256, 0.0, 0.0);
+		return getStatistics(mOptions, 256);
 	}
 	
 	/** Returns an ImageStatistics object generated using the
 		specified measurement options and histogram bin count. 
-		Note: except for float images, the number of bins
-		is currently fixed at 256.
+		Note: except for float images, the number of histogram bins
+		is currently fixed at 256 .
 	*/
 	public ImageStatistics getStatistics(int mOptions, int nBins) {
-		return getStatistics(mOptions, nBins, 0.0, 0.0);
-	}
-
-	/** Returns an ImageStatistics object generated using the
-		specified measurement options, histogram bin count and histogram range. 
-		Note: for 8-bit and RGB images, the number of bins
-		is fixed at 256 and the histogram range is always 0-255.
-	*/
-	public ImageStatistics getStatistics(int mOptions, int nBins, double histMin, double histMax) {
 		setupProcessor();
-		ip.setRoi(roi);
+		ip.setMask(getMask());
 		ip.setHistogramSize(nBins);
-		Calibration cal = getCalibration();
-		if (getType()==GRAY16&& !(histMin==0.0&&histMax==0.0))
-			{histMin=cal.getRawValue(histMin); histMax=cal.getRawValue(histMax);}
-		ip.setHistogramRange(histMin, histMax);
-		ImageStatistics stats = ImageStatistics.getStatistics(ip, mOptions, cal);
+		ImageStatistics stats = ImageStatistics.getStatistics(ip, mOptions, getCalibration());
 		ip.setHistogramSize(256);
-		ip.setHistogramRange(0.0, 0.0);
 		return stats;
 	}
 	
@@ -611,38 +487,11 @@ public class ImagePlus implements ImageObserver, Measurements {
     		return title;
     }
 
-	/** Returns a shortened version of image name that does not 
-		include spaces or a file name extension. */
-	public String getShortTitle() {
-		String title = getTitle();
-		int index = title.indexOf(' ');
-		if (index>-1)
-			title = title.substring(0, index);
-		index = title.lastIndexOf('.');
-		if (index>0)
-			title = title.substring(0, index);
-		return title;
-    }
-
 	/** Sets the image name. */
 	public void setTitle(String title) {
-		if (title==null)
-			return;
-    	if (win!=null) {
-    		if (ij!=null)
-				Menus.updateWindowMenuItem(this.title, title);
-			String scale = "";
-			double magnification = win.getCanvas().getMagnification();
-			if (magnification!=1.0) {
-				double percent = magnification*100.0;
-				if (percent==(int)percent)
-					scale = " (" + IJ.d2s(percent,0) + "%)";
-				else
-					scale = " (" + IJ.d2s(percent,1) + "%)";
-			}
-			win.setTitle(title+scale);
-    	}
     	this.title = title;
+    	if (win!=null)
+    		win.setTitle(title);
     }
 
     public int getWidth() {
@@ -664,95 +513,18 @@ public class ImagePlus implements ImageObserver, Measurements {
 		}
 	}
 	
-	/** If this is a stack, return the number of slices, else return 1. */
-	public int getImageStackSize() {
-		return getStackSize();
-	}
-
-	/** Sets the 3rd, 4th and 5th dimensions, where 
-	<code>nChannels</code>*<code>nSlices</code>*<code>nFrames</code> 
-	must be the same as the stack size. */
-	public void setDimensions(int nChannels, int nSlices, int nFrames) {
-		if (nChannels*nSlices*nFrames!=getImageStackSize())
-			throw new IllegalArgumentException("channels*slices*frames!=stackSize");
-		this.nChannels = nChannels;
-		this.nSlices = nSlices;
-		this.nFrames = nFrames;
-		//IJ.log("setDimensions: "+ nChannels+"  "+nSlices+"  "+nFrames);
-	}
-
-	/** Returns the number of channels. */
-	public int getNChannels() {
-		return nChannels;
-	}
-
-	/** Returns the image depth (number of z-slices). */
-	public int getNSlices() {
-		//IJ.log("getNSlices: "+ nChannels+"  "+nSlices+"  "+nFrames);
-		int stackSize = getImageStackSize();
-		if (nSlices==1 && nFrames*nChannels!=stackSize) {
-			nSlices = stackSize;
-			nChannels = 1;
-			nFrames = 1;
-		}
-		return nSlices;
-	}
-
-	/** Returns the number of frames (time-points). */
-	public int getNFrames() {
-		return nFrames;
-	}
-	
-	/** Returns the dimensions of this image (width, height, nChannels, 
-		nSlices, nFrames) as a 5 element int array. */
-	public int[] getDimensions() {
-		int stackSize = getImageStackSize();
-		if (nChannels*nSlices*nFrames!=stackSize) {
-			nSlices = stackSize;
-			nChannels = 1;
-			nFrames = 1;
-		}
-		int[] d = new int[5];
-		d[0] = width;
-		d[1] = height;
-		d[2] = nChannels;
-		d[3] = nSlices;
-		d[4] = nFrames;
-		return d;
-	}
-
-
-	/** Returns the current image type (ImagePlus.GRAY8, ImagePlus.GRAY16,
-		ImagePlus.GRAY32, ImagePlus.COLOR_256 or ImagePlus.COLOR_RGB).
-		@see #getBitDepth
-	*/
+	/** Returns the current image type. */
     public int getType() {
     	return imageType;
     }
 
-    /** Returns the bit depth, 8, 16, 24 (RGB) or 32. RGB images actually use 32 bits per pixel. */
-    public int getBitDepth() {
-    	int bitDepth = 0;
-    	switch (imageType) {
-	    	case GRAY8: case COLOR_256: bitDepth=8; break;
-	    	case GRAY16: bitDepth=16; break;
-	    	case GRAY32: bitDepth=32; break;
-	    	case COLOR_RGB: bitDepth=24; break;
-    	}
-    	return bitDepth;
-    }
-    
     protected void setType(int type) {
     	if ((type<0) || (type>COLOR_RGB))
     		return;
     	int previousType = imageType;
     	imageType = type;
-		if (imageType!=previousType) {
-			if (win!=null)
-				Menus.updateMenus();
-			if (calibration!=null || globalCalibration!=null)
-				getCalibration().setImage(this);
-		}
+		if (win!=null && imageType!=previousType);
+			Menus.updateMenus();
     }
 
 	/** Adds a key-value pair to this image's properties. */
@@ -777,14 +549,13 @@ public class ImagePlus implements ImageObserver, Measurements {
 		
 	/** Creates a LookUpTable object corresponding to this image. */
     public LookUpTable createLut() {
-    	if (getImage()!=null)
+    	if (img!=null)
     		return new LookUpTable(img);
     	else
     		return null;
     }
     
-	/** Returns true is this image uses an inverting LUT that 
-		displays zero as white and 255 as black. */
+	/** Returns true is this image uses an inverted LUT that displays zero as white. */
 	public boolean isInvertedLut() {
 		if (ip==null) {
 			if (img==null)
@@ -858,40 +629,21 @@ public class ImagePlus implements ImageObserver, Measurements {
 		return new ImageStack(width, height, cm);
 	}
 	
-	/** Returns the image stack. The stack may have only 
-		one slice. After adding or removing slices, call  
-		<code>setStack()</code> to update the image and
-		the window that is displaying it.
-		@see #setStack
-	*/
+	/** Returns the image stack. The stack may have only one slice. */
 	public ImageStack getStack() {
 		ImageStack s;
 		if (stack==null) {
 			s = createEmptyStack();
-			ImageProcessor ip2 = getProcessor();
-            String info = (String)getProperty("Info");
-            String label = info!=null?getTitle()+"\n"+info:null;
-			s.addSlice(label, ip2);
-			s.update(ip2);
+			s.addSlice(null, getProcessor());
 		} else {
 			s = stack;
-			s.update(ip);
+			if (ip!=null) s.update(ip);
 		}
 		if (roi!=null)
-			s.setRoi(roi.getBounds());
+			s.setRoi(roi.getBoundingRect());
 		return s;
 	}
 	
-	/** Returns the base image stack. */ 
-	public ImageStack getImageStack() {
-		if (stack==null)
-			return getStack();
-		else {
-			stack.update(ip);
-			return stack;
-		}
-	}
-
 	/** Returns the current stack slice number or 1 if
 		this is a single image. */
 	public int getCurrentSlice() {
@@ -910,10 +662,8 @@ public class ImagePlus implements ImageObserver, Measurements {
 		and <= N, where N in the number of slices in the stack.
 		Does nothing if this ImagePlus does not use a stack. */
 	public synchronized void setSlice(int index) {
-		if (stack==null || index==currentSlice) {
-	    	updateAndRepaintWindow();
+		if (stack==null || index==currentSlice)
 			return;
-		}
 		if (index>=1 && index<=stack.getSize()) {
 			Roi roi = getRoi();
 			if (roi!=null)
@@ -924,22 +674,19 @@ public class ImagePlus implements ImageObserver, Measurements {
 			currentSlice = index;
 			Object pixels = stack.getPixels(currentSlice);
 			if (pixels!=null) ip.setPixels(pixels);
+			//if (ip instanceof FloatProcessor)
+			//	ip.resetMinAndMax();
 			if (win!=null && win instanceof StackWindow)
 				((StackWindow)win).updateSliceSelector();
-			if (IJ.spaceBarDown() && (imageType==GRAY16||imageType==GRAY32)) {
-				ip.resetMinAndMax();
-				IJ.showStatus(index+": min="+ip.getMin()+", max="+ip.getMax());
-			}
-			if (!Interpreter.isBatchMode() && !IJ.noGUI)
-				updateAndRepaintWindow();
+	    	updateAndRepaintWindow();
 		}
 	}
 
-	/** Obsolete */
 	void undoFilter() {
 		if (ip!=null) {
 			ip.reset();
 			updateAndDraw();
+			if (IJ.debugMode) IJ.write(getTitle() + ": undo filter");
 		}
 	}
 
@@ -947,21 +694,12 @@ public class ImagePlus implements ImageObserver, Measurements {
 		return roi;
 	}
 	
-	/** Assigns the specified ROI to this image and displays it. Any existing
-		ROI is deleted if <code>roi</code> is null or its width or height is zero. */
 	public void setRoi(Roi roi) {
 		killRoi();
-		if (roi.isVisible())
-			roi = (Roi)roi.clone();
-		if (roi==null)
-			return;
-		Rectangle bounds = roi.getBounds();
-		if (bounds.width==0 && bounds.height==0)
-			return;
 		this.roi = roi;
 		if (ip!=null) {
+			ip.setRoi(roi.getBoundingRect());
 			ip.setMask(null);
-			ip.setRoi(bounds);
 		}
 		this.roi.setImage(this);
 		draw();
@@ -977,49 +715,38 @@ public class ImagePlus implements ImageObserver, Measurements {
 		if (r==null)
 			{killRoi(); return;}
 		killRoi();
-		roi = new Roi(r.x, r.y, r.width, r.height);
-		roi.setImage(this);
+		roi = new Roi(r.x, r.y, r.width, r.height, this);
 		if (ip!=null) {
-			ip.setMask(null);
 			ip.setRoi(r);
+			ip.setMask(null);
 		}
 		draw();
 	}
 	
-	/** Starts the process of creating a new selection, where sx and sy are the
-		starting screen coordinates. The selection type is determined by which tool in
-		the tool bar is active. The user interactively sets the selection size and shape. */
-	public void createNewRoi(int sx, int sy) {
+	/** Creates a new selection. The type is determined by which tool in
+		the tool bar is active. The user interactively sets the size. */
+	public void createNewRoi(int x, int y) {
 		killRoi();
 		switch (Toolbar.getToolId()) {
 			case Toolbar.RECTANGLE:
-				roi = new Roi(sx, sy, this);
+				roi = new Roi(x, y, this);
 				break;
 			case Toolbar.OVAL:
-				roi = new OvalRoi(sx, sy, this);
+				roi = new OvalRoi(x, y, this);
 				break;
 			case Toolbar.POLYGON:
 			case Toolbar.POLYLINE:
-			case Toolbar.ANGLE:
-				roi = new PolygonRoi(sx, sy, this);
+				roi = new PolygonRoi(x, y, this);
 				break;
 			case Toolbar.FREEROI:
 			case Toolbar.FREELINE:
-				roi = new FreehandRoi(sx, sy, this);
+				roi = new FreehandRoi(x, y, this);
 				break;
 			case Toolbar.LINE:
-				roi = new Line(sx, sy, this);
+				roi = new Line(x, y, this);
 				break;
 			case Toolbar.TEXT:
-				roi = new TextRoi(sx, sy, this);
-				break;
-			case Toolbar.POINT:
-				roi = new PointRoi(sx, sy, this);
-				if (Prefs.pointAutoMeasure || Prefs.pointAutoNextSlice) IJ.run("Measure");
-				if (Prefs.pointAutoNextSlice && getStackSize()>1) {
-					IJ.run("Next Slice [>]");
-					killRoi();
-				}
+				roi = new TextRoi(x, y, this);
 				break;
 		}
 	}
@@ -1032,26 +759,26 @@ public class ImagePlus implements ImageObserver, Measurements {
 			saveRoi();
 			roi = null;
 			if (ip!=null)
-			ip.resetRoi();
+			ip.setRoi(null);
 			draw();
 		}
 	}
 	
-	public void saveRoi() {
+	void saveRoi() {
 		if (roi!=null) {
 			roi.endPaste();
-			Rectangle r = roi.getBounds();
+			Rectangle r = roi.getBoundingRect();
 			if (r.width>0 && r.height>0) {
-				Roi.previousRoi = (Roi)roi.clone();
-				if (IJ.debugMode) IJ.log("saveRoi: "+roi);
+				Roi.previousRoi = roi;
+				if (IJ.debugMode) IJ.write("saveRoi: "+roi);
 			}
 		}
 	}
     
-	public void restoreRoi() {
+	void restoreRoi() {
 		if (Roi.previousRoi!=null) {
 			Roi pRoi = Roi.previousRoi;
-			Rectangle r = pRoi.getBounds();
+			Rectangle r = pRoi.getBoundingRect();
 			if (r.width<=width || r.height<=height) { // will it fit in this window?
 				roi = (Roi)pRoi.clone();
 				roi.setImage(this);
@@ -1061,12 +788,10 @@ public class ImagePlus implements ImageObserver, Measurements {
 			}
 		}
 	}
-	
+    
 	void revert() {
 		if (getStackSize()>1) // can't revert stacks
 			return;
-		if (roi!=null)
-			roi.endPaste();
 		trimProcessor();
 		FileInfo fi = getOriginalFileInfo();
 		if (fi!=null && fi.fileFormat!=FileInfo.UNKNOWN)
@@ -1077,17 +802,10 @@ public class ImagePlus implements ImageObserver, Measurements {
 	    	try {
 	    		ImagePlus imp = opener.openURL(url);
 	    		if (imp!=null)
-	     			setProcessor(null, imp.getProcessor());
+	     			setProcessor(imp.getTitle(), imp.getProcessor());
 	    	} catch (Exception e) {} 
 			if (getType()==COLOR_RGB && getTitle().endsWith(".jpg"))
 				Opener.convertGrayJpegTo8Bits(this);
-		}
-		if (Prefs.useInvertingLut && getBitDepth()==8 && ip!=null && !ip.isInvertedLut()&& !ip.isColorLut())
-			invertLookupTable();
-		if (getProperty("FHT")!=null) {
-			properties.remove("FHT");
-			if (getTitle().startsWith("FFT of "))
-				setTitle(getTitle().substring(6));
 		}
 		repaintWindow();
 		IJ.showStatus("");
@@ -1097,8 +815,8 @@ public class ImagePlus implements ImageObserver, Measurements {
 		pixel array, needed to save this image. Use getOriginalFileInfo()
 		to get a copy of the FileInfo object used to open the image.
 		@see ij.io.FileInfo
-		@see #getOriginalFileInfo
-		@see #setFileInfo
+		@see getOriginalFileInfo
+		@see setFileInfo
 	*/
     public FileInfo getFileInfo() {
     	FileInfo fi = new FileInfo();
@@ -1116,16 +834,14 @@ public class ImagePlus implements ImageObserver, Measurements {
     	if (cal.scaled()) {
     		fi.pixelWidth = cal.pixelWidth;
     		fi.pixelHeight = cal.pixelHeight;
+     		fi.pixelDepth = cal.pixelDepth;
    			fi.unit = cal.getUnit();
     	}
-    	if (fi.nImages>1)
-     		fi.pixelDepth = cal.pixelDepth;
-   		fi.frameInterval = cal.frameInterval;
     	if (cal.calibrated()) {
     		fi.calibrationFunction = cal.getFunction();
      		fi.coefficients = cal.getCoefficients();
     		fi.valueUnit = cal.getValueUnit();
-		}
+   	}
     	switch (imageType) {
 	    	case GRAY8: case COLOR_256:
     			LookUpTable lut = createLut();
@@ -1152,10 +868,10 @@ public class ImagePlus implements ImageObserver, Measurements {
     	return fi;
     }
         
-    /** Returns the FileInfo object that was used to open this image.
-    	Returns null for images created using the File/New command.
+    /** Returns the FileInfo object that was used to open this
+    	image. Returns null for Gif, Jpeg and New images.
 		@see ij.io.FileInfo
-		@see #getFileInfo
+		@see getFileInfo
 	*/
     public FileInfo getOriginalFileInfo() {
     	return fileInfo;
@@ -1165,47 +881,54 @@ public class ImagePlus implements ImageObserver, Measurements {
     public boolean imageUpdate(Image img, int flags, int x, int y, int w, int h) {
     	imageUpdateY = y;
     	imageUpdateW = w;
-		if ((flags & ERROR) != 0) {
-			errorLoadingImage = true;
-			return false;
-		}
     	imageLoaded = (flags & (ALLBITS|FRAMEBITS|ABORT)) != 0;
+    	/*
+    	// Load animated gif into stack
+		if ((flags & FRAMEBITS)!= 0) {
+			//Image img2 = IJ.getInstance().createImage(w, h);
+			if (stack==null) stack = new ImageStack(w, h);
+			//ImageProcessor ip = new ByteProcessor(img);
+			//stack.addSlice(null, ip);
+			Image img2 = ij.createImage(w, h);
+			img2.getGraphics().drawImage(img, 0, 0, this);
+			ImageProcessor ip = new ColorProcessor(img2);
+			stack.addSlice(null, ip);
+			IJ.write(""+stack);
+			if (stack.getSize()==10)
+				imageLoaded = true;
+		}
+		//IJ.write(y+" "+flags);
+    	//IJ.wait(10);
+    	*/
 		return !imageLoaded;
     }
 
 	/** Sets the image arrays to null to help the garbage collector
-		do its job. Does nothing if the image is locked or a
-		setIgnoreFlush(true) call has been made. */
-	public synchronized void flush() {
-		if (locked || ignoreFlush)
+		do its job. Does nothing if the image is locked. */
+	public void flush() {
+		if (locked)
 			return;
 		if (ip!=null) {
 			ip.setPixels(null);
 			ip = null;
 		}
-		if (roi!=null)
-			roi.setImage(null);
 		if (stack!=null) {
-			Object[] arrays = stack.getImageArray();
+		Object[] arrays = stack.getImageArray();
 			if (arrays!=null)
 				for (int i=0; i<arrays.length; i++)
 					arrays[i] = null;
 		}
-		img = null;
+		if (img!=null) {
+			img.flush();
+			img = null;
+		}
 		System.gc();
-	}
-	
-	/** Set <code>ignoreFlush true</code> to not have the pixel 
-		data set to null when the window is closed. */
-	public void setIgnoreFlush(boolean ignoreFlush) {
-		this.ignoreFlush = ignoreFlush;
 	}
 	
 	/** Returns a new ImagePlus with this ImagePlus' attributes
 		(e.g. spatial scale), but no image. */
 	public ImagePlus createImagePlus() {
 		ImagePlus imp2 = new ImagePlus();
-		imp2.setType(getType());
 		imp2.setCalibration(getCalibration());
 		return imp2;
 	}
@@ -1231,9 +954,8 @@ public class ImagePlus implements ImageObserver, Measurements {
 
 	/** Returns this image's calibration. */
 	public Calibration getCalibration() {
-		//IJ.log("getCalibration: "+globalCalibration+" "+calibration);
 		if (globalCalibration!=null)
-			return globalCalibration.copy();
+			return globalCalibration;
 		else {
 			if (calibration==null)
 				calibration = new Calibration(this);
@@ -1246,92 +968,37 @@ public class ImagePlus implements ImageObserver, Measurements {
 		//IJ.write("setCalibration: "+cal);
 		if (cal==null)
 			calibration = null;
-		else {
+		else
 			calibration = cal.copy();
-			calibration.setImage(this);
-		}
+ 		//globalCalibration = null;
    }
 
     /** Sets the system-wide calibration. */
     public void setGlobalCalibration(Calibration global) {
-		//IJ.log("setGlobalCalibration ("+getTitle()+"): "+global);
+		//IJ.write("setGlobalCalibration ("+getTitle()+"): "+global);
 		if (global==null)
 			globalCalibration = null;
 		else
 			globalCalibration = global.copy();
     }
     
-    /** Returns the system-wide calibration, or null. */
-    public Calibration getGlobalCalibration() {
-			return globalCalibration;
-    }
-
     /** Displays the cursor coordinates and pixel value in the status bar.
     	Called by ImageCanvas when the mouse moves. Can be overridden by
     	ImagePlus subclasses.
     */
     public void mouseMoved(int x, int y) {
-		IJ.showStatus(getLocationAsString(x,y) + getValueAsString(x,y));
-		savex=x; savey=y;
+		Calibration cal = getCalibration();
+		if (cal.scaled())
+			IJ.showStatus("Location = (" + IJ.d2s(cal.getX(x))
+				+ "," + IJ.d2s(cal.getY(y)) + ")" + showValue(x,y,cal));
+		else
+			IJ.showStatus("Location = (" + x + "," + y + ")" + showValue(x,y,cal));
 	}
 	
-    private int savex, savey;
-    
-    /** Redisplays the (x,y) coordinates and pixel value (which may
-		have changed) in the status bar. Called by the Next Slice and
-		Previous Slice commands to update the z-coordinate and pixel value.
-    */
-	public void updateStatusbarValue() {
-		IJ.showStatus(getLocationAsString(savex,savey) + getValueAsString(savex,savey));
-	}
-
-	String getFFTLocation(int x, int y, Calibration cal) {
-		double center = width/2.0;
-		double r = Math.sqrt((x-center)*(x-center) + (y-center)*(y-center));
-		if (r<1.0) r = 1.0;
-		double theta = Math.atan2(y-center, x-center);
-		theta = theta*180.0/Math.PI;
-		if (theta<0) theta = 360.0+theta;
-		String s = "r=";
-		if (cal.scaled())
-			s += IJ.d2s((width/r)*cal.pixelWidth,2) + " " + cal.getUnit() + "/c (" + IJ.d2s(r,0) + ")";
-		else
-			s += IJ.d2s(width/r,2) + " p/c (" + IJ.d2s(r,0) + ")";
-		s += ", theta= " + IJ.d2s(theta,2) + IJ.degreeSymbol;
-		return s;
-	}
-
-    /** Converts the current cursor location to a string. */
-    public String getLocationAsString(int x, int y) {
-		Calibration cal = getCalibration();
-		if (getProperty("FHT")!=null)
-			return getFFTLocation(x, height-y-1, cal);
-		y = Analyzer.updateY(y, height);
-		if (cal.scaled() && !IJ.altKeyDown()) {
-			String s = " x="+IJ.d2s(cal.getX(x)) + ", y=" + IJ.d2s(cal.getY(y));
-			if (getStackSize()>1)
-				s += ", z="+IJ.d2s(cal.getZ(getCurrentSlice()-1));
-			return s;
-		} else {
-			String s =  " x="+x+", y=" + y;
-			if (getStackSize()>1)
-				s += ", z=" + (getCurrentSlice()-1);
-			return s;
-		}
-    }
-    
-    private String getValueAsString(int x, int y) {
-		Calibration cal = getCalibration();
+    private String showValue(int x, int y, Calibration cal) {
     	int[] v = getPixel(x, y);
-    	int type = getType();
-		switch (type) {
-			case GRAY8: case GRAY16: case COLOR_256:
-				if (type==COLOR_256) {
-					if (cal.getCValue(v[3])==v[3]) // not calibrated
-						return(", index=" + v[3] + ", value=" + v[0] + "," + v[1] + "," + v[2]);
-					else
-						v[0] = v[3];
-				}
+		switch (getType()) {
+			case GRAY8: case GRAY16:
 				double cValue = cal.getCValue(v[0]);
 				if (cValue==v[0])
     				return(", value=" + v[0]);
@@ -1339,132 +1006,14 @@ public class ImagePlus implements ImageObserver, Measurements {
     				return(", value=" + IJ.d2s(cValue) + " ("+v[0]+")");
     		case GRAY32:
     			return(", value=" + Float.intBitsToFloat(v[0]));
+			case COLOR_256:
+    			return(", index=" + v[3] + ", value=" + v[0] + "," + v[1] + "," + v[2]);
 			case COLOR_RGB:
     			return(", value=" + v[0] + "," + v[1] + "," + v[2]);
     		default: return("");
 		}
     }
     
-	/** Copies the contents of the current selection to the internal clipboard.
-		Copies the entire image if there is no selection. Also clears
-		the selection if <code>cut</code> is true. */
-	public void copy(boolean cut) {
-		Roi roi = getRoi();
-		if (roi!=null && !roi.isArea()) {
-			IJ.error("Cut/Copy", "The Cut and Copy commands require\n"
-				+"an area selection, or no selection.");
-			return;
-		}
-		String msg = (cut)?"Cut":"Copy";
-		IJ.showStatus(msg+ "ing...");
-		ImageProcessor ip = getProcessor();
-		ImageProcessor ip2;	
-		Roi roi2 = null;	
-		ip2 = ip.crop();
-		if (roi!=null && roi.getType()!=Roi.RECTANGLE) {
-			roi2 = (Roi)roi.clone();
-			Rectangle r = roi.getBounds();
-			if (r.x<0 || r.y<0) {
-				roi2.setLocation(Math.min(r.x,0), Math.min(r.y,0));
-			}
-		}
-		clipboard = new ImagePlus("Clipboard", ip2);
-		if (roi2!=null) clipboard.setRoi(roi2);
-		if (cut) {
-			ip.snapshot();
-	 		ip.setColor(Toolbar.getBackgroundColor());
-			ip.fill();
-			if (roi!=null && roi.getType()!=Roi.RECTANGLE) {
-				getMask();
-				ip.reset(ip.getMask());
-			} setColor(Toolbar.getForegroundColor());
-			Undo.setup(Undo.FILTER, this);
-			updateAndDraw();
-		}
-		int bytesPerPixel = 1;
-		switch (clipboard.getType()) {
-			case ImagePlus.GRAY16: bytesPerPixel = 2; break;
-			case ImagePlus.GRAY32: case ImagePlus.COLOR_RGB: bytesPerPixel = 4;
-		}
-		//Roi roi3 = clipboard.getRoi();
-		//IJ.log("copy: "+clipboard +" "+ "roi3="+(roi3!=null?""+roi3:""));
-		IJ.showStatus(msg + ": " + (clipboard.getWidth()*clipboard.getHeight()*bytesPerPixel)/1024 + "k");
-    }
-                
-
-	 /** Inserts the contents of the internal clipboard into the active image. If there
-	 is a selection the same size as the image on the clipboard, the image is inserted 
-	 into that selection, otherwise the selection is inserted into the center of the image.*/
-	 public void paste() {
-		if (clipboard==null) return;
-		int cType = clipboard.getType();
-		int iType = getType();
-		
-		boolean sameType = false;
-		if ((cType==ImagePlus.GRAY8|cType==ImagePlus.COLOR_256)&&(iType==ImagePlus.GRAY8|iType==ImagePlus.COLOR_256)) sameType = true;
-		else if ((cType==ImagePlus.COLOR_RGB|cType==ImagePlus.GRAY8|cType==ImagePlus.COLOR_256)&&iType==ImagePlus.COLOR_RGB) sameType = true;
-		else if (cType==ImagePlus.GRAY16&&iType==ImagePlus.GRAY16) sameType = true;
-		else if (cType==ImagePlus.GRAY32&&iType==ImagePlus.GRAY32) sameType = true;
-		if (!sameType) {
-			IJ.error("Images must be the same type to paste.");
-			return;
-		}
-        int w = clipboard.getWidth();
-        int h = clipboard.getHeight();
-		Roi cRoi = clipboard.getRoi();
-		Rectangle r = null;
-		//if (cRoi!=null) {
-		//	r = cRoi.getBounds();
-		//	w = r.width;
-		//	h = r.height;
-		//}
-		Roi roi = getRoi();
-		if (roi!=null)
-			r = roi.getBounds();
-		if (r==null || (r!=null && (w!=r.width || h!=r.height))) {
-			// create a new roi centered on visible part of image
-			ImageCanvas ic = null;
-			if (win!=null)
-				ic = win.getCanvas();
-			Rectangle srcRect = ic!=null?ic.getSrcRect():new Rectangle(0,0,width, height);
-			int xCenter = srcRect.x + srcRect.width/2;
-			int yCenter = srcRect.y + srcRect.height/2;
-			if (cRoi!=null && cRoi.getType()!=Roi.RECTANGLE) {
-				cRoi.setImage(this);
-				cRoi.setLocation(xCenter-w/2, yCenter-h/2);
-				setRoi(cRoi);
-			} else
-				setRoi(xCenter-w/2, yCenter-h/2, w, h);
-			roi = getRoi();
-		} 
-		if (IJ.macroRunning()) {
-			//non-interactive paste
-			int pasteMode = Roi.getCurrentPasteMode();
-			boolean nonRect = roi.getType()!=Roi.RECTANGLE;
-			ImageProcessor ip = getProcessor();
-			if (nonRect) ip.snapshot();
-			r = roi.getBounds();
-			ip.copyBits(clipboard.getProcessor(), r.x, r.y, pasteMode);
-			if (nonRect) ip.reset(getMask());
-			updateAndDraw();
-			//killRoi();
-		} else if (roi!=null) {
-			roi.startPaste(clipboard);
-			Undo.setup(Undo.PASTE, this);
-		}
-		changes = true;
-		//Image img = clipboard.getImage();
-		//ImagePlus imp2 = new ImagePlus("Clipboard", img);
-		//imp2.show();
-    }
-
-	/** Returns the internal clipboard or null if the internal clipboard is empty. */
-	public static ImagePlus getClipboard() {
-		return clipboard;
-	}
-	
-    public String toString() {
-    	return "imp["+getTitle()+" "+width+"x"+height+"x"+getStackSize()+"]";
-    }
-
 }
+
+

@@ -43,7 +43,6 @@ public class GifEncoder {
     private byte[] r, g, b; // the color look-up table
 	private int pixelIndex;
 	private int numPixels;
-    private int transparentPixel = -1; // hpm
 	
 	/**
 	*  Constructs a new GifEncoder. 
@@ -78,12 +77,7 @@ public class GifEncoder {
 		};
    		ColorModel cm = pg.getColorModel();
 		if (cm instanceof IndexColorModel)
-                {
 			pixels = (byte[])(pg.getPixels());
-                        // hpm
-                        IndexColorModel icm = (IndexColorModel)cm;
-                        setTransparentPixel(icm.getTransparentPixel());
-                }
 		else
 			throw new IllegalArgumentException("Image must be 8-bit");
 		IndexColorModel m = (IndexColorModel)cm;
@@ -97,7 +91,6 @@ public class GifEncoder {
 		interlace = false;
 		pixelIndex = 0;
 		numPixels = width*height;
-
 	}
 
 	/** Saves the image as a GIF file. */
@@ -124,20 +117,8 @@ public class GifEncoder {
 			blus[i] = b[i];
 		}
 
-                // hpm
-		GIFEncode(out, width, height, interlace, (byte) 0, 
-                          getTransparentPixel(), BitsPerPixel, reds, grns, blus);
+		GIFEncode(out, width, height, interlace, (byte) 0, -1, BitsPerPixel, reds, grns, blus);
 	}
-
-        // hpm
-        public void setTransparentPixel(int pixel) {
-            transparentPixel = pixel;
-        }
-
-        // hpm
-        public int getTransparentPixel() {
-            return transparentPixel;
-        }
 
     static void writeString(OutputStream out, String str) throws IOException
         {

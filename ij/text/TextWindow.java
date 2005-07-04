@@ -5,13 +5,11 @@ import java.io.*;
 import java.awt.event.*;
 import ij.*;
 import ij.io.*;
-import ij.gui.*;
-import ij.plugin.filter.Analyzer;
 
 /** Uses a TextPanel to displays text in a window.
 	@see TextPanel
 */
-public class TextWindow extends Frame implements ActionListener, FocusListener {
+public class TextWindow extends Frame {
 
 	private TextPanel textPanel;
 
@@ -37,26 +35,13 @@ public class TextWindow extends Frame implements ActionListener, FocusListener {
 	public TextWindow(String title, String headings, String data, int width, int height) {
 		super(title);
 		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
-		textPanel = new TextPanel(title);
+		textPanel = new TextPanel();
 		textPanel.setTitle(title);
 		add("Center", textPanel);
 		textPanel.setColumnHeadings(headings);
-		if (data!=null && !data.equals(""))
-			textPanel.append(data);
-		addKeyListener(textPanel);
-		ImageJ ij = IJ.getInstance();
-		if (ij!=null) {
-			Image img = ij.getIconImage();
-			if (img!=null)
-				try {setIconImage(img);} catch (Exception e) {}
-		}
- 		addFocusListener(this);
- 		addMenuBar();
-		WindowManager.addWindow(this);
+		textPanel.append(data);
 		setSize(width, height);
-		GUI.center(this);
-		if(!IJ.noGUI)
-			show();
+		setVisible(true);
 	}
 
 	/**
@@ -72,37 +57,12 @@ public class TextWindow extends Frame implements ActionListener, FocusListener {
 		textPanel = new TextPanel();
 		add("Center", textPanel);
 		if (openFile(path)) {
-			WindowManager.addWindow(this);
 			setSize(width, height);
-			if(!IJ.noGUI)
-				show();
+			setVisible(true);
 		} else
 			dispose();
 	}
 	
-	void addMenuBar() {
-		MenuBar mb = new MenuBar();
-		Menu m = new Menu("File");
-		m.add(new MenuItem("Save As..."/*, new MenuShortcut(KeyEvent.VK_S)*/));
-		m.addActionListener(this);
-		mb.add(m);
-		m = new Menu("Edit");
-		m.add(new MenuItem("Cut", new MenuShortcut(KeyEvent.VK_X)));
-		m.add(new MenuItem("Copy", new MenuShortcut(KeyEvent.VK_C)));
-		m.add(new MenuItem("Copy All"));
-		m.add(new MenuItem("Clear"));
-		m.add(new MenuItem("Select All", new MenuShortcut(KeyEvent.VK_A)));
-		if (getTitle().equals("Results")) {
-			m.addSeparator();
-			m.add(new MenuItem("Clear Results"));
-			m.add(new MenuItem("Summarize"));
-			m.add(new MenuItem("Set Measurements..."));
-		}
-		m.addActionListener(this);
-		mb.add(m);
-		setMenuBar(mb);
-	}
-
 	/**
 	Adds one or lines of text to the window.
 	@param text		The text to be appended. Multiple
@@ -129,7 +89,6 @@ public class TextWindow extends Frame implements ActionListener, FocusListener {
 		try {
 			BufferedReader r = new BufferedReader(new FileReader(directory + name));
 			load(r);
-			r.close();
 		}
 		catch (Exception e) {
 			IJ.error(e.getMessage());
@@ -156,40 +115,12 @@ public class TextWindow extends Frame implements ActionListener, FocusListener {
 		}
 	}
 
-	public void actionPerformed(ActionEvent evt) {
-		String cmd = evt.getActionCommand();
-		textPanel.doCommand(cmd);
-	}
-
 	public void processWindowEvent(WindowEvent e) {
 		super.processWindowEvent(e);
-		int id = e.getID();
-		if (id==WindowEvent.WINDOW_CLOSING)
-			close();	
-		else if (id==WindowEvent.WINDOW_ACTIVATED)
-			WindowManager.setWindow(this);
-	}
-
-	public void close() {
-		if (getTitle().equals("Results")) {
-			if (!Analyzer.resetCounter())
-				return;
-			IJ.setTextPanel(null);
+		if (e.getID()==WindowEvent.WINDOW_CLOSING) {	
+			setVisible(false);
+			dispose();
+			textPanel.flush();
 		}
-		if (getTitle().equals("Log")) {
-			IJ.debugMode = false;
-			IJ.log("$Closed");
-		}
-		setVisible(false);
-		dispose();
-		WindowManager.removeWindow(this);
-		textPanel.flush();
 	}
-	
-	public void focusGained(FocusEvent e) {
-		WindowManager.setWindow(this);
-	}
-
-	public void focusLost(FocusEvent e) {}
-
 }

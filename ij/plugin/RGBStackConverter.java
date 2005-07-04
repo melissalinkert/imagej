@@ -4,16 +4,15 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 
-/** Converts a 2 or 3 slice stack to RGB. */
+/** Converts a 3-slice stack to RGB. */
 public class RGBStackConverter implements PlugIn {
 	
 	public void run(String arg) {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
-		int size = imp.getStackSize();
-		if (size<2||size>3) {
-			IJ.error("2 or 3 slice stack required");
+		if (imp.getStackSize()!=3) {
+			IJ.error("3-slice stack required");
 			return;
 		}
 		int type = imp.getType();
@@ -31,8 +30,7 @@ public class RGBStackConverter implements PlugIn {
 			imp2.setStack(imp.getTitle()+" (RGB)", imp.getStack());
 	 		ImageConverter ic = new ImageConverter(imp2);
 			ic.convertRGBStackToRGB();
-			if (imp.getWindow()!=null)
-				new ImageWindow(imp2); // replace StackWindow with ImageWindow
+			new ImageWindow(imp2); // replace StackWindow with ImageWindow
 		}
 		imp.unlock();
 	}
@@ -42,7 +40,7 @@ public class RGBStackConverter implements PlugIn {
 		int width, height;
 		Rectangle r;
 		if (roi!=null) {
-			r = roi.getBounds();
+			r = roi.getBoundingRect();
 			width = r.width;
 			height = r.height;
 		} else
@@ -50,7 +48,7 @@ public class RGBStackConverter implements PlugIn {
 		ImageProcessor ip;
 		ImageStack stack1 = imp.getStack();
 		ImageStack stack2 = new ImageStack(r.width, r.height);
-		for (int i=1; i<=stack1.getSize(); i++) {
+		for (int i=1; i<=3; i++) {
 			ip = stack1.getProcessor(i);
 			ip.setRoi(r);
 			ImageProcessor ip2 = ip.crop();

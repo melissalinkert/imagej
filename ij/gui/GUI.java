@@ -18,20 +18,14 @@ public class GUI {
 		//ij.IJ.write("screen: "+screen);
 		//ij.IJ.write("window: "+window);
 	}
-	
-    static private Frame frame;
-    
-    /** Creates a white AWT Image image of the specified size. */
-    public static Image createBlankImage(int width, int height) {
-        if (width==0 || height==0)
-            throw new IllegalArgumentException("");
-		if (frame==null) {
-			frame = new Frame();
-			frame.pack();
-			frame.setBackground(Color.white);
-		}
-        Image img = frame.createImage(width, height);
-        return img;
-    }
-    
+	/** Creates a white AWT Image image of the specified size. */
+	public static Image createBlankImage(int width, int height) {
+		ImageJ ij = IJ.getInstance();
+		Color c = ij.getBackground();
+		ij.setBackground(Color.white);
+		Image img = ij.createImage(width, height);
+		ij.setBackground(c);
+		return img;
+	}
+
 }

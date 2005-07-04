@@ -15,13 +15,14 @@ public class Shadows implements PlugInFilter {
 		this.imp = imp;
 		if (imp!=null && imp.getStackSize()>1 && arg.equals("demo"))
 			{IJ.error("This demo does not work with stacks."); return DONE;}
-		return IJ.setupDialog(imp, DOES_ALL+SUPPORTS_MASKING);
+		return DOES_ALL+DOES_STACKS+SUPPORTS_MASKING;
 	}
 
 	public void run(ImageProcessor ip) {
 		if (arg.equals("demo")) {
-			IJ.resetEscape();
-			while (!IJ.escapePressed()) {
+			ImageWindow win = imp.getWindow();
+			win.running = true;
+			while (win.running) {
 				north(ip); imp.updateAndDraw(); ip.reset();
 				northeast(ip); imp.updateAndDraw(); ip.reset();
 				east(ip); imp.updateAndDraw(); ip.reset();

@@ -11,33 +11,25 @@ public class PasteController extends PlugInFrame implements PlugIn, ItemListener
 
 	private Panel panel;
 	private Choice pasteMode;
-	private static Frame instance;
-	
+
 	public PasteController() {
 		super("Paste Control");
-		if (instance!=null) {
-			instance.toFront();
-			return;
-		}
-		WindowManager.addWindow(this);
-		instance = this;
-		IJ.register(PasteController.class);
 		setLayout(new FlowLayout(FlowLayout.CENTER, 2, 5));
 		
 		add(new Label(" Transfer Mode:"));
 		pasteMode = new Choice();
-		pasteMode.addItem("Copy");
-		pasteMode.addItem("Blend");
-		pasteMode.addItem("Difference");
-		pasteMode.addItem("Transparent");
-		pasteMode.addItem("AND");
-		pasteMode.addItem("OR");
-		pasteMode.addItem("XOR");
-		pasteMode.addItem("Add");
-		pasteMode.addItem("Subtract");
-		pasteMode.addItem("Multiply");
-		pasteMode.addItem("Divide");
-		pasteMode.select("Copy");
+		pasteMode.addItem("  Copy");
+		pasteMode.addItem("  Blend");
+		pasteMode.addItem("  Difference");
+		pasteMode.addItem("  Transparent");
+		pasteMode.addItem("  AND");
+		pasteMode.addItem("  OR");
+		pasteMode.addItem("  XOR");
+		pasteMode.addItem("  Add");
+		pasteMode.addItem("  Subtract");
+		pasteMode.addItem("  Multiply");
+		pasteMode.addItem("  Divide");
+		pasteMode.select("  Copy");
 		pasteMode.addItemListener(this);
 		add(pasteMode);
 		Roi.setPasteMode(Blitter.COPY);
@@ -45,7 +37,7 @@ public class PasteController extends PlugInFrame implements PlugIn, ItemListener
 		pack();
 		GUI.center(this);
 		setResizable(false);
-		show();
+		setVisible(true);
 	}
 	
 	public void itemStateChanged(ItemEvent e) {
@@ -65,18 +57,7 @@ public class PasteController extends PlugInFrame implements PlugIn, ItemListener
 			case 10: mode = Blitter.DIVIDE; break;
 		}
 		Roi.setPasteMode(mode);
-		if (Recorder.record)
-			Recorder.record("setPasteMode", pasteMode.getSelectedItem());
 		ImagePlus imp = WindowManager.getCurrentImage();
-	}
-	
-    public void windowClosing(WindowEvent e) {
-    	close();
-	}
-
-	public void close() {
-		super.close();
-		instance = null;
 	}
 	
 }

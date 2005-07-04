@@ -4,74 +4,41 @@ import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.awt.event.*;
-import java.util.*;
 import ij.*;
 import ij.process.*;
 
 /** New image dialog box plus several static utility methods for creating images.*/
 public class NewImage {
 
-	public static final int GRAY8=0, GRAY16=1, GRAY32=2, RGB=3;
-	public static final int FILL_BLACK=1, FILL_RAMP=2, FILL_WHITE=4, CHECK_AVAILABLE_MEMORY=8;
-	private static final int OLD_FILL_WHITE=0;
-	
-    static final String NAME = "new.name";
-    static final String TYPE = "new.type";
-    static final String FILL = "new.fill";
-	static final String WIDTH = "new.width";
-	static final String HEIGHT = "new.height";
-	static final String SLICES = "new.slices";
+	public static final int GRAY8 = 0;
+	public static final int GRAY16 = 1;
+	public static final int GRAY32 = 2;
+	public static final int RGB = 3;
 
-    private static String name = Prefs.getString(NAME, "Untitled");
-    private static int width = Prefs.getInt(WIDTH, 400);
-    private static int height = Prefs.getInt(HEIGHT, 400);
-    private static int slices = Prefs.getInt(SLICES, 1);
-    private static int type = Prefs.getInt(TYPE, GRAY8);
-    private static int fillWith = Prefs.getInt(FILL, OLD_FILL_WHITE);
-    private static String[] types = {"8-bit", "16-bit", "32-bit", "RGB"};
+	public static final int FILL_WHITE = 0;
+	public static final int FILL_BLACK = 1;
+	public static final int FILL_RAMP = 2;
+	
+    private static String name = "Untitled";
+    private static int width = 400;
+    private static int height = 400;
+    private static int slices = 1;
+    private static int imageType = GRAY8;
+    private static int fillWith = FILL_WHITE;
+    private static String[] types = {"8-bit Unsigned", "16-bit Unsigned", "32-bit Real", "32-bit RGB"};
     private static String[] fill = {"White", "Black", "Ramp", "Clipboard"};
-    
 	
     public NewImage() {
     	openImage();
     }
     
-	static boolean createStack(ImagePlus imp, ImageProcessor ip, int nSlices, int type, int options) {
-		int fill = getFill(options);
+	static void createStack(ImagePlus imp, ImageProcessor ip, int nSlices, int type) {
 		int width = imp.getWidth();
 		int height = imp.getHeight();
-		long bytesPerPixel = 1;
-		if (type==GRAY16) bytesPerPixel = 2;
-		else if (type==GRAY32||type==RGB) bytesPerPixel = 4;
-		long size = (width*height*nSlices*bytesPerPixel);
-		String size2 = size/(1024*1024)+"MB ("+width+"x"+height+"x"+nSlices+")";
-		if ((options&CHECK_AVAILABLE_MEMORY)!=0) {
-			long max = IJ.maxMemory(); // - 100*1024*1024;
-			if (max>0) {
-				long inUse = IJ.currentMemory();
-				long available = max - inUse;
-				//IJ.log(size/(1024*1024)+"  "+available/(1024*1024));
-				if (size>available) {
-					IJ.error("Out of Memory", "There is not enough free memory to allocate a \n"
-					+ size2+" stack.\n \n"
-					+ "Memory available: "+available/(1024*1024)+"MB\n"		
-					+ "Memory in use: "+IJ.freeMemory()+"\n \n"	
-					+ "More information can be found in the \"Memory\"\n"
-					+ "sections of the ImageJ installation notes at\n"
-					+ "\"http://rsb.info.nih.gov/ij/docs/install/\".");
-					return false;
-				}
-			}
-		}
 		ImageStack stack = imp.createEmptyStack();
-		int inc = nSlices/40;
-		if (inc<1) inc = 1;
-		IJ.showStatus("Allocating "+size2+". Press 'Esc' to abort.");
-		IJ.resetEscape();
 		try {
 			stack.addSlice(null, ip);
 			for (int i=2; i<=nSlices; i++) {
-				if ((i%inc)==0) IJ.showProgress(i, nSlices);
 				Object pixels2 = null;
 				switch (type) {
 					case GRAY8: pixels2 = new byte[width*height]; break;
@@ -79,20 +46,16 @@ public class NewImage {
 					case GRAY32: pixels2 = new float[width*height]; break;
 					case RGB: pixels2 = new int[width*height]; break;
 				}
-				if (fill!=FILL_BLACK || type==RGB)
-					System.arraycopy(ip.getPixels(), 0, pixels2, 0, width*height);
+				System.arraycopy(ip.getPixels(), 0, pixels2, 0, width*height);
 				stack.addSlice(null, pixels2);
-				if (IJ.escapePressed()) {IJ.beep(); break;};
 			}
 		}
 		catch(OutOfMemoryError e) {
 			IJ.outOfMemory(imp.getTitle());
 			stack.trim();
 		}
-		IJ.showProgress(nSlices, nSlices);
 		if (stack.getSize()>1)
 			imp.setStack(null, stack);
-		return true;
 	}
 
 	static ImagePlus createImagePlus() {
@@ -102,18 +65,8 @@ public class NewImage {
 		//else
 		return new ImagePlus();
 	}
-	
-	static int getFill(int options) {
-		int fill = options&7; 
-		if (fill==OLD_FILL_WHITE)
-			fill = FILL_WHITE;
-		if (fill==7||fill==6||fill==3||fill==5)
-			fill = FILL_BLACK;
-		return fill;
-	}
 
-	public static ImagePlus createByteImage(String title, int width, int height, int slices, int options) {
-		int fill = getFill(options);
+	public static ImagePlus createByteImage(String title, int width, int height, int slices, int fill) {
 		byte[] pixels = new byte[width*height];
 		switch (fill) {
 			case FILL_WHITE:
@@ -123,29 +76,20 @@ public class NewImage {
 			case FILL_BLACK:
 				break;
 			case FILL_RAMP:
-				byte[] ramp = new byte[width];
-				for (int i=0; i<width; i++)
-					ramp[i] = (byte)(((i*256.0)/width)+0.5);
-				int offset;
-				for (int y=0; y<height; y++) {
-					offset = y*width;
+				for (int y=0; y<height; y++)
 					for (int x=0; x<width; x++)
-						pixels[offset++] = ramp[x];
-				}
+						pixels[y*width+x] = (byte)((x*255)/(width-1));
 				break;
 		}
 		ImageProcessor ip = new ByteProcessor(width, height, pixels, null);
 		ImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
-		if (slices>1) {
-			boolean ok = createStack(imp, ip, slices, GRAY8, options);
-			if (!ok) imp = null;
-		}
+		if (slices>1)
+			createStack(imp, ip, slices, GRAY8);
 		return imp;
 	}
 
-	public static ImagePlus createRGBImage(String title, int width, int height, int slices, int options) {
-		int fill = getFill(options);
+	public static ImagePlus createRGBImage(String title, int width, int height, int slices, int fill) {
 		int[] pixels = new int[width*height];
 		switch (fill) {
 			case FILL_WHITE:
@@ -157,169 +101,108 @@ public class NewImage {
 					pixels[i] = 0xff000000;
 				break;
 			case FILL_RAMP:
-				int r,g,b,offset;
-				int[] ramp = new int[width];
-				for (int i=0; i<width; i++) {
-					r = g = b = (byte)(((i*256.0)/width)+0.5);
-					ramp[i] = 0xff000000 | ((r<<16)&0xff0000) | ((g<<8)&0xff00) | (b&0xff);
-				}
+				int r,g,b;
 				for (int y=0; y<height; y++) {
-					offset = y*width;
-					for (int x=0; x<width; x++)
-						pixels[offset++] = ramp[x];
+					for (int x=0; x<width; x++) {
+						r = g = b = (byte)((x*255)/(width-1));
+						pixels[y*width+x] = 0xff000000 | ((r<<16)&0xff0000) | ((g<<8)&0xff00) | (b&0xff);
+					}
 				}
 				break;
 		}
 		ImageProcessor ip = new ColorProcessor(width, height, pixels);
 		ImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
-		if (slices>1) {
-			boolean ok = createStack(imp, ip, slices, RGB, options);
-			if (!ok) imp = null;
-		}
+		if (slices>1)
+			createStack(imp, ip, slices, RGB);
 		return imp;
 	}
 
 	/** Creates an unsigned short image. */
-	public static ImagePlus createShortImage(String title, int width, int height, int slices, int options) {
-		int fill = getFill(options);
+	public static ImagePlus createShortImage(String title, int width, int height, int slices, int fill) {
 		short[] pixels = new short[width*height];
 		switch (fill) {
 			case FILL_WHITE: case FILL_BLACK:
 				break;
 			case FILL_RAMP:
-				short[] ramp = new short[width];
-				for (int i=0; i<width; i++)
-					ramp[i] = (short)(((i*65536.0)/width)+0.5);
-				int offset;
-				for (int y=0; y<height; y++) {
-					offset = y*width;
+				for (int y=0; y<height; y++)
 					for (int x=0; x<width; x++)
-						pixels[offset++] = ramp[x];
-				}
+						pixels[y*width+x] = (short)((x*65535)/(width-1));
 				break;
 		}
 	    ImageProcessor ip = new ShortProcessor(width, height, pixels, null);
-	    if (fill==FILL_WHITE)
-	    	ip.invertLut();
 		ImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
-		if (slices>1) {
-			boolean ok = createStack(imp, ip, slices, GRAY16, options);
-			if (!ok) imp = null;
-		}
-		imp.getProcessor().setMinAndMax(0, 65535); // default display range
+		if (slices>1)
+			createStack(imp, ip, slices, GRAY16);
 		return imp;
 	}
 
 	/** Obsolete. Short images are always unsigned. */
-	public static ImagePlus createUnsignedShortImage(String title, int width, int height, int slices, int options) {
-		return createShortImage(title, width, height, slices, options);
+	public static ImagePlus createUnsignedShortImage(String title, int width, int height, int slices, int fill) {
+		return createShortImage(title, width, height, slices, fill);
 	}
 
-	public static ImagePlus createFloatImage(String title, int width, int height, int slices, int options) {
-		int fill = getFill(options);
+	public static ImagePlus createFloatImage(String title, int width, int height, int slices, int fill) {
 		float[] pixels = new float[width*height];
 		switch (fill) {
 			case FILL_WHITE: case FILL_BLACK:
 				break;
 			case FILL_RAMP:
-				float[] ramp = new float[width];
-				for (int i=0; i<width; i++)
-					ramp[i] = (float)((i*1.0)/width);
-				int offset;
-				for (int y=0; y<height; y++) {
-					offset = y*width;
+				for (int y=0; y<height; y++)
 					for (int x=0; x<width; x++)
-						pixels[offset++] = ramp[x];
-				}
+						pixels[y*width+x] = (float)((x*1.0)/(width-1));
 				break;
 		}
 	    ImageProcessor ip = new FloatProcessor(width, height, pixels, null);
-	    if (fill==FILL_WHITE)
-	    	ip.invertLut();
 		ImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
-		if (slices>1) {
-			boolean ok = createStack(imp, ip, slices, GRAY32, options);
-			if (!ok) imp = null;
-		}
-		imp.getProcessor().setMinAndMax(0.0, 1.0); // default display range
+		if (slices>1)
+			createStack(imp, ip, slices, GRAY32);
 		return imp;
 	}
 
-	public static void open(String title, int width, int height, int nSlices, int type, int options) {
-		int bitDepth = 8;
-		if (type==GRAY16) bitDepth = 16;
-		else if (type==GRAY32) bitDepth = 32;
-		else if (type==RGB) bitDepth = 24;
-		long startTime = System.currentTimeMillis();
-		ImagePlus imp = createImage(title, width, height, nSlices, bitDepth, options);
-		if (imp!=null) {
-			imp.show();
-			IJ.showStatus(IJ.d2s(((System.currentTimeMillis()-startTime)/1000.0),2)+" seconds");
-		}
-	}
-
-	public static ImagePlus createImage(String title, int width, int height, int nSlices, int bitDepth, int options) {
+	public static void open(String title, int width, int height, int nSlices, int type, int fill) {
 		ImagePlus imp = null;
-		switch (bitDepth) {
-			case 8: imp = createByteImage(title, width, height, nSlices, options); break;
-			case 16: imp = createShortImage(title, width, height, nSlices, options); break;
-			case 32: imp = createFloatImage(title, width, height, nSlices, options); break;
-			case 24: imp = createRGBImage(title, width, height, nSlices, options); break;
-			default: throw new IllegalArgumentException("Invalid bitDepth: "+bitDepth);
+		switch (type) {
+			case GRAY8:
+				imp = createByteImage(title, width, height, nSlices, fill);
+				break;
+			case GRAY16:
+				imp = createShortImage(title, width, height, nSlices, fill);
+				break;
+			case GRAY32:
+				imp = createFloatImage(title, width, height, nSlices, fill);
+				break;
+			case RGB:
+				imp = createRGBImage(title, width, height, nSlices, fill);
+				break;
 		}
-		return imp;
+		if (imp!=null)
+			imp.show();
 	}
 
 	void showClipboard() {
-		ImagePlus clipboard = ImagePlus.getClipboard();
-		if (clipboard!=null) {
-			ImageProcessor ip = clipboard.getProcessor();
-			ImagePlus imp2 = new ImagePlus("Clipboard", ip.duplicate());
-			Roi roi = clipboard.getRoi();
-			imp2.killRoi();
-			if (roi!=null && roi.isArea() && roi.getType()!=Roi.RECTANGLE) {
-				roi = (Roi)roi.clone();
-				roi.setLocation(0, 0);
-				imp2.setRoi(roi);
-				WindowManager.setTempCurrentImage(imp2);
-				IJ.run("Clear Outside");
-				imp2.killRoi();
-			}
-			imp2.show();
-		} else
-			IJ.error("The internal clipboard is empty.\n"
-				+"Use the \"System Clipboard\" plugin\n"
-				+"to paste from the system clipboard.");
+		ImagePlus clipboard = ImageWindow.getClipboard();
+		if (clipboard!=null)
+			clipboard.show();
+		else
+			IJ.error("The clipboard is empty.");
 		}
 
 	boolean showDialog() {
-		if (type<GRAY8|| type>RGB)
-			type = GRAY8;
-		if (fillWith<OLD_FILL_WHITE||fillWith>FILL_RAMP)
-			fillWith = OLD_FILL_WHITE;
 		GenericDialog gd = new GenericDialog("New...", IJ.getInstance());
 		gd.addStringField("Name:", name, 12);
-		gd.addChoice("Type:", types, types[type]);
+		gd.addChoice("Type:", types, types[imageType]);
 		gd.addChoice("Fill With:", fill, fill[fillWith]);
-		gd.addNumericField("Width:", width, 0, 5, "pixels");
-		gd.addNumericField("Height:", height, 0, 5, "pixels");
-		gd.addNumericField("Slices:", slices, 0, 5, "");
+		gd.addNumericField("Width (pixels):", width, 0);
+		gd.addNumericField("Height (pixels):", height, 0);
+		gd.addNumericField("Slices:", slices, 0);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return false;
 		name = gd.getNextString();
-		String s = gd.getNextChoice();
-		if (s.startsWith("8"))
-			type = GRAY8;
-		else if (s.startsWith("16"))
-			type = GRAY16;
-		else if (s.endsWith("RGB") || s.endsWith("rgb"))
-			type = RGB;
-		else
-			type = GRAY32;
+		imageType = gd.getNextChoiceIndex();
 		fillWith = gd.getNextChoiceIndex();
 		width = (int)gd.getNextNumber();
 		height = (int)gd.getNextNumber();
@@ -332,18 +215,8 @@ public class NewImage {
 			return;
 		if (fillWith>FILL_RAMP)
 			{showClipboard(); return;}
-		try {open(name, width, height, slices, type, fillWith);}
+		try {open(name, width, height, slices, imageType, fillWith);}
 		catch(OutOfMemoryError e) {IJ.outOfMemory("New...");}
 	}
 	
-	/** Called when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
-		prefs.put(NAME, name);
-		prefs.put(TYPE, Integer.toString(type));
-		prefs.put(FILL, Integer.toString(fillWith));
-		prefs.put(WIDTH, Integer.toString(width));
-		prefs.put(HEIGHT, Integer.toString(height));
-		prefs.put(SLICES, Integer.toString(slices));
-	}
-
 }

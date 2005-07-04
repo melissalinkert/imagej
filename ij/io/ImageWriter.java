@@ -86,7 +86,6 @@ public class ImageWriter {
 		int count = 8192;
 		byte[] buffer = new byte[count];
 		int tmp;
-		boolean java2 = IJ.isJava2();
 
 		while (bytesWritten<size) {
 			if ((bytesWritten + count)>size)
@@ -94,10 +93,7 @@ public class ImageWriter {
 			int j = bytesWritten/4;
 			if (fi.intelByteOrder)
 				for (int i=0; i < count; i+=4) {
-					if (java2)
-						tmp = Float.floatToRawIntBits(pixels[j]);
-					else
-						tmp = Float.floatToIntBits(pixels[j]);
+					tmp = Float.floatToIntBits(pixels[j]);
 					buffer[i]   = (byte)tmp;
 					buffer[i+1] = (byte)(tmp>>8);
 					buffer[i+2] = (byte)(tmp>>16);
@@ -106,10 +102,7 @@ public class ImageWriter {
 				}
 			else
 				for (int i=0; i < count; i+=4) {
-					if (java2)
-						tmp = Float.floatToRawIntBits(pixels[j]);
-					else
-						tmp = Float.floatToIntBits(pixels[j]);
+					tmp = Float.floatToIntBits(pixels[j]);
 					buffer[i]   = (byte)(tmp>>24);
 					buffer[i+1] = (byte)(tmp>>16);
 					buffer[i+2] = (byte)(tmp>>8);
@@ -163,16 +156,10 @@ public class ImageWriter {
 	}
 
 	/** Writes the image to the specified OutputStream.
-		The OutputStream is not closed. The fi.pixels field
-		must contain the image data. If fi.nImages>1
-		then fi.pixels must be a 2D array, for example an
- 		array of images returned by ImageStack.getImageArray()).
- 		The fi.offset field is ignored. */
+		The OutputStream is not closed. */
 	public void write(OutputStream out) throws IOException {
-		if (fi.pixels==null)
-				throw new IOException("ImageWriter: fi.pixels==null");
 		if (fi.nImages>1 && !(fi.pixels instanceof Object[]))
-				throw new IOException("ImageWriter: fi.pixels not a stack");
+				throw new IOException("Stack expected");
 		switch (fi.fileType) {
 			case FileInfo.GRAY8:
 			case FileInfo.COLOR8:

@@ -19,33 +19,24 @@ public class ShortStatistics extends ImageStatistics {
 		this.height = ip.getHeight();
 		setup(ip, cal);
 		nBins = 256;
-		double minT = ip.getMinThreshold();
 		int minThreshold,maxThreshold;
-		if ((mOptions&LIMIT)==0 || minT==ip.NO_THRESHOLD)
-			{minThreshold=0; maxThreshold=65535;}
-		else
-			{minThreshold=(int)minT; maxThreshold=(int)ip.getMaxThreshold();}
+		minThreshold=0;
+		maxThreshold=65535;
 		int[] hist = ip.getHistogram(); // 65536 bin histogram
-		histogram16 =hist;
 		float[] cTable = cal!=null?cal.getCTable():null;
 		getRawMinAndMax(hist, minThreshold, maxThreshold);
 		histMin = min;
 		histMax = max;
-		getStatistics(ip, hist, (int)min, (int)max, cTable);
+		getStatistics(hist, (int)min, (int)max, cTable);
 		if ((mOptions&MODE)!=0)
-			getMode();
-		if ((mOptions&ELLIPSE)!=0)
-			fitEllipse(ip);
-		else if ((mOptions&CENTROID)!=0)
-			getCentroid(ip, minThreshold, maxThreshold);
-		if ((mOptions&(CENTER_OF_MASS|SKEWNESS|KURTOSIS))!=0)
-			calculateMoments(ip, minThreshold, maxThreshold, cTable);
-		if ((mOptions&MIN_MAX)!=0 && cTable!=null)
+			getMode(cTable);
+		if ((mOptions&CENTROID)!=0)
+			getCentroid(ip);
+		if ((mOptions&CENTER_OF_MASS)!=0)
+			getCenterOfMass(ip, cTable);
+		if ((mOptions&MIN_MAX)!=0 && cTable!=null) {
 			getCalibratedMinAndMax(hist, (int)min, (int)max, cTable);
-		if ((mOptions&MEDIAN)!=0)
-			calculateMedian(hist, (int)histMin, cal);
-		if ((mOptions&AREA_FRACTION)!=0)
-			calculateAreaFraction(ip, hist);
+		}
 	}
 
 	void getRawMinAndMax(int[] hist, int minThreshold, int maxThreshold) {
@@ -60,52 +51,33 @@ public class ShortStatistics extends ImageStatistics {
 		this.max = max;
 	}
 
-	void getStatistics(ImageProcessor ip, int[] hist, int min, int max, float[] cTable) {
+	void getStatistics(int[] hist, int min, int max, float[] cTable) {
 		int count;
 		double value;
 		double sum = 0.0;
 		double sum2 = 0.0;
-		nBins = ip.getHistogramSize();
-		histMin = ip.getHistogramMin();
-		histMax = ip.getHistogramMax();
-		if (histMin==0.0 && histMax==0.0) {
-			histMin = min; 
-			histMax = max;
-		} else {
-			if (min<histMin) min = (int)histMin;
-			if (max>histMax) max = (int)histMax;
-		}
-		binSize = (histMax-histMin)/nBins;
-		double scale = 1.0/binSize;
+		double scale = (double)((nBins-1)/(histMax-histMin));
 		int hMin = (int)histMin;
+		binSize = (histMax-histMin)/nBins;
 		histogram = new int[nBins]; // 256 bin histogram
-		int index;
-        int maxCount = 0;
 				
 		for (int i=min; i<=max; i++) {
 			count = hist[i];
-            if (count>maxCount) {
-                maxCount = count;
-                dmode = i;
-            }
 			pixelCount += count;
 			value = cTable==null?i:cTable[i];
 			sum += value*count;
 			sum2 += (value*value)*count;
-			index = (int)(scale*(i-hMin));
-			if (index>=nBins)
-				index = nBins-1;
-			histogram[index] += count;
+			histogram[(int)(scale*(i-hMin))] += count;
 		}
 		area = pixelCount*pw*ph;
 		mean = sum/pixelCount;
 		umean = mean;
 		calculateStdDev(pixelCount, sum, sum2);
-        if (cTable!=null)
-        	dmode = cTable[(int)dmode];
+		histMin = min;
+		histMax = max;
 	}
 	
-	void getMode() {
+	void getMode(float[] cTable) {
         int count;
         maxCount = 0;
         for (int i=0; i<nBins; i++) {
@@ -115,79 +87,43 @@ public class ShortStatistics extends ImageStatistics {
                 mode = i;
             }
         }
+        dmode = histMin+mode*((histMax-histMin)/nBins);
+        if (cTable!=null)
+        	dmode = cTable[(int)dmode];
 		//ij.IJ.write("mode2: "+mode+" "+dmode+" "+maxCount);
 	}
 
 
-	void getCentroid(ImageProcessor ip, int minThreshold, int maxThreshold) {
+	void getCenterOfMass(ImageProcessor ip, float[] cTable) {
 		short[] pixels = (short[])ip.getPixels();
-		byte[] mask = ip.getMaskArray();
-		boolean limit = minThreshold>0 || maxThreshold<65535;
-		int count=0, xsum=0, ysum=0,i,mi,v;
+		int[] mask = ip.getMask();
+		int i, mi;
+		double v, count=0.0, xsum=0.0, ysum=0.0;
 		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
 			i = y*width + rx;
 			mi = my*rw;
 			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null||mask[mi++]!=0) {
-					if (limit) {
+				if (mask==null || mask[mi++]==ip.BLACK) {
+					if (cTable!=null)
+						v = cTable[pixels[i]&0xffff];
+					else
 						v = pixels[i]&0xffff;
-						if (v>=minThreshold&&v<=maxThreshold) {
-							count++;
-							xsum+=x;
-							ysum+=y;
-						}
-					} else {
-						count++;
-						xsum+=x;
-						ysum+=y;
-					}
+					count += v;
+					xsum += x*v;
+					ysum += y*v;
 				}
 				i++;
 			}
 		}
-		xCentroid = ((double)xsum/count+0.5)*pw;
-		yCentroid = ((double)ysum/count+0.5)*ph;
-	}
-
-	void calculateMoments(ImageProcessor ip,  int minThreshold, int maxThreshold, float[] cTable) {
-		short[] pixels = (short[])ip.getPixels();
-		byte[] mask = ip.getMaskArray();
-		int i, mi, iv;
-		double v, v2, sum1=0.0, sum2=0.0, sum3=0.0, sum4=0.0, xsum=0.0, ysum=0.0;
-		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
-			i = y*width + rx;
-			mi = my*rw;
-			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null || mask[mi++]!=0) {
-					iv = pixels[i]&0xffff;
-					if (iv>=minThreshold&&iv<=maxThreshold) {
-						v = cTable!=null?cTable[iv]:iv;
-						v2 = v*v;
-						sum1 += v;
-						sum2 += v2;
-						sum3 += v*v2;
-						sum4 += v2*v2;
-						xsum += x*v;
-						ysum += y*v;
-					}
-				}
-				i++;
-			}
-		}
-	    double mean2 = mean*mean;
-	    double variance = sum2/pixelCount - mean2;
-	    double sDeviation = Math.sqrt(variance);
-	    skewness = ((sum3 - 3.0*mean*sum2)/pixelCount + 2.0*mean*mean2)/(variance*sDeviation);
-	    kurtosis = (((sum4 - 4.0*mean*sum3 + 6.0*mean2*sum2)/pixelCount - 3.0*mean2*mean2)/(variance*variance)-3.0);
-		xCenterOfMass = (xsum/sum1+0.5)*pw;
-		yCenterOfMass = (ysum/sum1+0.5)*ph;
+		xCenterOfMass = (xsum/count+0.5)*pw;
+		yCenterOfMass = (ysum/count+0.5)*ph;
 	}
 
 	void getCalibratedMinAndMax(int[] hist, int minValue, int maxValue, float[] cTable) {
 		min = Double.MAX_VALUE;
-		max = -Double.MAX_VALUE;
+		max = Double.MIN_VALUE;
 		double v = 0.0;
-		for (int i=minValue; i<=maxValue; i++) {
+		for (int i=minValue; i<maxValue; i++) {
 			if (hist[i]>0) {
 				v = cTable[i];
 				if (v<min) min = v;

@@ -1,17 +1,10 @@
 package ij.measure;
-import ij.*;
-import ij.plugin.filter.Analyzer;
-import ij.text.*;
-import java.awt.*;
+import ij.IJ;
 
-/** This is a table for storing measurement results as columns of numeric values. 
-	Call the static ResultsTable.getResultsTable() method to get a reference to the 
-	ResultsTable used by the <i>Analyze/Measure</i> command. 
-	@see ij.plugin.filter.Analyzer#getResultsTable
-*/
+/** This is a table for storing measurement results as columns of real numbers. */
 public class ResultsTable {
 
-	public static final int MAX_COLUMNS = 150;
+	public static final int MAX_COLUMNS = 50;
 	
 	public static final int COLUMN_NOT_FOUND = -1;
 	public static final int COLUMN_IN_USE = -2;
@@ -19,16 +12,13 @@ public class ResultsTable {
 	
 	public static final int AREA=0, MEAN=1, STD_DEV=2, MODE=3, MIN=4, MAX=5,
 		X_CENTROID=6, Y_CENTROID=7, X_CENTER_OF_MASS=8, Y_CENTER_OF_MASS=9,
-		PERIMETER=10, ROI_X=11, ROI_Y=12, ROI_WIDTH=13, ROI_HEIGHT=14,
-		MAJOR=15, MINOR=16, ANGLE=17, CIRCULARITY=18, FERET=19, INTEGRATED_DENSITY=20,
-		MEDIAN=21, SKEWNESS=22, KURTOSIS=23, AREA_FRACTION=24, SLICE=25;
+		PERIMETER=10, ROI_X=11, ROI_Y=12, ROI_WIDTH=13, ROI_HEIGHT=14; 
 
 	private String[] headings = new String[MAX_COLUMNS];
 	private String[] defaultHeadings = {"Area","Mean","StdDev","Mode","Min","Max",
-		"X","Y","XM","YM","Perim.","BX","BY","Width","Height","Major","Minor","Angle",
-		"Circ.", "Feret", "IntDen", "Median","Skew","Kurt", "%Area", "Slice"};
+		"X","Y","XM","YM","Perim.","BX","BY","Width","Height"};
 	private int counter;
-	private double[][] columns = new double[MAX_COLUMNS][];
+	private float[][] columns = new float[MAX_COLUMNS][];
 	private String[] rowLabels;
 	private int maxRows = 100; // will be increased as needed
 	private int lastColumn = -1;
@@ -42,12 +32,6 @@ public class ResultsTable {
 				headings[i] = defaultHeadings[i];
 	}
 	
-	/** Returns the ResultsTable used by the Measure command. */
-	public static ResultsTable getResultsTable() {
-		return Analyzer.getResultsTable();
-	}
-	
-	
 	/** Increments the measurement counter by one. */
 	public synchronized void incrementCounter() {
 		counter++;
@@ -57,9 +41,9 @@ public class ResultsTable {
 				System.arraycopy(rowLabels, 0, s, 0, maxRows);
 				rowLabels = s;
 			}
-			for (int i=0; i<=lastColumn; i++) {
+			for (int i=0; i<MAX_COLUMNS; i++) {
 				if (columns[i]!=null) {
-					double[] tmp = new double[maxRows*2];
+					float[] tmp = new float[maxRows*2];
 					System.arraycopy(columns[i], 0, tmp, 0, maxRows);
 					columns[i] = tmp;
 				}
@@ -80,12 +64,12 @@ public class ResultsTable {
 		if (counter==0)
 			throw new IllegalArgumentException("Counter==0");
 		if (columns[column]==null) {
-			columns[column] = new double[maxRows];
+			columns[column] = new float[maxRows];
 			if (headings[column]==null)
 				headings[column] = "---";
 			if (column>lastColumn) lastColumn = column;
 		}
-		columns[column][counter-1] = value;
+		columns[column][counter-1] = (float)value;
 	}
 	
 	/** Adds a value to the end of the given column. If the column
@@ -101,28 +85,14 @@ public class ResultsTable {
 	}
 	
 	/** Adds a label to the beginning of the current row. Counter must be >0. */
-	public void addLabel(String columnHeading, String label) {
+	public void addLabel(String heading, String label) {
 		if (counter==0)
 			throw new IllegalArgumentException("Counter==0");
 		if (rowLabels==null)
 			rowLabels = new String[maxRows];
 		rowLabels[counter-1] = label;
-		if (columnHeading!=null)
-			rowLabelHeading = columnHeading;
-	}
-	
-	/** Adds a label to the beginning of the specified row, 
-		or updates an existing lable, where 0<=row<counter.
-		After labels are added or modified, call <code>show()</code>
-		to update the window displaying the table. */
-	public void setLabel(String label, int row) {
-		if (row<0||row>=counter)
-			throw new IllegalArgumentException("row>=counter");
-		if (rowLabels==null)
-			rowLabels = new String[maxRows];
-		if (rowLabelHeading.equals(""))
-			rowLabelHeading = "Label";
-		rowLabels[row] = label;
+		if (heading!=null)
+			rowLabelHeading = heading;
 	}
 	
 	/** Set the row label column to null. */
@@ -140,19 +110,11 @@ public class ResultsTable {
 		else {
 			float[] data = new float[counter];
 			for (int i=0; i<counter; i++)
-				data[i] = (float)columns[column][i];
+				data[i] = columns[column][i];
 			return data;
 		}
 	}
 	
-	/** Returns true if the specified column exists and is not empty. */
-	public boolean columnExists(int column) {
-		if ((column<0) || (column>=MAX_COLUMNS))
-			return false;
-		else
-			return columns[column]!=null;
-	}
-
 	/** Returns the index of the first column with the given heading.
 		heading. If not found, returns COLUMN_NOT_FOUND. */
 	public int getColumnIndex(String heading) {
@@ -172,7 +134,7 @@ public class ResultsTable {
 	public int getFreeColumn(String heading) {
 		for(int i=0; i<headings.length; i++) {
 			if (headings[i]==null) {
-				columns[i] = new double[maxRows];
+				columns[i] = new float[maxRows];
 				headings[i] = heading;
 				if (i>lastColumn) lastColumn = i;
 				return i;
@@ -183,65 +145,27 @@ public class ResultsTable {
 		return TABLE_FULL;
 	}
 	
-	/**	Returns the value of the given column and row, where
-		column must be greater than or equal zero and less than
-		MAX_COLUMNS and row must be greater than or equal zero
-		and less than counter. */
-	public double getValueAsDouble(int column, int row) {
-		if (columns[column]==null)
-			throw new IllegalArgumentException("Column not defined: "+column);
-		if (column>=MAX_COLUMNS || row>=counter)
+	/**	Returns the value of the given column and row,
+		where 0<=column<MAX_COLUMNS and 0<=row<counter
+		and the column must not be null. */
+	public float getValue(int column, int row) {
+		if (column>=MAX_COLUMNS || columns[column]==null || row>=counter)
 			throw new IllegalArgumentException("Index out of range: "+column+","+row);
 		return columns[column][row];
 	}
 	
-	/**	Obsolete, replaced by getValueAsDouble. */
-	public float getValue(int column, int row) {
-		return (float)getValueAsDouble(column, row);
-	}
-
-	/**	Returns the value of the specified column and row, where
-		column is the column heading and row is a number greater
-		than or equal zero and less than value returned by getCounter(). 
-		Throws an IllegalArgumentException if this ResultsTable
-		does not have a column with the specified heading. */
-	public double getValue(String column, int row) {
-		if (row<0 || row>=getCounter())
-			throw new IllegalArgumentException("Row out of range");
-		int col = getColumnIndex(column);
-		if (col==COLUMN_NOT_FOUND)
-			throw new IllegalArgumentException("\""+column+"\" column not found");
-		//IJ.log("col: "+col+" "+(col==COLUMN_NOT_FOUND?"not found":""+columns[col]));
-		return getValueAsDouble(col,row);
-	}
-
 	/** Sets the value of the given column and row, where
-		where 0&lt;=row&lt;counter. If the specified column does 
-		not exist, it is created. When adding columns, 
-		<code>show()</code> must be called to update the 
-		window that displays the table.*/
-	public void setValue(String column, int row, double value) {
-		int col = getColumnIndex(column);
-		if (col==COLUMN_NOT_FOUND) {
-			col = getFreeColumn(column);
-			if (col==TABLE_FULL)
-				throw new IllegalArgumentException("Too many columns (>"+(MAX_COLUMNS-defaultHeadings.length)+")");
-		}
-		setValue(col, row, value);
-	}
-
-	/** Sets the value of the given column and row, where
-		where 0&lt;=column&lt;MAX_COLUMNS and 0<=row<counter. */
+		where 0<=column<MAX_COLUMNS and 0<=row<counter. */
 	public void setValue(int column, int row, double value) {
 		if ((column<0) || (column>=MAX_COLUMNS))
 			throw new IllegalArgumentException("Column out of range: "+column);
 		if (row>=counter)
 			throw new IllegalArgumentException("row>=counter");
 		if (columns[column]==null) {
-			columns[column] = new double[maxRows];
+			columns[column] = new float[maxRows];
 			if (column>lastColumn) lastColumn = column;
 		}
-		columns[column][row] = value;
+		columns[column][row] = (float)value;
 	}
 
 	/** Returns a tab-delimited string containing the column headings. */
@@ -259,13 +183,6 @@ public class ResultsTable {
 			}
 		}
 		return new String(sb);
-	}
-
-	/** Returns the heading of the specified column or null if the column is empty. */
-	public String getColumnHeading(int column) {
-		if ((column<0) || (column>=MAX_COLUMNS))
-			throw new IllegalArgumentException("Index out of range: "+column);
-		return headings[column];
 	}
 
 	/** Returns a tab-delimited string representing the
@@ -312,69 +229,17 @@ public class ResultsTable {
 		return s+"\t";
 	}
 		
-	/** Deletes the specified row. */
-	public synchronized void deleteRow(int row) {
-		if (counter==0 || row>counter-1) return;
-		if (counter==1)
-			{reset(); return;}
-		if (rowLabels!=null) {
-			for (int i=row; i<counter-1; i++)
-				rowLabels[i] = rowLabels[i+1];
-		}
-		for (int i=0; i<=lastColumn; i++) {
-			if (columns[i]!=null) {
-				for (int j=row; j<counter-1; j++)
-					columns[i][j] = columns[i][j+1];
-			}
-		}
-		counter--;
-	}
-	
 	/** Clears all the columns and sets the counter to zero. */
 	public synchronized void reset() {
 		counter = 0;
 		maxRows = 100;
-		for (int i=0; i<=lastColumn; i++) {
-			columns[i] = null;
-			if (i<defaultHeadings.length)
-				headings[i] = defaultHeadings[i];
-			else
-				headings[i] = null;
-		}
 		lastColumn = -1;
-		rowLabels = null;
-	}
-
-	/** Displays the contents of this ResultsTable in a window with the specified title. 
-		Opens a new window if there is no open text window with this title. */
-	public void show(String windowTitle) {
-		String tableHeadings = getColumnHeadings();		
-		TextPanel tp;
-		if (windowTitle.equals("Results")) {
-			tp = IJ.getTextPanel();
-			if (tp==null) return;
-			IJ.setColumnHeadings(tableHeadings);
-		} else {
-			Frame frame = WindowManager.getFrame(windowTitle);
-			TextWindow win;
-			if (frame!=null && frame instanceof TextWindow)
-				win = (TextWindow)frame;
-			else
-				win = new TextWindow(windowTitle, "", 300, 200);
-			tp = win.getTextPanel();
-			tp.setColumnHeadings(tableHeadings);
-		}
-		int n = getCounter();
-		if (n>0) {
-			StringBuffer sb = new StringBuffer(n*tableHeadings.length());
-			for (int i=0; i<n; i++)
-				sb.append(getRowAsString(i)+"\n");
-			tp.append(new String(sb));
-		}
+		for (int i=0; i<MAX_COLUMNS; i++)
+			columns[i] = null;
 	}
 	
 	public String toString() {
-		return ("ctr="+counter+", hdr="+getColumnHeadings());
+		return ("ctr="+counter);
 	}
 	
 }

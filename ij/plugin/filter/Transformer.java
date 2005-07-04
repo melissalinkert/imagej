@@ -2,7 +2,6 @@ package ij.plugin.filter;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import ij.measure.Calibration;
 import java.awt.*;
 import java.awt.image.*;
 
@@ -16,7 +15,7 @@ public class Transformer implements PlugInFilter {
 		this.arg = arg;
 		this.imp = imp;
 		if (arg.equals("fliph") || arg.equals("flipv"))
-			return IJ.setupDialog(imp, DOES_ALL+NO_UNDO);
+			return DOES_ALL+NO_UNDO;
 		else
 			return DOES_ALL+NO_UNDO+NO_CHANGES;
 	}
@@ -24,12 +23,14 @@ public class Transformer implements PlugInFilter {
 	public void run(ImageProcessor ip) {
 
 		if (arg.equals("fliph")) {
-			ip.flipHorizontal();
+			StackProcessor sp = new StackProcessor(imp.getStack(), ip);
+			sp.flipHorizontal();
 			return;
 		}
 		
 		if (arg.equals("flipv")) {
-			ip.flipVertical();
+			StackProcessor sp = new StackProcessor(imp.getStack(), ip);
+			sp.flipVertical();
 			return;
 		}
 		
@@ -40,11 +41,9 @@ public class Transformer implements PlugInFilter {
 	    		s2 = sp.rotateRight();
 	    	else
 	    		s2 = sp.rotateLeft();
-	    	Calibration cal = imp.getCalibration();
-	    	imp.setStack(null, s2);
-	    	double pixelWidth = cal.pixelWidth;
-	    	cal.pixelWidth = cal.pixelHeight;
-	    	cal.pixelHeight = pixelWidth;
+	    	imp.changes = false;
+	    	imp.getWindow().close();
+	    	new ImagePlus(imp.getTitle(), s2).show();
 			return;
 		}
 	}

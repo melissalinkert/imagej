@@ -3,9 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
-import ij.util.Tools;
 import java.awt.*;
-import java.awt.event.*;
 
 /** Implements the Analyze/Set Scale command. */
 public class ScaleDialog implements PlugInFilter {
@@ -23,21 +21,15 @@ public class ScaleDialog implements PlugInFilter {
 		double known = 1.0;
 		double aspectRatio = 1.0;
 		String unit = "cm";
-		boolean global1 = imp.getGlobalCalibration()!=null;
-		boolean global2;
+		boolean oldGlobal = Calibrator.global;
 		Calibration cal = imp.getCalibration();
-		Calibration calOrig = cal.copy();
 		boolean isCalibrated = cal.scaled();
 		
-		String scale = "<no scale>";
-		int digits = 2;
 		if (isCalibrated) {
 			measured = 1.0/cal.pixelWidth;
-			digits = Tools.getDecimalPlaces(measured, measured);
 			known = 1.0;
 			aspectRatio = cal.pixelHeight/cal.pixelWidth;
 			unit = cal.getUnit();
-			scale = IJ.d2s(measured,digits)+" pixels/"+unit;
 		}
 		Roi roi = imp.getRoi();
 		if (roi!=null && (roi instanceof Line)) {
@@ -45,13 +37,12 @@ public class ScaleDialog implements PlugInFilter {
 			known = 0.0;
 		}
 		
-		SetScaleDialog gd = new SetScaleDialog("Set Scale", scale);
-		gd.addNumericField("Distance in Pixels:", measured, digits, 8, null);
-		gd.addNumericField("Known Distance:", known, 2, 8, null);
-		gd.addNumericField("Pixel Aspect Ratio:", aspectRatio, 1, 8, null);
-		gd.addStringField("Unit of Length:", unit);
-		gd.addMessage("Scale: "+"12345.789 pixels per centimeter");
-		gd.addCheckbox("Global", global1);
+		GenericDialog gd = new GenericDialog("Set Scale", IJ.getInstance());
+		gd.addNumericField("Distance in Pixels:", measured, 2);
+		gd.addNumericField("Known Distance:", known, 2);
+		gd.addNumericField("Pixel Aspect Ratio:", aspectRatio, 1);
+		gd.addStringField("Unit of Measurement:", unit);
+		gd.addCheckbox("Global", Calibrator.global);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -59,13 +50,9 @@ public class ScaleDialog implements PlugInFilter {
 		known = gd.getNextNumber();
 		aspectRatio = gd.getNextNumber();
 		unit = gd.getNextString();
-        if (unit.equals("um"))
-            unit = IJ.micronSymbol+"m";
-        else if (unit.equals("A"))
-        	unit = ""+IJ.angstromSymbol;
- 		global2 = gd.getNextBoolean();
+		Calibrator.global = gd.getNextBoolean();
 		if (measured!=0.0 && known==0.0) {
-			imp.setGlobalCalibration(global2?cal:null);
+			imp.setGlobalCalibration(Calibrator.global?cal:null);
 			return;
 		}
 		if (measured<=0.0 || unit.startsWith("pixel") || unit.startsWith("Pixel") || unit.equals("")) {
@@ -80,55 +67,23 @@ public class ScaleDialog implements PlugInFilter {
 				cal.pixelHeight = cal.pixelWidth;
 			cal.setUnit(unit);
 		}
-		if (!cal.equals(calOrig))
+		if (oldGlobal&&!Calibrator.global)
+			imp.setGlobalCalibration(null);
+		else {
 			imp.setCalibration(cal);
-		imp.setGlobalCalibration(global2?cal:null);
-		if (global2 || global2!=global1)
-			WindowManager.repaintImageWindows();
-		else
-			imp.repaintWindow();
-	}
-}
-
-class SetScaleDialog extends GenericDialog {
-	static final String NO_SCALE = "<no scale>";
-	String initialScale;
-
-	public SetScaleDialog(String title, String scale) {
-		super(title);
-		initialScale = scale;
-	}
-
-    protected void setup() {
-    	if (IJ.isJava2())
-    		initialScale += "          ";
-   		setScale(initialScale);
-    }
- 	
- 	public void textValueChanged(TextEvent e) {
- 		Double d = getValue(((TextField)numberField.elementAt(0)).getText());
- 		if (d==null)
- 			{setScale(NO_SCALE); return;}
- 		double measured = d.doubleValue();
- 		d = getValue(((TextField)numberField.elementAt(1)).getText());
- 		if (d==null)
- 			{setScale(NO_SCALE); return;}
- 		double known = d.doubleValue();
- 		String theScale;
- 		String unit = ((TextField)stringField.elementAt(0)).getText();
- 		boolean noScale = measured<=0||known<=0||unit.startsWith("pixel")||unit.startsWith("Pixel")||unit.equals("");
- 		if (noScale)
- 			theScale = NO_SCALE;
- 		else {
- 			double scale = measured/known;
-			int digits = Tools.getDecimalPlaces(scale, scale);
- 			theScale = IJ.d2s(scale,digits)+" pixels/"+unit;
- 		}
- 		setScale(theScale);
-	}
-	
-	void setScale(String theScale) {
- 		((Label)theLabel).setText("Scale: "+theScale);
+			imp.setGlobalCalibration(Calibrator.global?cal:null);
+		}
+		if (Calibrator.global || Calibrator.global!=oldGlobal) {
+			int[] list = WindowManager.getIDList();
+			if (list==null)
+				return;
+			for (int i=0; i<list.length; i++) {
+				ImagePlus imp2 = WindowManager.getImage(list[i]);
+				if (imp2!=null)
+					imp2.getWindow().repaint();
+			}
+		} else
+			imp.getWindow().repaint();
 	}
 
 }

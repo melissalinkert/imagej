@@ -34,7 +34,6 @@ public class ShortBlitter implements Blitter {
 		if (!r1.intersects(r2))
 			return;
 		srcPixels = (short [])ip.getPixels();
-//new ij.ImagePlus("srcPixels", new ShortProcessor(srcWidth, srcHeight, srcPixels, null)).show();
 		r1 = r1.intersection(r2);
 		xSrcBase = (xloc<0)?-xloc:0;
 		ySrcBase = (yloc<0)?-yloc:0;
@@ -49,7 +48,7 @@ public class ShortBlitter implements Blitter {
 					break;
 				case ADD:
 					for (int i=r1.width; --i>=0;) {
-						dst = (srcPixels[srcIndex++]&0xffff)+(pixels[dstIndex]&0xffff);
+						dst = srcPixels[srcIndex++]&0xffff+pixels[dstIndex]&0xffff;
 						if (dst<0) dst = 0;
 						if (dst>65535) dst = 65535;
 						pixels[dstIndex++] = (short)dst;
@@ -57,13 +56,13 @@ public class ShortBlitter implements Blitter {
 					break;
 				case AVERAGE:
 					for (int i=r1.width; --i>=0;) {
-						dst = ((srcPixels[srcIndex++]&0xffff)+(pixels[dstIndex]&0xffff))/2;
+						dst = (srcPixels[srcIndex++]+pixels[dstIndex])/2;
 						pixels[dstIndex++] = (short)dst;
 					}
 					break;
 				case DIFFERENCE:
 					for (int i=r1.width; --i>=0;) {
-						dst = (pixels[dstIndex]&0xffff)-(srcPixels[srcIndex++]&0xffff);
+						dst = pixels[dstIndex]&0xffff-srcPixels[srcIndex++]&0xffff;
 						if (dst<0) dst = -dst;
 						if (dst>65535) dst = 65535;
 						pixels[dstIndex++] = (short)dst;
@@ -71,7 +70,7 @@ public class ShortBlitter implements Blitter {
 					break;
 				case SUBTRACT:
 					for (int i=r1.width; --i>=0;) {
-						dst = (pixels[dstIndex]&0xffff)-(srcPixels[srcIndex++]&0xffff);
+						dst = pixels[dstIndex]&0xffff-srcPixels[srcIndex++]&0xffff;
 						if (dst<0) dst = 0;
 						if (dst>65535) dst = 65535;
 						pixels[dstIndex++] = (short)dst;
@@ -79,7 +78,7 @@ public class ShortBlitter implements Blitter {
 					break;
 				case MULTIPLY:
 					for (int i=r1.width; --i>=0;) {
-						dst = (srcPixels[srcIndex++]&0xffff)*(pixels[dstIndex]&0xffff);
+						dst = srcPixels[srcIndex++]&0xffff*pixels[dstIndex]&0xffff;
 						if (dst<0) dst = 0;
 						if (dst>65535) dst = 65535;
 						pixels[dstIndex++] = (short)dst;
@@ -97,7 +96,7 @@ public class ShortBlitter implements Blitter {
 					break;
 				case AND:
 					for (int i=r1.width; --i>=0;) {
-						dst = srcPixels[srcIndex++]&pixels[dstIndex]&0xffff;
+						dst = srcPixels[srcIndex++]&pixels[dstIndex];
 						pixels[dstIndex++] = (short)dst;
 					}
 					break;

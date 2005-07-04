@@ -1,21 +1,14 @@
 package ij.process;
-import ij.Prefs;
 import java.awt.*;
 
 /** This class does bit blitting of 32-bit floating-point images. */
 public class FloatBlitter implements Blitter {
 
-	public static float divideByZeroValue;
+	public static float divideByZeroValue = Float.MAX_VALUE;
 	
 	private FloatProcessor ip;
 	private int width, height;
 	private float[] pixels;
-	
-	static {
-		divideByZeroValue = (float)Prefs.getDouble(Prefs.DIV_BY_ZERO_VALUE, Float.POSITIVE_INFINITY);
-		if (divideByZeroValue==Float.MAX_VALUE)
-			divideByZeroValue = Float.POSITIVE_INFINITY;
-	}
 	
 	/** Constructs a FloatBlitter from a FloatProcessor. */
 	public FloatBlitter(FloatProcessor ip) {
@@ -35,8 +28,6 @@ public class FloatBlitter implements Blitter {
 		int xSrcBase, ySrcBase;
 		float[] srcPixels;
 		
-		if (!(ip instanceof FloatProcessor))
-			ip = ip.convertToFloat();
 		int srcWidth = ip.getWidth();
 		int srcHeight = ip.getHeight();
 		r1 = new Rectangle(srcWidth, srcHeight);
@@ -48,7 +39,6 @@ public class FloatBlitter implements Blitter {
 		r1 = r1.intersection(r2);
 		xSrcBase = (xloc<0)?-xloc:0;
 		ySrcBase = (yloc<0)?-yloc:0;
-		boolean useDBZValue = !Float.isInfinite(divideByZeroValue);
 		float src, dst;
 		for (int y=r1.y; y<(r1.y+r1.height); y++) {
 			srcIndex = (y-yloc)*srcWidth + (r1.x-xloc);
@@ -85,7 +75,7 @@ public class FloatBlitter implements Blitter {
 				case DIVIDE:
 					for (int i=r1.width; --i>=0; srcIndex++, dstIndex++) {
 							src = srcPixels[srcIndex];
-							if (useDBZValue && src==0.0)
+							if (src==0.0)
 								pixels[dstIndex] = divideByZeroValue;
 							else
 								pixels[dstIndex] = pixels[dstIndex]/src;

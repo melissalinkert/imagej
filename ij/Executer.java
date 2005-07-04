@@ -5,14 +5,10 @@ import java.net.URL;
 import java.awt.image.*;
 import java.io.*;
 import java.util.*;
-import java.awt.event.KeyEvent;
 import ij.io.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.util.*;
-import ij.text.TextWindow;
-import ij.plugin.frame.*;
-import ij.macro.Interpreter;
 
 /** Runs menu commands in a separate thread.*/
 public class Executer implements Runnable {
@@ -26,7 +22,7 @@ public class Executer implements Runnable {
 	
 	/** Create an Executer to run the specified menu command
 		in this thread using the active image. */
-	public Executer(String cmd) {
+	Executer(String cmd) {
 		command = cmd;
 		iplus = WindowManager.getCurrentImage();
 		ij = IJ.getInstance();
@@ -34,7 +30,7 @@ public class Executer implements Runnable {
 
 	/** Create an Executer that runs the specified menu command
 		in a separate thread using the specified image. */
-	public Executer(String cmd, ImagePlus imp) {
+	Executer(String cmd, ImagePlus imp) {
 		iplus = imp;
 		if (cmd.startsWith("Repeat"))
 			command = previousCommand;
@@ -43,8 +39,8 @@ public class Executer implements Runnable {
 			if (!(cmd.equals("Undo")||cmd.equals("Close")))
 				previousCommand = cmd;
 		}
+			
 		ij = IJ.getInstance();
-		IJ.resetEscape();
 		thread = new Thread(this, cmd);
 		thread.setPriority(Math.max(thread.getPriority()-2, Thread.MIN_PRIORITY));
 		thread.start();
@@ -54,80 +50,45 @@ public class Executer implements Runnable {
 		if (command==null) return;
 		ImagePlus imp = iplus;
 		iplus = null; // maybe this will help get the image GC'd
-		try {
-			if (Recorder.record) {
-				Recorder.setCommand(command);
-				runCommand(command, imp);
-				if (command!=null) Recorder.saveCommand();
-			} else
-				runCommand(command, imp);
-		} catch(Throwable e) {
+		try {runCommand(command, imp);}
+		catch(Throwable e) {
 			IJ.showStatus("");
 			IJ.showProgress(1.0);
 			if (imp!=null) imp.unlock();
-			String msg = e.getMessage();
 			if (e instanceof OutOfMemoryError)
 				IJ.outOfMemory(command);
-			else if (e instanceof RuntimeException && msg!=null && msg.equals(Macro.MACRO_CANCELED))
-				; //do nothing
 			else {
 				CharArrayWriter caw = new CharArrayWriter();
 				PrintWriter pw = new PrintWriter(caw);
 				e.printStackTrace(pw);
 				String s = caw.toString();
-				if (IJ.isMacintosh()) {
-					if (s.indexOf("ThreadDeath")>0)
-						return;
+				if (IJ.isMacintosh())
 					s = Tools.fixNewLines(s);
-				}
-				if (ij!=null)
-					new TextWindow("Exception", s, 350, 250);
-				else
-					IJ.log(s);
+				IJ.write(s);
 			}
-			IJ.abort();
 		}
 	}
-	
-	/*
-	void save(String s) {
-		PrintWriter pw = null;
-		try {
-			FileOutputStream fos = new FileOutputStream("exception.txt");
-			BufferedOutputStream bos = new BufferedOutputStream(fos);
-			pw = new PrintWriter(bos);
-		}
-		catch (IOException e) {
-			IJ.error("" + e);
-			return;
-		}
-		pw.println(s);
-		pw.close();
-	}
-	*/
 
     public void runCommand(String cmd, ImagePlus imp) {
 		if (cmd.equals("New..."))
 			new NewImage();
-		else if (cmd.equals("Open...")) {
-			if (Prefs.useJFileChooser && !IJ.macroRunning())
-				new Opener().openMultiple();
-			else
-				new Opener().open();
-		} else if (cmd.equals("Close"))
-			close(imp);
+		else if (cmd.equals("Open..."))
+			new Opener().openImage();
+		else if (cmd.equals("Close"))
+			closeImage(imp);
+		else if (cmd.equals("About ImageJ..."))
+			ij.showAboutBox();
 		else if (cmd.equals("Cut"))
 			copy(imp, true);
 		else if (cmd.equals("Copy"))
 			copy(imp, false);
-		else if (cmd.equals("ImageJA [enter]"))
+		else if (cmd.equals("ImageJ [enter]"))
 			ij.toFront();
 		else if (cmd.equals("Put Behind [tab]"))
 			WindowManager.putBehind();
-		else if (cmd.equals("Quit")) {
-			ImageJ ij = IJ.getInstance();
-			if (ij!=null) ij.quit();
-		} else {
+		else if (cmd.equals("Quit"))
+			IJ.getInstance().quit();
+		else {
 			Hashtable table = Menus.getCommands();
 			String plugIn = (String)table.get(cmd);
 			if (plugIn!=null)
@@ -136,28 +97,48 @@ public class Executer implements Runnable {
 				runImageCommand(cmd, imp);
 		} 
     }
-    
 
    /** Run commands that process images. */
     public void runImageCommand(String cmd, ImagePlus imp) {
-        ImageWindow win = null;
+    
+    	ImageWindow win = null;
+    	
     	if (imp!=null) {
 			if (!imp.lock())
 				return;   // exit if image is in use
+    		win = imp.getWindow();
     	}
+
 		if (cmd.equals("Revert"))
-			{if (imp!=null) imp.revert(); else IJ.noImage();}
+			{if (win!=null) imp.revert(); else IJ.noImage();}
 		else if (cmd.equals("Save"))
-			{if (imp!=null) new FileSaver(imp).save(); else IJ.noImage();}
+			{if (win!=null) new FileSaver(imp).save(); else IJ.noImage();}
 		else if (cmd.equals("Paste"))
-			{if (imp!=null) imp.paste(); else IJ.noImage();}
+			{if (win!=null) win.paste(); else IJ.noImage();}
+		else if (cmd.equals("Select All"))
+			{if (win!=null) imp.setRoi(0,0,imp.getWidth(),imp.getHeight()); else IJ.noImage();}
+		else if (cmd.equals("Select None"))
+			{if (win!=null) imp.killRoi(); else IJ.noImage();}
+		else if (isConversionCommand(cmd))
+			{if (win!=null) new Converter(imp).convert(cmd); else IJ.noImage();}
+		else if (cmd.equals("Histogram"))
+			{if (win!=null) {new HistogramWindow(imp);} else IJ.noImage();}
+		else if (cmd.startsWith("Restore"))
+			{if (win!=null) imp.restoreRoi(); else IJ.noImage();}
 		else if (cmd.equals("Undo"))
-			{if (imp!=null) Undo.undo(); else IJ.noImage();}
+			{if (win!=null) Undo.undo(); else IJ.noImage();}
 		else
+			//runFilter(cmd);
 	 		IJ.error("Unrecognized command: " + cmd);
 		if (imp!=null)
 			imp.unlock();
     }
+
+	private boolean isConversionCommand(String cmd) {
+		return (cmd.equals("8-bit") || cmd.equals("16-bit")
+			|| cmd.equals("32-bit") || cmd.equals("8-bit Color")
+			|| cmd.equals("RGB Color") || cmd.equals("RGB Stack") || cmd.equals("HSB Stack"));
+	}
 
 	void runPlugIn(String cmd, String className) {
 		String arg = "";
@@ -177,41 +158,21 @@ public class Executer implements Runnable {
 	}
 
 	void copy(ImagePlus imp, boolean cut) {
-		if (imp==null) {
+		if (ij.copyText(cut)>0)
+			return;
+		else if (imp==null) {
 	 		IJ.noImage();
 	 		return;
 	 	} else
-	 		imp.copy(cut);
+	 		imp.getWindow().copy(cut);
 	}
 	
-	void close(ImagePlus imp) {
-		Frame frame = WindowManager.getFrontWindow();
-		if (frame==null || ((Interpreter.isBatchMode() || IJ.noGUI) && frame instanceof ImageWindow))
-			closeImage(imp);
-		else if (frame instanceof PlugInFrame)
-			((PlugInFrame)frame).close();
-		else if (frame instanceof TextWindow)
-			((TextWindow)frame).close();
-		else
-			closeImage(imp);
-	}
-
 	void closeImage(ImagePlus imp) {
-		if (imp==null) {
+		if (imp==null)
 			IJ.noImage();
-			return;
-		}
-		ImageWindow win = imp.getWindow();
-		if (win!=null)
-			win.close();
 		else {
-			WindowManager.setTempCurrentImage(null);
-			imp.killRoi(); //save any ROI so it can be restored later
-			Interpreter.removeBatchModeImage(imp);
-		}
-		if (Recorder.record) {
-			Recorder.record("close");
-			command = null;
+			ImageWindow win = imp.getWindow();
+			if (win!=null) win.close();
 		}
 	}
 

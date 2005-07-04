@@ -18,97 +18,88 @@ public class FloatStatistics extends ImageStatistics {
 		this.width = ip.getWidth();
 		this.height = ip.getHeight();
 		setup(ip, cal);
-		double minT = ip.getMinThreshold();
-		double minThreshold,maxThreshold;
-		if ((mOptions&LIMIT)==0 || minT==ip.NO_THRESHOLD)
-			{minThreshold=-Float.MAX_VALUE; maxThreshold=Float.MAX_VALUE;}
-		else
-			{minThreshold=minT; maxThreshold=ip.getMaxThreshold();}
-		getStatistics(ip, minThreshold, maxThreshold);
+		getStatistics(ip);
 		if ((mOptions&MODE)!=0)
 			getMode();
-		if ((mOptions&ELLIPSE)!=0)
-			fitEllipse(ip);
-		else if ((mOptions&CENTROID)!=0)
-			getCentroid(ip, minThreshold, maxThreshold);
-		if ((mOptions&(CENTER_OF_MASS|SKEWNESS|KURTOSIS))!=0)
-			calculateMoments(ip, minThreshold, maxThreshold);
-		if ((mOptions&MEDIAN)!=0) {
-			if (Double.isInfinite(binSize)||Double.isNaN(binSize))
-				median = 0.0;
-			else {
-				calculateMedian(histogram, 0, null);
-				median = histMin + median*binSize;
-				if (binSize!=1.0) median += binSize/2.0; 
-			}       	
-		}
-		if ((mOptions&AREA_FRACTION)!=0)
-			calculateAreaFraction(ip);
+		if ((mOptions&CENTROID)!=0)
+			getCentroid(ip);
+		if ((mOptions&CENTER_OF_MASS)!=0)
+			getCenterOfMass(ip);
 	}
 
-	void getStatistics(ImageProcessor ip, double minThreshold, double maxThreshold) {
+	void getStatistics(ImageProcessor ip) {
 		double v;
 		float[] pixels = (float[])ip.getPixels();
 		nBins = ip.getHistogramSize();
-		histMin = ip.getHistogramMin();
-		histMax = ip.getHistogramMax();
 		histogram = new int[nBins];
 		double sum = 0;
 		double sum2 = 0;
-		byte[] mask = ip.getMaskArray();
+		int[] mask = ip.getMask();
 		
-		// Find image min and max
+		// Find min and max
 		double roiMin = Double.MAX_VALUE;
-		double roiMax = -Double.MAX_VALUE;
-		double roiMin2 = Double.MAX_VALUE;
-		double roiMax2 = -Double.MAX_VALUE;
-		for (int y=ry, my=0; y<(ry+rh); y++, my++) {
-			int i = y * width + rx;
-			int mi = my * rw;
-			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null || mask[mi++]!=0) {
-					v = pixels[i];
-					if (v>=minThreshold && v<=maxThreshold) {
+		double roiMax = Double.MIN_VALUE;
+		if (mask!=null)
+			// non-rectangular roi
+			for (int y=ry, my=0; y<(ry+rh); y++, my++) {
+				int i = y * width + rx;
+				int mi = my * rw;
+				for (int x=rx; x<(rx+rw); x++) {
+					if (mask[mi++]==ip.BLACK) {
+						v = pixels[i];
 						if (v<roiMin) roiMin = v;
 						if (v>roiMax) roiMax = v;
 					}
+					i++;
 				}
-				i++;
 			}
-		}
+		else
+			// rectangular roi or no roi
+			for (int y=ry; y<(ry+rh); y++) {
+				int i = y * width + rx;
+				for (int x=rx; x<(rx+rw); x++) {
+					v = pixels[i++];
+					if (v<roiMin) roiMin = v;
+					if (v>roiMax) roiMax = v;
+				}
+			}
 		min = roiMin; max = roiMax;
-		if (histMin==0.0 && histMax==0.0) {
-			histMin = min; 
-			histMax = max;
-		} else {
-			if (min<histMin) min = histMin;
-			if (max>histMax) max = histMax;
-		}
-		binSize = (histMax-histMin)/nBins;
+		histMin = min; histMax = max;
 
 		// Generate histogram
-		double scale = nBins/(histMax-histMin);
-		int index;
-		pixelCount = 0;
-		for (int y=ry, my=0; y<(ry+rh); y++, my++) {
-			int i = y * width + rx;
-			int mi = my * rw;
-			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null || mask[mi++]!=0) {
-					v = pixels[i];
-					if (v>=minThreshold && v<=maxThreshold && v>=histMin && v<=histMax) {
+		double scale = (nBins-1)/(histMax-histMin);
+		binSize = (histMax - histMin)/nBins;
+		if (mask!=null) { // non-rectangular roi
+			pixelCount = 0;
+			for (int y=ry, my=0; y<(ry+rh); y++, my++) {
+				int i = y * width + rx;
+				int mi = my * rw;
+				for (int x=rx; x<(rx+rw); x++) {
+					if (mask[mi++]==ip.BLACK) {
+						v = pixels[i];
 						pixelCount++;
 						sum += v;
 						sum2 += v*v;
-						index = (int)(scale*(v-histMin));
-						if (index>=nBins)
-							index = nBins-1;
-						histogram[index]++;
+						histogram[(int)(scale*(v-histMin))]++;
 					}
+					i++;
 				}
-				i++;
 			}
+			min = roiMin; max = roiMax;
 		}
+		else {  // rectangular roi or no roi
+			for (int y=ry; y<(ry+rh); y++) {
+				int i = y * width + rx;
+				for (int x=rx; x<(rx+rw); x++) {
+					v = pixels[i++];
+					sum += v;
+					sum2 += v*v;
+					histogram[(int)(scale*(v-histMin))]++;
+				}
+			}
+			pixelCount = rw*rh;
+		}
+		
 		area = pixelCount*pw*ph;
 		mean = sum/pixelCount;
 		calculateStdDev(pixelCount, sum, sum2);
@@ -125,93 +116,28 @@ public class FloatStatistics extends ImageStatistics {
             }
         }
         dmode = histMin+mode*binSize;
-        if (binSize!=1.0)
-        	dmode += binSize/2.0;        	
 	}
 
-	void calculateMoments(ImageProcessor ip, double minThreshold, double maxThreshold) {
+	void getCenterOfMass(ImageProcessor ip) {
 		float[] pixels = (float[])ip.getPixels();
-		byte[] mask = ip.getMaskArray();
+		int[] mask = ip.getMask();
 		int i, mi;
-		double v, v2, sum1=0.0, sum2=0.0, sum3=0.0, sum4=0.0, xsum=0.0, ysum=0.0;
+		double v, count=0.0, xsum=0.0, ysum=0.0;
 		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
 			i = y*width + rx;
 			mi = my*rw;
 			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null || mask[mi++]!=0) {
-					v = pixels[i]+Double.MIN_VALUE;
-					if (v>=minThreshold && v<=maxThreshold) {
-						v2 = v*v;
-						sum1 += v;
-						sum2 += v2;
-						sum3 += v*v2;
-						sum4 += v2*v2;
-						xsum += x*v;
-						ysum += y*v;
-					}
-				}
-				i++;
-			}
-		}
-	    double mean2 = mean*mean;
-	    double variance = sum2/pixelCount - mean2;
-	    double sDeviation = Math.sqrt(variance);
-	    skewness = ((sum3 - 3.0*mean*sum2)/pixelCount + 2.0*mean*mean2)/(variance*sDeviation);
-	    kurtosis = (((sum4 - 4.0*mean*sum3 + 6.0*mean2*sum2)/pixelCount - 3.0*mean2*mean2)/(variance*variance)-3.0);
-		xCenterOfMass = (xsum/sum1+0.5)*pw;
-		yCenterOfMass = (ysum/sum1+0.5)*ph;
-	}
-
-	void getCentroid(ImageProcessor ip, double minThreshold, double maxThreshold) {
-		float[] pixels = (float[])ip.getPixels();
-		byte[] mask = ip.getMaskArray();
-		double count=0.0, xsum=0.0, ysum=0.0, v;
-		int i, mi;
-		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
-			i = y*width + rx;
-			mi = my*rw;
-			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null||mask[mi++]!=0) {
+				if (mask==null || mask[mi++]==ip.BLACK) {
 					v = pixels[i];
-					if (v>=minThreshold && v<=maxThreshold) {
-						count++;
-						xsum+=x;
-						ysum+=y;
-					}
+					count += v;
+					xsum += x*v;
+					ysum += y*v;
 				}
 				i++;
 			}
 		}
-		xCentroid = ((double)xsum/count+0.5)*pw;
-		yCentroid = ((double)ysum/count+0.5)*ph;
-	}
-
-	void calculateAreaFraction(ImageProcessor ip) {
-		int sum = 0;
-		int total = 0;
-		float t1 = (float)ip.getMinThreshold();
-		float t2 = (float)ip.getMaxThreshold();
-		float v;
-		float[] pixels = (float[])ip.getPixels();
-		boolean noThresh = t1==ImageProcessor.NO_THRESHOLD;
-		byte[] mask = ip.getMaskArray();
-		int i, mi;
-		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
-			i = y*width + rx;
-			mi = my*rw;
-			for (int x=rx; x<(rx+rw); x++) {
-				if (mask==null||mask[mi++]!=0) {
-					v = pixels[i];
-					total++;
-					if (noThresh) {
-						if (v!=0f) sum++;
-					} else if (v>=t1 && v<=t2)
-						sum++;
-				}
-				i++;
-			}
-		}
-		areaFraction = sum*100.0/total;
+		xCenterOfMass = (xsum/count+0.5)*pw;
+		yCenterOfMass = (ysum/count+0.5)*ph;
 	}
 
 }

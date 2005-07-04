@@ -36,9 +36,6 @@ public class MedianCut {
 		}
 	}
 	
-	public MedianCut(ColorProcessor ip) {
-		this((int[])ip.getPixels(), ip.getWidth(), ip.getHeight());
-	}
 	
 	int getColorCount() {
 		int count = 0;
@@ -89,12 +86,7 @@ public class MedianCut {
 	are are used to create a color table. "hist" is then updated to function
 	as an inverse color map that is used to generate an 8-bit image. */
 	public Image convert(int maxcubes) {
-		ImageProcessor ip = convertToByte(maxcubes);
-		return ip.createImage();
-	}
 
-	/** This is a version of convert that returns a ByteProcessor. */
-	public ImageProcessor convertToByte(int maxcubes) {
 		int lr, lg, lb;
 		int i, median, color;
 		int count;
@@ -188,7 +180,8 @@ public class MedianCut {
 		IJ.showProgress(0.95);
 		return makeImage();
 	}
-	
+
+
 	void Shrink(Cube cube) {
 	// Encloses "cube" with a tight-fitting cube by updating the
 	// (rmin,gmin,bmin) and (rmax,gmax,bmax) members of "cube".
@@ -214,7 +207,7 @@ public class MedianCut {
 		}
 		cube.rmin = rmin; cube.rmax = rmax;
 		cube.gmin = gmin; cube.gmax = gmax;
-		cube.bmin = bmin; cube.bmax = bmax;
+		cube.gmin = gmin; cube.gmax = gmax;
 	}
 
 
@@ -356,7 +349,7 @@ public class MedianCut {
    }
 
 
-	ImageProcessor makeImage() {
+	Image makeImage() {
 	// Generate 8-bit image
 	
 		Image img8;
@@ -369,9 +362,8 @@ public class MedianCut {
 	    	color16 = rgb(pixels32[i]);
 	    	pixels8[i] = (byte)hist[color16];
 	    }
-	    ImageProcessor ip = new ByteProcessor(width, height, pixels8, cm);
-        IJ.showProgress(1.0);
-		return ip;
+	    img8 = Toolkit.getDefaultToolkit().createImage(new MemoryImageSource(width, height, cm, pixels8, 0, width));
+		return img8;
 	}
 	
 	

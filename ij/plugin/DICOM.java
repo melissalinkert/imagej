@@ -1,14 +1,11 @@
 package ij.plugin;
 import java.io.*;
 import java.util.*;
-import java.net.URL;
 import ij.*;
 import ij.io.*;
-import ij.process.*;
 import ij.util.Tools;
-import ij.measure.Calibration;
 
-/** This plugin decodes DICOM files. If 'arg' is empty, it
+/** This plug-in decodes DICOM files. If 'arg' is empty, it
 	displays a file open dialog and opens and displays the 
 	image selected by the user. If 'arg' is a path, it opens the 
 	specified image and the calling routine can display it using
@@ -41,11 +38,10 @@ import ij.measure.Calibration;
    simpler debug mode message generation (values no longer reported).
 
    Added z pixel aspect ratio support for multi-slice DICOM volumes.
-   Michael Abramoff, 31-10-2000
+s   Michael Abramoff, 31-10-2000
    */
 
 public class DICOM extends ImagePlus implements PlugIn {
-	private boolean showErrors = true;
 
 	public void run(String arg) {
 		OpenDialog od = new OpenDialog("Open Dicom...", arg);
@@ -53,106 +49,38 @@ public class DICOM extends ImagePlus implements PlugIn {
 		String fileName = od.getFileName();
 		if (fileName==null)
 			return;
-		//IJ.showStatus("Opening: " + directory + fileName);
+		IJ.showStatus("Opening: " + directory + fileName);
 		DicomDecoder dd = new DicomDecoder(directory, fileName);
 		FileInfo fi = null;
 		try {fi = dd.getFileInfo();}
 		catch (IOException e) {
 			String msg = e.getMessage();
 			IJ.showStatus("");
-			if (msg.indexOf("EOF")<0&&showErrors) {
-				IJ.error("DicomDecoder", msg);
+			if (msg.indexOf("EOF")<0) {
+				IJ.showMessage("DicomDecoder", msg);
 				return;
-			} else if (!dd.dicmFound()&&showErrors) {
+			} else if (!dd.prefixFound()) {
 				msg = "This does not appear to be a valid\n"
 				+ "DICOM file. It does not have the\n"
 				+ "characters 'DICM' at offset 128.";
-				IJ.error("DicomDecoder", msg);
+				IJ.showMessage("DicomDecoder", msg);
 				return;
 			}
 		}
 		if (fi!=null && fi.width>0 && fi.height>0 && fi.offset>0) {
 			FileOpener fo = new FileOpener(fi);
 			ImagePlus imp = fo.open(false);
-			ImageProcessor ip = imp.getProcessor();
-			if (fi.fileType==FileInfo.GRAY16_SIGNED) {
-				//if (dd.rescaleSlope!=0.0&&dd.rescaleSlope!=1.0) 
-				//	ip.multiply(dd.rescaleSlope);
-				if (dd.rescaleIntercept!=0.0 && dd.rescaleSlope==1.0)
-					ip.add(dd.rescaleIntercept);
-			} else {
-				if (dd.rescaleIntercept!=0.0 && dd.rescaleSlope==1.0) {
-					double[] coeff = new double[2];
-					coeff[0] = dd.rescaleIntercept;
-					coeff[1] = dd.rescaleSlope;
- 					imp.getCalibration().setFunction(Calibration.STRAIGHT_LINE, coeff, "gray value");
-  				}
-			}
-			//if (fi.fileType==FileInfo.GRAY16_SIGNED && imp.getStackSize()==1)
-			//	convertToUnsigned(imp, fi);
-			if (dd.windowWidth>0.0) {
-				double min = dd.windowCenter-dd.windowWidth/2;
-				double max = dd.windowCenter+dd.windowWidth/2;
-				Calibration cal = imp.getCalibration();
-				if (cal.getCValue(0)!=0) {
-					min -= cal.getCValue(0);
-					max -= cal.getCValue(0);
-				}
-				ip.setMinAndMax(min, max);
-				if (IJ.debugMode) IJ.log("window: "+min+"-"+max);
-			}
 			if (imp.getStackSize()>1)
 				setStack(fileName, imp.getStack());
 			else
 				setProcessor(fileName, imp.getProcessor());
-			setCalibration(imp.getCalibration());
+			copyScale(imp);
 			setProperty("Info", dd.getDicomInfo());
-			setFileInfo(fi); // needed for revert
 			if (arg.equals("")) show();
-		} else if (showErrors)
-			IJ.error("DicomDecoder","Unable to decode DICOM header.");
+		} else
+			IJ.showMessage("DicomDecoder","Unable to decode DICOM header.");
 		IJ.showStatus("");
 	}
-
-	/** Opens the specified file as a DICOM. Does not 
-		display a message if there is an error.
-		Here is an example:
-		<pre>
-		DICOM dcm = new DICOM();
-		dcm.open(path);
-		if (dcm.getWidth()==0)
-			IJ.log("Error opening '"+path+"'");
-		else
-			dcm.show();
-		</pre>
-	*/
-	public void open(String path) {
-		showErrors = false;
-		run(path);
-	}
-	
-	/** Convert 16-bit signed to unsigned if all pixels>=0. */
-	void convertToUnsigned(ImagePlus imp, FileInfo fi) {
-		ImageProcessor ip = imp.getProcessor();
-		short[] pixels = (short[])ip.getPixels();
-		int min = Integer.MAX_VALUE;
-		int value;
-		for (int i=0; i<pixels.length; i++) {
-			value = pixels[i]&0xffff;
-			if (value<min)
-				min = value;
-		}
-		if (IJ.debugMode) IJ.log("min: "+(min-32768));
-		if (min>=32768) {
-			for (int i=0; i<pixels.length; i++)
-				pixels[i] = (short)(pixels[i]-32768);
-			ip.resetMinAndMax();
-			Calibration cal = imp.getCalibration();
-			cal.setFunction(Calibration.NONE, null, "Gray Value");
-			fi.fileType = FileInfo.GRAY16_UNSIGNED;
-		}
-	}
-
 }
 
 
@@ -161,25 +89,14 @@ class DicomDecoder {
 	private static final int PIXEL_REPRESENTATION = 0x00280103;
 	private static final int TRANSFER_SYNTAX_UID = 0x00020010;
 	private static final int SLICE_SPACING = 0x00180088;
-	private static final int SAMPLES_PER_PIXEL = 0x00280002;
-	private static final int PHOTOMETRIC_INTERPRETATION = 0x00280004;
-	private static final int PLANAR_CONFIGURATION = 0x00280006;
 	private static final int NUMBER_OF_FRAMES = 0x00280008;
 	private static final int ROWS = 0x00280010;
 	private static final int COLUMNS = 0x00280011;
 	private static final int PIXEL_SPACING = 0x00280030;
 	private static final int BITS_ALLOCATED = 0x00280100;
-	private static final int WINDOW_CENTER = 0x00281050;
-	private static final int WINDOW_WIDTH = 0x00281051;	
-	private static final int RESCALE_INTERCEPT = 0x00281052;
-	private static final int RESCALE_SLOPE = 0x00281053;
 	private static final int RED_PALETTE = 0x00281201;
 	private static final int GREEN_PALETTE = 0x00281202;
 	private static final int BLUE_PALETTE = 0x00281203;
-	private static final int ICON_IMAGE_SEQUENCE = 0x00880200;
-	private static final int ITEM = 0xFFFEE000;
-	private static final int ITEM_DELIMINATION = 0xFFFEE00D;
-	private static final int SEQUENCE_DELIMINATION = 0xFFFEE0DD;
 	private static final int PIXEL_DATA = 0x7FE00010;
 
 	private static final int AE=0x4145, AS=0x4153, AT=0x4154, CS=0x4353, DA=0x4441, DS=0x4453, DT=0x4454,
@@ -202,14 +119,8 @@ class DicomDecoder {
 	private static final int IMPLICIT_VR = 0x2D2D; // '--' 
 	private byte[] vrLetters = new byte[2];
  	private int previousGroup;
- 	private String previousInfo;
  	private StringBuffer dicomInfo = new StringBuffer(1000);
- 	private boolean dicmFound; // "DICM" found at offset 128
- 	private boolean oddLocations;  // one or more tags at odd locations
- 	private boolean bigEndianTransferSyntax = false;
-	double windowCenter, windowWidth;
-	double rescaleIntercept, rescaleSlope;
-	boolean inSequence;
+ 	private boolean prefixFound;
 
 	public DicomDecoder(String directory, String fileName) {
 		this.directory = directory;
@@ -318,58 +229,39 @@ class DicomDecoder {
 
 	int getNextTag() throws IOException {
 		int groupWord = getShort();
-		if (groupWord==0x0800 && bigEndianTransferSyntax) {
-			littleEndian = false;
-			groupWord = 0x0008;
-		}
 		int elementWord = getShort();
 		int tag = groupWord<<16 | elementWord;
 		elementLength = getLength();
 		
 		// hack needed to read some GE files
 		// The element length must be even!
-		if (elementLength==13 && !oddLocations) elementLength = 10; 
+		if (elementLength==13) elementLength = 10;  
 		
 		// "Undefined" element length.
 		// This is a sort of bracket that encloses a sequence of elements.
-		if (elementLength==-1) {
-			elementLength = 0;
-			inSequence = true;
-		}
- 		//IJ.log("getNextTag: "+tag+" "+elementLength);
+		if (elementLength==-1)
+ 			elementLength = 0;
 		return tag;
 	}
   
 	FileInfo getFileInfo() throws IOException {
 		long skipCount;
 		
-    	boolean isURL = directory.indexOf("://")>0;
 		FileInfo fi = new FileInfo();
 		int bitsAllocated = 16;
 		fi.fileFormat = fi.RAW;
 		fi.fileName = fileName;
-		if (isURL)
-			fi.url = directory;
-		else
-			fi.directory = directory;
+		fi.directory = directory;
 		fi.width = 0;
 		fi.height = 0;
 		fi.offset = 0;
 		fi.intelByteOrder = true;
 		fi.fileType = FileInfo.GRAY16_UNSIGNED;
-		fi.fileFormat = FileInfo.DICOM;
-		int samplesPerPixel = 1;
-		int planarConfiguration = 0;
-		String photoInterpretation = "";
-				
-		if (isURL) {
-			URL u = new URL(fi.url+fi.fileName);
-			f = new BufferedInputStream(u.openStream());
-		} else
-			f = new BufferedInputStream(new FileInputStream(directory + fileName));
+		
+		f = new BufferedInputStream(new FileInputStream(directory + fileName));
 		if (IJ.debugMode) {
-			IJ.log("");
-			IJ.log("DicomDecoder: decoding "+fileName);
+			IJ.write("");
+			IJ.write("DicomDecoder: decoding "+fileName);
 		}
 		
 		skipCount = (long)ID_OFFSET;
@@ -378,153 +270,82 @@ class DicomDecoder {
 		
 		if (!getString(4).equals(DICM)) {
 			f.close();
-			if (isURL) {
-				URL u = new URL(fi.url+fi.fileName);
-				f = new BufferedInputStream(u.openStream());
-			} else
-				f = new BufferedInputStream(new FileInputStream(directory + fileName));
+			f = new BufferedInputStream(new FileInputStream(directory + fileName));
 			location = 0;
-			if (IJ.debugMode) IJ.log(DICM + " not found at offset "+ID_OFFSET+"; reseting to offset 0");
-		} else {
-			dicmFound = true;
-			if (IJ.debugMode) IJ.log(DICM + " found at offset " + ID_OFFSET);
+			if (IJ.debugMode) IJ.write(DICM + " not found at offset "+ID_OFFSET+"; reseting to offset 0");
+		} else if (IJ.debugMode) {
+			prefixFound = true;
+			IJ.write(DICM + " found at offset " + ID_OFFSET);
 		}
 		
-		boolean decodingTags = true;
-		boolean signed = false;
+		boolean inSequence = true;
 		
-		while (decodingTags) {
+		while (true) {
 			int tag = getNextTag();
-			if ((location&1)!=0) // DICOM tags must be at even locations
-				oddLocations = true;
-			if (inSequence) {
+			if ((location&1)!=0) // tags must be at even locations
+				break;
+			if (tag==TRANSFER_SYNTAX_UID) {
+				String s = getString(elementLength);
+				addInfo(tag, s);
+				if (s.indexOf("1.2.4")>-1||s.indexOf("1.2.5")>-1) {
+					f.close();
+					String msg = "ImageJ cannot open compressed DICOM images.\n \n";
+					msg += "Transfer Syntax UID = "+s;
+					throw new IOException(msg);
+				}
+			} else if (tag==NUMBER_OF_FRAMES) {
+				String s = getString(elementLength);
+				addInfo(tag, s);
+				double frames = s2d(s);
+				if (frames>1.0)
+					fi.nImages = (int)frames;
+			} else if (tag==ROWS) {
+				fi.height = getShort();
+				addInfo(tag, Integer.toString(fi.height));
+			} else if (tag==COLUMNS) {
+				fi.width = getShort();
+				addInfo(tag, Integer.toString(fi.width));
+			} else if (tag==PIXEL_SPACING) {
+				String scale = getString(elementLength);
+				getSpatialScale(fi, scale);
+				addInfo(tag, scale);
+			} else if (tag==SLICE_SPACING) {
+				String spacing = getString(elementLength);
+				fi.pixelDepth = s2d(spacing);
+				addInfo(tag, spacing);
+			} else if (tag==BITS_ALLOCATED) {
+				bitsAllocated = getShort();
+				if (bitsAllocated==8)
+					fi.fileType = FileInfo.GRAY8;
+				addInfo(tag, Integer.toString(bitsAllocated));
+			} else if (tag==PIXEL_REPRESENTATION) {
+				int pixelRepresentation = getShort();
+				if (pixelRepresentation==1)
+					fi.fileType = FileInfo.GRAY16_SIGNED;
+				addInfo(tag, Integer.toString(pixelRepresentation));
+			} else if (tag==RED_PALETTE) {
+				fi.reds = getLut(elementLength);
+				addInfo(tag, Integer.toString(elementLength/2));
+			} else if (tag==GREEN_PALETTE) {
+				fi.greens = getLut(elementLength);
+				addInfo(tag, Integer.toString(elementLength/2));
+			} else if (tag==BLUE_PALETTE) {
+				fi.blues = getLut(elementLength);
+				addInfo(tag, Integer.toString(elementLength/2));
+			} else if (tag==PIXEL_DATA && elementLength!=0) {
+				// Start of image data...
+				fi.offset = location;
+				addInfo(tag, Integer.toString(location));
+				break;
+			} else if (tag==0x7F880010 && elementLength!=0) {
+				// What is this? - RAK
+				fi.offset = location+4;
+				break;
+			} else {
+				// Not used, skip over it...
 				addInfo(tag, null);
-				continue;
 			}
-			String s;
-			switch (tag) {
-				case TRANSFER_SYNTAX_UID:
-					s = getString(elementLength);
-					addInfo(tag, s);
-					if (s.indexOf("1.2.4")>-1||s.indexOf("1.2.5")>-1) {
-						f.close();
-						String msg = "ImageJ cannot open compressed DICOM images.\n \n";
-						msg += "Transfer Syntax UID = "+s;
-						throw new IOException(msg);
-					}
-					if (s.indexOf("1.2.840.10008.1.2.2")>=0)
-						bigEndianTransferSyntax = true;
-					break;
-				case NUMBER_OF_FRAMES:
-					s = getString(elementLength);
-					addInfo(tag, s);
-					double frames = s2d(s);
-					if (frames>1.0)
-						fi.nImages = (int)frames;
-					break;
-				case SAMPLES_PER_PIXEL:
-					samplesPerPixel = getShort();
-					addInfo(tag, samplesPerPixel);
-					break;
-				case PHOTOMETRIC_INTERPRETATION:
-					photoInterpretation = getString(elementLength);
-					addInfo(tag, photoInterpretation);
-					break;
-				case PLANAR_CONFIGURATION:
-					planarConfiguration = getShort();
-					addInfo(tag, planarConfiguration);
-					break;
-				case ROWS:
-					fi.height = getShort();
-					addInfo(tag, fi.height);
-					break;
-				case COLUMNS:
-					fi.width = getShort();
-					addInfo(tag, fi.width);
-					break;
-				case PIXEL_SPACING:
-					String scale = getString(elementLength);
-					getSpatialScale(fi, scale);
-					addInfo(tag, scale);
-					break;
-				case SLICE_SPACING:
-					String spacing = getString(elementLength);
-					fi.pixelDepth = s2d(spacing);
-					addInfo(tag, spacing);
-					break;
-				case BITS_ALLOCATED:
-					bitsAllocated = getShort();
-					if (bitsAllocated==8)
-						fi.fileType = FileInfo.GRAY8;
-					else if (bitsAllocated==32)
-						fi.fileType = FileInfo.GRAY32_UNSIGNED;
-					addInfo(tag, bitsAllocated);
-					break;
-				case PIXEL_REPRESENTATION:
-					int pixelRepresentation = getShort();
-					if (pixelRepresentation==1) {
-						fi.fileType = FileInfo.GRAY16_SIGNED;
-						signed = true;
-					}
-					addInfo(tag, pixelRepresentation);
-					break;
-				case WINDOW_CENTER:
-					String center = getString(elementLength);
-					int index = center.indexOf('\\');
-					if (index!=-1) center = center.substring(index+1);
-					windowCenter = s2d(center);
-					addInfo(tag, center);
-					break;
-				case WINDOW_WIDTH:
-					String width = getString(elementLength);
-					index = width.indexOf('\\');
-					if (index!=-1) width = width.substring(index+1);
-					windowWidth = s2d(width);
-					addInfo(tag, width);
-					break;
-				case RESCALE_INTERCEPT:
-					String intercept = getString(elementLength);
-					rescaleIntercept = s2d(intercept);
-					addInfo(tag, intercept);
-					break;
-				case RESCALE_SLOPE:
-					String slop = getString(elementLength);
-					rescaleSlope = s2d(slop);
-					addInfo(tag, slop);
-					break;
-				case RED_PALETTE:
-					fi.reds = getLut(elementLength);
-					addInfo(tag, elementLength/2);
-					break;
-				case GREEN_PALETTE:
-					fi.greens = getLut(elementLength);
-					addInfo(tag, elementLength/2);
-					break;
-				case BLUE_PALETTE:
-					fi.blues = getLut(elementLength);
-					addInfo(tag, elementLength/2);
-					break;
-				case PIXEL_DATA:
-					// Start of image data...
-					if (elementLength!=0) {
-						fi.offset = location;
-						addInfo(tag, location);
-						decodingTags = false;
-					} else
-						addInfo(tag, null);
-					break;
-				case 0x7F880010:
-					// What is this? - RAK
-					if (elementLength!=0) {
-						fi.offset = location+4;
-						decodingTags = false;
-					}
-					break;
-				default:
-					// Not used, skip over it...
-					addInfo(tag, null);
-			}
-		} // while(decodingTags)
+		} // while(true)
 		
 		if (fi.fileType==FileInfo.GRAY8) {
 			if (fi.reds!=null && fi.greens!=null && fi.blues!=null
@@ -535,27 +356,13 @@ class DicomDecoder {
 				
 			}
 		}
-				
-		if (fi.fileType==FileInfo.GRAY32_UNSIGNED && signed)
-			fi.fileType = FileInfo.GRAY32_INT;
-
-		if (samplesPerPixel==3 && photoInterpretation.startsWith("RGB")) {
-			if (planarConfiguration==0)
-				fi.fileType = FileInfo.RGB;
-			else if (planarConfiguration==1)
-				fi.fileType = FileInfo.RGB_PLANAR;
-		} else if (photoInterpretation.endsWith("1 "))
-				fi.whiteIsZero = true;
-				
-		if (!littleEndian)
-			fi.intelByteOrder = false;
 		
 		if (IJ.debugMode) {
-			IJ.log("width: " + fi.width);
-			IJ.log("height: " + fi.height);
-			IJ.log("images: " + fi.nImages);
-			IJ.log("bits allocated: " + bitsAllocated);
-			IJ.log("offset: " + fi.offset);
+			IJ.write("width: " + fi.width);
+			IJ.write("height: " + fi.height);
+			IJ.write("images: " + fi.nImages);
+			IJ.write("bits allocated: " + bitsAllocated);
+			IJ.write("offset: " + fi.offset);
 		}
 	
 		f.close();
@@ -568,13 +375,10 @@ class DicomDecoder {
 
 	void addInfo(int tag, String value) throws IOException {
 		String info = getHeaderInfo(tag, value);
-		if (inSequence && info!=null && vr!=SQ) info = ">" + info;
-		if (info!=null &&  tag!=ITEM) {
+		if (info!=null) {
 			int group = tag>>>16;
-			//if (group!=previousGroup && (previousInfo!=null&&previousInfo.indexOf("Sequence:")==-1))
-			//	dicomInfo.append("\n");
+			if (group!=previousGroup) dicomInfo.append("\n");
 			previousGroup = group;
-			previousInfo = info;
 			dicomInfo.append(tag2hex(tag)+info+"\n");
 		}
 		if (IJ.debugMode) {
@@ -582,7 +386,7 @@ class DicomDecoder {
 			vrLetters[0] = (byte)(vr >> 8);
 			vrLetters[1] = (byte)(vr & 0xFF);
 			String VR = new String(vrLetters);
-			IJ.log("(" + tag2hex(tag) + VR
+			IJ.write("(" + tag2hex(tag) + VR
 			+ " " + elementLength
 			+ " bytes from "
 			+ (location-elementLength)+") "
@@ -590,15 +394,7 @@ class DicomDecoder {
 		}
 	}
 
-	void addInfo(int tag, int value) throws IOException {
-		addInfo(tag, Integer.toString(value));
-	}
-
 	String getHeaderInfo(int tag, String value) throws IOException {
-		if (tag==ITEM_DELIMINATION || tag==SEQUENCE_DELIMINATION) {
-			inSequence = false;
-			if (!IJ.debugMode) return null;
-		}
 		String key = i2hex(tag);
 		//while (key.length()<8)
 		//	key = '0' + key;
@@ -608,8 +404,6 @@ class DicomDecoder {
 				vr = (id.charAt(0)<<8) + id.charAt(1);
 			id = id.substring(2);
 		}
-		if (tag==ITEM)
-			return id!=null?id+":":null;
 		if (value!=null)
 			return id+": "+value;
 		switch (vr) {
@@ -627,25 +421,13 @@ class DicomDecoder {
 						value += Integer.toString(getShort())+" ";
 				}
 				break;
-			case IMPLICIT_VR:
-				value = getString(elementLength);
-				if (elementLength<=4 || elementLength>44) value=null;
-				break;
-			case SQ:
-				value = "";
-				boolean privateTag = ((tag>>16)&1)!=0;
-				if (tag!=ICON_IMAGE_SEQUENCE && !privateTag)
-					break;
-				// else fall through and skip icon image sequence or private sequence
 			default:
 				long skipCount = (long)elementLength;
 				while (skipCount > 0) skipCount -= f.skip(skipCount);
 				location += elementLength;
 				value = "";
 		}
-		if (value!=null && id==null && !value.equals(""))
-			return "---: "+value;
-		else if (id==null)
+		if (id==null)
 			return null;
 		else
 			return id+": "+value;
@@ -694,8 +476,8 @@ class DicomDecoder {
 		double xscale=0, yscale=0;
 		int i = scale.indexOf('\\');
 		if (i>0) {
-			yscale = s2d(scale.substring(0, i));
-			xscale = s2d(scale.substring(i+1));
+			xscale = s2d(scale.substring(0, i));
+			yscale = s2d(scale.substring(i+1));
 		}
 		if (xscale!=0.0 && yscale!=0.0) {
 			fi.pixelWidth = xscale;
@@ -704,8 +486,8 @@ class DicomDecoder {
 		}
 	}
 	
-	boolean dicmFound() {
-		return dicmFound;
+	boolean prefixFound() {
+		return prefixFound;
 	}
 
 }
@@ -722,15 +504,8 @@ class DicomDictionary {
 	}
 
 	String[] dict = {
-		//"00020000=ULFile Meta Elements Group Len",
-		//"00020001=OBFile Meta Info Version",
-		"00020002=UIMedia Storage SOP Class UID", 
-		"00020003=UIMedia Storage SOP Inst UID",
+
 		"00020010=UITransfer Syntax UID",
-		"00020012=UIImplementation Class UID",
-		"00020013=SHImplementation Version Name",
-		"00020016=AESource Application Entity Title",
-		
 		"00080005=CSSpecific Character Set",
 		"00080008=CSImage Type",
 		"00080012=DAInstance Creation Date",
@@ -842,13 +617,10 @@ class DicomDictionary {
 		"00180035=TMIntervention Drug Start Time",
 		"00180040=ISCine Rate",
 		"00180050=DSSlice Thickness",
-		"00180060=DSkVp",
+		"00180060=DSKVP",
 		"00180070=ISCounts Accumulated",
 		"00180071=CSAcquisition Termination Condition",
 		"00180072=DSEffective Series Duration",
-		"00180073=CSAcquisition Start Condition",
-		"00180074=ISAcquisition Start Condition Data",
-		"00180075=ISAcquisition Termination Condition Data",
 		"00180080=DSRepetition Time",
 		"00180081=DSEcho Time",
 		"00180082=DSInversion Time",
@@ -895,8 +667,6 @@ class DicomDictionary {
 		"00181072=TMRadionuclide Start Time",
 		"00181073=TMRadionuclide Stop Time",
 		"00181074=DSRadionuclide Total Dose",
-		"00181075=DSRadionuclide Half Life",
-		"00181076=DSRadionuclide Positron Fraction",
 		"00181080=CSBeat Rejection Flag",
 		"00181081=ISLow R-R Value",
 		"00181082=ISHigh R-R Value",
@@ -911,7 +681,7 @@ class DicomDictionary {
 		"00181110=DSDistance Source to Detector",
 		"00181111=DSDistance Source to Patient",
 		"00181120=DSGantry/Detector Tilt",
-		"00181130=DSTable Height",
+		"00181030=DSTable Height",
 		"00181131=DSTable Traverse",
 		"00181140=CSRotation Direction",
 		"00181141=DSAngular Position",
@@ -925,17 +695,7 @@ class DicomDictionary {
 		"00181150=ISExposure Time",
 		"00181151=ISX-ray Tube Current",
 		"00181152=ISExposure",
-		"00181153=ISExposure in uAs",
-		"00181154=DSAverage Pulse Width",
-		"00181155=CSRadiation Setting",
-		"00181156=CSRectification Type",
-		"0018115A=CSRadiation Mode",
-		"0018115E=DSImage Area Dose Product",
 		"00181160=SHFilter Type",
-		"00181161=LOType of Filters",
-		"00181162=DSIntensifier Size",
-		"00181164=DSImager Pixel Spacing",
-		"00181166=CSGrid",
 		"00181170=ISGenerator Power",
 		"00181180=SHCollimator/grid Name",
 		"00181181=CSCollimator Type",
@@ -943,17 +703,14 @@ class DicomDictionary {
 		"00181183=DSX Focus Center",
 		"00181184=DSY Focus Center",
 		"00181190=DSFocal Spot(s)",
-		"00181191=CSAnode Target Material",
-		"001811A0=DSBody Part Thickness",
-		"001811A2=DSCompression Force",
 		"00181200=DADate of Last Calibration",
 		"00181201=TMTime of Last Calibration",
 		"00181210=SHConvolution Kernel",
 		"00181242=ISActual Frame Duration",
 		"00181243=ISCount Rate",
 		"00181250=SHReceiving Coil",
-		"00181251=SHTransmitting Coil",
-		"00181260=SHPlate Type",
+		"00181151=SHTransmitting Coil",
+		"00181160=SHScreen Type",
 		"00181261=LOPhosphor Type",
 		"00181300=ISScan Velocity",
 		"00181301=CSWhole Body Technique",
@@ -970,31 +727,6 @@ class DicomDictionary {
 		"00181403=CSCassette Size",
 		"00181404=USExposures on Plate",
 		"00181405=ISRelative X-ray Exposure",
-		"00181450=CSColumn Angulation",
-		"00181500=CSPositioner Motion",
-		"00181508=CSPositioner Type",
-		"00181510=DSPositioner Primary Angle",
-		"00181511=DSPositioner Secondary Angle",
-		"00181520=DSPositioner Primary Angle Increment",
-		"00181521=DSPositioner Secondary Angle Increment",
-		"00181530=DSDetector Primary Angle",
-		"00181531=DSDetector Secondary Angle",
-		"00181600=CSShutter Shape",
-		"00181602=ISShutter Left Vertical Edge",
-		"00181604=ISShutter Right Vertical Edge",
-		"00181606=ISShutter Upper Horizontal Edge",
-		"00181608=ISShutter Lower Horizontal Edge",
-		"00181610=ISCenter of Circular Shutter",
-		"00181612=ISRadius of Circular Shutter",
-		"00181620=ISVertices of the Polygonal Shutter",
-		"00181700=ISCollimator Shape",
-		"00181702=ISCollimator Left Vertical Edge",
-		"00181704=ISCollimator Right Vertical Edge",
-		"00181706=ISCollimator Upper Horizontal Edge",
-		"00181708=ISCollimator Lower Horizontal Edge",
-		"00181710=ISCenter of Circular Collimator",
-		"00181712=ISRadius of Circular Collimator",
-		"00181720=ISVertices of the Polygonal Collimator",
 		"00185000=SHOutput Power",
 		"00185010=LOTransducer Data",
 		"00185012=DSFocus Depth",
@@ -1009,7 +741,6 @@ class DicomDictionary {
 		"00185050=ISDepth of Scan Field",
 		"00185100=CSPatient Position",
 		"00185101=CSView Position",
-		"00185104=SQProjection Eponymous Name Code Sequence",
 		"00185210=DSImage Transformation Matrix",
 		"00185212=DSImage Translation Vector",
 		"00186000=DSSensitivity",
@@ -1041,7 +772,7 @@ class DicomDictionary {
 		"00186040=ULTM-Line Position X1",
 		"00186042=ULTM-Line Position Y1",
 		"00186044=USPixel Component Organization",
-		"00186046=ULPixel Component Mask",
+		"00186046=ULPixel Component Organization",
 		"00186048=ULPixel Component Range Start",
 		"0018604A=ULPixel Component Range Stop",
 		"0018604C=USPixel Component Physical Units",
@@ -1049,46 +780,6 @@ class DicomDictionary {
 		"00186050=ULNumber of Table Break Points",
 		"00186052=ULTable of X Break Points",
 		"00186054=FDTable of Y Break Points",
-		"00186056=ULNumber of Table Entries",
-		"00186058=ULTable of Pixel Values",
-		"0018605A=ULTable of Parameter Values",
-		"00187000=CSDetector Conditions Nominal Flag",
-		"00187001=DSDetector Temperature",
-		"00187004=CSDetector Type",
-		"00187005=CSDetector Configuration",
-		"00187006=LTDetector Description",
-		"00187008=LTDetector Mode",
-		"0018700A=SHDetector ID",
-		"0018700C=DADate of Last Detector Calibration",
-		"0018700E=TMTime of Last Detector Calibration",
-		"00187010=ISExposures on Detector Since Last Calibration",
-		"00187011=ISExposures on Detector Since Manufactured",
-		"00187012=DSDetector Time Since Last Exposure",
-		"00187014=DSDetector Active Time",
-		"00187016=DSDetector Activation Offset From Exposure",
-		"0018701A=DSDetector Binning",
-		"00187020=DSDetector Element Physical Size",
-		"00187022=DSDetector Element Spacing",
-		"00187024=CSDetector Active Shape",
-		"00187026=DSDetector Active Dimension(s)",
-		"00187028=DSDetector Active Origin",
-		"00187030=DSField of View Origin",
-		"00187032=DSField of View Rotation",
-		"00187034=CSField of View Horizontal Flip",
-		"00187040=LTGrid Absorbing Material",
-		"00187041=LTGrid Spacing Material",
-		"00187042=DSGrid Thickness",
-		"00187044=DSGrid Pitch",
-		"00187046=ISGrid Aspect Ratio",
-		"00187048=DSGrid Period",
-		"0018704C=DSGrid Focal Distance",
-		"00187050=LTFilter Material LT",
-		"00187052=DSFilter Thickness Minimum",
-		"00187054=DSFilter Thickness Maximum",
-		"00187060=CSExposure Control Mode",
-		"00187062=LTExposure Control Mode Description",
-		"00187064=CSExposure Status",
-		"00187065=DSPhototimer Setting",
 
 		"0020000D=UIStudy Instance UID",
 		"0020000E=UISeries Instance UID",
@@ -1164,258 +855,12 @@ class DicomDictionary {
 		"00283004=LOMadality LUT Type",
 		"00283006=USLUT Data",
 		"00283010=SQVOI LUT Sequence",
-		
-		"30020011=DSImage Plane Pixel Spacing",
-		"30020022=DSRadiation Machine SAD",
-		"30020026=DSRT IMAGE SID",
 
-		"0032000A=CSStudy Status ID",
-		"0032000C=CSStudy Priority ID",
-		"00320012=LOStudy ID Issuer",
-		"00320032=DAStudy Verified Date",
-		"00320033=TMStudy Verified Time",
-		"00320034=DAStudy Read Date",
-		"00320035=TMStudy Read Time",
-		"00321000=DAScheduled Study Start Date",
-		"00321001=TMScheduled Study Start Time",
-		"00321010=DAScheduled Study Stop Date",
-		"00321011=TMScheduled Study Stop Time",
-		"00321020=LOScheduled Study Location",
-		"00321021=AEScheduled Study Location AE Title(s)",
-		"00321030=LOReason for Study",
-		"00321032=PNRequesting Physician",
-		"00321033=LORequesting Service",
-		"00321040=DAStudy Arrival Date",
-		"00321041=TMStudy Arrival Time",
-		"00321050=DAStudy Completion Date",
-		"00321051=TMStudy Completion Time",
-		"00321055=CSStudy Component Status ID",
-		"00321060=LORequested Procedure Description",
-		"00321064=SQRequested Procedure Code Sequence",
-		"00321070=LORequested Contrast Agent",
-		"00324000=LTStudy Comments",
-
-		"00400001=AEScheduled Station AE Title",
-		"00400002=DAScheduled Procedure Step Start Date",
-		"00400003=TMScheduled Procedure Step Start Time",
-		"00400004=DAScheduled Procedure Step End Date",
-		"00400005=TMScheduled Procedure Step End Time",
-		"00400006=PNScheduled Performing Physician's Name",
-		"00400007=LOScheduled Procedure Step Description",
-		"00400008=SQScheduled Action Item Code Sequence",
-		"00400009=SHScheduled Procedure Step ID",
-		"00400010=SHScheduled Station Name",
-		"00400011=SHScheduled Procedure Step Location",
-		"00400012=LOPre-Medication",
-		"00400020=CSScheduled Procedure Step Status",
-		"00400100=SQScheduled Procedure Step Sequence",
-		"00400220=SQReferenced Standalone SOP Instance Sequence",
-		"00400241=AEPerformed Station AE Title",
-		"00400242=SHPerformed Station Name",
-		"00400243=SHPerformed Location",
-		"00400244=DAPerformed Procedure Step Start Date",
-		"00400245=TMPerformed Procedure Step Start Time",
-		"00400250=DAPerformed Procedure Step End Date",
-		"00400251=TMPerformed Procedure Step End Time",
-		"00400252=CSPerformed Procedure Step Status",
-		"00400253=SHPerformed Procedure Step ID",
-		"00400254=LOPerformed Procedure Step Description",
-		"00400255=LOPerformed Procedure Type Description",
-		"00400260=SQPerformed Action Item Sequence",
-		"00400270=SQScheduled Step Attributes Sequence",
-		"00400275=SQRequest Attributes Sequence",
-		"00400280=STComments on the Performed Procedure Steps",
-		"00400293=SQQuantity Sequence",
-		"00400294=DSQuantity",
-		"00400295=SQMeasuring Units Sequence",
-		"00400296=SQBilling Item Sequence",
-		"00400300=USTotal Time of Fluoroscopy",
-		"00400301=USTotal Number of Exposures",
-		"00400302=USEntrance Dose",
-		"00400303=USExposed Area",
-		"00400306=DSDistance Source to Entrance",
-		"00400307=DSDistance Source to Support",
-		"00400310=STComments on Radiation Dose",
-		"00400312=DSX-Ray Output",
-		"00400314=DSHalf Value Layer",
-		"00400316=DSOrgan Dose",
-		"00400318=CSOrgan Exposed",
-		"00400320=SQBilling Procedure Step Sequence",
-		"00400321=SQFilm Consumption Sequence",
-		"00400324=SQBilling Supplies and Devices Sequence",
-		"00400330=SQReferenced Procedure Step Sequence",
-		"00400340=SQPerformed Series Sequence",
-		"00400400=LTComments on the Scheduled Procedure Step",
-		"0040050A=LOSpecimen Accession Number",
-		"00400550=SQSpecimen Sequence",
-		"00400551=LOSpecimen Identifier",
-		"0040059A=SQSpecimen Type Code Sequence",
-		"00400555=SQAcquisition Context Sequence",
-		"00400556=STAcquisition Context Description",
-		"004006FA=LOSlide Identifier",
-		"0040071A=SQImage Center Point Coordinates Sequence",
-		"0040072A=DSX offset in Slide Coordinate System",
-		"0040073A=DSY offset in Slide Coordinate System",
-		"0040074A=DSZ offset in Slide Coordinate System",
-		"004008D8=SQPixel Spacing Sequence",
-		"004008DA=SQCoordinate System Axis Code Sequence",
-		"004008EA=SQMeasurement Units Code Sequence",
-		"00401001=SHRequested Procedure ID",
-		"00401002=LOReason for the Requested Procedure",
-		"00401003=SHRequested Procedure Priority",
-		"00401004=LOPatient Transport Arrangements",
-		"00401005=LORequested Procedure Location",
-		"00401006= 1Placer Order Number / Procedure S",
-		"00401007= 1Filler Order Number / Procedure S",
-		"00401008=LOConfidentiality Code",
-		"00401009=SHReporting Priority",
-		"00401010=PNNames of Intended Recipients of Results",
-		"00401400=LTRequested Procedure Comments",
-		"00402001=LOReason for the Imaging Service Request",
-		"00402004=DAIssue Date of Imaging Service Request",
-		"00402005=TMIssue Time of Imaging Service Request",
-		"00402006= 1Placer Order Number / Imaging Service Request S",
-		"00402007= 1Filler Order Number / Imaging Service Request S",
-		"00402008=PNOrder Entered By",
-		"00402009=SHOrder Enterers Location",
-		"00402010=SHOrder Callback Phone Number",
-		"00402016=LOPlacer Order Number / Imaging Service Request",
-		"00402017=LOFiller Order Number / Imaging Service Request",
-		"00402400=LTImaging Service Request Comments",
-		"00403001=LOConfidentiality Constraint on Patient Data Description",
-		"00408302=DSEntrance Dose in mGy",
-		"0040A010=CSRelationship Type",
-		"0040A027=LOVerifying Organization",
-		"0040A030=DTVerification DateTime",
-		"0040A032=DTObservation DateTime",
-		"0040A040=CSValue Type",
-		"0040A043=SQConcept-name Code Sequence",
-		"0040A050=CSContinuity Of Content",
-		"0040A073=SQVerifying Observer Sequence",
-		"0040A075=PNVerifying Observer Name",
-		"0040A088=SQVerifying Observer Identification Code Sequence",
-		"0040A0B0=USReferenced Waveform Channels",
-		"0040A120=DTDateTime",
-		"0040A121=DADate",
-		"0040A122=TMTime",
-		"0040A123=PNPerson Name",
-		"0040A124=UIUID",
-		"0040A130=CSTemporal Range Type",
-		"0040A132=ULReferenced Sample Positions",
-		"0040A136=USReferenced Frame Numbers",
-		"0040A138=DSReferenced Time Offsets",
-		"0040A13A=DTReferenced Datetime",
-		"0040A160=UTText Value",
-		"0040A168=SQConcept Code Sequence",
-		"0040A180=USAnnotation Group Number",
-		"0040A195=SQModifier Code Sequence",
-		"0040A300=SQMeasured Value Sequence",
-		"0040A30A=DSNumeric Value",
-		"0040A360=SQPredecessor Documents Sequence",
-		"0040A370=SQReferenced Request Sequence",
-		"0040A372=SQPerformed Procedure Code Sequence",
-		"0040A375=SQCurrent Requested Procedure Evidence Sequence",
-		"0040A385=SQPertinent Other Evidence Sequence",
-		"0040A491=CSCompletion Flag",
-		"0040A492=LOCompletion Flag Description",
-		"0040A493=CSVerification Flag",
-		"0040A504=SQContent Template Sequence",
-		"0040A525=SQIdentical Documents Sequence",
-		"0040A730=SQContent Sequence",
-		"0040B020=SQAnnotation Sequence",
-		"0040DB00=CSTemplate Identifier",
-		"0040DB06=DTTemplate Version",
-		"0040DB07=DTTemplate Local Version",
-		"0040DB0B=CSTemplate Extension Flag",
-		"0040DB0C=UITemplate Extension Organization UID",
-		"0040DB0D=UITemplate Extension Creator UID",
-		"0040DB73=ULReferenced Content Item Identifier",
-
-        "00540011=USNumber of Energy Windows",
-        "00540012=SQEnergy Window Information Sequence",
-        "00540013=SQEnergy Window Range Sequence",
-        "00540014=DSEnergy Window Lower Limit",
-        "00540015=DSEnergy Window Upper Limit",
-        "00540016=SQRadiopharmaceutical Information Sequence",
-        "00540017=ISResidual Syringe Counts",
-        "00540018=SHEnergy Window Name",
-        "00540020=USDetector Vector",
-        "00540021=USNumber of Detectors",
-        "00540022=SQDetector Information Sequence",
-        "00540030=USPhase Vector",
-        "00540031=USNumber of Phases",
-        "00540032=SQPhase Information Sequence",
-        "00540033=USNumber of Frames in Phase",
-        "00540036=ISPhase Delay",
-        "00540038=ISPause Between Frames",
-        "00540039=CSPhase Description",
-        "00540050=USRotation Vector",
-        "00540051=USNumber of Rotations",
-        "00540052=SQRotation Information Sequence",
-        "00540053=USNumber of Frames in Rotation",
-        "00540060=USR-R Interval Vector",
-        "00540061=USNumber of R-R Intervals",
-        "00540062=SQGated Information Sequence",
-        "00540063=SQData Information Sequence",
-        "00540070=USTime Slot Vector",
-        "00540071=USNumber of Time Slots",
-        "00540072=SQTime Slot Information Sequence",
-        "00540073=DSTime Slot Time",
-        "00540080=USSlice Vector",
-        "00540081=USNumber of Slices",
-        "00540090=USAngular View Vector",
-        "00540100=USTime Slice Vector",
-        "00540101=USNumber of Time Slices",
-        "00540200=DSStart Angle",
-        "00540202=CSType of Detector Motion",
-        "00540210=ISTrigger Vector",
-        "00540211=USNumber of Triggers in Phase",
-        "00540220=SQView Code Sequence",
-        "00540222=SQView Modifier Code Sequence",
-        "00540300=SQRadionuclide Code Sequence",
-        "00540302=SQAdministration Route Code Sequence",
-        "00540304=SQRadiopharmaceutical Code Sequence",
-        "00540306=SQCalibration Data Sequence",
-        "00540308=USEnergy Window Number",
-        "00540400=SHImage ID",
-        "00540410=SQPatient Orientation Code Sequence",
-        "00540412=SQPatient Orientation Modifier Code Sequence",
-        "00540414=SQPatient Gantry Relationship Code Sequence",
-        "00540500=CSSlice Progression Direction",
-        "00541000=CSSeries Type",
-        "00541001=CSUnits",
-        "00541002=CSCounts Source",
-        "00541004=CSReprojection Method",
-        "00541100=CSRandoms Correction Method",
-        "00541101=LOAttenuation Correction Method",
-        "00541102=CSDecay Correction",
-        "00541103=LOReconstruction Method",
-        "00541104=LODetector Lines of Response Used",
-        "00541105=LOScatter Correction Method",
-        "00541200=DSAxial Acceptance",
-        "00541201=ISAxial Mash",
-        "00541202=ISTransverse Mash",
-        "00541203=DSDetector Element Size",
-        "00541210=DSCoincidence Window Width",
-        "00541220=CSSecondary Counts Type",
-        "00541300=DSFrame Reference Time",
-        "00541310=ISPrimary (Prompts) Counts Accumulated",
-        "00541311=ISSecondary Counts Accumulated",
-        "00541320=DSSlice Sensitivity Factor",
-        "00541321=DSDecay Factor",
-        "00541322=DSDose Calibration Factor",
-        "00541323=DSScatter Fraction Factor",
-        "00541324=DSDead Time Factor",
-        "00541330=USImage Index",
-        "00541400=CSCounts Included",
-        "00541401=CSDead Time Correction Flag",
-        
 		"7FE00010=OXPixel Data",
 
 		"FFFEE000=DLItem",
 		"FFFEE00D=DLItem Delimitation Item",
 		"FFFEE0DD=DLSequence Delimitation Item"
 	};
-
 }
 

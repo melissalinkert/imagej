@@ -1,13 +1,12 @@
 package ij.gui;
-import ij.IJ;
-import ij.macro.Interpreter;
 
 import java.awt.*;
 import java.awt.image.*;
 
-/** This is the progress bar that is displayed in the lower 
-	right hand corner of the ImageJ window. Use one of the static 
-	IJ.showProgress() methods to display and update the progress bar. */
+/** This is ImageJ's progress bar. It is not displayed if
+	the time between the first and second calls to 'show'
+	is less than 50 milliseconds. It is erased when show
+	is passed a percent value >= 1.0. */
 public class ProgressBar extends Canvas {
 
 	private int canvasWidth, canvasHeight;
@@ -17,15 +16,14 @@ public class ProgressBar extends Canvas {
 	private int count;
 	private boolean showBar;
 	private boolean negativeProgress;
-	private static boolean macroMode;
-
+	private static boolean autoHide;
+	
 	private Color barColor = Color.gray;
 	private Color fillColor = new Color(204,204,255);
-	private Color backgroundColor = ij.ImageJ.backgroundColor;
+	private Color backgroundColor = Color.lightGray;
 	private Color frameBrighter = backgroundColor.brighter();
 	private Color frameDarker = backgroundColor.darker();
 
-	/** This constructor is called once by ImageJ at startup. */
 	public ProgressBar(int canvasWidth, int canvasHeight) {
 		this.canvasWidth = canvasWidth;
 		this.canvasHeight = canvasHeight;
@@ -33,6 +31,10 @@ public class ProgressBar extends Canvas {
 		y = 5;
 		width = canvasWidth - 8;
 		height = canvasHeight - 7;
+		showBar = false;
+		negativeProgress = false;
+		count = 0;
+		percent = 0.0;
 	}
 		
     void fill3DRect(Graphics g, int x, int y, int width, int height) {
@@ -46,55 +48,29 @@ public class ProgressBar extends Canvas {
 		g.drawLine(x+width, y, x+width, y+height-1);
     }    
 
-	/**	Updates the progress bar, where the length of the bar is set to
-		(<code>currentValue+1)/finalValue</code> of the maximum bar length.
-		The bar is erased if <code>currentValue&gt;=finalValue</code>. 
-		Does nothing if the ImageJ window is not present. */
-	public void show(int currentValue, int finalValue) {
-                if (Interpreter.isBatchMode())
-                        return;
-		if (currentValue>=finalValue) {
-			showBar = false;
-			macroMode = false;
-		} else {
-			percent = Math.min((currentValue+1)/(double)finalValue, 1.0);
-			showBar = true;
-			if (Interpreter.isBatchMode() || IJ.noGUI)
-				macroMode = true;
+	public void show(double percent) {
+		count++;
+    	if (count==1) {
+    		startTime = System.currentTimeMillis();
+    		showBar = false;
+    	}
+		else if (count==2) {
+			long time2 = System.currentTimeMillis();
+			//if (IJ.debugMode) IJ.write("Progress: " + (time2 - startTime) + "ms");
+			if ((time2 - startTime)>=50)
+				showBar = true;
 		}
-		repaint();
+		
+		negativeProgress = percent<this.percent;
+		this.percent = percent;
+    	if (percent>=1.0) {
+			count = 0;
+			percent = 0.0;
+			showBar = false;
+			repaint();
+    	} else if (showBar)
+    		repaint();
 	}
-
-	/** Updates the progress bar. It is not displayed if
-		the time between the first and second calls to 'show'
-		is less than 30 milliseconds. It is erased when show
-		is passed a percent value >= 1.0. */
-
-        public void show(double percent) {
-               if (Interpreter.isBatchMode())
-                       return;
-               count++;
-               if (count==1) {
-                       startTime = System.currentTimeMillis();
-                       showBar = false;
-               }
-               else if (count==2) {
-                       long time2 = System.currentTimeMillis();
-                       if ((time2 - startTime)>=30)
-                               showBar = true;
-               }
-
-               negativeProgress = percent<this.percent;
-               this.percent = percent;
-               if (percent>=1.0) {
-                       //ij.IJ.log("total calls: "+count);
-                       count = 0;
-                       percent = 0.0;
-                       showBar = false;
-                       repaint();
-               } else if (showBar)
-                       repaint();
-       }
 
 	public void update(Graphics g) {
 		paint(g);

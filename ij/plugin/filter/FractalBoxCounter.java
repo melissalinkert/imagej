@@ -82,7 +82,7 @@ public class FractalBoxCounter implements PlugInFilter {
 	}
 
 	boolean FindMargins(ImageProcessor ip) {
-		if (IJ.debugMode) IJ.log("FindMargins");
+		if (IJ.debugMode) IJ.write("FindMargins");
 		int[] histogram = new int[256];
 		int width = imp.getWidth();
 		int height = imp.getHeight();
@@ -182,8 +182,8 @@ public class FractalBoxCounter implements PlugInFilter {
 			sizes[i] = (float)Math.log(boxSizes[i]);
 		CurveFitter cf = new CurveFitter(Tools.toDouble(sizes), Tools.toDouble(boxCountSums));
 		cf.doFit(CurveFitter.STRAIGHT_LINE);
-		double[] p = cf.getParams();
-		String label = "D="+IJ.d2s(-p[1],4);
+		double[] c = cf.getCoefficients();
+		String label = "D="+IJ.d2s(-c[1],4);
 		float[] px = new float[100];
 		float[] py = new float[100];
 		double[] a = Tools.getMinMax(sizes);
@@ -197,15 +197,15 @@ public class FractalBoxCounter implements PlugInFilter {
 			tmp += inc;
 		}
 		for (int i=0; i<100; i++)
-			py[i] = (float)CurveFitter.f(CurveFitter.STRAIGHT_LINE, p, px[i]);
+			py[i] = (float)CurveFitter.f(CurveFitter.STRAIGHT_LINE, c, px[i]);
 		a = Tools.getMinMax(py);
 		ymin = Math.min(ymin, a[0]);
 		ymax = Math.max(ymax, a[1]);
-		Plot plot = new Plot("Plot", "log(box size)", "log(count)", px, py);
-		plot.setLimits(xmin,xmax,ymin,ymax);
-		plot.addPoints(sizes, boxCountSums, PlotWindow.CIRCLE);
-		plot.addLabel(0.8, 0.2, label);
-		plot.show();				
+		PlotWindow pw = new PlotWindow("Plot", "log(box size)", "log(count)", px, py);
+		pw.setLimits(xmin,xmax,ymin,ymax);
+		pw.addPoints(sizes, boxCountSums, PlotWindow.CIRCLE);
+		pw.addLabel(0.8, 0.2, label);
+		pw.draw();				
 		IJ.write("");
 		IJ.write(label);
 	}

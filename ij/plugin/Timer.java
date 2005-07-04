@@ -2,7 +2,7 @@ package ij.plugin;
 import java.awt.*;
 import ij.*;
 
-/**ImageJ plugin for measuring the speed of various Java operations.*/
+/**ImageJ plug-in for measuring the speed of various Java operations.*/
 public class Timer implements PlugIn {
 	int j=0;
 	long startTime, nullLoopTime;
@@ -119,7 +119,7 @@ public class Timer implements PlugIn {
 				i++;
 			}
 		} catch (OutOfMemoryError e) {
-			IJ.log("out of memory at "+i);
+			IJ.write("out of memory at "+i);
 		}
 	}
 	*/

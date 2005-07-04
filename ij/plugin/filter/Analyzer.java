@@ -9,7 +9,7 @@ import ij.measure.*;
 import ij.text.*;
 import ij.plugin.MeasurementsWriter;
 
-/** This plugin implements ImageJ's Analyze/Measure and Analyze/Set Measurements commands. */
+/** This plug-in implements ImageJ's Analyze/Measure and Analyze/Set Measurements commands. */
 public class Analyzer implements PlugInFilter, Measurements {
 	
 	private String arg;
@@ -18,14 +18,12 @@ public class Analyzer implements PlugInFilter, Measurements {
 	private int measurements;
 	private StringBuffer min,max,mean,sd;
 	
-	// Order must agree with order of checkboxes in Set Measurements dialog box
 	private static final int[] list = {AREA,MEAN,STD_DEV,MODE,MIN_MAX,
-		CENTROID,CENTER_OF_MASS,PERIMETER,RECT,ELLIPSE,CIRCULARITY, FERET,
-		INTEGRATED_DENSITY,MEDIAN,SKEWNESS,KURTOSIS,AREA_FRACTION,SLICE,
-		LIMIT,LABELS,INVERT_Y};
+		MIN_MAX,CENTROID,CENTROID,CENTER_OF_MASS,CENTER_OF_MASS,
+		PERIMETER,RECT,RECT,RECT,RECT,LIMIT,LABELS};
 
-	private static final int UNDEFINED=0,AREAS=1,LENGTHS=2,ANGLES=3,POINTS=4;
-	private static int mode = AREAS;
+	private static final int UNDEFINED=0,AREAS=1,LENGTHS=2,ANGLES=3,MARK_AND_COUNT=4;
+	private static int mode = UNDEFINED;
 	private static final String MEASUREMENTS = "measurements";
 	private static final String MARK_WIDTH = "mark.width";
 	private static final String PRECISION = "precision";
@@ -33,15 +31,11 @@ public class Analyzer implements PlugInFilter, Measurements {
 	private static boolean unsavedMeasurements;
 	public static Color darkBlue = new Color(0,0,160);
 	private static int systemMeasurements = Prefs.getInt(MEASUREMENTS,AREA+MEAN+MIN_MAX);
-	public static int markWidth = Prefs.getInt(MARK_WIDTH,0);
+	public static int markWidth = Prefs.getInt(MARK_WIDTH,3);
 	public static int precision = Prefs.getInt(PRECISION,3);
 	private static float[] umeans = new float[MAX_STANDARDS];
 	private static ResultsTable systemRT = new ResultsTable();
-	private static int redirectTarget;
-	private static String redirectTitle = "";
-	static int firstParticle, lastParticle;
-	private static boolean summarized;
-	
+
 	public Analyzer() {
 		rt = systemRT;
 		rt.setPrecision(precision);
@@ -82,26 +76,9 @@ public class Analyzer implements PlugInFilter, Measurements {
 	}
 
 	void doSetDialog() {
-		String NONE = "None";
-		String[] titles;
-        int[] wList = WindowManager.getIDList();
-        if (wList==null) {
-        	titles = new String[1];
-            titles[0] = NONE;
-        } else {
-			titles = new String[wList.length+1];
-			titles[0] = NONE;
-			for (int i=0; i<wList.length; i++) {
-				ImagePlus imp = WindowManager.getImage(wList[i]);
-				titles[i+1] = imp!=null?imp.getTitle():"";
-			}
-		}
-		ImagePlus tImp = WindowManager.getImage(redirectTarget);
-		String target = tImp!=null?tImp.getTitle():NONE;
-		
- 		GenericDialog gd = new GenericDialog("Set Measurements", IJ.getInstance());
-		String[] labels = new String[18];
-		boolean[] states = new boolean[18];
+		GenericDialog gd = new GenericDialog("Set Measurements", IJ.getInstance());
+		String[] labels = new String[9];
+		boolean[] states = new boolean[9];
 		labels[0]="Area"; states[0]=(systemMeasurements&AREA)!=0;
 		labels[1]="Mean Gray Value"; states[1]=(systemMeasurements&MEAN)!=0;
 		labels[2]="Standard Deviation"; states[2]=(systemMeasurements&STD_DEV)!=0;
@@ -111,39 +88,23 @@ public class Analyzer implements PlugInFilter, Measurements {
 		labels[6]="Center of Mass"; states[6]=(systemMeasurements&CENTER_OF_MASS)!=0;
 		labels[7]="Perimeter"; states[7]=(systemMeasurements&PERIMETER)!=0;
 		labels[8]="Bounding Rectangle"; states[8]=(systemMeasurements&RECT)!=0;
-		labels[9]="Fit Ellipse"; states[9]=(systemMeasurements&ELLIPSE)!=0;
-		labels[10]="Circularity"; states[10]=(systemMeasurements&CIRCULARITY)!=0;
-		labels[11]="Feret's Diameter"; states[11]=(systemMeasurements&FERET)!=0;
-		labels[12]="Integrated Density"; states[12]=(systemMeasurements&INTEGRATED_DENSITY)!=0;
-		labels[13]="Median"; states[13]=(systemMeasurements&MEDIAN)!=0;
-		labels[14]="Skewness"; states[14]=(systemMeasurements&SKEWNESS)!=0;
-		labels[15]="Kurtosis"; states[15]=(systemMeasurements&KURTOSIS)!=0;
-		labels[16]="Area_Fraction"; states[16]=(systemMeasurements&AREA_FRACTION)!=0;
-		labels[17]="Slice Number"; states[17]=(systemMeasurements&SLICE)!=0;
-		gd.addCheckboxGroup(10, 2, labels, states);
-		labels = new String[3];
-		states = new boolean[3];
+		gd.addCheckboxGroup(5, 2, labels, states);
+		labels = new String[2];
+		states = new boolean[2];
 		labels[0]="Limit to Threshold"; states[0]=(systemMeasurements&LIMIT)!=0;
-		labels[1]="Display Label"; states[1]=(systemMeasurements&LABELS)!=0;
-		labels[2]="Invert Y Coordinates"; states[2]=(systemMeasurements&INVERT_Y)!=0;
-		gd.addCheckboxGroup(2, 2, labels, states);
+		labels[1]="Display Row Labels"; states[1]=(systemMeasurements&LABELS)!=0;
+		gd.addCheckboxGroup(1, 2, labels, states);
 		gd.addMessage("");
-        gd.addChoice("Redirect To:", titles, target);
-		gd.addNumericField("Decimal Places (0-9):", precision, 0, 2, "");
+		gd.addNumericField("Precision:", precision, 0);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
 		setOptions(gd);
-		int index = gd.getNextChoiceIndex();
-		redirectTarget = index==0?0:wList[index-1];
-		redirectTitle = titles[index];
 		int prec = (int)gd.getNextNumber();
-		if (prec<0) prec = 0;
-		if (prec>9) prec = 9;
-		if (prec!=precision) {
+		if (prec>=0 && prec<=8 && prec!=precision) {
 			precision = prec;
 			rt.setPrecision(precision);
-			if (mode==AREAS && IJ.isResultsWindow()) {
+			if (mode==AREAS) {
 				IJ.setColumnHeadings("");
 				updateHeadings();
 			}
@@ -159,38 +120,31 @@ public class Analyzer implements PlugInFilter, Measurements {
 		int previous = 0;
 		boolean b = false;
 		for (int i=0; i<list.length; i++) {
-			//if (list[i]!=previous)
-			b = gd.getNextBoolean();
+			if (list[i]!=previous)
+				b = gd.getNextBoolean();
 			previous = list[i];
 			if (b)
 				systemMeasurements |= list[i];
 			else
 				systemMeasurements &= ~list[i];
 		}
-		if ((oldMeasurements&(~LIMIT))!=(systemMeasurements&(~LIMIT))) {
-			if (IJ.macroRunning()) {
-				resetCounter();
-				mode = AREAS;
-			} else
-				mode = UNDEFINED;
-		}
+		if ((oldMeasurements&(~LIMIT))!=(systemMeasurements&(~LIMIT)))
+			mode = UNDEFINED;
 		if ((systemMeasurements&LABELS)==0)
 			systemRT.disableRowLabels();
 	}
 	
 	void measure() {
-		firstParticle = lastParticle = 0;
+		if (Toolbar.getToolId()==Toolbar.CROSSHAIR) {
+			markAndCount();
+			return;
+		}
 		Roi roi = imp.getRoi();
-		if (roi!=null && roi.getType()==Roi.POINT) {
-			measurePoint(roi);
-			return;
-		}
-		if (roi!=null && roi.isLine()) {
+		if (roi!=null && roi.getType()>=Roi.LINE) {
+			//if (roi.getType()==Roi.POLYLINE && ((PolygonRoi)roi).getAngle()>=0.0)
+			//	measureAngle(roi);
+			//else
 			measureLength(roi);
-			return;
-		}
-		if (roi!=null && roi.getType()==Roi.ANGLE) {
-			measureAngle(roi);
 			return;
 		}
 		if (mode!=AREAS) {
@@ -198,107 +152,55 @@ public class Analyzer implements PlugInFilter, Measurements {
 				return;
 			mode = AREAS;
 		}
-		ImageStatistics stats;
-		if (isRedirectImage()) {
-			stats = getRedirectStats(measurements, roi);
-			if (stats==null) return;
-		} else
-			stats = imp.getStatistics(measurements);
-		saveResults(stats, roi);
+		ImageStatistics stats = imp.getStatistics(measurements);
+		saveResults(stats, imp.getRoi());
 		displayResults();
 	}
 
-	/** Returns <code>true</code> if an image is selected in the "Redirect To:"
-		popup menu of the Analyze/Set Measurements dialog box. */
-	public static boolean isRedirectImage() {
-		return redirectTarget!=0;
-	}
-	
-	/** Returns the image selected in the "Redirect To:" popup
-		menu of the Analyze/Set Measurements dialog or null
-		if "None" is selected, the image was not found or the 
-		image is not the same size as <code>currentImage</code>. */
-	public static ImagePlus getRedirectImage(ImagePlus currentImage) {
-		ImagePlus rImp = WindowManager.getImage(redirectTarget);
-		if (rImp==null) {
-			IJ.error("Analyzer", "Redirect image (\""+redirectTitle+"\")\n"
-				+ "not found.");
-			redirectTarget = 0;
-			Macro.abort();
-			return null;
+	void markAndCount() {
+		if (imp.getTitle().equals("Colors"))
+			return;
+		int x=-1, y=-1;
+		ImageWindow win = imp.getWindow();
+		if (win!=null) {
+			Point p = win.getCanvas().getCursorLoc();
+			x = p.x;
+			y = p.y;
 		}
-		if (rImp.getWidth()!=currentImage.getWidth() || rImp.getHeight()!=currentImage.getHeight()) {
-			IJ.error("Analyzer", "Redirect image (\""+redirectTitle+"\") \n"
-				+ "is not the same size as the current image.");
-			Macro.abort();
-			return null;
-		}
-		return rImp;
-	}
-
-	ImageStatistics getRedirectStats(int measurements, Roi roi) {
-		ImagePlus redirectImp = getRedirectImage(imp);
-		if (redirectImp==null)
-			return null;
-		int depth = redirectImp.getStackSize();
-		if (depth>1 && depth==imp.getStackSize())
-			redirectImp.setSlice(imp.getCurrentSlice());
-		ImageProcessor ip = redirectImp.getProcessor();
-		ip.setRoi(roi);
-		return ImageStatistics.getStatistics(ip, measurements, redirectImp.getCalibration());
-	}
-	
-	void measurePoint(Roi roi) {
-		if (mode!=POINTS) {
+		if (x<0)
+			return;
+		imp.killRoi();
+		if (mode!=MARK_AND_COUNT) {
 			if (!resetCounter())
 				return;
-			//IJ.setColumnHeadings(" \tX\tY\tValue");		
-			mode = POINTS;
+			IJ.setColumnHeadings(" \tX\tY\tValue");		
+			mode = MARK_AND_COUNT;
 		}
-		Polygon p = roi.getPolygon();
+		incrementCounter();
 		ImageProcessor ip = imp.getProcessor();
 		Calibration cal = imp.getCalibration();
 		ip.setCalibrationTable(cal.getCTable());
-		for (int i=0; i<p.npoints; i++) {
-			incrementCounter();
-			int x = p.xpoints[i];
-			int y = p.ypoints[i];
-			double value = ip.getPixelValue(x,y);
-			if (markWidth>0) {
-				ip.setColor(Toolbar.getForegroundColor());
-				ip.setLineWidth(markWidth);
-				ip.moveTo(x,y);
-				ip.lineTo(x,y);
-				imp.updateAndDraw();
-				ip.setLineWidth(Line.getWidth());
-			}
-			if ((measurements&LABELS)!=0)
-				rt.addLabel("Label", getFileName());
-			rt.addValue("X", cal.getX(x));
-			rt.addValue("Y", cal.getY(updateY(y,imp.getHeight())));
-			rt.addValue("Z", cal.getZ(imp.getCurrentSlice()-1));
-			rt.addValue("Value", value);
-			displayResults();
+		double value = ip.getPixelValue(x,y);
+		if (markWidth>0) {
+			ip.setColor(Toolbar.getForegroundColor());
+			ip.setLineWidth(markWidth);
+			ip.moveTo(x,y);
+			ip.lineTo(x,y);
+			imp.updateAndDraw();
+			ip.setLineWidth(Line.getWidth());
 		}
-		//IJ.write(rt.getCounter()+"\t"+n(cal.getX(x))+n(cal.getY(y))+n(value));
+		IJ.write(rt.getCounter()+"\t"+n(cal.getX(x))+n(cal.getY(y))+n(value));
 	}
 	
 	void measureAngle(Roi roi) {
 		if (mode!=ANGLES) {
 			if (!resetCounter())
 				return;
-			if ((measurements&LABELS)!=0)
-				IJ.setColumnHeadings(" \tName\tangle");
-			else		
-				IJ.setColumnHeadings(" \tangle");
+			IJ.setColumnHeadings(" \tangle");		
 			mode = ANGLES;
 		}
 		incrementCounter();
-		if ((measurements&LABELS)!=0)
-			rt.addLabel("Label", getFileName());
-		rt.addValue("Angle", ((PolygonRoi)roi).getAngle());
-		displayResults();
-		//IJ.write(rt.getCounter()+"\t"+n(((PolygonRoi)roi).getAngle()));
+		IJ.write(rt.getCounter()+"\t"+n(((PolygonRoi)roi).getAngle()));
 	}
 	
 	void measureLength(Roi roi) {
@@ -306,44 +208,16 @@ public class Analyzer implements PlugInFilter, Measurements {
 			if (!resetCounter())
 				return;
 			if ((measurements&LABELS)!=0)
-				IJ.setColumnHeadings(" \tName\tlength");
+				IJ.setColumnHeadings(" \tFile Name\tlength");
 			else		
 				IJ.setColumnHeadings(" \tlength");
 			mode = LENGTHS;
 		}
 		incrementCounter();
+		String s = rt.getCounter()+"\t";
 		if ((measurements&LABELS)!=0)
-			rt.addLabel("Label", getFileName());
-		rt.addValue("Length", roi.getLength());
-		double angle = 0.0;
-		if (roi.getType()==Roi.LINE) {
-			Line l = (Line)roi;
-			angle = roi.getAngle(l.x1, l.y1, l.x2, l.y2);
-		}
-		rt.addValue("Angle", angle);
-		boolean moreParams = (measurements&MEAN)!=0||(measurements&STD_DEV)!=0||(measurements&MODE)!=0||(measurements&MIN_MAX)!=0;
-		if (moreParams) {
-			ProfilePlot profile = new ProfilePlot(imp);
-			double[] values = profile.getProfile();
-			ImageProcessor ip2 = new FloatProcessor(values.length, 1, values);
-			ImageStatistics stats = ImageStatistics.getStatistics(ip2, MEAN+STD_DEV+MODE+MIN_MAX, null);
-			if ((measurements&MEAN)!=0) rt.addValue(ResultsTable.MEAN,stats.mean);
-			if ((measurements&STD_DEV)!=0) rt.addValue(ResultsTable.STD_DEV,stats.stdDev);
-			if ((measurements&MODE)!=0) rt.addValue(ResultsTable.MODE, stats.dmode);
-			if ((measurements&MIN_MAX)!=0) {
-				rt.addValue(ResultsTable.MIN,stats.min);
-				rt.addValue(ResultsTable.MAX,stats.max);
-			}
-		}
-		if ((measurements&RECT)!=0) {
-			Rectangle r = roi.getBounds();
-			Calibration cal = imp.getCalibration();
-			rt.addValue(ResultsTable.ROI_X, r.x*cal.pixelWidth);
-			rt.addValue(ResultsTable.ROI_Y, updateY2(r.y*cal.pixelHeight));
-			rt.addValue(ResultsTable.ROI_WIDTH, r.width*cal.pixelWidth);
-			rt.addValue(ResultsTable.ROI_HEIGHT, r.height*cal.pixelHeight);
-		}
-		displayResults();
+			s += getFileName()+"\t";
+		IJ.write(s+n(roi.getLength()));
 	}
 	
 	/** Saves the measurements specified in the "Set Measurements" dialog,
@@ -357,7 +231,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 			umeans[counter-1] = (float)stats.umean;
 		}
 		if ((measurements&LABELS)!=0)
-			rt.addLabel("Label", getFileName());
+			rt.addLabel("File Name", getFileName());
 		if ((measurements&AREA)!=0) rt.addValue(ResultsTable.AREA,stats.area);
 		if ((measurements&MEAN)!=0) rt.addValue(ResultsTable.MEAN,stats.mean);
 		if ((measurements&STD_DEV)!=0) rt.addValue(ResultsTable.STD_DEV,stats.stdDev);
@@ -368,101 +242,40 @@ public class Analyzer implements PlugInFilter, Measurements {
 		}
 		if ((measurements&CENTROID)!=0) {
 			rt.addValue(ResultsTable.X_CENTROID,stats.xCentroid);
-			rt.addValue(ResultsTable.Y_CENTROID,updateY(stats.yCentroid));
+			rt.addValue(ResultsTable.Y_CENTROID,stats.yCentroid);
 		}
 		if ((measurements&CENTER_OF_MASS)!=0) {
 			rt.addValue(ResultsTable.X_CENTER_OF_MASS,stats.xCenterOfMass);
-			rt.addValue(ResultsTable.Y_CENTER_OF_MASS,updateY(stats.yCenterOfMass));
+			rt.addValue(ResultsTable.Y_CENTER_OF_MASS,stats.yCenterOfMass);
 		}
-		if ((measurements&PERIMETER)!=0 || (measurements&CIRCULARITY)!=0) {
+		if ((measurements&PERIMETER)!=0) {
 			double perimeter;
 			if (roi!=null)
 				perimeter = roi.getLength();
 			else
 				perimeter = 0.0;
-			if ((measurements&PERIMETER)!=0) 
-				rt.addValue(ResultsTable.PERIMETER,perimeter);
-			if ((measurements&CIRCULARITY)!=0) {
-				double circularity = perimeter==0.0?0.0:4.0*Math.PI*(stats.area/(perimeter*perimeter));
-				if (circularity>1.0)
-					circularity = -1.0;
-				rt.addValue(ResultsTable.CIRCULARITY, circularity);
-			}
+			rt.addValue(ResultsTable.PERIMETER,perimeter);
 		}
 		if ((measurements&RECT)!=0) {
 			rt.addValue(ResultsTable.ROI_X,stats.roiX);
-			rt.addValue(ResultsTable.ROI_Y,updateY2(stats.roiY));
+			rt.addValue(ResultsTable.ROI_Y,stats.roiY);
 			rt.addValue(ResultsTable.ROI_WIDTH,stats.roiWidth);
 			rt.addValue(ResultsTable.ROI_HEIGHT,stats.roiHeight);
 		}
-		if ((measurements&ELLIPSE)!=0) {
-			rt.addValue(ResultsTable.MAJOR,stats.major);
-			rt.addValue(ResultsTable.MINOR,stats.minor);
-			rt.addValue(ResultsTable.ANGLE,stats.angle);
-		}
-		if ((measurements&FERET)!=0)
-			rt.addValue(ResultsTable.FERET, roi!=null?roi.getFeretsDiameter():0.0);
-		if ((measurements&INTEGRATED_DENSITY)!=0)
-			rt.addValue(ResultsTable.INTEGRATED_DENSITY,stats.area*stats.mean);
-		if ((measurements&MEDIAN)!=0) rt.addValue(ResultsTable.MEDIAN, stats.median);
-		if ((measurements&SKEWNESS)!=0) rt.addValue(ResultsTable.SKEWNESS, stats.skewness);
-		if ((measurements&KURTOSIS)!=0) rt.addValue(ResultsTable.KURTOSIS, stats.kurtosis);
-		if ((measurements&AREA_FRACTION)!=0) rt.addValue(ResultsTable.AREA_FRACTION, stats.areaFraction);
-		if ((measurements&SLICE)!=0) rt.addValue(ResultsTable.SLICE, imp!=null?imp.getCurrentSlice():1.0);
 	}
 	
-	// Update centroid and center of mass y-coordinate
-	// based on value "Invert Y Coordinates" flag
-	double updateY(double y) {
-		if (imp==null)
-			return y;
-		else {
-			if ((systemMeasurements&INVERT_Y)!=0) {
-				Calibration cal = imp.getCalibration();
-				y = imp.getHeight()*cal.pixelHeight-y;
-			}
-			return y;
-		}
-	}
-
-	// Update bounding rectangle y-coordinate based
-	// on value "Invert Y Coordinates" flag
-	double updateY2(double y) {
-		if (imp==null)
-			return y;
-		else {
-			if ((systemMeasurements&INVERT_Y)!=0) {
-				Calibration cal = imp.getCalibration();
-				y = imp.getHeight()*cal.pixelHeight-y-cal.pixelHeight;
-			}
-			return y;
-		}
-	}
-
 	String getFileName() {
 		String s = "";
 		if (imp!=null) {
-			if (mode==AREAS && redirectTarget!=0) {
-				ImagePlus rImp = WindowManager.getImage(redirectTarget);
-				if (rImp!=null) s = rImp.getTitle();				
-			} else
-				s = imp.getTitle();
-			int len = s.length();
-			if (len>4 && s.charAt(len-4)=='.' && !Character.isDigit(s.charAt(len-1)))
-				s = s.substring(0,len-4); 
-			Roi roi = imp.getRoi();
-			String roiName = roi!=null?roi.getName():null;
-			if (roiName!=null)
-				s += ":"+roiName;
+			s = imp.getTitle();
 			if (imp.getStackSize()>1) {
 				ImageStack stack = imp.getStack();
 				int currentSlice = imp.getCurrentSlice();
-				String label = stack.getShortSliceLabel(currentSlice);
-				String colon = s.equals("")?"":":";
+				String label = stack.getSliceLabel(currentSlice);
 				if (label!=null && !label.equals(""))
-					s += colon+label;
+					s += ":"+label;
 				else
-					s += colon+currentSlice;
+					s += ":"+currentSlice;
 			}
 		}
 		return s;
@@ -476,10 +289,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 		IJ.write(rt.getRowAsString(counter-1));
 	}
 
-	/** Updates the displayed column headings. Does nothing if
-	    the results table headings and the displayed headings are
-        the same. Redisplays the results if the headings are
-        different and the results table is not empty. */
+	/** Updates the column headings. */
 	public void updateHeadings() {
 		TextPanel tp = IJ.getTextPanel();
 		if (tp==null)
@@ -519,8 +329,6 @@ public class Analyzer implements PlugInFilter, Measurements {
 		rt = systemRT;
 		if (rt.getCounter()==0)
 			return;
-		if (summarized)
-			rt.show("Results");
 		measurements = systemMeasurements;
 		min = new StringBuffer(100);
 		max = new StringBuffer(100);
@@ -530,64 +338,6 @@ public class Analyzer implements PlugInFilter, Measurements {
 		max.append("Max\t");
 		mean.append("Mean\t");
 		sd.append("SD\t");
-		if ((measurements&LABELS)!=0) {
-			min.append("\t");
-			max.append("\t");
-			mean.append("\t");
-			sd.append("\t");
-		}
-		if (mode==POINTS) 
-			summarizePoints(rt);
-		else if (mode==LENGTHS) 
-			summarizeLengths(rt);
-		else if (mode==ANGLES) 
-			add2(rt.getColumnIndex("Angle"));
-		else
-			summarizeAreas();
-		TextPanel tp = IJ.getTextPanel();
-		if (tp!=null) {
-			String worksheetHeadings = tp.getColumnHeadings();		
-			if (worksheetHeadings.equals(""))
-				IJ.setColumnHeadings(rt.getColumnHeadings());
-		}		
-		IJ.write("");		
-		IJ.write(new String(mean));		
-		IJ.write(new String(sd));		
-		IJ.write(new String(min));		
-		IJ.write(new String(max));
-		IJ.write("");		
-		mean = null;		
-		sd = null;		
-		min = null;		
-		max = null;
-		summarized = true;		
-	}
-	
-	void summarizePoints(ResultsTable rt) {
-		add2(rt.getColumnIndex("X"));
-		add2(rt.getColumnIndex("Y"));
-		add2(rt.getColumnIndex("Z"));
-		add2(rt.getColumnIndex("Value"));
-	}
-
-	void summarizeLengths(ResultsTable rt) {
-		int index = rt.getColumnIndex("Mean");
-		if (rt.columnExists(index)) add2(index);
-		index = rt.getColumnIndex("StdDev");
-		if (rt.columnExists(index)) add2(index);
-		index = rt.getColumnIndex("Mode");
-		if (rt.columnExists(index)) add2(index);
-		index = rt.getColumnIndex("Min");
-		if (rt.columnExists(index)) add2(index);
-		index = rt.getColumnIndex("Max");
-		if (rt.columnExists(index)) add2(index);
-		index = rt.getColumnIndex("Angle");
-		if (rt.columnExists(index)) add2(index);
-		index = rt.getColumnIndex("Length");
-		if (rt.columnExists(index)) add2(index);
-	}
-	
-	void summarizeAreas() {
 		if ((measurements&AREA)!=0) add2(ResultsTable.AREA);
 		if ((measurements&MEAN)!=0) add2(ResultsTable.MEAN);
 		if ((measurements&STD_DEV)!=0) add2(ResultsTable.STD_DEV);
@@ -612,29 +362,20 @@ public class Analyzer implements PlugInFilter, Measurements {
 			add2(ResultsTable.ROI_WIDTH);
 			add2(ResultsTable.ROI_HEIGHT);
 		}
-		if ((measurements&ELLIPSE)!=0) {
-			add2(ResultsTable.MAJOR);
-			add2(ResultsTable.MINOR);
-			add2(ResultsTable.ANGLE);
-		}
-		if ((measurements&CIRCULARITY)!=0)
-			add2(ResultsTable.CIRCULARITY);
-		if ((measurements&FERET)!=0)
-			add2(ResultsTable.FERET);
-		if ((measurements&INTEGRATED_DENSITY)!=0)
-			add2(ResultsTable.FERET);
-		if ((measurements&MEDIAN)!=0)
-			add2(ResultsTable.MEDIAN);
-		if ((measurements&SKEWNESS)!=0)
-			add2(ResultsTable.SKEWNESS);
-		if ((measurements&KURTOSIS)!=0)
-			add2(ResultsTable.KURTOSIS);
-		if ((measurements&AREA_FRACTION)!=0)
-			add2(ResultsTable.AREA_FRACTION);
+		IJ.write("");		
+		IJ.write(new String(mean));		
+		IJ.write(new String(sd));		
+		IJ.write(new String(min));		
+		IJ.write(new String(max));
+		IJ.write("");		
+		mean = null;		
+		sd = null;		
+		min = null;		
+		max = null;		
 	}
-
+	
 	private void add2(int column) {
-		float[] c = column>=0?rt.getColumn(column):null;
+		float[] c = rt.getColumn(column);
 		if (c!=null) {
 			ImageProcessor ip = new FloatProcessor(c.length, 1, c, null);
 			if (ip==null)
@@ -659,17 +400,13 @@ public class Analyzer implements PlugInFilter, Measurements {
 		return systemRT.getCounter();
 	}
 
-	/** Sets the measurement counter to zero. Displays a dialog that
-	    allows the user to save any existing measurements. Returns
-	    false if the user cancels the dialog.
-	*/
+	/** Sets the measurement count to zero. */
 	public synchronized static boolean resetCounter() {
-		TextPanel tp = IJ.isResultsWindow()?IJ.getTextPanel():null;
+		int lineCount = IJ.getTextPanel().getLineCount();
 		int counter = systemRT.getCounter();
-		int lineCount = tp!=null?IJ.getTextPanel().getLineCount():0;
-		ImageJ ij = IJ.getInstance();
-		if (counter>0 && lineCount>0 && unsavedMeasurements && !IJ.macroRunning() && ij!=null && !ij.quitting()) {
-			SaveChangesDialog d = new SaveChangesDialog(ij, "Save "+counter+" measurements?");
+		if (counter>0 && lineCount>0 && unsavedMeasurements) {
+
+			SaveChangesDialog d = new SaveChangesDialog(IJ.getInstance(), "Save "+counter+" measurements?");
 			if (d.cancelPressed())
 				return false;
 			else if (d.savePressed())
@@ -678,11 +415,11 @@ public class Analyzer implements PlugInFilter, Measurements {
 		umeans = null;
 		systemRT.reset();
 		unsavedMeasurements = false;
+		TextPanel tp = IJ.getTextPanel();
 		if (tp!=null) {
 			tp.selectAll();
 			tp.clearSelection();
 		}
-		summarized = false;		
 		return true;
 	}
 	
@@ -700,7 +437,6 @@ public class Analyzer implements PlugInFilter, Measurements {
 		systemMeasurements = measurements;
 	}
 
-	/** Called once when ImageJ quits. */
 	public static void savePreferences(Properties prefs) {
 		prefs.put(MEASUREMENTS, Integer.toString(systemMeasurements));
 		prefs.put(MARK_WIDTH, Integer.toString(markWidth));
@@ -714,34 +450,6 @@ public class Analyzer implements PlugInFilter, Measurements {
 	/** Returns the ImageJ results table. */
 	public static ResultsTable getResultsTable() {
 		return systemRT;
-	}
-
-	/** Returns the number of digits displayed to the right of decimal point. */
-	public static int getPrecision() {
-		return precision;
-	}
-
-	/** Sets the number of digits displayed to the right of decimal point. */
-	public static void setPrecision(int decimalPlaces) {
-		if (decimalPlaces<0) decimalPlaces = 0;
-		if (decimalPlaces>9) decimalPlaces = 9;
-		precision = decimalPlaces;
-	}
-
-	/** Returns an updated Y coordinate based on
-		the current "Invert Y Coordinates" flag. */
-	public static int updateY(int y, int imageHeight) {
-		if ((systemMeasurements&INVERT_Y)!=0)
-			y = imageHeight-y-1;
-		return y;
-	}
-	
-	/** Returns an updated Y coordinate based on
-		the current "Invert Y Coordinates" flag. */
-	public static double updateY(double y, int imageHeight) {
-		if ((systemMeasurements&INVERT_Y)!=0)
-			y = imageHeight-y-1;
-		return y;
 	}
 
 }

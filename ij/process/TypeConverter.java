@@ -82,29 +82,25 @@ public class TypeConverter {
 		}
 	}
 
-	/** Converts a ColorProcessor to a ByteProcessor. 
-		The pixels are converted to grayscale using the formula
-		g=r/3+g/3+b/3. Call ColorProcessor.setWeightingFactors() 
-		to do weighted conversions. */
+	/** Converts a ColorProcessor to a ByteProcessor. */
 	ByteProcessor convertRGBToByte() {
 		int c, r, g, b;
 		int[] pixels32;
 		byte[] pixels8;
+		ColorModel cm;
 		Image img8;
 		
 		//get RGB pixels
 		pixels32 = (int[])ip.getPixels();
 		
 		//convert to grayscale
-		double[] w = ColorProcessor.getWeightingFactors();
-		double rw=w[0], gw=w[1], bw=w[2];
-		pixels8 = new byte[width*height];
+		pixels8 = new byte[width * height];
 		for (int i=0; i < width*height; i++) {
 			c = pixels32[i];
 			r = (c&0xff0000)>>16;
 			g = (c&0xff00)>>8;
 			b = c&0xff;
-			pixels8[i] = (byte)(r*rw + g*gw + b*bw + 0.5);
+			pixels8[i] = (byte)((int)(r*0.30 + g*0.59 + b*0.11) & 0xff);
 		}
 		
 		return new ByteProcessor(width, height, pixels8, null);
@@ -120,8 +116,8 @@ public class TypeConverter {
 			case FLOAT:
 				return convertFloatToShort();
 			case RGB:
-				ip = convertRGBToByte();
-				return convertByteToShort();
+				//return convertRGBToShort(ctable);
+				return null;
 			default:
 				return null;
 		}
@@ -171,8 +167,8 @@ public class TypeConverter {
 			case FLOAT:
 				return ip;
 			case RGB:
-				ip = convertRGBToByte();
-				return convertByteToFloat(null);
+				//return convertRGBToFloat(ctable);
+				return null;
 			default:
 				return null;
 		}

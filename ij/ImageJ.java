@@ -4,185 +4,103 @@ import java.awt.*;
 import java.util.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.*;
-import java.awt.image.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.io.*;
 import ij.plugin.*;
 import ij.plugin.filter.*;
 import ij.text.*;
-import ij.macro.Interpreter;
-import ij.io.Opener;
-import ij.util.Tools;
 
 /**
 This frame is the main ImageJ class.
-<p>
-ImageJ is a work of the United States Government. It is in the public domain 
-and open source. There is no copyright. You are free to do anything you want 
-with this source but I like to get credit for my work and I would like you to 
-offer your changes to me so I can possibly add them to the "official" version.
 
-<pre>
-The following command line options are recognized by ImageJ:
+ImageJ is open-source. You are free to do anything you want
+with this source as long as I get credit for my work and you
+offer your changes to me so I can possibly add them to the
+"official" version.
 
-  "file-name"
-     Opens a file
-     Example 1: blobs.tif
-     Example 2: /Users/wayne/images/blobs.tif
-     Example3: e81*.tif
-
-  -ijpath path
-     Specified the path to the directory containing the plugins directory
-     Example: -ijpath /Applications/ImageJ
-
-  -port<n>
-     Specifies the port ImageJ uses to determine if another instance is running
-     Example 1: -port1
-     Example 2: -port2
-
-  -macro path [arg]
-     Runs a macro, passing it an optional argument
-     Example 1: -macro analyze.ijm
-     Example 2: -macro analyze /Users/wayne/images/stack1
-
-  -batch path [arg]
-    Runs a macro in batch (no GUI) mode, passing it an optional argument.
-    ImageJ exits when the macro finishes.
-
-  -eval "macro code"
-     Evaluates macro code
-     Example: -eval "print('Hello, world');"
-
-  -run command
-     Runs an ImageJ menu command
-     Example: -run "About ImageJ..."
-</pre>
-@author Wayne Rasband (wayne@codon.nih.gov)
+@author Wayne Rasband <wayne@codon.nih.gov>
 */
 public class ImageJ extends Frame implements ActionListener, 
 	MouseListener, KeyListener, WindowListener, ItemListener {
 
-	public static final String VERSION = "1.35k";
-	public static Color backgroundColor = new Color(220,220,220); //224,226,235
-	/** SansSerif, 12-point, plain font. */
-	public static final Font SansSerif12 = new Font("SansSerif", Font.PLAIN, 12);
-	/** Address of socket where Image accepts commands */
-	public static final int DEFAULT_PORT = 57294;
+	public static final String VERSION = "1.20s";
 
-	private static final String IJ_X="ij.x",IJ_Y="ij.y";
-	private static final String RESULTS_X="results.x",RESULTS_Y="results.y",
-		RESULTS_WIDTH="results.width",RESULTS_HEIGHT="results.height";
-	private static int port = DEFAULT_PORT;
-	
 	private Toolbar toolbar;
 	private Panel statusBar;
 	private ProgressBar progressBar;
 	private Label statusLine;
+	private TextPanel textPanel;
 	private boolean firstTime = true;
 	private java.applet.Applet applet; // null if not running as an applet
 	private Vector classes = new Vector();
-	private boolean exitWhenQuiting;
-	private boolean quitting;
-	private long keyPressedTime, actionPerformedTime;
-	
-	boolean hotkey;
-	
-	/** Creates a new ImageJ frame. */
-	public ImageJ() {
-		this(null);
-	}
-	
-	/** Creates a new ImageJ frame running as an applet
-		if the 'applet' argument is not null. */
+	private static PluginClassLoader classLoader;
+	private boolean notVerified = true;
+
+	/** Creates a new ImageJ frame. Set applet to null if running as an application. */
 	public ImageJ(java.applet.Applet applet) {
-		super("ImageJA");
+		super("ImageJ");
 		this.applet = applet;
-		String err1 = Prefs.load(this, applet);
+		String status = Prefs.load(this, applet);
 		Menus m = new Menus(this, applet);
-		String err2 = m.addMenuBar();
+		m.addMenuBar();
 		m.installPopupMenu(this);
-		setLayout(new GridLayout(2, 1));
-		
+		notVerified = true;		
+
 		// Tool bar
+		Panel panel = new Panel();
+		panel.setLayout(new GridLayout(2, 1));
 		toolbar = new Toolbar();
 		toolbar.addKeyListener(this);
-		add(toolbar);
+		panel.add(toolbar);
 
 		// Status bar
 		statusBar = new Panel();
 		statusBar.setLayout(new BorderLayout());
 		statusBar.setForeground(Color.black);
-		statusBar.setBackground(backgroundColor);
+		statusBar.setBackground(Color.lightGray);
 		statusLine = new Label();
-		statusLine.setFont(SansSerif12);
 		statusLine.addKeyListener(this);
 		statusLine.addMouseListener(this);
 		statusBar.add("Center", statusLine);
-		progressBar = new ProgressBar(100, 18);
+		progressBar = new ProgressBar(90, 16);
 		progressBar.addKeyListener(this);
 		progressBar.addMouseListener(this);
 		statusBar.add("East", progressBar);
-		statusBar.setSize(toolbar.getPreferredSize());
-		add(statusBar);
+		panel.add(statusBar);
+		add("North", panel);
 
-		IJ.init(this, applet);
+		// Text panel
+		textPanel = new TextPanel();
+		textPanel.setTitle("results.txt");
+		textPanel.setBackground(Color.white);
+		textPanel.setFont(new Font("Monospaced", Font.PLAIN, 12));
+		//Dimension tbSize = toolbar.getPreferredSize();
+		//textPanel.setSize(tbSize.width+10, 250);
+		textPanel.addKeyListener(this);
+		add("Center", textPanel);
+		IJ.init(this, applet, textPanel);
+		IJ.write("ImageJ "+VERSION);
+		if (!status.equals(""))
+			IJ.write("<<"+status+">>");
+
+		IJ.showStatus("  " + Menus.nPlugins + " plugin commands installed");
  		addKeyListener(this);
  		addWindowListener(this);
  		
+		setResizable(true);
+		//pack();
 		Point loc = getPreferredLocation();
 		Dimension tbSize = toolbar.getPreferredSize();
-		int ijWidth = tbSize.width+10;
-		int ijHeight = 100;
+		setBounds(loc.x, loc.y, tbSize.width+10, 230);
+		//setLocation(loc.x, loc.y);
 		setCursor(Cursor.getDefaultCursor()); // work-around for JDK 1.1.8 bug
-		setIcon();
-		setBounds(loc.x, loc.y, ijWidth, ijHeight); // needed for pack to work
-		setLocation(loc.x, loc.y);
-		pack();
-		setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
-		if(!IJ.noGUI)
-			show();
-		if (err1!=null)
-			IJ.error(err1);
-		if (err2!=null)
-			IJ.error(err2);
-		if (IJ.isMacintosh()) {
-			Object qh = null;
-			if (IJ.isJava14())
-				qh = IJ.runPlugIn("MacAdapter", "");
-			if (qh==null)
-				IJ.runPlugIn("QuitHandler", "");
-		}
-		if (IJ.isJava2() && applet==null) {
-			IJ.runPlugIn("ij.plugin.DragAndDrop", "");
-		}
-		m.installStartupMacroSet();
-		String str = (m.nMacros==1?" macro)":" macros)");
-		IJ.showStatus("Version "+VERSION + " ("+ m.nPlugins + " commands, " + m.nMacros + str);
-		// Toolbar.getInstance().addTool("Spare tool [Cf0fG22ccCf00E22cc]"); 
-		if (applet==null)
-			new SocketListener();
+		setVisible(true);
+		requestFocus();
 	}
-    	
-	void setIcon() {
-		URL url = this.getClass().getResource("/icon.gif"); 
-		if (url==null)
-			return;
-		Image img = null;
-		try {img = createImage((ImageProducer)url.getContent());}
-		catch(Exception e) {}
-		if (img!=null)
-			try {setIconImage(img);} catch (Exception e) {}
-	}
-	
+    
 	public Point getPreferredLocation() {
 		int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
-		int ijX = Prefs.getInt(IJ_X,-99);
-		int ijY = Prefs.getInt(IJ_Y,-99);
-		if (ijX>=0 && ijY>0 && ijX<(screenWidth-75))
-			return new Point(ijX, ijY);
-			
 		Dimension tbsize = toolbar.getPreferredSize();
 		int windowWidth = tbsize.width+10;
 		double percent;
@@ -198,7 +116,7 @@ public class ImageJ extends Frame implements ActionListener,
 	}
 	
 	void showStatus(String s) {
-	        statusLine.setText(s);
+        statusLine.setText(s);
 	}
 
 	public ProgressBar getProgressBar() {
@@ -210,12 +128,127 @@ public class ImageJ extends Frame implements ActionListener,
 		new Executer(name, WindowManager.getCurrentImage());
     }
         
+	void wrongType(int capabilities) {
+		String s = "This command requires an image of type:\n \n";
+		if ((capabilities&PlugInFilter.DOES_8G)!=0) s +=  "    8-bit grayscale\n";
+		if ((capabilities&PlugInFilter.DOES_8C)!=0) s +=  "    8-bit color\n";
+		if ((capabilities&PlugInFilter.DOES_16)!=0) s +=  "    16-bit grayscale\n";
+		if ((capabilities&PlugInFilter.DOES_32)!=0) s +=  "    32-bit (float) grayscale\n";
+		if ((capabilities&PlugInFilter.DOES_RGB)!=0) s += "    RGB color\n";
+		IJ.error(s);
+	}
+	
 	public void runFilterPlugIn(Object theFilter, String cmd, String arg) {
-		IJ.runFilterPlugIn(theFilter, cmd, arg);
+		ImagePlus imp = WindowManager.getCurrentImage();
+		int capabilities = ((PlugInFilter)theFilter).setup(arg, imp);
+		if ((capabilities&PlugInFilter.DONE)!=0)
+			return;
+		if ((capabilities&PlugInFilter.NO_IMAGE_REQUIRED)!=0)
+			{((PlugInFilter)theFilter).run(null); return;}
+		if (imp==null)
+			{IJ.noImage(); return;}
+		if ((capabilities&PlugInFilter.ROI_REQUIRED)!=0 && imp.getRoi()==null)
+			{IJ.error("Selection required"); return;}
+		if ((capabilities&PlugInFilter.STACK_REQUIRED)!=0 && imp.getStackSize()==1)
+			{IJ.error("Stack required"); return;}
+		int type = imp.getType();
+		switch (type) {
+			case ImagePlus.GRAY8:
+				if ((capabilities&PlugInFilter.DOES_8G)==0)
+					{wrongType(capabilities); return;}
+				break;
+			case ImagePlus.COLOR_256:
+				if ((capabilities&PlugInFilter.DOES_8C)==0)
+					{wrongType(capabilities); return;}
+				break;
+			case ImagePlus.GRAY16:
+				if ((capabilities&PlugInFilter.DOES_16)==0)
+					{wrongType(capabilities); return;}
+				break;
+			case ImagePlus.GRAY32:
+				if ((capabilities&PlugInFilter.DOES_32)==0)
+					{wrongType(capabilities); return;}
+				break;
+			case ImagePlus.COLOR_RGB:
+				if ((capabilities&PlugInFilter.DOES_RGB)==0)
+					{wrongType(capabilities); return;}
+				break;
+		}
+		int slices = imp.getStackSize();
+		boolean doesStacks = (capabilities&PlugInFilter.DOES_STACKS)!=0;
+		if (!imp.lock())
+			return; // exit if image is in use
+		imp.startTiming();
+		IJ.showStatus(cmd + "...");
+		ImageProcessor ip;
+		ImageStack stack = null;
+		if (slices>1)
+			stack = imp.getStack();
+		if (slices==1 || !doesStacks || (stack!=null && (stack.isRGB() || stack.isHSB()))) {
+			ip = imp.getProcessor();
+			if ((capabilities&PlugInFilter.NO_UNDO)!=0)
+				Undo.reset();
+			else {
+				Undo.setup(Undo.FILTER, imp);
+				ip.snapshot();
+			}
+			((PlugInFilter)theFilter).run(ip);
+			if ((capabilities&PlugInFilter.SUPPORTS_MASKING)!=0)
+				ip.reset(imp.getMask());  //restore image outside irregular roi
+		} else {
+       		Undo.reset(); // can't undo stack operations
+			int n = stack.getSize();
+			int currentSlice = imp.getCurrentSlice();
+			for (int i=1; i<=n; i++) {
+				ip = stack.getProcessor(i);
+				((PlugInFilter)theFilter).run(ip);
+				IJ.showProgress((double)i/n);
+				System.gc();
+				Thread.yield();
+			}
+			int current = imp.getCurrentSlice();
+			imp.setProcessor(null,stack.getProcessor(current));
+			IJ.showProgress(1.0);
+		}
+		IJ.showTime(imp, imp.getStartTime(), cmd + ": ");
+		if ((capabilities&PlugInFilter.NO_CHANGES)==0) {
+			imp.changes = true;
+	 		imp.updateAndDraw();
+	 	}
+		ImageWindow win = imp.getWindow();
+		if (win!=null)
+			win.running = false;
+		imp.unlock();
 	}
         
 	public Object runUserPlugIn(String commandName, String className, String arg, boolean createNewLoader) {
-		return IJ.runUserPlugIn(commandName, className, arg, createNewLoader);	
+		if (applet!=null)
+			return null;
+		if (notVerified) {
+			// check for duplicate classes in the plugins folder
+			IJ.runPlugIn("ij.plugin.Verifier", "");
+			notVerified = false;
+		}
+		PluginClassLoader loader;
+		if (createNewLoader)
+			loader = new PluginClassLoader(Menus.getPlugInsPath());
+		else {
+			if (classLoader==null)
+				classLoader = new PluginClassLoader(Menus.getPlugInsPath());
+			loader = classLoader;
+		}
+		Object thePlugIn = null;
+		try { 
+			thePlugIn = (loader.loadClass(className)).newInstance(); 
+ 			if (thePlugIn instanceof PlugIn)
+				((PlugIn)thePlugIn).run(arg);
+ 			else if (thePlugIn instanceof PlugInFilter)
+				runFilterPlugIn(thePlugIn, commandName, arg);
+		}
+		catch (ClassNotFoundException e) {IJ.write("PlugIn not found: "+className);}
+		catch (InstantiationException e) {IJ.write("Unable to load plugin (ins)");}
+		catch (IllegalAccessException e) {IJ.write("Unable to load plugin (acc)");}
+		return thePlugIn;
 	} 
 	
 	/** Return the current list of modifier keys. */
@@ -235,16 +268,9 @@ public class ImageJ extends Frame implements ActionListener,
 		if ((e.getSource() instanceof MenuItem)) {
 			MenuItem item = (MenuItem)e.getSource();
 			String cmd = e.getActionCommand();
-			if (item.getParent()==Menus.openRecentMenu) {
-				new RecentOpener(cmd); // open image in separate thread
-				return;
-			}
-			hotkey = false;
-			actionPerformedTime = System.currentTimeMillis();
-			long ellapsedTime = actionPerformedTime-keyPressedTime;
-			if (cmd!=null && ellapsedTime>=10L)
-				doCommand(cmd);
-			if (IJ.debugMode) IJ.log("actionPerformed: "+ellapsedTime+" "+e);
+			if (cmd!=null)
+			doCommand(cmd);
+			if (IJ.debugMode) IJ.write("actionPerformed: "+cmd);
 		}
 	}
 
@@ -261,9 +287,9 @@ public class ImageJ extends Frame implements ActionListener,
 
 	public void mousePressed(MouseEvent e) {
 		Undo.reset();
-		IJ.showStatus("Memory: "+IJ.freeMemory());
+		IJ.showStatus(IJ.freeMemory());
 		if (IJ.debugMode)
-			IJ.log("Windows: "+WindowManager.getWindowCount());
+			IJ.write("Windows: "+WindowManager.getWindowCount());
 	}
 	
 	public void mouseReleased(MouseEvent e) {}
@@ -274,78 +300,38 @@ public class ImageJ extends Frame implements ActionListener,
  	public void keyPressed(KeyEvent e) {
 		int keyCode = e.getKeyCode();
 		IJ.setKeyDown(keyCode);
-		hotkey = false;
 		if (keyCode==e.VK_CONTROL || keyCode==e.VK_SHIFT)
 			return;
 		char keyChar = e.getKeyChar();
 		int flags = e.getModifiers();
-		if (IJ.debugMode) IJ.log("keyCode=" + keyCode + " (" + KeyEvent.getKeyText(keyCode)
+		if (IJ.debugMode) IJ.write("keyCode=" + keyCode + " (" + KeyEvent.getKeyText(keyCode)
 			+ ") keyChar=\"" + keyChar + "\" (" + (int)keyChar + ") "
 			+ KeyEvent.getKeyModifiersText(flags));
 		boolean shift = (flags & e.SHIFT_MASK) != 0;
 		boolean control = (flags & e.CTRL_MASK) != 0;
-		boolean alt = (flags & e.ALT_MASK) != 0;
-		boolean meta = (flags & e.META_MASK) != 0;
 		String c = "";
 		ImagePlus imp = WindowManager.getCurrentImage();
 		boolean isStack = (imp!=null) && (imp.getStackSize()>1);
 		
-		if (imp!=null && !control && ((keyChar>=32 && keyChar<=255) || keyChar=='\b' || keyChar=='\n')) {
+		if (imp!=null && !control && ((keyChar>=32 && keyChar<=127) || keyChar=='\b' || keyChar=='\n')) {
 			Roi roi = imp.getRoi();
 			if (roi instanceof TextRoi) {
-				if ((flags & e.META_MASK)!=0 && IJ.isMacOSX()) return;
-				if (alt)
-					switch (keyChar) {
-						case 'u': case 'm': keyChar = IJ.micronSymbol; break;
-						case 'A': keyChar = IJ.angstromSymbol; break;
-						default:
-					}
 				((TextRoi)roi).addChar(keyChar);
 				return;
 			}
 		}
         		
-		// Handle one character macro shortcuts
-		if (!control && !meta) {
-			Hashtable macroShortcuts = Menus.getMacroShortcuts();
-			if (macroShortcuts.size()>0) {
-				if (shift)
-					c = (String)macroShortcuts.get(new Integer(keyCode+200));
-				else
-					c = (String)macroShortcuts.get(new Integer(keyCode));
-				if (c!=null) {
-						MacroInstaller.doShortcut(c);
-						return;
-				}
-			}
-		}
+		Hashtable shortcuts = Menus.getShortcuts();
+		if (shift)
+			c = (String)shortcuts.get(new Integer(keyCode+200));
+		else
+			c = (String)shortcuts.get(new Integer(keyCode));
 
-		if (!Prefs.requireControlKey || control || meta) {
-			Hashtable shortcuts = Menus.getShortcuts();
-			if (shift)
-				c = (String)shortcuts.get(new Integer(keyCode+200));
-			else
-				c = (String)shortcuts.get(new Integer(keyCode));
-		}
-		
-		if (c==null) {
-			switch (keyChar) {
-				case '<': c="Previous Slice [<]"; break;
-				case '>': c="Next Slice [>]"; break;
-				case '+': case '=': c="In"; break;
-				case '-': c="Out"; break;
-				case '/': c="Reslice [/]..."; break;
-				default:
-			}
-		}
-
-		if (c==null) {
+		if (c==null)
 			switch(keyCode) {
 				case KeyEvent.VK_TAB: WindowManager.putBehind(); return;
-				case KeyEvent.VK_BACK_SPACE: c="Clear"; hotkey=true; break; // delete
-				case KeyEvent.VK_BACK_SLASH: c="Start Animation"; break;
-				case KeyEvent.VK_EQUALS: c="In"; break;
-				case KeyEvent.VK_MINUS: c="Out"; break;
+				case KeyEvent.VK_BACK_SPACE: c="Clear"; break; // delete
+				case KeyEvent.VK_EQUALS: case 0xbb: c="Start Animation [=]"; break;
 				case KeyEvent.VK_SLASH: case 0xbf: c="Reslice [/]..."; break;
 				case KeyEvent.VK_COMMA: case 0xbc: c="Previous Slice [<]"; break;
 				case KeyEvent.VK_PERIOD: case 0xbe: c="Next Slice [>]"; break;
@@ -358,34 +344,29 @@ public class ImageJ extends Frame implements ActionListener,
 					else
 						roi.nudge(keyCode);
 					return;
-				case KeyEvent.VK_ESCAPE:
+				case KeyEvent.VK_F1: case KeyEvent.VK_F2: case KeyEvent.VK_F3: case KeyEvent.VK_F4: // function keys
+				case KeyEvent.VK_F5: case KeyEvent.VK_F6: case KeyEvent.VK_F7: case KeyEvent.VK_F8:
+				case KeyEvent.VK_F9: case KeyEvent.VK_F10: case KeyEvent.VK_F11: case KeyEvent.VK_F12:
+					Toolbar.getInstance().selectTool(keyCode);
 					if (imp!=null) {
 						ImageWindow win = imp.getWindow();
 						if (win!=null) {
-							win.running = false;
-							win.running2 = false;
+							ImageCanvas ic = win.getCanvas();
+							Point loc = ic.getCursorLoc();
+							if (loc.x>0 && loc.y>0)
+								ic.setCursor(loc.x, loc.y);
 						}
 					}
-					Macro.abort();
-					Interpreter.abort();
-					if (Interpreter.getInstance()!=null)
-						IJ.beep();
+					break;
+				case KeyEvent.VK_ESCAPE:
+					if (imp!=null)
+						imp.getWindow().running = false;
 					return;
 				case KeyEvent.VK_ENTER: this.toFront(); return;
 				default: break;
 			}
-		}
-		
-		if (c!=null && !c.equals("")) {
-			if (c.equals("Fill"))
-				hotkey = true;
-			if (c.charAt(0)==MacroInstaller.commandPrefix)
-				MacroInstaller.doShortcut(c);
-			else {
-				doCommand(c);
-				keyPressedTime = System.currentTimeMillis();
-			}
-		}
+		if (c!=null && !c.equals(""))
+			doCommand(c);
 	}
 
 	public void keyReleased(KeyEvent e) {
@@ -395,24 +376,12 @@ public class ImageJ extends Frame implements ActionListener,
 	public void keyTyped(KeyEvent e) {}
 
 	public void windowClosing(WindowEvent e) {
-		boolean quit = true;
-		ImagePlus imp = WindowManager.getCurrentImage();
-		boolean imageWithChanges = imp!=null && imp.changes;
-		if (!imageWithChanges && Menus.window.getItemCount()>Menus.WINDOW_MENU_ITEMS) {
-			GenericDialog gd = new GenericDialog("ImageJA", this);
-			gd.addMessage("Are you sure you want to quit ImageJA?");
-			gd.showDialog();
-			quit = !gd.wasCanceled();
-		}
-		if (quit)
-			doCommand("Quit");
+		doCommand("Quit");
 	}
 
 	public void windowActivated(WindowEvent e) {
-		if (IJ.isMacintosh()) {
-			IJ.wait(10); // needed for 1.4 on OS X
+		if (IJ.isMacintosh())
 			this.setMenuBar(Menus.getMenuBar());
-		}
 	}
 	
 	public void windowClosed(WindowEvent e) {}
@@ -420,6 +389,44 @@ public class ImageJ extends Frame implements ActionListener,
 	public void windowDeiconified(WindowEvent e) {}
 	public void windowIconified(WindowEvent e) {}
 	public void windowOpened(WindowEvent e) {}
+
+	/**Copies text from the ImageJ window to the system clipboard. Returns 0 if the system clipboard
+	is not available or no text is selected. Clears the selection if "cut" is true.*/
+	public int copyText(boolean cut) {
+		boolean isActiveWindow = getFocusOwner()!=null;
+		if (!isActiveWindow)
+			return 0;
+		else {
+			int count =  textPanel.copySelection();
+			if (cut && count>0) textPanel.clearSelection();
+			textPanel.resetSelection();
+			return count;
+		}
+	}
+	
+	/** Clears text from the ImageJ window. Returns
+		false if the ImageJ window is not active. */
+	public boolean clearText() {
+		boolean isActiveWindow = getFocusOwner()!=null;
+		if (!isActiveWindow)
+			return false;
+		else {
+			textPanel.clearSelection();
+			return true;
+		}
+	}
+	
+	void showAboutBox() {
+		MessageDialog d = new MessageDialog(this, "About ImageJ...",
+			"         ImageJ " + VERSION + "\n" +
+			" \n" +
+			"Wayne Rasband (wayne@codon.nih.gov)\n" +
+			"National Institutes of Health, USA\n" +
+			"http://rsb.info.nih.gov/ij/\n" +
+			" \n" +
+			"ImageJ is in the public domain."
+		);
+	}
 	
 	/** Adds the specified class to a Vector to keep it from being
 		garbage collected, causing static fields to be reset. */
@@ -428,145 +435,21 @@ public class ImageJ extends Frame implements ActionListener,
 			classes.addElement(c);
 	}
 
-	/** Called by ImageJ when the user selects Quit. */
-	public void quit() {
-		//IJ.log("quit: "+exitWhenQuiting); IJ.wait(5000);
-		quitting = true;
-		if (!WindowManager.closeAllWindows()) {
-			quitting = false;
-			return;
-		}
-		//IJ.log("savePreferences");
+	void quit() {
 		if (applet==null)
 			Prefs.savePreferences();
+		if (!WindowManager.closeAllWindows())
+			return;
 		setVisible(false);
-		//IJ.log("dispose");
 		dispose();
-		if (exitWhenQuiting)
+		if (applet==null)
 			System.exit(0);
 	}
 	
-	/** Returns true if ImageJ is exiting. */
-	public boolean quitting() {
-		return quitting;
-	}
-	
-	/** Called once when ImageJ quits. */
-	public void savePreferences(Properties prefs) {
-		Point loc = getLocation();
-		prefs.put(IJ_X, Integer.toString(loc.x));
-		prefs.put(IJ_Y, Integer.toString(loc.y));
-		//prefs.put(IJ_WIDTH, Integer.toString(size.width));
-		//prefs.put(IJ_HEIGHT, Integer.toString(size.height));
-	}
-
-	public static void main(String args[]) {
-		boolean noGUI = false;
-		int nArgs = args!=null?args.length:0;
-		for (int i=0; i<nArgs; i++) {
-			String arg = args[i];
-			if (arg==null) continue;
-			if (args[i].startsWith("-")) {
-				if (args[i].startsWith("-batch"))
-					noGUI = true;
-				else if (args[i].startsWith("-ijpath") && i+1<nArgs) {
-					Prefs.setHomeDir(args[i+1]);
-					args[i+1] = null;
-				} else if (args[i].startsWith("-port")) {
-					int delta = (int)Tools.parseDouble(args[i].substring(5, args[i].length()), 0.0);
-					if (delta>0 && DEFAULT_PORT+delta<65536)
-						port = DEFAULT_PORT+delta;
-				}
-			} 
-		}
-  		// If ImageJ is already running then isRunning()
-  		// will pass the arguments to it using sockets.
-		if (nArgs>0 && !noGUI && isRunning(args))
-  				return;
- 		ImageJ ij = IJ.getInstance();    	
-		if (!noGUI && (ij==null || (ij!=null && !ij.isShowing()))) {
-			ij = new ImageJ(null);
-			ij.exitWhenQuiting = true;
-		}
-		int macros = 0;
-		for (int i=0; i<nArgs; i++) {
-			String arg = args[i];
-			if (arg==null) continue;
-			if (arg.startsWith("-")) {
-				if ((arg.startsWith("-macro") || arg.startsWith("-batch")) && i+1<nArgs) {
-					String arg2 = i+2<nArgs?args[i+2]:null;
-					IJ.runMacroFile(args[i+1], arg2);
-					break;
-				} else if (arg.startsWith("-eval") && i+1<nArgs) {
-					IJ.runMacro(args[i+1]);
-					args[i+1] = null;
-				} else if (arg.startsWith("-run") && i+1<nArgs) {
-					IJ.run(args[i+1]);
-					args[i+1] = null;
-				}
-			} else if (macros==0 && (arg.endsWith(".ijm") || arg.endsWith(".txt"))) {
-				IJ.runMacroFile(arg);
-				macros++;
-			} else if (arg.indexOf("ij.ImageJ")==-1)
-				IJ.open(arg);
-		}
-		if (noGUI) System.exit(0);
-	}
-	
-	// Is there another instance of ImageJ? If so, send it the arguments and quit.
-	static boolean isRunning(String args[]) {
-		int macros = 0;
-		int nArgs = args.length;
-		int nCommands = 0;
-		try {
-			sendArgument("user.dir "+System.getProperty("user.dir"));
-			for (int i=0; i<nArgs; i++) {
-				String arg = args[i];
-				if (arg==null) continue;
-				String cmd = null;
-				if (macros==0 && arg.endsWith(".ijm")) {
-					cmd = "macro " + arg;
-					macros++;
-				} else if (arg.startsWith("-macro") && i+1<nArgs) {
-					String macroArg = i+2<nArgs?"("+args[i+2]+")":"";
-					cmd = "macro " + args[i+1] + macroArg;
-					sendArgument(cmd);
-					nCommands++;
-					break;
-				} else if (arg.startsWith("-eval") && i+1<nArgs) {
-					cmd = "eval " + args[i+1];
-					args[i+1] = null;
-				} else if (arg.startsWith("-run") && i+1<nArgs) {
-					cmd = "run " + args[i+1];
-					args[i+1] = null;
-				} else if (arg.indexOf("ij.ImageJ")==-1 && !arg.startsWith("-"))
-					cmd = "open " + arg;
-				if (cmd!=null) {
-					sendArgument(cmd);
-					nCommands++;
-				}
-			} // for
-		} catch (IOException e) {
-			return false;
-		}
-		return true;
-	}
-
-	static void sendArgument(String arg) throws IOException {
-		Socket socket = new Socket("localhost", port);
-		PrintWriter out = new PrintWriter (new OutputStreamWriter(socket.getOutputStream()));
-		out.println(arg);
-		out.close();
-		socket.close();
-	}
-	
-	/**
-	Returns the port that ImageJ checks on startup to see if another instance is running.
-	@see ij.SocketListener
-	*/
-	public static int getPort() {
-		return port;
-	}
+    public static void main(String args[]) {
+		new ImageJ(null);
+    }
 
 
-}
+} //class ImageJ
+

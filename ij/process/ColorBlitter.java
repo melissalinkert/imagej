@@ -41,8 +41,11 @@ public class ColorBlitter implements Blitter {
 			int size = ip.getWidth()*ip.getHeight();
 			srcPixels = new int[size];
 			int v;
-			for (int i=0; i<size; i++)
+			for (int i=0; i<size; i++) {
+				//v = pixels8[i]&255;
+				//srcPixels[i] = (0xff000000) + (v<<16) + (v<<8) + v;
 				srcPixels[i] = cm.getRGB(pixels8[i]&255);
+			}
 		} else
 			srcPixels = (int[])ip.getPixels();
 		rect1 = rect1.intersection(rect2);
@@ -51,7 +54,7 @@ public class ColorBlitter implements Blitter {
 		int c1, c2, r1, g1, b1, r2, g2, b2;
 		int src, dst;
 		
-		if (mode==COPY | mode==COPY_TRANSPARENT) {
+		if (mode==COPY || mode==COPY_TRANSPARENT) {
 			for (int y=rect1.y; y<(rect1.y+rect1.height); y++) {
 				srcIndex = (y-yloc)*srcWidth + (rect1.x-xloc);
 				dstIndex = y * width + rect1.x;
@@ -61,8 +64,7 @@ public class ColorBlitter implements Blitter {
 				else
 					for (int i=rect1.width; --i>=0;) {
 						src = srcPixels[srcIndex++];
-						dst = pixels[dstIndex];
-						pixels[dstIndex++] = (src&0xffffff)==transparent?dst:src;
+						pixels[dstIndex++] = (src&0xffffff)==transparent?pixels[dstIndex]:src;
 					}
 			}
 			return;

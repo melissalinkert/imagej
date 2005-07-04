@@ -77,16 +77,16 @@ public final class RandomAccessStream extends InputStream {
     }
 
     public final void readFully(byte[] bytes) throws IOException {
-        readFully(bytes, bytes.length);
-    }
-
-    public final void readFully(byte[] bytes, int len) throws IOException {
+ 		if (ij.IJ.debugMode) ij.IJ.write("readFully: "+bytes.length);
    		int read = 0;
+    	int len = bytes.length;
         do {
             int l = read(bytes, read, len - read);
-            if(l < 0) break;
+            if(l < 0)
+                throw new EOFException();
             read += l;
-        } while (read<len);
+        }
+        while(read<len);
     }
 
     private int readUntil(int l) throws IOException {
@@ -118,7 +118,7 @@ public final class RandomAccessStream extends InputStream {
     }
 
     public void seek(int loc) throws IOException {
-		//if (ij.IJ.debugMode) ij.IJ.log("seek: "+loc);
+		if (ij.IJ.debugMode) ij.IJ.write("seek: "+loc);
     	if (ras!=null)
     		{ras.seek(loc); return;}
         if(loc < 0)
@@ -160,7 +160,7 @@ public final class RandomAccessStream extends InputStream {
     }
     
     public void close() throws IOException {
-		//if (ij.IJ.debugMode) ij.IJ.log("close: "+(data!=null?""+data.size():""));
+		if (ij.IJ.debugMode) ij.IJ.write("close: "+(data!=null?""+data.size():""));
  		if (ras!=null)
  			ras.close();
  		else {

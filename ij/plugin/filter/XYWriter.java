@@ -23,7 +23,7 @@ public class XYWriter implements PlugInFilter {
 		try {
 			saveXYCoordinates(imp);
 		} catch (IllegalArgumentException e) {
-			IJ.error("XYWriter", e.getMessage());
+			IJ.showMessage("XYWriter", e.getMessage());
 		}
 	}
 
@@ -46,11 +46,10 @@ public class XYWriter implements PlugInFilter {
 			pw = new PrintWriter(bos);
 		}
 		catch (IOException e) {
-			IJ.error("XYWriter", ""+e);
+			IJ.showMessage("XYWriter", ""+e);
 			return;
 		}
 		
-		Rectangle r = roi.getBounds();
 		PolygonRoi p = (PolygonRoi)roi;
 		int n = p.getNCoordinates();
 		int[] x = p.getXCoordinates();
@@ -61,9 +60,9 @@ public class XYWriter implements PlugInFilter {
 		boolean scaled = cal.scaled();
 		for (int i=0; i<n; i++) {
 			if (scaled)
-				pw.print(IJ.d2s((r.x+x[i])*cal.pixelWidth) + "\t" + IJ.d2s((r.y+y[i])*cal.pixelHeight) + ls);
+				pw.print(IJ.d2s(x[i]*cal.pixelWidth) + "\t" + IJ.d2s(y[i]*cal.pixelHeight) + ls);
 			else
-				pw.print((r.x+x[i]) + "\t" + (r.y+y[i]) + ls);
+				pw.print(x[i] + "\t" + y[i] + ls);
 		}
 		pw.close();
 	}

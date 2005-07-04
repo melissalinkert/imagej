@@ -4,20 +4,16 @@ import ij.gui.*;
 import ij.process.*;
 import java.awt.*;
 
-/** This plugin implements ImageJ's Process/Math submenu. */
+/** This plug-in implements ImageJ's Process/Math submenu. */
 public class ImageMath implements PlugInFilter {
 	
 	private String arg;
 	private ImagePlus imp;
-	private boolean canceled;	
-	private boolean first;
-	private double lower;
-	private double upper;
+	private boolean canceled;
 	
+	private static boolean first;
 	private static double addValue = 25;
 	private static double mulValue = 1.25;
-	private static double minValue = 0;
-	private static double maxValue = 255;
 	private static final String defaultAndValue = "11110000";
 	private static String andValue = defaultAndValue;
 	private static final double defaultGammaValue = 0.5;
@@ -28,7 +24,7 @@ public class ImageMath implements PlugInFilter {
 		this.imp = imp;
 		first = true;
 		IJ.register(ImageMath.class);
-		return IJ.setupDialog(imp, DOES_ALL+SUPPORTS_MASKING);
+		return DOES_ALL+DOES_STACKS+SUPPORTS_MASKING;
 	}
 
 	public void run(ImageProcessor ip) {
@@ -39,35 +35,35 @@ public class ImageMath implements PlugInFilter {
 	 		return;
 	 	
 	 	if (arg.equals("add")) {
-	 		if (first) addValue = getValue("Add", "Value: ", addValue, 0);
+	 		if (first) addValue = getValue("Add: ", addValue, 0);
 	 		if (canceled) return;
-			ip.add(addValue);
+			ip.add((int)addValue);
 			return;
 		}
 
 	 	if (arg.equals("sub")) {
-	 		if (first) addValue = getValue("Subtract", "Value: ", addValue, 0);
+	 		if (first) addValue = getValue("Subtract: ", addValue, 0);
 	 		if (canceled) return;
-			ip.add(-addValue);
+			ip.add((int)-addValue);
 			return;
 		}
 
 	 	if (arg.equals("mul")) {
-	 		if (first) mulValue = getValue("Multiply", "Value: ", mulValue, 2);
+	 		if (first) mulValue = getValue("Multiple: ", mulValue, 2);
 	 		if (canceled) return;
 			ip.multiply(mulValue);
 			return;
 		}
 
 	 	if (arg.equals("div")) {
-	 		if (first) mulValue = getValue("Divide", "Value: ", mulValue, 2);
+	 		if (first) mulValue = getValue("Divide: ", mulValue, 2);
 	 		if (canceled) return;
 			if (mulValue!=0.0) ip.multiply(1.0/mulValue);
 			return;
 		}
 
 	 	if (arg.equals("and")) {
-	 		if (first) andValue = getBinaryValue("AND", "Value (binary): ", andValue);
+	 		if (first) andValue = getBinaryValue("AND (binary): ", andValue);
 	 		if (canceled) return;
 	 		try {
 				ip.and(Integer.parseInt(andValue,2));
@@ -79,7 +75,7 @@ public class ImageMath implements PlugInFilter {
 		}
 
 	 	if (arg.equals("or")) {
-	 		if (first) andValue = getBinaryValue("OR", "Value (binary): ", andValue);
+	 		if (first) andValue = getBinaryValue("OR (binary): ", andValue);
 	 		if (canceled) return;
 	 		try {
 				ip.or(Integer.parseInt(andValue,2));
@@ -91,7 +87,7 @@ public class ImageMath implements PlugInFilter {
 		}
 			
 	 	if (arg.equals("xor")) {
-	 		if (first) andValue = getBinaryValue("XOR", "Value (binary): ", andValue);
+	 		if (first) andValue = getBinaryValue("XOR (binary): ", andValue);
 	 		if (canceled) return;
 	 		try {
 				ip.xor(Integer.parseInt(andValue,2));
@@ -102,26 +98,8 @@ public class ImageMath implements PlugInFilter {
 			return;
 		}
 		
-	 	if (arg.equals("min")) {
-	 		if (first) minValue = getValue("Min", "Value: ", minValue, 0);
-	 		if (canceled) return;
-	 		ip.min(minValue);
-			if (!(ip instanceof ByteProcessor))
-				ip.resetMinAndMax();
-			return;
-		}
-
-	 	if (arg.equals("max")) {
-	 		if (first) maxValue = getValue("Max", "Value: ", maxValue, 0);
-	 		if (canceled) return;
-	 		ip.max(maxValue);
-			if (!(ip instanceof ByteProcessor))
-				ip.resetMinAndMax();
-			return;
-		}
-
 	 	if (arg.equals("gamma")) {
-	 		if (first) gammaValue = getValue("Gamma", "Value (0.1-5.0): ", gammaValue, 2);
+	 		if (first) gammaValue = getValue("Gamma (0.1-5.0): ", gammaValue, 2);
 	 		if (canceled) return;
 	 		if (gammaValue<0.1 || gammaValue>5.0) {
 	 			IJ.error("Gamma must be between 0.1 and 5.0");
@@ -137,22 +115,9 @@ public class ImageMath implements PlugInFilter {
 			return;
 		}
 		
-	 	if (arg.equals("sqr")) {
-			ip.sqr();
-			return;
-		}
-
-	 	if (arg.equals("sqrt")) {
-			ip.sqrt();
-			return;
-		}
-
 	 	if (arg.equals("reciprocal")) {
-			if (!(ip instanceof FloatProcessor)) {
-				IJ.error("32-bit float image required");
-				canceled = true;
-				return;
-			}
+			if (!(ip instanceof FloatProcessor))
+				{IJ.error("32-bit float image required"); return;}
 			float[] pixels = (float[])ip.getPixels();
 			for (int i=0; i<ip.getWidth()*ip.getHeight(); i++) {
 				if (pixels[i]==0f)
@@ -160,32 +125,13 @@ public class ImageMath implements PlugInFilter {
 				else
 					pixels[i] = 1f/pixels[i];
 			}
-			ip.resetMinAndMax();
 			return;
 		}
 		
-	 	if (arg.equals("nan")) {
-	 		setBackgroundToNaN(ip);
-			return;
-		}
-
-	 	if (arg.equals("abs")) {
-			if (!(ip instanceof FloatProcessor)) {
-				IJ.error("32-bit float image required");
-				canceled = true;
-				return;
-			}
-			float[] pixels = (float[])ip.getPixels();
-			for (int i=0; i<ip.getWidth()*ip.getHeight(); i++)
-				pixels[i] = Math.abs(pixels[i]);
-			ip.resetMinAndMax();
-			return;
-		}
-
 	}
 	
-	double getValue (String title, String prompt, double defaultValue, int digits) {
-			GenericDialog gd = new GenericDialog(title);
+	double getValue (String prompt, double defaultValue, int digits) {
+			GenericDialog gd = new GenericDialog("Math", IJ.getInstance());
 			gd.addNumericField(prompt, defaultValue, digits);
 			gd.showDialog();
 			if (first) imp.startTiming();
@@ -196,8 +142,8 @@ public class ImageMath implements PlugInFilter {
 			return gd.getNextNumber();
 	}
 
-	String getBinaryValue (String title, String prompt, String defaultValue) {
-			GenericDialog gd = new GenericDialog(title);
+	String getBinaryValue (String prompt, String defaultValue) {
+			GenericDialog gd = new GenericDialog("Math", IJ.getInstance());
 			gd.addStringField(prompt, defaultValue);
 			gd.showDialog();
 			if (first) imp.startTiming();
@@ -207,32 +153,4 @@ public class ImageMath implements PlugInFilter {
 				return defaultValue;
 			return gd.getNextString();
 	}
-
-	/** Set non-thresholded pixels in a float image to NaN. */
-	void setBackgroundToNaN(ImageProcessor ip) {
-		if (first) {
-			lower = ip.getMinThreshold();
-			upper = ip.getMaxThreshold();
-			first = false;
-			if (lower==ImageProcessor.NO_THRESHOLD || !(ip instanceof FloatProcessor)) {
-				IJ.error("Thresholded 32-bit float image required");
-				canceled = true;
-				return;
-			}
-		}
-        float[] pixels = (float[])ip.getPixels();
-        int width = ip.getWidth();
-        int height = ip.getHeight();
-        double v;
-        for (int y=0; y<height; y++) {
-            for (int x=0; x<width; x++) {
-                  v = pixels[y*width+x];
-                  if (v<lower || v>upper)
-                      pixels[y*width+x] = Float.NaN;
-            }
-        }
-		ip.resetMinAndMax();
-		return;
-	}
-
 }

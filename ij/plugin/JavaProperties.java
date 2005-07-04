@@ -1,23 +1,23 @@
 package ij.plugin;
 import ij.*;
 import ij.text.*;
-import java.awt.*;
-import java.util.*;
-import java.applet.Applet;
+import java.awt.Color;
 
 /** Displays the Java system properties in a text window. */
 public class JavaProperties implements PlugIn {
 
-	StringBuffer sb = new StringBuffer();
+	TextWindow tw;
 	
 	public void run(String arg) {
-		sb.append("\n");
-		sb.append("Java properties applets can read:\n");
+	
+		tw = new TextWindow("Properties", "", 300, 400);
+		tw.append("");
+		tw.append("Properties applets can read");
 		show("java.version");
 		show("java.vendor");
-		if (IJ.isMacintosh()) show("mrj.version");
+		show("java.vendor.url");
+		show("java.class.version");
 		show("os.name");
-		show("os.version");
 		show("os.arch");
 		show("file.separator");
 		show("path.separator");
@@ -37,66 +37,22 @@ public class JavaProperties implements PlugIn {
 			else
 				str2 = "<lf>";
 		}
-		sb.append("  line.separator: " + str1 + str2+"\n");
+		tw.append("  line.separator: " + str1 + str2);
 			
-		Applet applet = IJ.getApplet();
-		if (applet!=null) {
-			sb.append("\n");
-			sb.append("  code base: "+applet.getCodeBase()+"\n");
-			sb.append("  document base: "+applet.getDocumentBase()+"\n");
-			sb.append("  sample images dir: "+Prefs.getImagesURL()+"\n");
-			TextWindow tw = new TextWindow("Properties", new String(sb), 400, 400);
+		if (IJ.getApplet()!=null)
 			return;
-		}
-		sb.append("\n");
-		sb.append("Java properties only applications can read:\n");
+		tw.append("");
+		tw.append("Properties only applications can read");
 		show("user.name");
 		show("user.home");
 		show("user.dir");
-		show("user.country");
-		show("file.encoding");
 		show("java.home");
 		show("java.compiler");
 		show("java.class.path");
-		show("java.ext.dirs");
-		show("java.io.tmpdir");
-		
-		sb.append("\n");
-		sb.append("Other properties:\n");
-		String userDir = System.getProperty("user.dir");
-		String userHome = System.getProperty("user.home");
-		String osName = System.getProperty("os.name");
-		String prefsDir = osName.indexOf("Windows",0)>-1?userDir:userHome;
-		if (IJ.isMacOSX()) prefsDir = prefsDir + "/Library/Preferences";
-		sb.append("  version: "+IJ.getInstance().VERSION+"\n");
-		sb.append("  java 2: "+IJ.isJava2()+"\n");
-		sb.append("  java 1.4: "+IJ.isJava14()+"\n");
-		sb.append("  prefs dir: "+prefsDir+"\n");
-		sb.append("  plugins dir: "+Menus.getPlugInsPath()+"\n");
-		sb.append("  macros dir: "+Menus.getMacrosPath()+"\n");
-		sb.append("  sample images dir: "+Prefs.getImagesURL()+"\n");
-		Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
-		sb.append("  screen size: " + d.width + "x" + d.height+"\n");
-		sb.append("  memory in use: "+IJ.freeMemory()+"\n");		
-		if (IJ.altKeyDown())
-			doFullDump();
-		TextWindow tw = new TextWindow("Properties", new String(sb), 300, 400);
 	}
 	
 	void show(String property) {
-		String p = System.getProperty(property);
-		if (p!=null)
-			sb.append("  " + property + ": " + p+"\n");
-	}
-	
-	void doFullDump() {
-		sb.append("\n");
-		sb.append("All Properties:\n");
-		Properties props = System.getProperties();
-		for (Enumeration en=props.keys(); en.hasMoreElements();) {
-			String key = (String)en.nextElement();
-			sb.append("  "+key+": "+(String)props.get(key)+"\n");
-		}
+		tw.append("  " + property + ": " + System.getProperty(property));
 	}
 
 }

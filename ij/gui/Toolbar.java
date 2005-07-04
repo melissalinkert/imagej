@@ -4,11 +4,9 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.*;
 import ij.*;
-import ij.plugin.frame.Recorder;
-import ij.plugin.MacroInstaller;
 
 /** The ImageJ toolbar. */
-public class Toolbar extends Canvas implements MouseListener, MouseMotionListener {
+public class Toolbar extends Canvas implements MouseListener {
 
 	public static final int RECTANGLE = 0;
 	public static final int OVAL = 1;
@@ -17,31 +15,18 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	public static final int LINE = 4;
 	public static final int POLYLINE = 5;
 	public static final int FREELINE = 6;
-	public static final int POINT = 7, CROSSHAIR = 7;
+	public static final int CROSSHAIR = 7;
 	public static final int WAND = 8;
 	public static final int TEXT = 9;
-	public static final int SPARE1 = 19;
 	public static final int MAGNIFIER = 11;
 	public static final int HAND = 12;
 	public static final int DROPPER = 13;
-	public static final int ANGLE = 14;
-	public static final int SPARE2 = 19;
 
-	public static final int RETRACT = 16;
-	public static final int ROTATERIGHT = 17;
-	public static final int ROTATE180 = 18;
+	static final int NUM_TOOLS = 19;
+	static final int SIZE = 22;
+	static final int OFFSET = 3;
 
-	public static final int SPARE6 = 19;
-	public static final int SPARE7 = 20;
-	//public static final int NONE = 100;
-	
-	public static final int DOUBLE_CLICK_THRESHOLD = 650;
-
-	private static final int NUM_TOOLS = 21;
-	private static final int SIZE = 22;
-	private static final int OFFSET = 3;
-		
-	private Dimension ps = new Dimension(SIZE*NUM_TOOLS, SIZE);
+	private Dimension ps;
 	private boolean[] down;
 	private static int current;
 	private int previous;
@@ -51,39 +36,31 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	private Graphics g;
 	private static Toolbar instance;
 	private int mpPrevious = RECTANGLE;
-	private String[] names = new String[NUM_TOOLS];
-	private String[] icons = new String[NUM_TOOLS];
-	private int pc;
-	private String icon;
-	private MacroInstaller macroInstaller;
+
 
 	private static Color foregroundColor = Prefs.getColor(Prefs.FCOLOR,Color.black);
 	private static Color backgroundColor = Prefs.getColor(Prefs.BCOLOR,Color.white);
 	
-	private Color gray = ImageJ.backgroundColor;
+	private Color gray = Color.lightGray;
 	private Color brighter = gray.brighter();
 	private Color darker = gray.darker();
 	private Color evenDarker = darker.darker();
 
-
 	public Toolbar() {
+		ps = new Dimension(SIZE*NUM_TOOLS, SIZE);
 		down = new boolean[NUM_TOOLS];
 		resetButtons();
 		down[0] = true;
 		setForeground(foregroundColor);
 		setBackground(gray);
 		addMouseListener(this);
-		addMouseMotionListener(this);
 		instance = this;
 	}
 
-	/** Returns the ID of the current tool (Toolbar.RECTANGLE,
-		Toolbar.OVAL, etc.). */
 	public static int getToolId() {
 		return current;
 	}
 
-	/** Returns a reference to the ImageJ toolbar. */
 	public static Toolbar getInstance() {
 		return instance;
 	}
@@ -94,7 +71,6 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	}
 
 	private void fill3DRect(Graphics g, int x, int y, int width, int height, boolean raised) {
-		if (null==g) return;
 		if (raised)
 			g.setColor(gray);
 		else
@@ -109,18 +85,12 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	}    
 
 	private void drawButton(Graphics g, int tool) {
-		if (null==g) return;
-        int index = toolIndex(tool);
-        fill3DRect(g, index * 22 + 1, 1, 22, 21, !down[tool]);
-        g.setColor(Color.black);
-        int x = index * 22 + 3;
+		fill3DRect(g, tool*SIZE+1, 1, SIZE, SIZE-1, !down[tool]);
+		g.setColor(Color.black);
+		int x = tool*SIZE+OFFSET;
 		int y = OFFSET;
 		if (down[tool]) { x++; y++;}
 		this.g = g;
-		if (tool>=SPARE1 && tool<=SPARE7 && icons[tool]!=null) {
-			drawIcon(g, icons[tool], x, y);
-			return;
-		}
 		switch (tool) {
 			case RECTANGLE:
 				g.drawRect(x+1, y+2, 14, 11);
@@ -140,7 +110,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 				d(5,10); d(3,8); d(2,8); d(1,7); d(1,6); d(0,5); d(0,2); d(1,1); d(2,1);
 				return;
 			case LINE:
-				xOffset = x; yOffset = y+5;
+				xOffset = x; yOffset = y+4;
 				m(0,0); d(16,6);
 				return;
 			case POLYLINE:
@@ -151,11 +121,10 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 				xOffset = x+1; yOffset = y+4;
 				m(0,1); d(2,3); d(4,3); d(7,0); d(8,0); d(10,4); d(14,8); d(15,8);
 				return;
-			case POINT:
+			case CROSSHAIR:
 				xOffset = x; yOffset = y;
-				m(1,8); d(6,8); d(6,6); d(10,6); d(10,10); d(6,10); d(6,9);
-				m(8,1); d(8,5); m(11,8); d(15,8); m(8,11); d(8,15);
-				m(8,8); d(8,8);
+				m(1,8); d(15,8);
+				m(8,1); d(8,15);
 				return;
 			case WAND:
 				xOffset = x+2; yOffset = y+2;
@@ -207,117 +176,16 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 				g.setColor(Color.black);
 				*/
 				return;
-			case ANGLE:
-				xOffset = x+1; yOffset = y+2;
-				m(0,11); d(11,0); m(0,11); d(15,11); 
-				m(10,11); d(10,8); m(9,7); d(9,6); m(8,5); d(8,5);
-				//m(0,9); d(14,0); m(0,9); d(16,9); 
-				//m(12,9); d(12,7); m(11,7); d(11,5); m(10,4); d(10,3);
-				return;
-
-			case RETRACT:
-				g.drawRect(x+1, y+2, 14, 11);
-				xOffset = x+1; yOffset = y+2;
-				return;
-
-			case ROTATERIGHT:
-				xOffset = x+1; yOffset = y+2;
-				m(0,6); d(15,6); 
-				m(8,2); d(15,6);
-				m(8,10); d(15,6);
-				return;
-
-			case ROTATE180:
-				xOffset = x+1; yOffset = y+2;
-				m(0,6); d(15,6); 
-				m(8,2); d(15,6);
-				m(8,10); d(15,6);
-				return;
-
 		}
 	}
-	
-	void drawIcon(Graphics g, String icon, int x, int y) {
-		if (null==g) return;
-		this.icon = icon;
-		int length = icon.length();
-		int x1, y1, x2, y2;
-		pc = 0;
-		while (true) {
-			char command = icon.charAt(pc++);
-			if (pc>=length) break;
-			switch (command) {
-				case 'B': x+=v(); y+=v(); break;  // reset base
-				case 'R': g.drawRect(x+v(), y+v(), v(), v()); break;  // rectangle
-				case 'F': g.fillRect(x+v(), y+v(), v(), v()); break;  // filled rectangle
-				case 'O': g.drawOval(x+v(), y+v(), v(), v()); break;  // oval
-				case 'o': g.fillOval(x+v(), y+v(), v(), v()); break;  // filled oval
-				case 'C': g.setColor(new Color(v()*16,v()*16,v()*16)); break; // set color
-				case 'L': g.drawLine(x+v(), y+v(), x+v(), y+v()); break; // line
-				case 'D': g.drawLine(x1=x+v(), x2=y+v(), x1, x2); break; // dot
-				case 'P': // polyline
-					x1=x+v(); y1=y+v();
-					while (true) {
-						x2=v(); if (x2==0) break;
-						y2=v(); if (y2==0) break;
-						x2+=x; y2+=y;
-						g.drawLine(x1, y1, x2, y2);
-						x1=x2; y1=y2;
-					}
-					break;
-				case 'T': // text (one character)
-					x2 = x+v();
-					y2 = y+v();
-					int size = v()*10+v();
-					char[] c = new char[1];
-					c[0] = pc<icon.length()?icon.charAt(pc++):'e';
-					g.setFont(new Font("SansSerif", Font.BOLD, size));
-					g.drawString(new String(c), x2, y2);
-					break;
-				default: break;
-			}
-			if (pc>=length) break;
-		}
-		g.setColor(Color.black);
-	}
-	
-	int v() {
-		if (pc>=icon.length()) return 0;
-		char c = icon.charAt(pc++);
-		//IJ.log("v: "+pc+" "+c+" "+toInt(c));
-		switch (c) {
-			case '0': return 0;
-			case '1': return 1;
-			case '2': return 2;
-			case '3': return 3;
-			case '4': return 4;
-			case '5': return 5;
-			case '6': return 6;
-			case '7': return 7;
-			case '8': return 8;
-			case '9': return 9;
-			case 'a': return 10;
-			case 'b': return 11;
-			case 'c': return 12;
-			case 'd': return 13;
-			case 'e': return 14;
-			case 'f': return 15;
-			case 'g': return 16;
-			default: return 0;
-		}
-	}
-	
+
 	private void showMessage(int tool) {
-		if (tool>=SPARE1 && tool<=SPARE7 && names[tool]!=null) {
-			IJ.showStatus(names[tool]);
-			return;
-		}
 		switch (tool) {
 			case RECTANGLE:
 				IJ.showStatus("Rectangular selections");
 				return;
 			case OVAL:
-				IJ.showStatus("Elliptical selections");
+				IJ.showStatus("Oval selections");
 				return;
 			case POLYGON:
 				IJ.showStatus("Polygon selections");
@@ -334,8 +202,8 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 			case FREELINE:
 				IJ.showStatus("Freehand line selections");
 				return;
-			case POINT:
-				IJ.showStatus("Point selections");
+			case CROSSHAIR:
+				IJ.showStatus("Crosshair (mark and count) tool");
 				return;
 			case WAND:
 				IJ.showStatus("Wand (tracing) tool");
@@ -353,21 +221,6 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 				IJ.showStatus("Color picker (" + foregroundColor.getRed() + ","
 				+ foregroundColor.getGreen() + "," + foregroundColor.getBlue() + ")");
 				return;
-			case ANGLE:
-				IJ.showStatus("Angle tool");
-				return;
-			case RETRACT:
-				IJ.showStatus("Retract tool");
-				return;
-
-			case ROTATERIGHT:
-				IJ.showStatus("Rotate image 90 right");
-				return;
-
-			case ROTATE180:
-				IJ.showStatus("Rotate image 180 right");
-				return;
-
 			default:
 				IJ.showStatus("");
 				return;
@@ -393,40 +246,25 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	}
 
 	public void paint(Graphics g) {
-		if (null==g) return;
 		drawButtons(g);
 	}
 
 	public void setTool(int tool) {
-		if (tool==current || tool<0 || tool>=NUM_TOOLS)
-			return;
-		if ((tool==SPARE1||(tool>=SPARE2&&tool<=SPARE7)) && names[tool]==null)
-			names[tool] = "Spare tool"; // enable tool
-		setTool2(tool);
-	}
-	
-	private void setTool2(int tool) {
-		if (tool==current || tool<0 || tool>=NUM_TOOLS)
-			return;
-		if ((tool==SPARE2||tool==SPARE7||tool==SPARE6||tool==SPARE1||(tool>=SPARE2&&tool<=SPARE7)) && names[tool]==null)
+		if (tool<0 || tool>NUM_TOOLS)
+			throw new IllegalArgumentException();
+		if (tool==current)
 			return;
 		current = tool;
-
 		down[current] = true;
 		down[previous] = false;
 		Graphics g = this.getGraphics();
 		drawButton(g, previous);
 		drawButton(g, current);
-		if (null==g) return;
 		g.dispose();
 		showMessage(current);
 		previous = current;
-		if (Recorder.record)
-			Recorder.record("setTool", current);
-		if (IJ.isMacOSX())
-			repaint();
 	}
-
+	
 	/** Obsolete. Use getForegroundColor(). */
 	public Color getColor() {
 		return foregroundColor;
@@ -434,10 +272,8 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 
 	/** Obsolete. Use setForegroundColor(). */
 	public void setColor(Color c) {
-		if (c!=null) {
-			foregroundColor = c;
-			drawButton(this.getGraphics(), DROPPER);
-		}
+		foregroundColor = c;
+		drawButton(this.getGraphics(), DROPPER);
 	}
 
 	public static Color getForegroundColor() {
@@ -445,10 +281,8 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	}
 
 	public static void setForegroundColor(Color c) {
-		if (c!=null) {
-			foregroundColor = c;
-			updateColors();
-		}
+		foregroundColor = c;
+		updateColors();
 	}
 
 	public static Color getBackgroundColor() {
@@ -456,181 +290,94 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	}
 
 	public static void setBackgroundColor(Color c) {
-		if (c!=null) {
-			backgroundColor = c;
-			updateColors();
-		}
+		backgroundColor = c;
+		updateColors();
 	}
 	
 	static void updateColors() {
-		if (IJ.getInstance()!=null) {
-			Toolbar tb = getInstance();
-			Graphics g = tb.getGraphics();
-			tb.drawButton(g, DROPPER);
-			tb.drawButton(g, POINT);
-			if (g!=null) g.dispose();
-		}
+		Toolbar tb = getInstance();
+		Graphics g = tb.getGraphics();
+		tb.drawButton(g, DROPPER);
+		tb.drawButton(g, CROSSHAIR);
+		g.dispose();
 	}
-	
-	// Returns the toolbar position index of the specified tool
-    int toolIndex(int tool){
-        if(tool<=FREELINE || tool>ANGLE)
-            return tool;
-        if(tool == ANGLE)
-            return 7;
-        return tool + 1;
-    }
-
-	// Returns the tool corresponding to the specified tool position index
-    int toolID(int index) {
-        if(index<=6 || index>14)
-            return index;
-        if(index == 7)
-            return ANGLE;
-        return index - 1;
-    }
 
 	public void mousePressed(MouseEvent e) {
 		int x = e.getX();
  		int newTool = 0;
-		for (int i=0; i<NUM_TOOLS; i++) {
+		for (int i=0; i<NUM_TOOLS; i++)
 			if (x>i*SIZE && x<i*SIZE+SIZE)
-				newTool = toolID(i);
-		}
-		boolean doubleClick = newTool==current && (System.currentTimeMillis()-mouseDownTime)<=DOUBLE_CLICK_THRESHOLD;
+				newTool = i;
+		boolean doubleClick = newTool==current && (System.currentTimeMillis()-mouseDownTime)<=500;
  		mouseDownTime = System.currentTimeMillis();
 		if (!doubleClick) {
-			if (isMacroTool(newTool)) {
-				String name = names[newTool].endsWith(" ")?names[newTool]:names[newTool]+" ";
-				macroInstaller.runMacroTool(name+"Selected");
-			}
 			mpPrevious = current;
-			setTool2(newTool);
+			setTool(newTool);
 		} else {
-			if (isMacroTool(current)) {
-				String name = names[current].endsWith(" ")?names[current]:names[current]+" ";
-				macroInstaller.runMacroTool(name+"Options");
-				return;
-			}
 			ImagePlus imp = WindowManager.getCurrentImage();
 			switch (current) {
 				case FREEROI:
 					IJ.doCommand("Set Measurements...");
-					setTool2(mpPrevious);
+					setTool(mpPrevious);
 					break;
 				case MAGNIFIER:
-					if (imp!=null) {
-						ImageWindow win = imp.getWindow();
-						if (win!=null) win.getCanvas().unzoom();
-					}
+					if (imp!=null) imp.getWindow().getCanvas().unzoom();
 					break;
 				case POLYGON:
 					if (imp!=null) IJ.doCommand("Calibrate...");
-					setTool2(mpPrevious);
+					setTool(mpPrevious);
 					break;
-				case LINE: case POLYLINE: case FREELINE:
-					
-					IJ.runPlugIn("ij.plugin.frame.LineWidthAdjuster", "");
+				case LINE:
+					if (imp!=null) IJ.doCommand("Set Scale...");
+					setTool(mpPrevious);
 					break;
-				case POINT:
-					IJ.doCommand("Point Tool...");
+				case POLYLINE: case FREELINE:
+					IJ.doCommand("Line Width...");
+					break;
+				case CROSSHAIR:
+					IJ.doCommand("Crosshair...");
 					break;
 				case TEXT:
 					IJ.doCommand("Fonts...");
 					break;
 				case DROPPER:
-					IJ.doCommand("Color Picker...");
-					setTool2(mpPrevious);
+					IJ.doCommand("Colors...");
+					setTool(mpPrevious);
 					break;
-				case RETRACT:
-					IJ.doCommand("Retract Tool...");
-					break;
-				case ROTATERIGHT:
-					IJ.runPlugIn("ij.plugin.filter.Transformer", "right");
-					break;
-				case ROTATE180:
-					IJ.runPlugIn("ij.plugin.filter.Transformer", "right");
-					IJ.runPlugIn("ij.plugin.filter.Transformer", "right");
-
-					break;
-
 				default:
 			}
 		}
-	}
-	
-	public void restorePreviousTool() {
-		setTool2(mpPrevious);
-	}
-	
-	boolean isMacroTool(int tool) {
-		return tool>=SPARE1 && tool<=SPARE7 && names[tool]!=null && macroInstaller!=null;
 	}
 	
 	public void mouseReleased(MouseEvent e) {}
 	public void mouseExited(MouseEvent e) {}
 	public void mouseClicked(MouseEvent e) {}
 	public void mouseEntered(MouseEvent e) {}
-    public void mouseDragged(MouseEvent e) {}
 	
+	public void selectTool(int key) {
+		switch(key) {
+			case KeyEvent.VK_F1: setTool(RECTANGLE); break;
+			case KeyEvent.VK_F2: setTool(OVAL); break;
+			case KeyEvent.VK_F3: setTool(POLYGON); break;
+			case KeyEvent.VK_F4: setTool(FREEROI); break;
+			case KeyEvent.VK_F5: setTool(LINE); break;
+			case KeyEvent.VK_F6: setTool(POLYLINE); break;
+			case KeyEvent.VK_F7: setTool(FREELINE); break;
+			case KeyEvent.VK_F8: setTool(CROSSHAIR); break;
+			case KeyEvent.VK_F9: setTool(WAND); break;
+			case KeyEvent.VK_F10: setTool(TEXT); break;
+			case KeyEvent.VK_F11: setTool(MAGNIFIER); break;
+			case KeyEvent.VK_F12: setTool(HAND); break;
+			default: break;
+		}
+	}
+
 	public Dimension getPreferredSize(){
 		return ps;
 	}
 
 	public Dimension getMinimumSize(){
 		return ps;
-	}
-	
-	public void mouseMoved(MouseEvent e) {
-		int x = e.getX();
-		x=toolID(x/SIZE);
-		showMessage(x);
-	}
-
-	/** Enables the unused tool between the text and zoom tools. The 'toolTip' string 
-		is displayed in the status bar when the user clicks on the tool. If the 'toolTip'
-		string includes an icon (see Tools.txt macro), enables the next available tool
-		and draws it using that icon. Returns the tool ID, or -1 if all tools are in use. */
-	public int addTool(String toolTip) {
-		int index = toolTip.indexOf('-');
-		boolean hasIcon = index>=0 && (toolTip.length()-index)>4;
-		if (!hasIcon) {
-			names[SPARE1] = toolTip;
-			return SPARE1;
-		}
-		int tool =  -1;
-		if (names[SPARE1]==null)
-			tool = SPARE1;
-		if (tool==-1) {
-			for (int i=SPARE2; i<=SPARE7; i++) {
-				if (names[i]==null) {
-					tool = i;
-					break;
-				}			
-			}
-		}
-		if (tool==-1)
-			return -1;
-		icons[tool] = toolTip.substring(index+1);
-		names[tool] = toolTip.substring(0, index);
-		return tool;
-	}
-
-	/** Used by the MacroInstaller class to install macro tools. */
-	public void addMacroTool(String name, MacroInstaller macroInstaller, int id) {
-	    if (id==0) {
-			for (int i=SPARE1; i<NUM_TOOLS; i++) {
-				names[i] = null;
-				icons[i] = null;
-			}
-	    }
-		int tool = addTool(name);
-		this.macroInstaller = macroInstaller;
-	}
-			
-	void runMacroTool(int id) {
-		if (macroInstaller!=null)
-			macroInstaller.runMacroTool(names[id]);
 	}
 
 }

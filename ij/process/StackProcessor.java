@@ -10,7 +10,6 @@ public class StackProcessor {
 	int nSlices;
 	double xScale, yScale;
 	int[] table;
-	double fillValue;
 	    
     /* Constructs a StackProcessor from a stack. */
     //public StackProcessor(ImageStack stack) {
@@ -27,31 +26,27 @@ public class StackProcessor {
  	    	ip.setProgressBar(null);
    }
 	
-	static final int FLIPH=0, FLIPV=1, SCALE=2, INVERT=3, APPLY_TABLE=4, SCALE_WITH_FILL=5;
+	static final int FLIPH=0, FLIPV=1, SCALE=2, INVERT=3, APPLY_TABLE=4;
 	
 	void process(int command) {
 	    String s = "";
- 	   	ImageProcessor ip2 = stack.getProcessor(1);
     	switch (command) {
     		case FLIPH: case FLIPV: s="Flip: "; break;
     		case SCALE: s="Scale: "; break;
-    		case SCALE_WITH_FILL: s="Scale: "; ip2.setBackgroundValue(fillValue); break;
     		case INVERT: s="Invert: "; break;
     		case APPLY_TABLE: s="Apply: "; break;
     	}
- 	   	ip2.setRoi(this.ip.getRoi());
-	    ip2.setInterpolate(this.ip.getInterpolate());
 	    for (int i=1; i<=nSlices; i++) {
     		showStatus(s,i,nSlices);
-	    	ip2.setPixels(stack.getPixels(i));
+ 	    	ImageProcessor ip = stack.getProcessor(i);
 	    	if (nSlices==1 && i==1 && command==SCALE)
-	    		ip2.snapshot();
+	    		ip.snapshot();
 	    	switch (command) {
-	    		case FLIPH: ip2.flipHorizontal(); break;
-	    		case FLIPV: ip2.flipVertical(); break;
-	    		case SCALE: case SCALE_WITH_FILL: ip2.scale(xScale, yScale); break;
-	    		case INVERT: ip2.invert(); break;
-	    		case APPLY_TABLE: ip2.applyTable(table); break;
+	    		case FLIPH: ip.flipHorizontal(); break;
+	    		case FLIPV: ip.flipVertical(); break;
+	    		case SCALE: ip.scale(xScale, yScale); break;
+	    		case INVERT: ip.invert(); break;
+	    		case APPLY_TABLE: ip.applyTable(table); break;
 	    	}
 			IJ.showProgress((double)i/nSlices);
 	    }
@@ -81,13 +76,6 @@ public class StackProcessor {
 		process(SCALE);
  	}
 
-	public void scale(double xScale, double yScale, double fillValue) {
-		this.xScale = xScale;
-		this.yScale = yScale;
-		this.fillValue = fillValue;
-		process(SCALE_WITH_FILL);
- 	}
-
 	/** Creates a new stack with dimensions 'newWidth' x 'newHeight'.
 		To reduce memory requirements, the orginal stack is deleted
 		as the new stack is created. */
@@ -100,7 +88,7 @@ public class StackProcessor {
 	    		ip.setPixels(stack.getPixels(1));
 	    		String label = stack.getSliceLabel(1);
 	    		stack.deleteSlice(1);
-				//System.gc();
+				System.gc();
 				ip2 = ip.resize(newWidth, newHeight);
 				if (ip2!=null)
 					stack2.addSlice(label, ip2);
@@ -124,7 +112,7 @@ public class StackProcessor {
     		ip.setPixels(stack.getPixels(1));
     		String label = stack.getSliceLabel(1);
     		stack.deleteSlice(1);
-			//System.gc();
+			System.gc();
 			if (clockwise)
 				ip2 = ip.rotateRight();
 			else

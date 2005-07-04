@@ -11,19 +11,15 @@ public class ProfilePlot {
 
 	static final int MIN_WIDTH = 350;
 	static final double ASPECT_RATIO = 0.5;
+	protected double[] profile;
+	private double magnification;
 	private double min, max;
 	private boolean minAndMaxCalculated;
-    private static double fixedMin = Prefs.getDouble("pp.min",0.0);
-    private static double fixedMax = Prefs.getDouble("pp.max",0.0);
-    
-	protected ImagePlus imp;
-	protected double[] profile;
-	protected double magnification;
-	protected double xInc;
+    static private double fixedMin = Prefs.getDouble("pp.min",0.0);
+    static private double fixedMax = Prefs.getDouble("pp.max",0.0);
+	protected double pixelSize;
 	protected String units;
 	protected String yLabel;
-	protected float[] xValues;
-
 	
 	public ProfilePlot() {
 	}
@@ -33,31 +29,30 @@ public class ProfilePlot {
 	}
 
 	public ProfilePlot(ImagePlus imp, boolean averageHorizontally) {
-		this.imp = imp;
 		Roi roi = imp.getRoi();
 		if (roi==null) {
 			IJ.error("Selection required.");
 			return;
 		}
 		int roiType = roi.getType();
-		if (!(roi.isLine() || roiType==Roi.RECTANGLE)) {
+		if (!(roiType==Roi.LINE || roiType==Roi.POLYLINE || roiType==Roi.FREELINE || roiType==Roi.RECTANGLE)) {
 			IJ.error("Line or rectangular selection required.");
 			return;
 		}
 		Calibration cal = imp.getCalibration();
-		xInc = cal.pixelWidth;
+		pixelSize = cal.pixelWidth;
 		units = cal.getUnits();
 		yLabel = cal.getValueUnit();
 		ImageProcessor ip = imp.getProcessor();
 		ip.setCalibrationTable(cal.getCTable());
 		if (roiType==Roi.LINE)
-			profile = getStraightLineProfile(roi, cal, ip);
+			profile = ((Line)roi).getPixels();
 		else if (roiType==Roi.POLYLINE || roiType==Roi.FREELINE)
-			profile = getIrregularProfile(roi, ip, cal);
+			profile = getIrregularProfile(roi, ip);
 		else if (averageHorizontally)
-			profile = getRowAverageProfile(roi.getBounds(), cal, ip);
+			profile = getRowAverageProfile(roi.getBoundingRect(), cal, ip);
 		else
-			profile = getColumnAverageProfile(roi.getBounds(), ip);
+			profile = getColumnAverageProfile(roi.getBoundingRect(), ip);
 		ip.setCalibrationTable(null);
 		ImageWindow win = imp.getWindow();
 		if (win!=null)
@@ -99,21 +94,19 @@ public class ProfilePlot {
 		Dimension d = getPlotSize();
 		String xLabel = "Distance ("+units+")";
   		int n = profile.length;
-  		if (xValues==null) {
-			xValues = new float[n];
-			for (int i=0; i<n; i++)
-				xValues[i] = (float)(i*xInc);
-		}
+   		float[] xValues = new float[n];
+        for (int i=0; i<n; i++)
+        	xValues[i] = (float)(i*pixelSize);
         float[] yValues = new float[n];
         for (int i=0; i<n; i++)
         	yValues[i] = (float)profile[i];
 		boolean fixedYScale = fixedMin!=0.0 || fixedMax!=0.0;
-		Plot plot = new Plot("Plot of "+imp.getShortTitle(), xLabel, yLabel, xValues, yValues);
+		PlotWindow pw = new PlotWindow("", xLabel, yLabel, xValues, yValues);
 		if (fixedYScale) {
 			double[] a = Tools.getMinMax(xValues);
-			plot.setLimits(a[0],a[1],fixedMin,fixedMax);
+			pw.setLimits(a[0],a[1],fixedMin,fixedMax);
 		}
-		plot.show();
+		pw.draw();
 	}
 	
 	/** Returns the profile plot data. */
@@ -152,25 +145,10 @@ public class ProfilePlot {
 		return fixedMax;
 	}
 	
-	double[] getStraightLineProfile(Roi roi, Calibration cal, ImageProcessor ip) {
-			ip.setInterpolate(true);
-			Line line = (Line)roi;
-			double[] values = line.getPixels();
-			if (cal!=null && cal.pixelWidth!=cal.pixelHeight) {
-				double dx = cal.pixelWidth*(line.x2 - line.x1);
-				double dy = cal.pixelHeight*(line.y2 - line.y1);
-				double length = Math.round(Math.sqrt(dx*dx + dy*dy));
-				if (values.length>1)
-					xInc = length/(values.length-1);
-			}
-			return values;
-	}
-
 	double[] getRowAverageProfile(Rectangle rect, Calibration cal, ImageProcessor ip) {
 		double[] profile = new double[rect.height];
 		double[] aLine;
 		
-		ip.setInterpolate(false);
 		for (int x=rect.x; x<rect.x+rect.width; x++) {
 			aLine = ip.getLine(x, rect.y, x, rect.y+rect.height-1);
 			for (int i=0; i<rect.height; i++)
@@ -179,7 +157,7 @@ public class ProfilePlot {
 		for (int i=0; i<rect.height; i++)
 			profile[i] /= rect.width;
 		if (cal!=null)
-			xInc = cal.pixelHeight;
+			pixelSize = cal.pixelHeight;
 		return profile;
 	}
 	
@@ -187,7 +165,6 @@ public class ProfilePlot {
 		double[] profile = new double[rect.width];
 		double[] aLine;
 		
-		ip.setInterpolate(false);
 		for (int y=rect.y; y<rect.y+rect.height; y++) {
 			aLine = ip.getLine(rect.x, y, rect.x+rect.width-1, y);
 			for (int i=0; i<rect.width; i++)
@@ -198,87 +175,37 @@ public class ProfilePlot {
 		return profile;
 	}	
 	
-	double[] getIrregularProfile(Roi roi, ImageProcessor ip, Calibration cal) {
-		boolean calcXValues = cal!=null && cal.pixelWidth!=cal.pixelHeight;
+	double[] getIrregularProfile(Roi roi, ImageProcessor ip) {
 		int n = ((PolygonRoi)roi).getNCoordinates();
 		int[] x = ((PolygonRoi)roi).getXCoordinates();
 		int[] y = ((PolygonRoi)roi).getYCoordinates();
-		Rectangle r = roi.getBounds();
+		Rectangle r = roi.getBoundingRect();
 		int xbase = r.x;
 		int ybase = r.y;
+		int index = 0;
 		double length = 0.0;
 		double segmentLength;
 		int xdelta, ydelta, iLength;
 		double[] segmentLengths = new double[n];
-		int[] dx = new int[n];
-		int[] dy = new int[n];
 		for (int i=0; i<(n-1); i++) {
 			xdelta = x[i+1] - x[i];
 			ydelta = y[i+1] - y[i];
 			segmentLength = Math.sqrt(xdelta*xdelta+ydelta*ydelta);
 			length += segmentLength;
 			segmentLengths[i] = segmentLength;
-			dx[i] = xdelta;
-			dy[i] = ydelta;
 		}
-		double[] values = new double[(int)length];
-		if (calcXValues) xValues = new float[(int)length];
-		double leftOver = 1.0;
-		double distance = 0.0;
-		int index;
-		double oldrx=0.0, oldry=0.0, xvalue=0.0;
-		for (int i=0; i<n; i++) {
-			double len = segmentLengths[i];
-			if (len==0.0)
-				continue;
-			double xinc = dx[i]/len;
-			double yinc = dy[i]/len;
-			double start = 1.0-leftOver;
-			double rx = xbase+x[i]+start*xinc;
-			double ry = ybase+y[i]+start*yinc;
-			double len2 = len - start;
-			int n2 = (int)len2;
-			for (int j=0; j<=n2; j++) {
-				index = (int)distance+j;
-				if (index<values.length) {
-					values[index] = ip.getInterpolatedValue(rx, ry);
-					if (calcXValues && index>0) {
-						double deltax = cal.pixelWidth*(rx-oldrx);
-						double deltay = cal.pixelHeight*(ry-oldry);
-						xvalue += Math.sqrt(deltax*deltax + deltay*deltay);
-						xValues[index]  = (float)xvalue;
-					}
-					oldrx = rx; oldry=ry;
-				}
-				rx += xinc;
-				ry += yinc;
-			}
-			distance += len;
-			leftOver = len2 - n2;
+		double[] values = new double[(int)length+1];
+		double[] segmentValues;
+		length = 0.0;
+		for (int i=0; i<(n-1); i++) {
+			segmentValues = ip.getLine(x[i]+xbase, y[i]+ybase, x[i+1]+xbase, y[i+1]+ybase);
+			for (int j=0; j<segmentValues.length; j++)
+				values[index+j] = segmentValues[j];
+			length += segmentLengths[i];
+			index = (int)length;
 		}
-
 		return values;
-
 	}
-
-	private double[] getLineSegment(ImageProcessor ip, double x1, double y1, double x2, double y2) {
-		double dx = x2-x1;
-		double dy = y2-y1;
-		int n = (int)Math.round(Math.sqrt(dx*dx + dy*dy));
-		double xinc = dx/n;
-		double yinc = dy/n;
-		n++;
-		double[] data = new double[n];
-		double rx = x1;
-		double ry = y1;
-		for (int i=0; i<n; i++) {
-			data[i] = ip.getInterpolatedValue(rx, ry);
-			rx += xinc;
-			ry += yinc;
-		}
-		return data;
-	}
-	
 
 	void findMinAndMax() {
 		if (profile==null) return;

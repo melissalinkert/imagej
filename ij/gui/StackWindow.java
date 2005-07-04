@@ -15,18 +15,13 @@ public class StackWindow extends ImageWindow implements Runnable, AdjustmentList
 	protected int slice;
 
 	public StackWindow(ImagePlus imp) {
-		this(imp, new ImageCanvas(imp));
-	}
-    
-    public StackWindow(ImagePlus imp, ImageCanvas ic) {
-		super(imp, ic);
+		super(imp);
+
 		// add slice selection slider
 		ImageStack s = imp.getStack();
 		int stackSize = s.getSize();
 		sliceSelector = new Scrollbar(Scrollbar.HORIZONTAL, 1, 1, 1, stackSize+1);
 		add(sliceSelector);
-		ImageJ ij = IJ.getInstance();
-		if (ij!=null) sliceSelector.addKeyListener(ij);
 		sliceSelector.addAdjustmentListener(this);
 		int blockIncrement = stackSize/10;
 		if (blockIncrement<1) blockIncrement = 1;
@@ -34,16 +29,14 @@ public class StackWindow extends ImageWindow implements Runnable, AdjustmentList
 		sliceSelector.setBlockIncrement(blockIncrement);
 		pack();
 		show();
-		int previousSlice = imp.getCurrentSlice();
 		imp.setSlice(1);
-		if (previousSlice>1 && previousSlice<=stackSize)
-			imp.setSlice(previousSlice);
+
 		thread = new Thread(this, "SliceSelector");
 		thread.start();
 	}
 
 	public synchronized void adjustmentValueChanged(AdjustmentEvent e) {
-		if (!running2){
+		if (!running){
 			slice = sliceSelector.getValue();
 			notify();
 		}

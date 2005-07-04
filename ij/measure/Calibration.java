@@ -6,7 +6,7 @@ import ij.*;
 public class Calibration {
 
 	public static final int STRAIGHT_LINE=0,POLY2=1,POLY3=2,POLY4=3,
-		EXPONENTIAL=4,POWER=5,LOG=6,RODBARD=7,GAMMA_VARIATE=8, LOG2=9;
+		EXPONENTIAL=4,POWER=5,LOG=6,RODBARD=7;
 	public static final int NONE=20, UNCALIBRATED_OD=21;
 
 	/** Pixel width in 'unit's */
@@ -17,23 +17,15 @@ public class Calibration {
 	
 	/** Pixel depth in 'unit's */
 	public double pixelDepth = 1.0;
-	
-	/** Frame interval in seconds */
-	public double frameInterval;
 
-	/** X origin in pixels (not currently used by ImageJ). */
-	public double xOrigin;
+	/** X origin in pixels. */
+	public int xOrigin;
 
-	/** Y origin in pixels (not currently used by ImageJ). */
-	public double yOrigin;
+	/** Y origin in pixels. */
+	public int yOrigin;
 
-	/** Z origin in pixels (not currently used by ImageJ). */
-	public double zOrigin;
-
-	/** Plugin writers can use this string to store information about the
-		image. This string is saved in the TIFF header if it is not longer
-		than 64 characters and it contains no '=' or '\n' characters. */
-	public String info;
+	/** Set true to display cartesian coordinates (not yet implemented). */
+	public boolean invertY;
 
 	/** Calibration function coefficients */
 	private double[] coefficients;
@@ -55,12 +47,12 @@ public class Calibration {
 	
 	private boolean invertedLut;
 	private int bitDepth = 8;
-	private boolean zeroClip;
 
 	/** Constructs a new Calibration object using the default values. */ 
 	public Calibration(ImagePlus imp) {
 		if (imp!=null) {
-			bitDepth = imp.getBitDepth();
+			if (imp.getType()==ImagePlus.GRAY16)
+				bitDepth = 16;
 			invertedLut = imp.isInvertedLut();
 		}
 	}
@@ -72,12 +64,12 @@ public class Calibration {
 	
 	/** Returns true if this image is spatially calibrated. */
 	public boolean scaled() {
-		return pixelWidth!=1.0 || pixelHeight!=1.0 || pixelDepth!=1.0;
+		return pixelWidth!=1.0 || pixelHeight!=1.0;
 	}
 	
    	/** Sets the distance unit (e.g. "mm", "inch"). */
  	public void setUnit(String unit) {
- 		if (unit==null || unit.equals(""))
+ 		if (unit==null)
  			this.unit = "pixel";
  		else
  			this.unit = unit;
@@ -104,68 +96,41 @@ public class Calibration {
  		return units;
  	}
  	
- 	/** Converts a x-coodinate in pixels to physical units (e.g. mm). */
+ 	/** Convertes an x-coodinate in pixels to physical units (e.g. mm). */
  	public double getX(int x) {
  		return (x-xOrigin)*pixelWidth;
  	}
  	
-  	/** Converts a y-coodinate in pixels to physical units (e.g. mm). */
+  	/** Convertes an x-coodinate in pixels to physical units (e.g. mm). */
  	public double getY(int y) {
  		return (y-yOrigin)*pixelHeight;
  	}
  	
-  	/** Converts a z-coodinate in pixels to physical units (e.g. mm). */
- 	public double getZ(int z) {
- 		return (z-zOrigin)*pixelDepth;
- 	}
- 	
   	/** Sets the calibration function,  coefficient table and unit (e.g. "OD"). */
  	public void setFunction(int function, double[] coefficients, String unit) {
- 		setFunction(function, coefficients, unit, false);
- 	}
- 	
- 	public void setFunction(int function, double[] coefficients, String unit, boolean zeroClip) {
  		if (function==NONE)
  			{disableDensityCalibration(); return;}
- 		if (coefficients==null && function>=STRAIGHT_LINE && function<=LOG2)
+ 		if (coefficients==null && function>=STRAIGHT_LINE && function<=RODBARD)
  			return;
  		this.function = function;
  		this.coefficients = coefficients;
- 		this.zeroClip = zeroClip;
  		if (unit!=null)
  			valueUnit = unit;
  		cTable = null;
  	}
-
- 	/** Disables the density calibation if the specified image has a differenent bit depth. */
- 	public void setImage(ImagePlus imp) {
- 		if (imp==null)
- 			return;
- 		int type = imp.getType();
- 		int newBitDepth = imp.getBitDepth();
-		if (newBitDepth!=bitDepth || type==ImagePlus.GRAY32 || type==ImagePlus.COLOR_RGB)
-			disableDensityCalibration();
- 		bitDepth = newBitDepth;
- 	}
  	
  	public void disableDensityCalibration() {
-		function = NONE;
-		coefficients = null;
-		cTable = null;
-		valueUnit = "Gray Value";
+ 		function = NONE;
+  		coefficients = null;
+  		cTable = null;
+ 		valueUnit = "Gray Value";
  	}
  	
-	/** Returns the value unit. */
+	/** Returns the density unit. */
  	public String getValueUnit() {
  		return valueUnit;
  	}
  	
-	/** Sets the value unit. */
- 	public void setValueUnit(String unit) {
- 		if (unit!=null)
- 			valueUnit = unit;
- 	}
-
  	/** Returns the calibration function coefficients. */
  	public double[] getCoefficients() {
  		return coefficients;
@@ -193,28 +158,20 @@ public class Calibration {
  	void makeCTable() {
  		if (bitDepth==16)
  			{make16BitCTable(); return;}
- 		if (bitDepth!=8)
- 			return;
  		if (function==UNCALIBRATED_OD) {
  			cTable = new float[256];
 			for (int i=0; i<256; i++)
 				cTable[i] = (float)od(i);
-		} else if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
+		} else if (function>=STRAIGHT_LINE && function<=RODBARD && coefficients!=null) {
  			cTable = new float[256];
- 			double value;
- 			for (int i=0; i<256; i++) {
-				value = CurveFitter.f(function, coefficients, i);
-				if (zeroClip && value<0.0)
-					cTable[i] = 0f;
-				else
-					cTable[i] = (float)value;
-			}
+ 			for (int i=0; i<256; i++)
+				cTable[i] = (float)CurveFitter.f(function, coefficients, i);
 		} else
  			cTable = null;
   	}
 
  	void make16BitCTable() {
-		if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
+		if (function>=STRAIGHT_LINE && function<=RODBARD && coefficients!=null) {
  			cTable = new float[65536];
  			for (int i=0; i<65536; i++)
 				cTable[i] = (float)CurveFitter.f(function, coefficients, i);
@@ -236,70 +193,22 @@ public class Calibration {
  	public double getCValue(int value) {
 		if (function==NONE)
 			return value;
-		if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
-			double v = CurveFitter.f(function, coefficients, value);
-			if (zeroClip && v<0.0)
-				return 0.0;
-			else
-				return v;
-		} if (cTable==null)
+		if (function>=STRAIGHT_LINE && function<=RODBARD && coefficients!=null)
+			return CurveFitter.f(function, coefficients, value);
+		if (cTable==null)
 			makeCTable();
  		if (cTable!=null && value>=0 && value<cTable.length)
  			return cTable[value];
  		else
  			return value;
  	}
- 	 	
-  	/** Converts a raw pixel value to a density calibrated value. */
- 	public double getCValue(double value) {
-		if (function==NONE)
-			return value;
-		else {
-			if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
-				double v = CurveFitter.f(function, coefficients, value);
-				if (zeroClip && v<0.0)
-					return 0.0;
-				else
-					return v;
-			} else
-				return getCValue((int)value);
-		}
- 	}
  	
-  	/** Converts a density calibrated value into a raw pixel value. */
- 	public double getRawValue(double value) {
-		if (function==NONE)
-			return value;
-		if (function==STRAIGHT_LINE && coefficients!=null && coefficients.length==2 && coefficients[1]!=0.0)
-			return (value-coefficients[0])/coefficients[1];
-		if (cTable==null)
-			makeCTable();
-		float fvalue = (float)value;
-		float smallestDiff = Float.MAX_VALUE;
-		float diff;
-		int index = 0;
-		for (int i=0; i<cTable.length; i++) {
-			diff = fvalue - cTable[i];
-			if (diff<0f) diff = -diff;
-			if (diff<smallestDiff) {
-				smallestDiff = diff;
-				index = i;
-			}
-		}
- 		return index;
- 	}
- 	 	
 	/** Returns a clone of this object. */
 	public Calibration copy() {
 		Calibration copy = new Calibration();
 		copy.pixelWidth = pixelWidth;
 		copy.pixelHeight = pixelHeight;
 		copy.pixelDepth = pixelDepth;
-		copy.frameInterval = frameInterval;
-		copy.xOrigin = xOrigin;
-		copy.yOrigin = yOrigin;
-		copy.zOrigin = zOrigin;
-		copy.info = info;
 		copy.unit = unit;
 		copy.units = units;
 		copy.valueUnit = valueUnit;
@@ -308,36 +217,10 @@ public class Calibration {
 		copy.cTable = cTable;
 		copy.invertedLut = invertedLut;
 		copy.bitDepth = bitDepth;
-		copy.zeroClip = zeroClip;
 		return copy;
 	}
 	
-	/** Compares two Calibration objects for equality. */
- 	public boolean equals(Calibration cal) {
- 		if (cal==null)
- 			return false;
- 		boolean equal = true;
- 		if (cal.pixelWidth!=pixelWidth || cal.pixelHeight!=pixelHeight || cal.pixelDepth!=pixelDepth)
- 			equal = false;
- 		if (!cal.unit.equals(unit))
- 			equal = false;
- 		if (!cal.valueUnit.equals(valueUnit) || cal.function!=function)
- 			equal = false;
- 		return equal;
- 	}
- 	
- 	/** Returns true if this is a signed 16-bit image. */
- 	public boolean isSigned16Bit() {
-		return (bitDepth==16 && function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null
-			&& coefficients[0]==-32768.0 && coefficients[1]==1.0);
- 	}
-
- 	/** Returns true if zero clipping is enabled. */
- 	public boolean zeroClip() {
- 		return zeroClip;
- 	}
- 	
-    public String toString() {
+   public String toString() {
     	return
     		"w=" + pixelWidth
 			+ ", h=" + pixelHeight
@@ -349,4 +232,5 @@ public class Calibration {
 			+ ", vunit=" + valueUnit;
    }
 }
+
 

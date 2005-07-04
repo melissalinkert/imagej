@@ -1,109 +1,92 @@
 package ij.plugin;
-import ij.*;
-import ij.gui.*;
-import ij.process.*;
-import ij.io.*;
-import ij.plugin.filter.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Vector;
+import ij.*;
+import ij.process.*;
+import ij.gui.*;
 
-/** This plugin implements most of the Edit/Options/Colors command. */
-public class Colors implements PlugIn, ItemListener {
-	private String[] colors = {"red","green","blue","magenta     ","cyan","yellow","orange","black","white"};
-	private Choice fchoice, bchoice, schoice;
-	private Color fc2, bc2, sc2;
+/** Generates an image useful for choosing colors. */
+public class Colors extends ImagePlus implements PlugIn {
 
- 	public void run(String arg) {
-		showDialog();
+	public void run(String arg) {
+		int colorWidth = 16;
+		int colorHeight = 16;
+		int columns = 18;
+		int rows = 3;
+		int width = columns*colorWidth;
+		int height = rows*colorHeight;
+		ColorGenerator cg = new ColorGenerator(width, height, new int[width*height]);
+		cg.drawColors(colorWidth, colorHeight, columns, rows);
+		setProcessor("Colors", cg);
+		show();
 	}
 
-	void showDialog() {
-		Color fc =Toolbar.getForegroundColor();
-		String fname = getColorName(fc, "black");
-		Color bc =Toolbar.getBackgroundColor();
-		String bname = getColorName(bc, "white");
-		Color sc =Roi.getColor();
-		String sname = getColorName(sc, "yellow");
-		GenericDialog gd = new GenericDialog("Colors");
-		gd.addChoice("Foreground:", colors, fname);
-		gd.addChoice("Background:", colors, bname);
-		gd.addChoice("Selection:", colors, sname);
-		Vector choices = gd.getChoices();
-		fchoice = (Choice)choices.elementAt(0);
-		bchoice = (Choice)choices.elementAt(1);
-		schoice = (Choice)choices.elementAt(2);
-		fchoice.addItemListener(this);
-		bchoice.addItemListener(this);
-		schoice.addItemListener(this);
-		
-		gd.showDialog();
-		if (gd.wasCanceled()) {
-			if (fc2!=fc) Toolbar.setForegroundColor(fc);
-			if (bc2!=bc) Toolbar.setBackgroundColor(bc);
-			if (sc2!=sc) {
-				Roi.setColor(sc);
-				ImagePlus imp = WindowManager.getCurrentImage();
-				if (imp!=null && imp.getRoi()!=null) imp.draw();
+	/** Overrides ImagePlus.show(). */
+	public void show() {
+		if (img==null && ip!=null)
+			img = ip.createImage();
+		win = new ImageWindow(this, new ColorCanvas(this));
+		draw();
+		IJ.showStatus("");
+	}
+
+}
+
+
+class ColorGenerator extends ColorProcessor {
+	int w, h;
+	int[] colors = {0x8b0000,0xcd5c5c,0xff0000,0xffb6c1,0xdb7093,0xff1493,0x800080,0xba55d3,0xee82ee,
+		0xff00ff,0x483d8b,0x0000cd,0x0000ff,0xb0c4de,0x00bfff,0x5f9ea0,0x00ffff,0x20b2aa,
+		0x66cdaa,0x00fa9a,0x228b22,0x00ff00,0x9acd32,0x808000,0xffff00,0xbdb76b,0xf0e68c,
+		0xb8860b,0xffc800,0xffdead,0xff9600,0xd2691e,0xff5000,0xe9967a,0xffdedc,0xffebcb};
+
+	public ColorGenerator(int width, int height, int[] pixels) {
+		super(width, height, pixels);
+	}
+	
+	void drawColors(int colorWidth, int colorHeight, int columns, int rows) {
+		w = colorWidth;
+		h = colorHeight;
+		drawColor(0, 0, Color.black);
+		drawRamp();
+		drawColor(columns-1, 0, Color.white);
+		int x = 0;
+		int y = 1;
+		for (int i=0; i<colors.length; i++) {
+			drawColor(x, y, new Color(colors[i]));
+			if (++x==columns)
+				{x = 0; y++; if (y==rows) break;}
+		}
+		setRoi(null);
+	}
+
+	void drawColor(int x, int y, Color c) {
+		setRoi(x*w, y*h, w, h);
+		setColor(c);
+		fill();
+	}
+	
+	void drawRamp() {
+		int r,g,b;
+		for (int y=0; y<h; y++) {
+			for (int x=w; x<(w+256); x++) {
+				r = g = b = (byte)(x-w);
+				pixels[y*width+x] = 0xff000000 | ((r<<16)&0xff0000) | ((g<<8)&0xff00) | (b&0xff);
 			}
-			return;
-		}
-		fname = gd.getNextChoice();
-		bname = gd.getNextChoice();
-		sname = gd.getNextChoice();
-		fc2 = getColor(fname, Color.black);
-		bc2 = getColor(bname, Color.white);
-		sc2 = getColor(sname, Color.yellow);
-		if (fc2!=fc) Toolbar.setForegroundColor(fc2);
-		if (bc2!=bc) Toolbar.setBackgroundColor(bc2);
-		if (sc2!=sc) {
-			Roi.setColor(sc2);
-			ImagePlus imp = WindowManager.getCurrentImage();
-			if (imp!=null) imp.draw();
 		}
 	}
-	
-	String getColorName(Color c, String defaultName) {
-		String name = defaultName;
-		if (c.equals(Color.red)) name = colors[0];
-		else if (c.equals(Color.green)) name = colors[1];
-		else if (c.equals(Color.blue)) name = colors[2];
-		else if (c.equals(Color.magenta)) name = colors[3];
-		else if (c.equals(Color.cyan)) name = colors[4];
-		else if (c.equals(Color.yellow)) name = colors[5];
-		else if (c.equals(Color.orange)) name = colors[6];
-		else if (c.equals(Color.black)) name = colors[7];
-		else if (c.equals(Color.white)) name = colors[8];
-		return name;
-	}
-	
-	Color getColor(String name, Color defaultColor) {
-		Color c = defaultColor;
-		if (name.equals(colors[0])) c = Color.red;
-		else if (name.equals(colors[1])) c = Color.green;
-		else if (name.equals(colors[2])) c = Color.blue;
-		else if (name.equals(colors[3])) c = Color.magenta;
-		else if (name.equals(colors[4])) c = Color.cyan;
-		else if (name.equals(colors[5])) c = Color.yellow;
-		else if (name.equals(colors[6])) c = Color.orange;
-		else if (name.equals(colors[7])) c = Color.black;
-		else if (name.equals(colors[8])) c = Color.white;
-		return c;
+}
+
+
+class ColorCanvas extends ImageCanvas {
+
+	public ColorCanvas(ImagePlus imp) {
+		super(imp);
 	}
 
-	public void itemStateChanged(ItemEvent e) {
-		Choice choice = (Choice)e.getSource();
-		String item = choice.getSelectedItem();
-		Color color = getColor(item, Color.black);
-		if (choice==fchoice)
-			Toolbar.setForegroundColor(color);
-		else if (choice==bchoice)
-			Toolbar.setBackgroundColor(color);
-		else if (choice==schoice) {
-			Roi.setColor(color);
-			ImagePlus imp = WindowManager.getCurrentImage();
-			if (imp!=null && imp.getRoi()!=null) imp.draw();
-		}
+	public void mousePressed(MouseEvent e) {
+		//super.mousePressed(e);
+		setDrawingColor(offScreenX(e.getX()), offScreenY(e.getY()),IJ.altKeyDown());
 	}
 
 }

@@ -20,11 +20,7 @@ public class TiffEncoder {
 	private int imageSize;
 	private int stackSize;
 	private byte[] description;
-	private int metaDataSize;
-	private int metaDataEntries;
-	private int nSliceLabels;
-	private int extraMetaDataEntries;
-		
+	
 	public TiffEncoder (FileInfo fi) {
 		this.fi = fi;
 		fi.intelByteOrder = false;
@@ -66,25 +62,18 @@ public class TiffEncoder {
 		makeDescriptionString();
 		if (description!=null)
 			nEntries++;  // ImageDescription tag
-		metaDataSize = getMetaDataSize();
-		if (metaDataSize>0)
-			nEntries += 2; // MetaData & MetaDataCounts
 		ifdSize = 2 + nEntries*12 + 4;
 		imageSize = fi.width*fi.height*bytesPerPixel;
 		stackSize = imageSize*fi.nImages;
 	}
 	
-	/** Saves the image as a TIFF file. The DataOutputStream is not closed.
-		The fi.pixels field must contain the image data. If fi.nImages>1
-		then fi.pixels must be a 2D array. The fi.offset field is ignored. */
+	/** Saves the image as a TIFF file. The DataOutputStream is not closed. */
 	public void write(DataOutputStream out) throws IOException {
 		writeHeader(out);
 		int nextIFD = 0;
 		if (fi.nImages>1) {
 			nextIFD = IMAGE_START+stackSize;
 			if (fi.fileType==FileInfo.COLOR8) nextIFD += MAP_SIZE*2;
-            if (metaDataSize>0) 
-                nextIFD += metaDataEntries*4 + metaDataSize;
 		}
 		writeIFD(out, imageOffset, nextIFD);
 		int bpsSize=0, scaleSize=0, descriptionSize=0;
@@ -94,15 +83,12 @@ public class TiffEncoder {
 			descriptionSize = writeDescription(out);
 		if (fi.unit!=null && fi.pixelWidth!=0 && fi.pixelHeight!=0)
 			scaleSize = writeScale(out);
-		int fillerSize = IMAGE_START - (HDR_SIZE+ifdSize+bpsSize+descriptionSize+scaleSize);
-		byte[] filler = new byte[fillerSize];
+		byte[] filler = new byte[IMAGE_START - (HDR_SIZE+ifdSize+bpsSize+descriptionSize+scaleSize)];
 		out.write(filler); // force image to start at offset 768
 		//ij.IJ.write("filler: "+filler.length);
 		new ImageWriter(fi).write(out);
 		if (fi.fileType==FileInfo.COLOR8)
 			writeColorMap(out);
-		if (metaDataSize>0)
-			writeMetaData(out);
 		for (int i=2; i<=fi.nImages; i++) {
 			if (i==fi.nImages)
 				nextIFD = 0;
@@ -111,42 +97,6 @@ public class TiffEncoder {
 			imageOffset += imageSize;
 			writeIFD(out, imageOffset, nextIFD);
 		}
-	}
-	
-	int getMetaDataSize() {
-		nSliceLabels = 0;
-		metaDataEntries = 0;
-		int size = 0;
-		int nTypes = 0;
-		if (fi.info!=null) {
-			metaDataEntries = 1;
-			size = fi.info.length()*2;
-			nTypes++;
-		}
-		if (fi.nImages>1 && fi.sliceLabels!=null) {
-			int max = fi.sliceLabels.length;
-			for (int i=0; i<fi.nImages&&i<max; i++) {
-				if (fi.sliceLabels[i]!=null) {
-					nSliceLabels++;
-					size += fi.sliceLabels[i].length()*2;
-				} else
-					break;
-			}
-			if (nSliceLabels>0) nTypes++;
-			metaDataEntries += nSliceLabels;
-		}
-		if (fi.metaDataTypes!=null && fi.metaData!=null && fi.metaData[0]!=null
-		&& fi.metaDataTypes.length==fi.metaData.length) {
-			extraMetaDataEntries = fi.metaData.length;
-			nTypes += extraMetaDataEntries;
-			metaDataEntries += extraMetaDataEntries;
-			for (int i=0; i<extraMetaDataEntries; i++)
-				size += fi.metaData.length;
-		}
-		if (metaDataEntries>0) metaDataEntries++; // add entry for header
-		int hdrSize = 4 + nTypes*8;
-		if (size>0) size += hdrSize;
-		return size;
 	}
 	
 	/** Writes the 8-byte image file header. */
@@ -211,12 +161,6 @@ public class TiffEncoder {
 		}
 		if (fi.fileType==FileInfo.COLOR8)
 			writeEntry(out, TiffDecoder.COLOR_MAP, 3, MAP_SIZE, IMAGE_START+stackSize);
-		if (metaDataSize>0) {
-			int metaDataOffset = IMAGE_START+stackSize;
-			if (fi.fileType==FileInfo.COLOR8) metaDataOffset += MAP_SIZE*2;
-			writeEntry(out, TiffDecoder.META_DATA_BYTE_COUNTS, 4, metaDataEntries, metaDataOffset);
-			writeEntry(out, TiffDecoder.META_DATA, 1, metaDataSize, metaDataOffset+4*(metaDataEntries));
-		}
 		out.writeInt(nextIFD);
 	}
 	
@@ -260,61 +204,27 @@ public class TiffEncoder {
 		out.write(colorTable16);
 	}
 	
-	/** Writes image metadata ("info" image propery, stack slice labels
-		and extra metadata) following the image and any color palette. */
-	void writeMetaData(DataOutputStream out) throws IOException {
-	
-		// write byte counts
-		int nTypes = 0;
-		if (fi.info!=null) nTypes++;
-		if (nSliceLabels>0) nTypes++;
-		nTypes += extraMetaDataEntries;
-		
-		// write byte counts
-		out.writeInt(4+nTypes*8); // header size	
-		if (fi.info!=null)
-			out.writeInt(fi.info.length()*2);
-		for (int i=0; i<nSliceLabels; i++)
-			out.writeInt(fi.sliceLabels[i].length()*2);
-		for (int i=0; i<extraMetaDataEntries; i++)
-			out.writeInt(fi.metaData[i].length);	
-		
-		// write header
-		out.writeInt(0x494a494a); // magic number ("IJIJ")
-		if (fi.info!=null) {
-			out.writeInt(0x696e666f); // type="info"
-			out.writeInt(1); // count
-		}
-		if (nSliceLabels>0) {
-			out.writeInt(0x6c61626c); // type="labl"
-			out.writeInt(nSliceLabels); // count
-		}
-		for (int i=0; i<extraMetaDataEntries; i++) {
-			out.writeInt(fi.metaDataTypes[i]);
-			out.writeInt(1); // count
-		}
-		
-		// write data
-		if (fi.info!=null)
-			out.writeChars(fi.info);
-		for (int i=0; i<nSliceLabels; i++)
-			out.writeChars(fi.sliceLabels[i]);
-		for (int i=0; i<extraMetaDataEntries; i++)
-			out.write(fi.metaData[i]); 
-					
-	}
-
 	/** Creates an optional image description string for saving calibration data.
 		For stacks, also saves the stack size so ImageJ can open the stack without
 		decoding an IFD for each slice.*/
 	void makeDescriptionString() {
-		if (fi.description!=null) {
-			if (fi.description.charAt(fi.description.length()-1)!=(char)0)
-				fi.description += " ";
-			description = fi.description.getBytes();
-			description[description.length-1] = (byte)0;
-		} else
-			description = null;
+		StringBuffer sb = new StringBuffer(100);
+		sb.append("ImageJ="+ij.ImageJ.VERSION+"\n");
+		if (fi.nImages>1)
+			sb.append("images="+fi.nImages+"\n");
+		if (fi.unit!=null)
+			sb.append("unit="+fi.unit+"\n");
+		if (fi.valueUnit!=null) {
+			sb.append("cf="+fi.calibrationFunction+"\n");
+			if (fi.coefficients!=null) {
+				for (int i=0; i<fi.coefficients.length; i++)
+					sb.append("c"+i+"="+fi.coefficients[i]+"\n");
+			}
+			sb.append("vunit="+fi.valueUnit+"\n");
+		}
+		sb.append("");
+		description = new String(sb).getBytes();
+		description[description.length-1] = 0; 
 	}
 
 }

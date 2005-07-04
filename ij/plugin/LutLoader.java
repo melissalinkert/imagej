@@ -1,16 +1,15 @@
 package ij.plugin;
-import ij.*;
-import ij.io.*;
-import ij.process.*;
 import java.awt.*;
 import java.io.*;
 import java.awt.image.*;
 import java.net.*;
+import ij.*;
+import ij.io.*;
+import ij.process.*;
 
-/** Opens NIH Image look-up tables (LUTs), 768 byte binary LUTs
-	(256 reds, 256 greens and 256 blues), LUTs in text format, 
-	or generates the LUT specified by the string argument 
-	passed to the run() method. */
+/** Opens NIH Image look-up tables (LUTs), 768 byte raw LUTs
+	(256 reds, 256 greens and 256 blues), or uses a method to
+	generate the LUT. */
 public class LutLoader extends ImagePlus implements PlugIn {
 
 	private static String defaultDirectory = null;
@@ -39,17 +38,11 @@ public class LutLoader extends ImagePlus implements PlugIn {
 		else if (arg.equals("3-3-2 RGB"))
 			nColors = rgb332(fi.reds, fi.greens, fi.blues);
 		else if (arg.equals("red"))
-			nColors = primaryColor(4, fi.reds, fi.greens, fi.blues);
+			nColors = oneColor(0, fi.reds, fi.greens, fi.blues);
 		else if (arg.equals("green"))
-			nColors = primaryColor(2, fi.reds, fi.greens, fi.blues);
+			nColors = oneColor(1, fi.reds, fi.greens, fi.blues);
 		else if (arg.equals("blue"))
-			nColors = primaryColor(1, fi.reds, fi.greens, fi.blues);
-		else if (arg.equals("cyan"))
-			nColors = primaryColor(3, fi.reds, fi.greens, fi.blues);
-		else if (arg.equals("magenta"))
-			nColors = primaryColor(5, fi.reds, fi.greens, fi.blues);
-		else if (arg.equals("yellow"))
-			nColors = primaryColor(6, fi.reds, fi.greens, fi.blues);
+			nColors = oneColor(2, fi.reds, fi.greens, fi.blues);
 		else if (arg.equals("redgreen"))
 			nColors = redGreen(fi.reds, fi.greens, fi.blues);
 		if (nColors>0) {
@@ -57,16 +50,23 @@ public class LutLoader extends ImagePlus implements PlugIn {
 				interpolate(fi.reds, fi.greens, fi.blues, nColors);
 			fi.fileName = arg;
 			showLut(fi, true);
-			Menus.updateMenus();
 			return;
 		}
+		
 		OpenDialog od = new OpenDialog("Open LUT...", arg);
 		fi.directory = od.getDirectory();
 		fi.fileName = od.getFileName();
 		if (fi.fileName==null)
 				return;
-		if (openLut(fi))
-			showLut(fi, arg.equals(""));
+		IJ.showStatus("Opening: " + fi.directory + fi.fileName);
+		try {
+			int size = readLut(fi, false); // attempt to read NIH Image LUT
+			if (size==0) readLut(fi,true);  // otherwise read 768 byte raw LUT
+		} catch (IOException e) {
+			IJ.error(e.getMessage());
+			return;
+		}
+		showLut(fi, arg.equals(""));
 		IJ.showStatus("");
 	}
 	
@@ -77,13 +77,6 @@ public class LutLoader extends ImagePlus implements PlugIn {
 				IJ.error("Color tables cannot be assiged to RGB Images.");
 			else {
 				ImageProcessor ip = imp.getProcessor();
-				if (IJ.isJava14() && imp.getBitDepth()!=8) { // work around Java 1.4 bug
-					byte[] reds=new byte[256], greens=new byte[256], blues=new byte[256];
-					grays(reds, greens, blues);	
-					ColorModel cm = new IndexColorModel(8, 256, reds, greens, blues);
-					ip.setColorModel(cm);
-					ip.createImage();
-				}
 				ColorModel cm = new IndexColorModel(8, 256, fi.reds, fi.greens, fi.blues);
 				ip.setColorModel(cm);
 				if (imp.getStackSize()>1)
@@ -130,13 +123,13 @@ public class LutLoader extends ImagePlus implements PlugIn {
 		return 256;
 	}
 	
-	int primaryColor(int color, byte[] reds, byte[] greens, byte[] blues) {
+	int oneColor(int color, byte[] reds, byte[] greens, byte[] blues) {
 		for (int i=0; i<256; i++) {
-			if ((color&4)!=0)
+			if (color==0)
 				reds[i] = (byte)i;
-			if ((color&2)!=0)
+			else if (color==1)
 				greens[i] = (byte)i;
-			if ((color&1)!=0)
+			else
 				blues[i] = (byte)i;
 		}
 		return 256;
@@ -190,6 +183,20 @@ public class LutLoader extends ImagePlus implements PlugIn {
 	}
 
 	void interpolate(byte[] reds, byte[] greens, byte[] blues, int nColors) {
+		/*
+		String s = "";
+		for (int i=0; i<nColors; i++)
+			s += (reds[i]&255)+",";
+		IJ.write(s);
+		s = "";
+		for (int i=0; i<nColors; i++)
+			s += (greens[i]&255)+",";
+		IJ.write(s);
+		s = "";
+		for (int i=0; i<nColors; i++)
+			s += (blues[i]&255)+",";
+		IJ.write(s);
+		*/
 		byte[] r = new byte[nColors]; 
 		byte[] g = new byte[nColors]; 
 		byte[] b = new byte[nColors];
@@ -211,55 +218,20 @@ public class LutLoader extends ImagePlus implements PlugIn {
 		}
 	}
 	
-	/** Opens an NIH Image LUT, 768 byte binary LUT or text LUT from a file or URL. */
-	boolean openLut(FileInfo fi) {
-		IJ.showStatus("Opening: " + fi.directory + fi.fileName);
-		boolean isURL = fi.url!=null && !fi.url.equals("");
-		int length = 0;
-		if (!isURL) {
-			File f = new File(fi.directory + fi.fileName);
-			length = (int)f.length();
-			if (length>10000) {
-				error();
-				return false;
-			}
-		}
-		int size = 0;
-		try {
-			if (length>768)
-				size = openBinaryLut(fi, isURL, false); // attempt to read NIH Image LUT
-			if (size==0 && (length==0||length==768||length==970))
-				size = openBinaryLut(fi, isURL, true); // otherwise read raw LUT
-			if (size==0 && length>768)
-				size = openTextLut(fi);
-			if (size==0)
-				error();
-		} catch (IOException e) {
-			IJ.error(e.getMessage());
-		}
-		return size==256;
-	}
-	
-	void error() {
-		IJ.error("This is not an ImageJ or NIH Image LUT, a 768 byte \nraw LUT, or a LUT in text format.");
-	}
-
-	/** Opens an NIH Image LUT or a 768 byte binary LUT. */
-	int openBinaryLut(FileInfo fi, boolean isURL, boolean raw) throws IOException {
+	/** Opens an NIH Image LUT or a raw 768 byte LUT. */
+	int readLut(FileInfo fi, boolean raw) throws IOException {
 		InputStream is;
-		if (isURL)
-			is = new URL(fi.url+fi.fileName).openStream();
-		else
+		if (fi.url==null || fi.url.equals(""))
 			is = new FileInputStream(fi.directory + fi.fileName);
+		else
+			is = new URL(fi.url+fi.fileName).openStream();
 		DataInputStream f = new DataInputStream(is);
 		int nColors = 256;
 		if (!raw) {
 			// attempt to read 32 byte NIH Image LUT header
 			int id = f.readInt();
-			if (id!=1229147980) { // 'ICOL'
-				f.close();
+			if (id!=1229147980) // 'ICOL'
 				return 0;
-			}
 			int version = f.readShort();
 			nColors = f.readShort();
 			int start = f.readShort();
@@ -278,28 +250,6 @@ public class LutLoader extends ImagePlus implements PlugIn {
 		return 256;
 	}
 	
-	int openTextLut(FileInfo fi) throws IOException {
-		TextReader tr = new TextReader();
-		tr.hideErrorMessages();
-		ImageProcessor ip = tr.open(fi.directory+fi.fileName);
-		if (ip==null)
-			return 0;
-		int width = ip.getWidth();
-		int height = ip.getHeight();
-		if (width<3||width>4||height<256||height>258) 
-			return 0; 
-		int x = width==4?1:0; 
-		int y = height>256?1:0;
-		ip.setRoi(x, y, 3, 256);
-		ip = ip.crop();
-		for (int i=0; i<256; i++) {
-			fi.reds[i] = (byte)ip.getPixelValue(0,i);
-			fi.greens[i] = (byte)ip.getPixelValue(1,i);
-			fi.blues[i] = (byte)ip.getPixelValue(2,i);
-		}
-		return 256;
-	}
-
 	void createImage(FileInfo fi, boolean show) {
 		int width = 256;
 		int height = 32;
