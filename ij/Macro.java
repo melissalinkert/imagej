@@ -4,16 +4,12 @@ import ij.gui.*;
 import ij.io.*;
 import ij.measure.*;
 import ij.plugin.filter.*;
-import ij.macro.Interpreter;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
-import java.util.Locale;
 
 /** The class contains static methods that perform macro operations. */
 public class Macro {
-
-	public static final String MACRO_CANCELED = "Macro canceled";
 
 	//public static boolean record;
 	private static String currentOptions;
@@ -65,21 +61,12 @@ public class Macro {
 			return "";
 	}
 	
-	/** Aborts the currently running macro or any plugin using IJ.run(). */
 	public static void abort() {
 		abort = true;
-		//IJ.log("Abort: "+Thread.currentThread().getName());
-        if (Thread.currentThread().getName().endsWith("Macro$"))
-           throw new RuntimeException(MACRO_CANCELED);
 	}
 
-	/** If a command started using run(name, options) is running, 
-		returns the options string, otherwise, returns null.
-		@see ij.gui.GenericDialog  
-		@see ij.io.OpenDialog 
-	*/
 	public static String getOptions() {
-		if (currentOptions!=null && Thread.currentThread().getName().startsWith("Run$_"))
+		if (Thread.currentThread().getName().indexOf("-macro")>-1)
 			return currentOptions+" ";
 		else
 			return null;
@@ -91,56 +78,37 @@ public class Macro {
 
 	public static String getValue(String options, String key, String defaultValue) {
 		key = trimKey(key);
-        key += '=';
-		int index=-1;
-		do {
-			index = options.indexOf(key, ++index);
-			if (index<0) return defaultValue;
-		} while (index!=0&&options.charAt(index-1)!=' ');
-		options = options.substring(index+key.length(), options.length());
-		if (options.charAt(0)=='\'') {
+		int index = options.indexOf(key);
+		if (index<0)
+			return defaultValue;
+		options = options.substring(index+key.length()+1, options.length());
+		if (options.startsWith("'")) {
 			index = options.indexOf("'",1);
 			if (index<0)
 				return defaultValue;
 			else
 				return options.substring(1, index);
-		} else if (options.charAt(0)=='[') {
-			index = options.indexOf("]",1);
-			if (index<0)
-				return defaultValue;
-			else
-				return options.substring(1, index);
 		} else {
-			//if (options.indexOf('=')==-1) {
-			//	options = options.trim();
-			//	IJ.log("getValue: "+key+"  |"+options+"|");
-			//	if (options.length()>0)
-			//		return options;
-			//	else
-			//		return defaultValue;
-			//}
 			index = options.indexOf(" ");
 			if (index<0)
 				return defaultValue;
-			else
+			else {
+				//IJ.write("  "+options.substring(0, index));
 				return options.substring(0, index);
+			}
 		}
 	}
 	
 	public static String trimKey(String key) {
-		key = key.replace(' ','_');
-		int index = key.indexOf(":");
+		int index = key.indexOf(" ");
 		if (index>-1)
 			key = key.substring(0,index);
-		key = key.toLowerCase(Locale.US);
+		index = key.indexOf(":");
+		if (index>-1)
+			key = key.substring(0,index);
+		key = key.toLowerCase();
 		return key;
 	}
 
-	public static void setLocalVariable(String key,String value) {
-		Interpreter i=Interpreter.getInstance();
-		if(i==null)
-			return;
-		i.setLocalVariable(key,value);
-	}
 }
 

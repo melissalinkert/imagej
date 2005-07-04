@@ -13,12 +13,9 @@ public class Converter implements PlugIn {
 
 	public void run(String arg) {
 		imp = WindowManager.getCurrentImage();
-		if (imp!=null) {
-			if (imp.lock()) { //v1.24f
-				convert(arg);
-				imp.unlock();
-			}
-		} else
+		if (imp!=null)
+			convert(arg);
+		else
 			IJ.noImage();
 	}
 
@@ -38,31 +35,23 @@ public class Converter implements PlugIn {
 	 	boolean saveChanges = imp.changes;
 		imp.changes = IJ.getApplet()==null; //if not applet, set 'changes' flag
 	 	newWindowCreated = false;
-	 	ImageWindow win = imp.getWindow();
 		try {
  			if (stack!=null) {
 				// do stack conversions
 		    	if (stack.isRGB() && item.equals("RGB Color")) {
 					new ImageConverter(imp).convertRGBStackToRGB();
 		    		newWindowCreated = true;
-		    		if (win!=null) new ImageWindow(imp); // replace StackWindow with ImageWindow
+		    		new ImageWindow(imp); // replace StackWindow with ImageWindow
 		    	} else if (stack.isHSB() && item.equals("RGB Color")) {
 					new ImageConverter(imp).convertHSBToRGB();
 		    		newWindowCreated = true;
-		    		if (win!=null) new ImageWindow(imp);
+		    		new ImageWindow(imp);
 				} else if (item.equals("8-bit"))
 					new StackConverter(imp).convertToGray8();
-				else if (item.equals("16-bit"))
-					new StackConverter(imp).convertToGray16();
 				else if (item.equals("32-bit"))
 					new StackConverter(imp).convertToGray32();
 				else if (item.equals("RGB Color"))
 					new StackConverter(imp).convertToRGB();
-		    	else if (item.equals("8-bit Color")) {
-		    		int nColors = getNumber();
-		    		if (nColors!=0)
-						new StackConverter(imp).convertToIndexedColor(nColors);
-				}
 		    	else throw new IllegalArgumentException();
 			} else {
 				// do single image conversions
@@ -78,18 +67,20 @@ public class Converter implements PlugIn {
 			    	Undo.reset(); // Reversible; no need for Undo
 					ic.convertToRGBStack();
 		    		newWindowCreated = true;
-			    	//new StackWindow(imp); // replace window with a StackWindow
+			    	new StackWindow(imp); // replace window with a StackWindow
 		    	} else if (item.equals("HSB Stack")) {
 			    	Undo.reset();
 					ic.convertToHSB();
 		    		newWindowCreated = true;
-			    	//new StackWindow(imp);
+			    	new StackWindow(imp);
 		    	} else if (item.equals("RGB Color")) {
 					ic.convertToRGB();
 		    	} else if (item.equals("8-bit Color")) {
-		    		int nColors = getNumber();
+		    		int nColors = 256;
+					if (type==ImagePlus.COLOR_RGB)
+						nColors = (int)IJ.getNumber("Number of Colors (2-256):", 256);
 		 			start = System.currentTimeMillis();
-					if (nColors!=0)
+					if (nColors!=IJ.CANCELED)
 						ic.convertRGBtoIndexedColor(nColors);
 				} else {
 					imp.changes = saveChanges;
@@ -116,10 +107,10 @@ public class Converter implements PlugIn {
 	}
 
 	void unsupportedConversion(ImagePlus imp) {
-		IJ.error("Converter",
+		IJ.showMessage("Converter",
 			"Supported Conversions:\n" +
 			" \n" +
-			"8-bit -> 16-bit*\n" +
+			"8-bit -> 16-bit\n" +
 			"8-bit -> 32-bit*\n" +
 			"8-bit -> RGB Color*\n" +
 			"16-bit -> 8-bit*\n" +
@@ -131,7 +122,7 @@ public class Converter implements PlugIn {
 			"8-bit Color -> 8-bit (grayscale)*\n" +
 			"8-bit Color -> RGB Color\n" +
 			"RGB Color -> 8-bit (grayscale)*\n" +
-			"RGB Color -> 8-bit Color*\n" +
+			"RGB Color -> 8-bit Color\n" +
 			"RGB Color -> RGB Stack\n" +
 			"RGB Color -> HSB Stack\n" +
 			"RGB Stack -> RGB Color\n" +
@@ -141,18 +132,4 @@ public class Converter implements PlugIn {
 			);
 	}
 
-	int getNumber() {
-		if (imp.getType()!=ImagePlus.COLOR_RGB)
-			return 256;
-		GenericDialog gd = new GenericDialog("MedianCut");
-		gd.addNumericField("Number of Colors (2-256):", 256, 0);
-		gd.showDialog();
-		if (gd.wasCanceled())
-			return 0;
-		int n = (int)gd.getNextNumber();
-		if (n<2) n = 2;
-		if (n>256) n = 256;
-		return n;
-	}
-		
 }

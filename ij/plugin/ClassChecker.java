@@ -7,7 +7,8 @@ import java.util.*;
 /** Checks for duplicate class files in the plugins directory and deletes older duplicates. */
 public class ClassChecker implements PlugIn {
 
-	char separatorChar = Prefs.separator.charAt(0);
+	String separator = Prefs.getFileSeparator();
+	char separatorChar = separator.charAt(0);
 
 	public void run(String arg) {
 		deleteDuplicates();
@@ -28,8 +29,8 @@ public class ClassChecker implements PlugIn {
 					file2 = new File(paths[j]);
 					if (file1==null || file2==null)
 						continue;
-					date1 = file1.lastModified();
-					date2 = file2.lastModified();
+					date1 = file1. lastModified();
+					date2 = file2. lastModified();
 					if (date1<date2) {
 						write(paths[i]);
 						file1.delete();
@@ -55,7 +56,7 @@ public class ClassChecker implements PlugIn {
 	}
 
 	void write(String path) {
-		IJ.log("Deleting duplicate class: "+path);
+		IJ.write("Deleting duplicate class: "+path);
 	}
 
 	public String getName(String path) {
@@ -100,7 +101,7 @@ public class ClassChecker implements PlugIn {
 		String[] list = f.list();
 		if (list==null)
 			return;
-		dir += Prefs.separator;
+		dir += separator;
 		for (int i=0; i<list.length; i++) {
 			String name = list[i];
 			if (name.endsWith(".class")) {
