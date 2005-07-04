@@ -2,79 +2,58 @@
 
 <project name="ImageJ" default="run">
 
-  <target name="jar" depends="build" description="build for netbeans 5" />
-
-
   <target name="compile" description="Compile everything.">
     <!-- First, ensure the build directory exists. -->
     <mkdir dir="build" />
-    <mkdir dir="dist" />
-    <!-- Build everything; add debug="on" to debug -->
-    <javac srcdir="." destdir="build" optimize="on" debug="on" source="1.3" target="1.1">
+
+    <!-- Detect if javac is available. -->
+    <available property="compiler.available"
+               classname="sun.tools.javac.Main" />
+
+    <!-- Detect if Quicktime support is available. -->
+    <available property="quicktime.available"
+               classname="quicktime.QTSession" />
+
+    <!-- Detect if Twain support is available. -->
+    <available property="twain.available"
+               classname="SK.gnome.twain.TwainEx" />
+
+    <!-- Build everything, selectively excluding optional packages. -->
+    <javac srcdir="source" destdir="build">
+      <exclude name="ij/plugin/twain/*" unless="twain.available" />
+      <exclude name="ij/plugin/quicktime/*" unless="quicktime.available" />
+      <exclude name="ij/plugin/Compiler.java" unless="compiler.available" />
+
       <!-- The plugins directory only needs to be present at runtime,
            not at build time. -->
-      <exclude name="plugins/**" />
+      <exclude name="plugins/*" />
     </javac>
   </target>
-  
 
-  <target name="build" depends="compile" description="Build ij.jar.">
+  <target name="dist" depends="compile"
+          description="Build ij.jar.">
     <!-- Copy needed files into the build directory. -->
-    <copy file="IJ_Props.txt" todir="build" />
-    <copy file="images/icon.gif" tofile="build/icon.gif" />
-    <copy file="images/aboutja.jpg" tofile="build/aboutja.jpg" />
-    <copy file="plugins/MacAdapter.class" tofile="build/MacAdapter.class" />
-    <copy todir="build/macros"><fileset dir="macros"/></copy>
+    <copy file="source/IJ_Props.txt" todir="build" />
+    <copy file="source/frame-icon.gif" tofile="build/microscope.gif" />
+
     <!-- Build ij.jar. -->
     <jar jarfile="ij.jar" basedir="build"
-         manifest="MANIFEST.MF" />
-    <copy file="ij.jar" tofile="dist/ij.jar" />
-    <mkdir dir="dist/images" />
-    <copy todir="dist/images/">
-	<fileset dir="images/" />
-    </copy>
-    <mkdir dir="dist/plugins" />
-    <copy todir="dist/plugins/">
-	<fileset dir="plugins/" />
-    </copy>
-
-    <copy file="ij.html" tofile="dist/ij.html" />
-    <delete dir="dist/ij" />
+         manifest="source/MANIFEST.MF" />
   </target>
 
-
-  <target name="clean" description="Delete the build files.">
+  <target name="clean"
+          description="Delete the build files.">
     <delete dir="build" />
-    <delete dir="dist" />
+  </target>
+
+  <target name="distclean" depends="clean"
+          description="Delete the build files and ij.jar.">
     <delete file="ij.jar" />
   </target>
 
-
-  <target name="run" depends="build" description="Build and run ImageJ.">
+  <target name="run" depends="dist"
+          description="Build and run ImageJ.">
     <java jar="ij.jar" fork="yes" />
-  </target>
-  
-
-  <target name="zip" depends="clean" description="Build zrc.zip.">
-    <zip zipfile="../src.zip"
-       basedir=".."
-       includes="source/**"
-    />
-  </target>
-
-
-  <target name="javadocs" description="Build the JavaDocs.">
-    <delete dir="../api" />
-    <mkdir dir="../api" />
-    <javadoc 
-           sourcepath="."
-           packagenames="ij.*"
-           destdir="../api"
-           author="true"
-           version="true"
-           use="true"
-           windowtitle="ImageJ API">
-    </javadoc>
   </target>
 
 </project>

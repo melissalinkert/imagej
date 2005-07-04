@@ -14,55 +14,35 @@ import java.net.*;
 	10-11	left
 	12-13	bottom
 	14-15	right
-	16-17	NCoordinates
-	18-33	x1,y1,x2,y2 (straight line)
+	16-17	NCoordinate
+	18-33	x1,y1,x2,y2 (float, unused)
 	34-35	line width (unused)
-	36-39   ShapeRoi size (type must be 1 if this value>0)
-	40-63	reserved (zero)
-	64-67   x0, y0 (polygon)
-	68-71   x1, y1 
-	etc.
-	
+	36-63	reserved (zero)
 */
 
 /** Decodes an ImageJ, NIH Image or Scion Image ROI. */
 public class RoiDecoder {
 
-	private final int polygon=0, rect=1, oval=2, line=3, freeline=4, polyline=5, noRoi=6, freehand=7, traced=8, angle=9, point=10;
+	private final int polygon=0, rect=1, oval=2, line=3,freeLine=4, segLine=5, noRoi=6,freehand=7, traced=8;
 	private byte[] data;
 	private String path;
-	private InputStream is;
-	private String name;
-	private int size;
 
-	/** Constructs an RoiDecoder using a file path. */
 	public RoiDecoder(String path) {
 		this.path = path;
 	}
 
-	/** Constructs an RoiDecoder using a byte array. */
-	public RoiDecoder(byte[] bytes, String name) {
-		is = new ByteArrayInputStream(bytes);	
-		this.name = name;
-		this.size = bytes.length;
-	}
-
 	/** Returns the ROI. */
 	public Roi getRoi() throws IOException {
-		if (path!=null) {
-			File f = new File(path);
-			size = (int)f.length();
-			if (size>500000)
-				throw new IOException("This is not an ImageJ ROI");
-			name = f.getName();
-			is = new FileInputStream(path);
-		}
+		File f = new File(path);
+		int size = (int)f.length();
+		if (size>5000)
+			throw new IOException("This is not an ImageJ ROI");
+		FileInputStream fis = new FileInputStream(path);
 		data = new byte[size];
 
 		int total = 0;
 		while (total<size)
-			total += is.read(data, total, size-total);
-		is.close();
+			total += fis.read(data, total, size-total);
 		if (getByte(0)!=73 || getByte(1)!=111)  //"Iout"
 			throw new IOException("This is not an ImageJ ROI");
 		int type = getByte(6);
@@ -73,28 +53,23 @@ public class RoiDecoder {
 		int width = right-left;
 		int height = bottom-top;
 		int n = getShort(16);
-		
-		boolean isComposite = getInt(36)>0;		
-		if (isComposite)
-			return getShapeRoi();
 
 		Roi roi = null;
 		switch (type) {
 		case rect:
-			roi = new Roi(left, top, width, height);
+			roi = new Roi(left, top, width, height, null);
 			break;
 		case oval:
-			roi = new OvalRoi(left, top, width, height);
+			roi = new OvalRoi(left, top, width, height, null);
 			break;
 		case line:
 			int x1 = (int)getFloat(18);		
 			int y1 = (int)getFloat(22);		
 			int x2 = (int)getFloat(26);		
-			int y2 = (int)getFloat(30);
-			roi = new Line(x1, y1, x2, y2);		
+			int y2 = (int)getFloat(30);		
 			//IJ.write("line roi: "+x1+" "+y1+" "+x2+" "+y2);
 			break;
-		case polygon: case freehand: case traced: case polyline: case freeline: case angle: case point:
+		case polygon: case freehand: case traced:
 				//IJ.write("type: "+type);
 				//IJ.write("n: "+n);
 				//IJ.write("rect: "+left+","+top+" "+width+" "+height);
@@ -113,59 +88,20 @@ public class RoiDecoder {
 					y[i] = top+ytmp;
 					//IJ.write(i+" "+getShort(base1+i*2)+" "+getShort(base2+i*2));
 				}
-				if (type==point) {
-					roi = new PointRoi(x, y, n);
-					break;
-				}
 				int roiType;
 				if (type==polygon)
 					roiType = Roi.POLYGON;
 				else if (type==freehand)
 					roiType = Roi.FREEROI;
-				else if (type==traced)
-					roiType = Roi.TRACED_ROI;
-				else if (type==polyline)
-					roiType = Roi.POLYLINE;
-				else if (type==freeline)
-					roiType = Roi.FREELINE;
-				else if (type==angle)
-					roiType = Roi.ANGLE;
 				else
-					roiType = Roi.FREEROI;
-				roi = new PolygonRoi(x, y, n, roiType);
+					roiType = Roi.TRACED_ROI;
+				roi = new PolygonRoi(x, y, n, null, roiType);
 				break;
 		default:
-			throw new IOException("Unrecognized ROI type: "+type);
 		}
-		if (name.endsWith(".roi"))
-			name = name.substring(0, name.length()-4);
-		roi.setName(name);
 		return roi;
 	}
 	
-	public Roi getShapeRoi() throws IOException {
-		int type = getByte(6);
-		if (type!=rect)
-			throw new IllegalArgumentException("Invalid composite ROI type");
-		int top= getShort(8);
-		int left = getShort(10);
-		int bottom = getShort(12);
-		int right = getShort(14);
-		int width = right-left;
-		int height = bottom-top;
-		int n = getInt(36);
-
-		ShapeRoi roi = null;
-		float[] shapeArray = new float[n];
-		int base = 64;
-		for(int i=0; i<n; i++) {
-			shapeArray[i] = getFloat(base);
-			base += 4;
-		}
-		roi = new ShapeRoi(shapeArray);
-		return roi;
-	}
-
 	int getByte(int base) {
 		return data[base]&255;
 	}
