@@ -5,11 +5,18 @@ import java.awt.image.*;
 import ij.*;
 import ij.process.*;
 import ij.measure.*;
-import ij.plugin.filter.Analyzer;
 import java.awt.event.KeyEvent;
 
 /** This class represents selection consisting of one or more points. */
 public class PointRoi extends PolygonRoi {
+
+	/** Creates a new PointRoi using the specified offscreen coordinates. */
+	public PointRoi(int ox, int oy, ImagePlus imp) {
+		super(makeArray(ox), makeArray(oy), 1, POINT);
+		setImage(imp);
+		width=1; height=1;
+		imp.draw(x-5, y-5, width+10, height+10);
+	}
 	
 	/** Creates a new PointRoi using the specified offscreen coordinates. */
 	public PointRoi(int[] ox, int[] oy, int points) {
@@ -17,23 +24,9 @@ public class PointRoi extends PolygonRoi {
 		width+=1; height+=1;
 	}
 
-	/** Creates a new PointRoi using the specified offscreen coordinates. */
-	public PointRoi(int sx, int sy, ImagePlus imp) {
-		super(makeXArray(sx, imp), makeYArray(sy, imp), 1, POINT);
-		setImage(imp);
-		width=1; height=1;
-		imp.draw(x-5, y-5, width+10, height+10);
-	}
-
-	static int[] makeXArray(int value, ImagePlus imp) {
+	static int[] makeArray(int value) {
 		int[] array = new int[1];
-		array[0] = imp!=null?imp.getWindow().getCanvas().offScreenX(value):value;
-		return array;
-	}
-				
-	static int[] makeYArray(int value, ImagePlus imp) {
-		int[] array = new int[1];
-		array[0] = imp!=null?imp.getWindow().getCanvas().offScreenY(value):value;
+		array[0] = value;
 		return array;
 	}
 				
@@ -69,7 +62,6 @@ public class PointRoi extends PolygonRoi {
 	}
 
 	public void drawPixels(ImageProcessor ip) {
-		ip.setLineWidth(Analyzer.markWidth);
 		for (int i=0; i<nPoints; i++) {
 			ip.moveTo(x+xp[i], y+yp[i]);
 			ip.lineTo(x+xp[i], y+yp[i]);
