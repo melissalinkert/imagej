@@ -15,8 +15,6 @@ public class ColorProcessor extends ImageProcessor {
 	protected int[] snapshotPixels = null;
 	private int bgColor = 0xffffffff; //white
 	private int min=0, max=255;
-	private WritableRaster rgbRaster;
-	private SampleModel rgbSampleModel;
 	
 	// Weighting factors used by getPixelValue(), getHistogram() and convertToByte().
 	// Enable "Weighted RGB Conversion" in <i>Edit/Options/Conversions</i>
@@ -60,8 +58,7 @@ public class ColorProcessor extends ImageProcessor {
 	}
 	
 	public Image createImage() {
-		if (ij.IJ.isJava16()) return createBufferedImage();
-		if (source==null) {
+		if (source==null || (ij.IJ.isMacintosh()&&!ij.IJ.isJava2())) {
 			source = new MemoryImageSource(width, height, cm, pixels, 0, width);
 			source.setAnimated(true);
 			source.setFullBufferUpdates(true);
@@ -74,25 +71,6 @@ public class ColorProcessor extends ImageProcessor {
 		return img;
 	}
 
-	Image createBufferedImage() {
-		if (rgbSampleModel==null)
-			rgbSampleModel = getRGBSampleModel();
-		if (rgbRaster==null) {
-			DataBuffer dataBuffer = new DataBufferInt(pixels, width*height, 0);
-			rgbRaster = Raster.createWritableRaster(rgbSampleModel, dataBuffer, null);
-		}
-		if (image==null) {
-			image = new BufferedImage(cm, rgbRaster, false, null);
-		}
-		return image;
-	}
-
-	SampleModel getRGBSampleModel() {
-		WritableRaster wr = cm.createCompatibleWritableRaster(1, 1);
-		SampleModel sampleModel = wr.getSampleModel();
-		sampleModel = sampleModel.createCompatibleSampleModel(width, height);
-		return sampleModel;
-	}
 
 	/** Returns a new, blank ShortProcessor with the specified width and height. */
 	public ImageProcessor createProcessor(int width, int height) {
@@ -168,7 +146,6 @@ public class ColorProcessor extends ImageProcessor {
 		else
 			applyTable(lut, channels);
 	}
-	
 
 	public void snapshot() {
 		snapshotWidth = width;
@@ -176,6 +153,7 @@ public class ColorProcessor extends ImageProcessor {
 		if (snapshotPixels==null || (snapshotPixels!=null && snapshotPixels.length!=pixels.length))
 			snapshotPixels = new int[width * height];
 		System.arraycopy(pixels, 0, snapshotPixels, 0, width*height);
+		newSnapshot = true;
 	}
 
 
@@ -183,6 +161,7 @@ public class ColorProcessor extends ImageProcessor {
 		if (snapshotPixels==null)
 			return;
 		System.arraycopy(snapshotPixels, 0, pixels, 0, width*height);
+		newSnapshot = true;
 	}
 
 
@@ -203,27 +182,15 @@ public class ColorProcessor extends ImageProcessor {
 		}
 	}
 
-	public void setSnapshotPixels(Object pixels) {
-		snapshotPixels = (int[])pixels;
-		snapshotWidth=width;
-		snapshotHeight=height;
-	}
-
-	/** Returns a reference to the snapshot pixel array. Used by the ContrastAdjuster. */
-	public Object getSnapshotPixels() {
-		return snapshotPixels;
-	}
-
 
 	/** Fills pixels that are within roi and part of the mask.
-		Does nothing if the mask is not the same as the the ROI. */
+		Throws an IllegalArgumentException if the mask is null or
+		the size of the mask is not the same as the size of the ROI. */
 	public void fill(ImageProcessor mask) {
 		if (mask==null)
 			{fill(); return;}
-		int roiWidth=this.roiWidth, roiHeight=this.roiHeight;
-		int roiX=this.roiX, roiY=this.roiY;
 		if (mask.getWidth()!=roiWidth||mask.getHeight()!=roiHeight)
-			return;
+			throw new IllegalArgumentException(maskSizeError(mask));
 		byte[] mpixels = (byte[])mask.getPixels();
 		for (int y=roiY, my=0; y<(roiY+roiHeight); y++, my++) {
 			int i = y * width + roiX;
@@ -236,20 +203,21 @@ public class ColorProcessor extends ImageProcessor {
 		}
 	}
 
-	/** Returns a copy of the pixel data. Or returns a reference to the
-		snapshot buffer if it is not null and 'snapshotCopyMode' is true.
-		@see ImageProcessor#snapshot
-		@see ImageProcessor#setSnapshotCopyMode
-	*/
+
 	public Object getPixelsCopy() {
-		if (snapshotPixels!=null && snapshotCopyMode) {
-			snapshotCopyMode = false;
+		if (newSnapshot)
 			return snapshotPixels;
-		} else {
+		else {
 			int[] pixels2 = new int[width*height];
         	System.arraycopy(pixels, 0, pixels2, 0, width*height);
 			return pixels2;
 		}
+	}
+
+
+	/** Returns a reference to the snapshot pixel array. Used by the ContrastAdjuster. */
+	public Object getSnapshotPixels() {
+		return snapshotPixels;
 	}
 
 	public int getPixel(int x, int y) {
@@ -259,36 +227,6 @@ public class ColorProcessor extends ImageProcessor {
 			return 0;
 	}
 
-	public final int get(int x, int y) {
-		return pixels[y*width+x];
-	}
-
-	public final void set(int x, int y, int value) {
-		pixels[y*width + x] = value;
-	}
-
-	public final int get(int index) {
-		return pixels[index];
-	}
-	public final void set(int index, int value) {
-		pixels[index] = value;
-	}
-
-	public final float getf(int x, int y) {
-		return pixels[y*width+x];
-	}
-
-	public final void setf(int x, int y, float value) {
-		pixels[y*width + x] = (int)value;
-	}
-
-	public final float getf(int index) {
-		return pixels[index];
-	}
-
-	public final void setf(int index, float value) {
-		pixels[index] = (int)value;
-	}
 
     /** Returns the 3 samples for the pixel at (x,y) in an array of int.
 		Returns zeros if the the coordinates are not in bounds. iArray
@@ -375,9 +313,7 @@ public class ColorProcessor extends ImageProcessor {
 	public void setPixels(Object pixels) {
 		this.pixels = (int[])pixels;
 		resetPixels(pixels);
-		if (pixels==null) snapshotPixels = null;
-		rgbRaster = null;
-		image = null;
+		snapshotPixels = null;
 	}
 
 
@@ -493,7 +429,7 @@ public class ColorProcessor extends ImageProcessor {
 				i++;
 			}
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 	
 	public void applyTable(int[] lut, int channels) {
@@ -531,7 +467,7 @@ public class ColorProcessor extends ImageProcessor {
 				i++;
 			}
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	/** Fills the current rectangular ROI. */
@@ -543,7 +479,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%20==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 
@@ -605,7 +541,7 @@ public class ColorProcessor extends ImageProcessor {
 		B = (byte[])b.getPixels();
 		
 		setRGB(R, G, B);
-		showProgress(1.0);
+		hideProgress();
 	}
 
    public void noise(double range) {
@@ -687,7 +623,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%20==0)
 			showProgress((double)(y-ymin)/height);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	public ImageProcessor crop() {
@@ -701,20 +637,11 @@ public class ColorProcessor extends ImageProcessor {
 		return new ColorProcessor(roiWidth, roiHeight, pixels2);
 	}
 	
-	/** Returns a duplicate of this image. */ 
-	public synchronized ImageProcessor duplicate() { 
-		int[] pixels2 = new int[width*height]; 
-		System.arraycopy(pixels, 0, pixels2, 0, width*height); 
-		return new ColorProcessor(width, height, pixels2); 
-	} 
 
 	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). */
 	public int getInterpolatedRGBPixel(double x, double y) {
-		if (width==1||height==1)
-			return getPixel((int)x, (int)y);
 		if (x<0.0) x = 0.0;
-		if (x>=width-1.0)
-			x = width-1.001;
+		if (x>=width-1.0) x = width-1.001;
 		if (y<0.0) y = 0.0;
 		if (y>=height-1.0) y = height-1.001;
 		return getInterpolatedPixel(x, y, pixels);
@@ -776,8 +703,6 @@ public class ColorProcessor extends ImageProcessor {
 		double xlimit = width-1.0, xlimit2 = width-1.001;
 		double ylimit = height-1.0, ylimit2 = height-1.001;
 		if (interpolate) {
-			if (xScale<=0.25 && yScale<=0.25)
-				return makeThumbnail(dstWidth, dstHeight, 0.6);
 			dstCenterX += xScale/2.0;
 			dstCenterY += yScale/2.0;
 		}
@@ -805,48 +730,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%20==0)
 			showProgress((double)y/dstHeight);
 		}
-		showProgress(1.0);
-		return ip2;
-	}
-	
-	/** Uses averaging to creates a new ColorProcessor containing a scaled copy 
-		of this image or selection. The amount of smoothing is determined by
-		'smoothFactor', which must be greater than zero and less than or equal 1.0
-	*/
-	public ImageProcessor makeThumbnail(int width2, int height2, double smoothFactor) {
-		ImageProcessor ip = this;
-		if (roiWidth!=width || roiHeight!=height)
-			ip = ip.crop();
-		int width = ip.getWidth();
-		int height = ip.getHeight();
-		int[] pixel = new int[3];
-		int[] sum = new int[3];
-		double xscale, yscale;
-		int w, h;
-		double product;
-		xscale = (double)width/width2;
-		yscale = (double)height/height2;
-		w = (int)(xscale*smoothFactor);
-		h = (int)(yscale*smoothFactor);
-		product = w*h;
-		ImageProcessor ip2 = ip.createProcessor(width2, height2);
-		for (int y=0; y<height2; y++) {
-			for (int x=0; x<width2; x++) {
-				for (int i=0; i<3; i++) sum[i] = 0;
-				int xbase = (int)(x*xscale);
-				int ybase = (int)(y*yscale);
-				for (int y2=0; y2<h; y2++) {
-					for (int x2=0;  x2<w; x2++) {
-						pixel = ip.getPixel(xbase+x2, ybase+y2, pixel);
-						for (int i=0; i<3; i++)
-							sum[i] += pixel[i];
-					}
-				}
-				for (int i=0; i<3; i++)
-					sum[i] = (int)(sum[i]/product+0.5);
-				ip2.putPixel(x, y, sum);
-			}
-		}
+		hideProgress();
 		return ip2;
 	}
 
@@ -899,7 +783,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%30==0)
 			showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	public void flipVertical() {
@@ -914,6 +798,7 @@ public class ColorProcessor extends ImageProcessor {
 				pixels[index2++] = tmp;
 			}
 		}
+		newSnapshot = false;
 	}
 	
 	/** 3x3 convolution contributed by Glynne Casteel. */
@@ -1001,7 +886,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%inc==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	/** 3x3 unweighted smoothing. */
@@ -1043,7 +928,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%inc==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	public int[] getHistogram() {
@@ -1064,7 +949,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%20==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 		return histogram;
 	}
 
@@ -1092,7 +977,7 @@ public class ColorProcessor extends ImageProcessor {
 			if (y%20==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 		return histogram;
 	}
 
@@ -1156,57 +1041,8 @@ public class ColorProcessor extends ImageProcessor {
 	public void invertLut() {
 	}
 	
-	public void updateComposite(int[] rgbPixels, int channel) {
-	}
-
 	/** Not implemented. */
 	public void threshold(int level) {}
-	
-	/** Returns the number of color channels of the image, i.e., 3. */
-	public int getNChannels() {
-		return 3;
-	}
-	
-	/** Returns a FloatProcessor with one color channel of the image.
-	*  The roi and mask are also set for the FloatProcessor.
-	*  @param channelNumber   Determines the color channel, 0=red, 1=green, 2=blue
-	*  @param fp              Here a FloatProcessor can be supplied, or null. The FloatProcessor
-	*                         is overwritten by this method (re-using its pixels array 
-	*                         improves performance).
-	*  @return A FloatProcessor with the converted image data of the color channel selected
-	*/
-	public FloatProcessor toFloat(int channelNumber, FloatProcessor fp) {
-		int size = width*height;
-		if (fp == null || fp.getWidth()!=width || fp.getHeight()!=height)
-			fp = new FloatProcessor(width, height, new float[size], null);
-		float[] fPixels = (float[])fp.getPixels();
-		int shift = 16 - 8*channelNumber;
-		int byteMask = 255<<shift;
-		for (int i=0; i<size; i++)
-			fPixels[i] = (pixels[i]&byteMask)>>shift;
-		fp.setRoi(getRoi());
-		fp.setMask(mask);
-		fp.setMinAndMax(0, 255);
-		return fp;
-	}
-	
-	/** Sets the pixels of one color channel from a FloatProcessor.
-	*  @param channelNumber   Determines the color channel, 0=red, 1=green, 2=blue
-	*  @param fp              The FloatProcessor where the image data are read from.
-	*/
-	public void setPixels(int channelNumber, FloatProcessor fp) {
-		float[] fPixels = (float[])fp.getPixels();
-		float value;
-		int size = width*height;
-		int shift = 16 - 8*channelNumber;
-		int resetMask = 0xffffffff^(255<<shift);
-		for (int i=0; i<size; i++) {
-			value = fPixels[i] + 0.49999995f;
-			if (value<0f) value = 0f;
-			if (value>255f) value = 255f;
-			pixels[i] = (pixels[i]&resetMask) | ((int)value<<shift);
-		}
-	}
 
 }
 

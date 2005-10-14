@@ -44,7 +44,6 @@ public class ImageStatistics implements Measurements {
 	protected int width, height;
 	protected int rx, ry, rw, rh;
 	protected double pw, ph;
-	protected Calibration cal;
 	
 	EllipseFitter ef;
 
@@ -81,7 +80,7 @@ public class ImageStatistics implements Measurements {
 		for (int i=minThreshold; i<=maxThreshold; i++) {
 			count = histogram[i];
 			pixelCount += count;
-			sum += (double)i*count;
+			sum += i*count;
 			value = i;
 			sum2 += (value*value)*count;
 			if (count>maxCount) {
@@ -114,7 +113,6 @@ public class ImageStatistics implements Measurements {
 	void setup(ImageProcessor ip, Calibration cal) {
 		width = ip.getWidth();
 		height = ip.getHeight();
-		this.cal = cal;
 		Rectangle roi = ip.getRoi();
 		if (roi != null) {
 			rx = roi.x;
@@ -137,32 +135,27 @@ public class ImageStatistics implements Measurements {
 			ph = 1.0;
 		}
 		
-		roiX = cal!=null?cal.getX(rx):rx;
-		roiY = cal!=null?cal.getY(ry, height):ry;
+		roiX = rx*pw;
+		roiY = ry*ph;
 		roiWidth = rw*pw;
 		roiHeight = rh*ph;
 	}
 	
 	void getCentroid(ImageProcessor ip) {
 		byte[] mask = ip.getMaskArray();
-		int count=0, mi;
-		double xsum=0.0, ysum=0.0;
+		int count=0, xsum=0, ysum=0,mi;
 		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
 			mi = my*rw;
 			for (int x=rx; x<(rx+rw); x++) {
 				if (mask==null||mask[mi++]!=0) {
 					count++;
-					xsum += x;
-					ysum += y;
+					xsum+=x;
+					ysum+=y;
 				}
 			}
 		}
-		xCentroid = xsum/count+0.5;
-		yCentroid = ysum/count+0.5;
-		if (cal!=null) {
-			xCentroid = cal.getX(xCentroid);
-			yCentroid = cal.getY(yCentroid, height);
-		}
+		xCentroid = ((double)xsum/count+0.5)*pw;
+		yCentroid = ((double)ysum/count+0.5)*ph;
 	}
 	
 	void fitEllipse(ImageProcessor ip) {
@@ -173,12 +166,8 @@ public class ImageStatistics implements Measurements {
 		major = ef.major*psize;
 		minor = ef.minor*psize;
 		angle = ef.angle;
-		xCentroid = ef.xCenter;
-		yCentroid = ef.yCenter;
-		if (cal!=null) {
-			xCentroid = cal.getX(xCentroid);
-			yCentroid = cal.getY(yCentroid, height);
-		}
+		xCentroid = ef.xCenter*pw;
+		yCentroid = ef.yCenter*ph;
 		//if (ij.IJ.altKeyDown())
 		//	ef.drawEllipse(ip);
 	}
@@ -188,14 +177,15 @@ public class ImageStatistics implements Measurements {
 			ef.drawEllipse(ip);
 	}
 	
-	void calculateMedian(int[] hist, int first, int last, Calibration cal) {
-		//ij.IJ.log("calculateMedian: "+first+"  "+last+"  "+hist.length+"  "+pixelCount);
+	void calculateMedian(int[] hist, int start, Calibration cal) {
+		//ij.IJ.log("calculateMedian: "+start+"  "+hist.length+"  "+pixelCount);
 		double sum = 0;
-		int i = first-1;
+		int i = start-1;
 		double halfCount = pixelCount/2.0;
+		int max = hist.length==65536?65535:255;
 		do {
 			sum += hist[++i];
-		} while (sum<=halfCount && i<last);
+		} while (sum<=halfCount && i<max);
 		median = cal!=null?cal.getCValue(i):i;
 	}
 	
@@ -216,10 +206,6 @@ public class ImageStatistics implements Measurements {
 			}
 		}
 		areaFraction = sum*100.0/total;
-	}
-	
-	public String toString() {
-		return "stats[count="+pixelCount+", mean="+mean+", min="+min+", max="+max+"]";
 	}
 
 }

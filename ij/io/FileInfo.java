@@ -3,7 +3,7 @@ import java.io.*;
 import java.util.Properties;
 
 /** This class consists of public fields that describe an image file. */
-public class FileInfo implements Cloneable {
+public class FileInfo {
 
 	/** 8-bit unsigned integer (0-255). */
 	public static final int GRAY8 = 0;
@@ -44,23 +44,11 @@ public class FileInfo implements Cloneable {
 		converted to floating-point. */
 	public static final int GRAY32_UNSIGNED = 11;
 	
-	/** 48-bit interleaved RGB. */
+	/** 48-bit interleaved RGB. Import only. */
 	public static final int RGB48 = 12;	
 
 	/** 12-bit unsigned integer (0-4095). Import only. */
 	public static final int GRAY12_UNSIGNED = 13;	
-
-	/** 24-bit unsigned integer. Import only. */
-	public static final int GRAY24_UNSIGNED = 14;	
-
-	/** 32-bit interleaved BARG (MCID). Import only. */
-	public static final int BARG  = 15;	
-
-	/** 64-bit floating-point. Import only.*/
-	public static final int GRAY64_FLOAT  = 16;	
-
-	/** 48-bit planar RGB. Import only. */
-	public static final int RGB48_PLANAR = 17;	
 
 	// File formats
 	public static final int UNKNOWN = 0;
@@ -71,15 +59,12 @@ public class FileInfo implements Cloneable {
 	public static final int BMP = 5;
 	public static final int DICOM = 6;
 	public static final int ZIP_ARCHIVE = 7;
-	public static final int PGM = 8;
-	public static final int IMAGEIO = 9;
 
 	// Compression modes
 	public static final int COMPRESSION_UNKNOWN = 0;
 	public static final int COMPRESSION_NONE= 1;
 	public static final int LZW = 2;
 	public static final int LZW_WITH_DIFFERENCING = 3;
-	public static final int JPEG = 4;
 	
 	/* File format (TIFF, GIF_OR_JPG, BMP, etc.). Used by the File/Revert command */
 	public int fileFormat;
@@ -98,8 +83,8 @@ public class FileInfo implements Cloneable {
     public boolean whiteIsZero;
     public boolean intelByteOrder;
 	public int compression;
-    public int[] stripOffsets; 
-    public int[] stripLengths; 
+    public int[] stripOffsets; // used for LZW decompression
+    public int[] stripLengths; // used for LZW decompression
 	public int lutSize;
 	public byte[] reds;
 	public byte[] greens;
@@ -108,7 +93,7 @@ public class FileInfo implements Cloneable {
 	public String debugInfo;
 	public String[] sliceLabels;
 	public String info;
-	public InputStream inputStream;
+	InputStream inputStream;
 	
 	public double pixelWidth=1.0;
 	public double pixelHeight=1.0;
@@ -124,9 +109,6 @@ public class FileInfo implements Cloneable {
 	// Extra metadata to be stored in the TIFF header
 	public int[] metaDataTypes; // must be < 0xffffff
 	public byte[][] metaData;
-	public double[] displayRanges;
-	public byte[][] channelLuts;
-	public int samplesPerPixel;
     
 	/** Creates a FileInfo object with all of its fields set to their default value. */
      public FileInfo() {
@@ -138,7 +120,6 @@ public class FileInfo implements Cloneable {
     	url = "";
 	    nImages = 1;
 		compression = COMPRESSION_NONE;
-		samplesPerPixel = 1;
     }
     
 	/** Returns the number of bytes used per pixel. */
@@ -146,10 +127,9 @@ public class FileInfo implements Cloneable {
 		switch (fileType) {
 			case GRAY8: case COLOR8: case BITMAP: return 1;
 			case GRAY16_SIGNED: case GRAY16_UNSIGNED: return 2;
-			case GRAY32_INT: case GRAY32_UNSIGNED: case GRAY32_FLOAT: case ARGB: case GRAY24_UNSIGNED: case BARG: return 4;
+			case GRAY32_INT: case GRAY32_UNSIGNED: case GRAY32_FLOAT: case ARGB: return 4;
 			case RGB: case RGB_PLANAR: case BGR: return 3;
-			case RGB48: case RGB48_PLANAR: return 6;
-			case GRAY64_FLOAT : return 8;
+			case RGB48: return 6;
 			default: return 0;
 		}
 	}
@@ -167,9 +147,7 @@ public class FileInfo implements Cloneable {
 			+ ", whiteZero=" + (whiteIsZero?"t":"f")
 			+ ", Intel=" + (intelByteOrder?"t":"f")
 			+ ", lutSize=" + lutSize
-			+ ", comp=" + compression
-			+ ", ranges=" + (displayRanges!=null?""+displayRanges.length/2:"null")
-			+ ", samples=" + samplesPerPixel;
+			+ ", compression=" + compression;
     }
     
     private String getType() {
@@ -187,16 +165,8 @@ public class FileInfo implements Cloneable {
 			case BITMAP: return "bitmap";
 			case ARGB: return "ARGB";
 			case BGR: return "BGR";
-			case BARG: return "BARG";
-			case GRAY64_FLOAT: return "double";
-			case RGB48_PLANAR: return "RGB48(p)";
 			default: return "";
     	}
     }
-
-	public synchronized Object clone() {
-		try {return super.clone();}
-		catch (CloneNotSupportedException e) {return null;}
-	}
 
 }

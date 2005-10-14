@@ -7,7 +7,6 @@ import ij.process.*;
 import ij.measure.Calibration;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.frame.Recorder;
-import ij.plugin.JpegWriter;
 
 
 /** Saves images in tiff, gif, jpeg, raw, zip and text format. */
@@ -31,13 +30,12 @@ public class FileSaver {
 	public boolean save() {
 		FileInfo ofi = null;
 		if (imp!=null) ofi = imp.getOriginalFileInfo();
-		boolean validName = ofi!=null && imp.getTitle().equals(ofi.fileName);
-		if (validName && ofi.fileFormat==FileInfo.TIFF && imp.getStackSize()==1 && ofi.nImages==1 && (ofi.url==null||ofi.url.equals(""))) {
+		if (ofi!=null && ofi.fileFormat==FileInfo.TIFF && imp.getStackSize()==1 && ofi.nImages==1 && (ofi.url==null||ofi.url.equals(""))) {
             name = imp.getTitle();
             directory = ofi.directory;
 			String path = directory+name;
 			File f = new File(path);
-			if (!IJ.isMacro() && f!=null && f.exists()) {
+			if (!IJ.macroRunning() && f!=null && f.exists()) {
 				if (!IJ.showMessageWithCancel("Save as TIFF", "The file "+ofi.fileName+" already exists.\nDo you want to replace it?"))
 					return false;
 			}
@@ -65,24 +63,18 @@ public class FileSaver {
 		String path = getPath("TIFF", ".tif");
 		if (path==null)
 			return false;
-		if (fi.nImages>1)
-			return saveAsTiffStack(path);
-		else
+		Object info = imp.getProperty("Info");
+		if (info!=null && (info instanceof String))
+			fi.info = (String)info;
+		if (imp.getStackSize()==1)
 			return saveAsTiff(path);
+		else
+			return saveAsTiffStack(path);
 	}
 	
 	/** Save the image in TIFF format using the specified path. */
 	public boolean saveAsTiff(String path) {
 		fi.nImages = 1;
-		Object info = imp.getProperty("Info");
-		if (info!=null && (info instanceof String))
-			fi.info = (String)info;
-		fi.description = getDescriptionString();
-		Object label = imp.getProperty("Label");
-		if (label!=null && (label instanceof String)) {
-			fi.sliceLabels = new String[1];
-			fi.sliceLabels[0] = (String)label;
-		}
 		fi.description = getDescriptionString();
 		try {
 			TiffEncoder file = new TiffEncoder(fi);
@@ -104,12 +96,8 @@ public class FileSaver {
 			{IJ.error("This is not a stack"); return false;}
 		if (fi.pixels==null && imp.getStack().isVirtual())
 			{IJ.error("Save As Tiff", "Virtual stacks not supported."); return false;}
-		Object info = imp.getProperty("Info");
-		if (info!=null && (info instanceof String))
-			fi.info = (String)info;
 		fi.description = getDescriptionString();
 		fi.sliceLabels = imp.getStack().getSliceLabels();
-		if (imp.isComposite()) saveDisplayRangesAndLuts(imp, fi);
 		try {
 			TiffEncoder file = new TiffEncoder(fi);
 			DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(path)));
@@ -122,27 +110,6 @@ public class FileSaver {
 		}
 		updateImp(fi, fi.TIFF);
 		return true;
-	}
-	
-	void  saveDisplayRangesAndLuts(ImagePlus imp, FileInfo fi) {
-		CompositeImage ci = (CompositeImage)imp;
-		int channels = imp.getNChannels();
-		fi.displayRanges = new double[channels*2];
-		for (int i=1; i<=channels; i++) {
-			LUT lut = ci.getChannelLut(i);
-			fi.displayRanges[(i-1)*2] = lut.min;
-			fi.displayRanges[(i-1)*2+1] = lut.max;
-		}
-		if (ci.hasCustomLuts()) {
-			fi.channelLuts = new byte[channels][];
-			for (int i=0; i<channels; i++) {
-				LUT lut = ci.getChannelLut(i+1);
-				byte[] bytes = lut.getBytes();
-				if (bytes==null)
-					{fi.channelLuts=null; break;}
-				fi.channelLuts[i] = bytes;
-			}
-		}	
 	}
 
 	/** Uses a save file dialog to save the image or stack as a TIFF
@@ -171,7 +138,6 @@ public class FileSaver {
 		if (info!=null && (info instanceof String))
 			fi.info = (String)info;
 		fi.sliceLabels = imp.getStack().getSliceLabels();
-		if (imp.isComposite()) saveDisplayRangesAndLuts(imp, fi);
 		try {
 			ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(path));
 			DataOutputStream out = new DataOutputStream(new BufferedOutputStream(zos));
@@ -190,11 +156,12 @@ public class FileSaver {
 
 	public static boolean okForGif(ImagePlus imp) {
 		int type = imp.getType();
-		if (type==ImagePlus.COLOR_RGB) {
-			IJ.error("To save as Gif, the image must be converted to \"8-bit Color\".");
+		if (type==ImagePlus.COLOR_RGB || type==ImagePlus.GRAY16 || type==ImagePlus.GRAY32) {
+			IJ.error("To save as Gif, the image must be \"8-bit\" or \"8-bit Color\".");
 			return false;
 		} else
 			return true;
+		
 	}
 
 	/** Save the image in GIF format using a save file
@@ -213,8 +180,19 @@ public class FileSaver {
 	/** Save the image in Gif format using the specified path. Returns
 		false if the image is not 8-bits or there is an I/O error. */
 	public boolean saveAsGif(String path) {
-		if (!okForGif(imp)) return false;
-		IJ.runPlugIn(imp, "ij.plugin.GifWriter", path);
+		if (!okForGif(imp))
+			return false;
+		try {
+			byte[] pixels = (byte[])imp.getProcessor().getPixels();
+			GifEncoder encoder = new GifEncoder(fi.width, fi.height, pixels, fi.reds, fi.greens, fi.blues);
+			OutputStream output = new BufferedOutputStream(new FileOutputStream(path));
+			encoder.write(output);
+			output.close();
+		}
+		catch (IOException e) {
+			showErrorMessage(e);
+			return false;
+		}
 		updateImp(fi, fi.GIF_OR_JPG);
 		return true;
 	}
@@ -225,26 +203,25 @@ public class FileSaver {
 	}
 
 	/** Save the image in JPEG format using a save file
-		dialog. Returns false if the user selects cancel.
-		@see ij.plugin.JpegWriter#setQuality
-		@see ij.plugin.JpegWriter#getQuality
-	*/
+		dialog. Returns false if the user selects cancel. */
 	public boolean saveAsJpeg() {
-		String type = "JPEG ("+JpegWriter.getQuality()+")";
-		String path = getPath(type, ".jpg");
+		String path = getPath("JPEG", ".jpg");
 		if (path==null)
 			return false;
 		else
 			return saveAsJpeg(path);
 	}
 
-	/** Save the image in JPEG format using the specified path.
-		@see ij.plugin.JpegWriter#setQuality
-		@see ij.plugin.JpegWriter#getQuality
-	*/
+	/** Save the image in JPEG format using the specified path. */
 	public boolean saveAsJpeg(String path) {
 		Object jpegWriter = null;
-		IJ.runPlugIn(imp, "ij.plugin.JpegWriter", path); //ts
+		ImagePlus tempImage = WindowManager.getTempCurrentImage();
+		WindowManager.setTempCurrentImage(imp);
+		if (IJ.isJava2())
+			IJ.runPlugIn("ij.plugin.JpegWriter", path);
+		else
+			IJ.runPlugIn("Jpeg_Writer", path);		
+		WindowManager.setTempCurrentImage(tempImage);
 		if (!(imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32))
 			updateImp(fi, fi.GIF_OR_JPG);
 		return true;
@@ -262,29 +239,10 @@ public class FileSaver {
 
 	/** Save the image in BMP format using the specified path. */
 	public boolean saveAsBmp(String path) {
-		IJ.runPlugIn(imp, "ij.plugin.BMP_Writer", path);
-		return true;
-	}
-
-	/** Saves grayscale images in PGM (portable graymap) format 
-		and RGB images in PPM (portable pixmap) format,
-		using a save file dialog.
-		Returns false if the user selects cancel.
-	*/
-	public boolean saveAsPgm() {
-		String extension = imp.getBitDepth()==24?".pnm":".pgm";
-		String path = getPath("PGM", extension);
-		if (path==null)
-			return false;
-		else
-			return saveAsPgm(path);
-	}
-
-	/** Saves grayscale images in PGM (portable graymap) format 
-		and RGB images in PPM (portable pixmap) format,
-		using the specified path. */
-	public boolean saveAsPgm(String path) {
-		IJ.runPlugIn(imp, "ij.plugin.PNM_Writer", path);
+		ImagePlus tempImage = WindowManager.getTempCurrentImage();
+		WindowManager.setTempCurrentImage(imp);
+		IJ.runPlugIn("ij.plugin.BMP_Writer", path);
+		WindowManager.setTempCurrentImage(tempImage);
 		return true;
 	}
 
@@ -306,34 +264,11 @@ public class FileSaver {
 	/** Save the image in PNG format using the specified path. 
 		Requires Java 1,4 or later. */
 	public boolean saveAsPng(String path) {
-		IJ.runPlugIn(imp, "ij.plugin.PNG_Writer", path);
+		ImagePlus tempImage = WindowManager.getTempCurrentImage();
+		WindowManager.setTempCurrentImage(imp);
+		IJ.runPlugIn("ij.plugin.PNG_Writer", path);
+		WindowManager.setTempCurrentImage(tempImage);
 		return true;
-	}
-
-	/** Save the image in FITS format using a save file dialog. 
-		Returns false if the user selects cancel. */
-	public boolean saveAsFits() {
-		if (!okForFits(imp)) return false;
-		String path = getPath("FITS", ".fits");
-		if (path==null)
-			return false;
-		else
-			return saveAsFits(path);
-	}
-
-	/** Save the image in FITS format using the specified path. */
-	public boolean saveAsFits(String path) {
-		if (!okForFits(imp)) return false;
-		IJ.runPlugIn(imp, "ij.plugin.FITS_Writer", path);
-		return true;
-	}
-
-	public static boolean okForFits(ImagePlus imp) {
-		if (imp.getBitDepth()==24) {
-			IJ.error("FITS Writer", "Grayscale image required");
-			return false;
-		} else
-			return true;
 	}
 
 	/** Save the image or stack as raw data using a save file
@@ -352,7 +287,6 @@ public class FileSaver {
 	/** Save the image as raw data using the specified path. */
 	public boolean saveAsRaw(String path) {
 		fi.nImages = 1;
-		fi.intelByteOrder = Prefs.intelByteOrder;
 		boolean signed16Bit = false;
 		short[] pixels = null;
 		int n = 0;
@@ -385,7 +319,6 @@ public class FileSaver {
 	public boolean saveAsRawStack(String path) {
 		if (fi.nImages==1)
 			{IJ.write("This is not a stack"); return false;}
-		fi.intelByteOrder = Prefs.intelByteOrder;
 		boolean signed16Bit = false;
 		Object[] stack = null;
 		int n = 0;
@@ -504,8 +437,8 @@ public class FileSaver {
 			fi.fileFormat = fileFormat;
 			fi.fileName = name;
 			fi.directory = directory;
-			//if (fileFormat==fi.TIFF)
-			//	fi.offset = TiffEncoder.IMAGE_START;
+			if (fileFormat==fi.TIFF)
+				fi.offset = TiffEncoder.IMAGE_START;
 			fi.description = null;
 			imp.setTitle(name);
 			imp.setFileInfo(fi);
@@ -513,18 +446,14 @@ public class FileSaver {
 	}
 
 	void showErrorMessage(IOException e) {
-		String msg = e.getMessage();
-		if (msg.length()>100)
-			msg = msg.substring(0, 100);
-		IJ.error("FileSaver", "An error occured writing the file.\n \n" + msg);
+		IJ.error("An error occured writing the file.\n \n" + e);
 	}
 
 	/** Returns a string containing information about the specified  image. */
 	public String getDescriptionString() {
-		Calibration cal = imp.getCalibration();
 		StringBuffer sb = new StringBuffer(100);
 		sb.append("ImageJ="+ImageJ.VERSION+"\n");
-		if (fi.nImages>1 && fi.fileType!=FileInfo.RGB48)
+		if (fi.nImages>1)
 			sb.append("images="+fi.nImages+"\n");
 		int channels = imp.getNChannels();
 		if (channels>1)
@@ -535,20 +464,16 @@ public class FileSaver {
 		int frames = imp.getNFrames();
 		if (frames>1)
 			sb.append("frames="+frames+"\n");
-		if (imp.isHyperStack()) sb.append("hyperstack=true\n");
-		if (imp.isComposite()) {
-			String mode = ((CompositeImage)imp).getModeAsString();
-			sb.append("mode="+mode+"\n");
-		}
 		if (fi.unit!=null)
 			sb.append("unit="+fi.unit+"\n");
-		if (fi.valueUnit!=null && fi.calibrationFunction!=Calibration.CUSTOM) {
+		if (fi.valueUnit!=null) {
 			sb.append("cf="+fi.calibrationFunction+"\n");
 			if (fi.coefficients!=null) {
 				for (int i=0; i<fi.coefficients.length; i++)
 					sb.append("c"+i+"="+fi.coefficients[i]+"\n");
 			}
 			sb.append("vunit="+fi.valueUnit+"\n");
+			Calibration cal = imp.getCalibration();
 			if (cal.zeroClip()) sb.append("zeroclip=true\n");
 		}
 		
@@ -556,21 +481,13 @@ public class FileSaver {
 		if (fi.nImages>1) {
 			if (fi.pixelDepth!=0.0 && fi.pixelDepth!=1.0)
 				sb.append("spacing="+fi.pixelDepth+"\n");
-			if (cal.fps!=0.0) {
-				if ((int)cal.fps==cal.fps)
-					sb.append("fps="+(int)cal.fps+"\n");
+			if (fi.frameInterval!=0.0) {
+				double fps = 1.0/fi.frameInterval;
+				if ((int)fps==fps)
+					sb.append("fps="+(int)fps+"\n");
 				else
-					sb.append("fps="+cal.fps+"\n");
+					sb.append("fps="+fps+"\n");
 			}
-			sb.append("loop="+(cal.loop?"true":"false")+"\n");
-			if (cal.frameInterval!=0.0) {
-				if ((int)cal.frameInterval==cal.frameInterval)
-					sb.append("finterval="+(int)cal.frameInterval+"\n");
-				else
-					sb.append("finterval="+cal.frameInterval+"\n");
-			}
-			if (!cal.getTimeUnit().equals("sec"))
-				sb.append("tunit="+cal.getTimeUnit()+"\n");
 		}
 		
 		// get min and max display values
@@ -585,6 +502,7 @@ public class FileSaver {
 		}
 		
 		// get non-zero origins
+		Calibration cal = imp.getCalibration();
 		if (cal.xOrigin!=0.0)
 			sb.append("xorigin="+cal.xOrigin+"\n");
 		if (cal.yOrigin!=0.0)

@@ -182,10 +182,6 @@ public class HistogramWindow extends ImageWindow implements Measurements, Action
 			newMaxCount = (int)(maxCount2 * 1.5);
   			//histogram[stats.mode] = newMaxCount;
 		}
-		if (IJ.shiftKeyDown()) {
-			logScale = true;
-			drawLogPlot(yMax>0?yMax:newMaxCount, ip);
-		}
 		drawPlot(yMax>0?yMax:newMaxCount, ip);
 		histogram[stats.mode] = saveModalCount;
  		x = XMARGIN + 1;
@@ -213,7 +209,7 @@ public class HistogramWindow extends ImageWindow implements Measurements, Action
 		int index, y;
 		for (int i = 0; i<HIST_WIDTH; i++) {
 			index = (int)(i*(double)histogram.length/HIST_WIDTH); 
-			y = (int)((double)HIST_HEIGHT*histogram[index])/maxCount;
+			y = (int)(HIST_HEIGHT*histogram[index])/maxCount;
 			if (y>HIST_HEIGHT)
 				y = HIST_HEIGHT;
 			ip.drawLine(i+XMARGIN, YMARGIN+HIST_HEIGHT, i+XMARGIN, YMARGIN+HIST_HEIGHT-y);
@@ -241,13 +237,12 @@ public class HistogramWindow extends ImageWindow implements Measurements, Action
 		ip.setAntialiasedText(true);
 		double hmin = cal.getCValue(stats.histMin);
 		double hmax = cal.getCValue(stats.histMax);
-		double range = hmax-hmin;
 		if (fixedRange&&!cal.calibrated()&&hmin==0&&hmax==255)
-			range = 256;
+			{hmin=0; hmax=256;}
 		ip.drawString(d2s(hmin), x - 4, y);
 		ip.drawString(d2s(hmax), x + HIST_WIDTH - getWidth(hmax, ip) + 10, y);
         
-		double binWidth = range/stats.nBins;
+		double binWidth = (hmax-hmin)/stats.nBins;
 		binWidth = Math.abs(binWidth);
 		boolean showBins = binWidth!=1.0 || !fixedRange;
 		int col1 = XMARGIN + 5;
@@ -329,10 +324,10 @@ public class HistogramWindow extends ImageWindow implements Measurements, Action
 		ip.resetRoi();
 		ip.setColor(Color.black);
 		if (logScale) {
-			drawLogPlot(yMax>0?yMax:newMaxCount, ip);
-			drawPlot(yMax>0?yMax:newMaxCount, ip);
+			drawLogPlot(newMaxCount, ip);
+			drawPlot(newMaxCount, ip);
 		} else
-			drawPlot(yMax>0?yMax:newMaxCount, ip);
+			drawPlot(newMaxCount, ip);
 		this.imp.updateAndDraw();
 	}
 	

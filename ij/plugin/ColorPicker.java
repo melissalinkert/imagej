@@ -11,10 +11,11 @@ import ij.gui.*;
 /** Implements the Image/Color/Color Picker command. */
 public class ColorPicker extends ImagePlus implements PlugIn {
     static int id;
+    private static Frame instance;
 
     public void run(String arg) {
         ImagePlus imp = WindowManager.getImage(id);
-        if (imp!=null && imp.getWindow()!=null) {
+        if (imp!=null) {
             imp.getWindow().toFront();
             return;
         }
@@ -41,7 +42,6 @@ public class ColorPicker extends ImagePlus implements PlugIn {
         draw();
         IJ.showStatus("");
     }
-    
 }
 
 class ColorGenerator extends ColorProcessor {
@@ -204,8 +204,6 @@ class ColorCanvas extends ImageCanvas {
         //super.mousePressed(e);
         ImageProcessor ip = imp.getProcessor();
         ip.setLineWidth(1);
-        if (Toolbar.getToolId()==Toolbar.DROPPER)
-			IJ.setTool(Toolbar.RECTANGLE );
         
         Rectangle flipperRect = new Rectangle(86, 268, 18, 18);
         Rectangle resetRect = new Rectangle(86, 294, 18, 18);

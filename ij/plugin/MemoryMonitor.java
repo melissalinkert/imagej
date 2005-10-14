@@ -2,7 +2,6 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.macro.Interpreter;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
@@ -22,14 +21,13 @@ public class MemoryMonitor implements PlugIn {
 	ImageProcessor ip;
 	int frames;
 	ImageCanvas ic;
-	double[] mem;
+	float[] mem;
 	int index;
 	long value;
-	double max = 12*1204*1024; // 12MB
+	int max = 12*1204*1024; // 12MB
 	long maxMemory = IJ.maxMemory();
 
 	public void run(String arg) {
-		if (Interpreter.isBatchMode()) return;
 		if (IJ.altKeyDown()) {
 			// simulate frame grabber
 			width = 640;
@@ -48,7 +46,7 @@ public class MemoryMonitor implements PlugIn {
 		imp.lock();
 		ImageWindow win = imp.getWindow();
 		ic = win.getCanvas();
-		mem = new double[width+1];
+		mem = new float[width+1];
 		Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 		startTime = System.currentTimeMillis();
 		win.running = true;
@@ -85,15 +83,15 @@ public class MemoryMonitor implements PlugIn {
 	}
 
 	void updatePixels() {
-		double used = IJ.currentMemory();
-		if (frames%10==0) value = (long)used;
-		if (used>0.9*max) max *= 2.0;
-		mem[index++] = used;
+		long used = IJ.currentMemory();
+		if (frames%10==0) value=used;
+		if (used>0.9*max) max*=2;
+		mem[index++] = (float)used;
 		if (index==mem.length) index = 0;
 		ip.reset();
 		int index2 = index+1;
 		if (index2==mem.length) index2 = 0;
-		double scale = height/max;
+		double scale = (double)height/max;
 		ip.moveTo(0, height-(int)(mem[index2]*scale));
 		for (int x=1; x<width; x++) {
 			index2++;

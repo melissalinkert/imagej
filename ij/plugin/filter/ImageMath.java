@@ -10,7 +10,7 @@ public class ImageMath implements PlugInFilter {
 	private String arg;
 	private ImagePlus imp;
 	private boolean canceled;	
-	private boolean first; // first stack slice?
+	private boolean first;
 	private double lower;
 	private double upper;
 	
@@ -137,11 +137,6 @@ public class ImageMath implements PlugInFilter {
 			return;
 		}
 		
-	 	if (arg.equals("exp")) {
-			ip.exp();
-			return;
-		}
-
 	 	if (arg.equals("sqr")) {
 			ip.sqr();
 			return;
@@ -153,7 +148,11 @@ public class ImageMath implements PlugInFilter {
 		}
 
 	 	if (arg.equals("reciprocal")) {
-			if (!isFloat(ip)) return;
+			if (!(ip instanceof FloatProcessor)) {
+				IJ.error("32-bit float image required");
+				canceled = true;
+				return;
+			}
 			float[] pixels = (float[])ip.getPixels();
 			for (int i=0; i<ip.getWidth()*ip.getHeight(); i++) {
 				if (pixels[i]==0f)
@@ -171,33 +170,23 @@ public class ImageMath implements PlugInFilter {
 		}
 
 	 	if (arg.equals("abs")) {
-			if (!((ip instanceof FloatProcessor)||imp.getCalibration().isSigned16Bit())) {
-				IJ.error("32-bit or signed 16-bit image required");
+			if (!(ip instanceof FloatProcessor)) {
+				IJ.error("32-bit float image required");
 				canceled = true;
-			} else {
-				ip.abs();
-				ip.resetMinAndMax();
+				return;
 			}
+			float[] pixels = (float[])ip.getPixels();
+			for (int i=0; i<ip.getWidth()*ip.getHeight(); i++)
+				pixels[i] = Math.abs(pixels[i]);
+			ip.resetMinAndMax();
 			return;
 		}
 
 	}
 	
-	boolean isFloat(ImageProcessor ip) {
-		if (!(ip instanceof FloatProcessor)) {
-			IJ.error("32-bit float image required");
-			canceled = true;
-			return false;
-		} else
-			return true;
-	}
-	
 	double getValue (String title, String prompt, double defaultValue, int digits) {
-			int places = Analyzer.getPrecision();
-			if (digits>0 || (int)defaultValue!=defaultValue)
-				digits = Math.max(places, 1);
 			GenericDialog gd = new GenericDialog(title);
-			gd.addNumericField(prompt, defaultValue, digits, 8, null);
+			gd.addNumericField(prompt, defaultValue, digits);
 			gd.showDialog();
 			if (first) imp.startTiming();
 			first = false;

@@ -37,18 +37,13 @@ public class ImageConverter {
 			ip = new ColorProcessor(imp.getImage());
 	    	imp.setProcessor(null, ip.convertToByte(doScaling));
 	    }
-	    ImageProcessor ip2 = imp.getProcessor();
-		if (Prefs.useInvertingLut && ip2 instanceof ByteProcessor && !ip2.isInvertedLut()&& !ip2.isColorLut()) {
-			ip2.invertLut();
-			ip2.invert();
-		}
 	}
 
 	/** Converts this ImagePlus to 16-bit grayscale. */
 	public void convertToGray16() {
 		if (type==ImagePlus.GRAY16)
 			return;
-		if (!(type==ImagePlus.GRAY8||type==ImagePlus.GRAY32||type==ImagePlus.COLOR_RGB))
+		if (!(type==ImagePlus.GRAY8 || type==ImagePlus.GRAY32))
 			throw new IllegalArgumentException("Unsupported conversion");
 		ImageProcessor ip = imp.getProcessor();
 		imp.trimProcessor();
@@ -60,12 +55,12 @@ public class ImageConverter {
 	public void convertToGray32() {
 		if (type==ImagePlus.GRAY32)
 			return;
-		if (!(type==ImagePlus.GRAY8||type==ImagePlus.GRAY16||type==ImagePlus.COLOR_RGB))
+		if (!(type==ImagePlus.GRAY8 || type==ImagePlus.GRAY16))
 			throw new IllegalArgumentException("Unsupported conversion");
 		ImageProcessor ip = imp.getProcessor();
 		imp.trimProcessor();
 		Calibration cal = imp.getCalibration();
-		//ip.setCalibrationTable(cal.getCTable());
+		ip.setCalibrationTable(cal.getCTable());
 		imp.setProcessor(null, ip.convertToFloat());
 		imp.setCalibration(cal); //update calibration
 	}
@@ -103,9 +98,6 @@ public class ImageConverter {
 		stack.addSlice("Green", G);
 		stack.addSlice("Blue", B);
 		imp.setStack(null, stack);
-		imp.setDimensions(3, 1, 1);
-		if (imp.isComposite())
-			((CompositeImage)imp).setMode(CompositeImage.GRAYSCALE);
 	}
 
 	/** Converts an RGB image to a HSB (hue, saturation and brightness) stack. */
@@ -135,14 +127,13 @@ public class ImageConverter {
 		stack.addSlice("Saturation", S);
 		stack.addSlice("Brightness", B);
 		imp.setStack(null, stack);
-		imp.setDimensions(3, 1, 1);
 		//IJ.showProgress(1.0);
 	}
 	
 	/** Converts a 2 or 3 slice 8-bit stack to RGB. */
 	public void convertRGBStackToRGB() {
 		int stackSize = imp.getStackSize();
-		if (stackSize<2 || stackSize>3 || type!=ImagePlus.GRAY8)
+		if (stackSize<2 ||stackSize>4 || type!=ImagePlus.GRAY8)
 			throw new IllegalArgumentException("2 or 3 slice 8-bit stack required");
 		int width = imp.getWidth();
 		int height = imp.getHeight();
@@ -209,7 +200,6 @@ public class ImageConverter {
 		to byte and to 0-65535 when converting float to short. */
 	public static void setDoScaling(boolean scaleConversions) {
 		doScaling = scaleConversions;
-		IJ.register(ImageConverter.class); 
 	}
 
 	/** Returns true if scaling is enabled. */

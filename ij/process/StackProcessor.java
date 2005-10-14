@@ -2,7 +2,6 @@ package ij.process;
 import java.awt.*;
 import ij.*;
 import ij.process.*;
-import ij.macro.Interpreter;
 
 /** This class processes stacks. */
 public class StackProcessor {
@@ -19,13 +18,12 @@ public class StackProcessor {
    //}
 	
     /** Constructs a StackProcessor from a stack. 'ip' is the
-    	processor that will be used to process the slices. 
-    	'ip' can be null when using crop(). */
+    	processor that will be used to process the slices. */
     public StackProcessor(ImageStack stack, ImageProcessor ip) {
     	this.stack = stack;
     	this.ip = ip;
     	nSlices = stack.getSize();
- 	    if (nSlices>1 && ip!=null)
+ 	    if (nSlices>1)
  	    	ip.setProgressBar(null);
    }
 	
@@ -102,6 +100,7 @@ public class StackProcessor {
 	    		ip.setPixels(stack.getPixels(1));
 	    		String label = stack.getSliceLabel(1);
 	    		stack.deleteSlice(1);
+				//System.gc();
 				ip2 = ip.resize(newWidth, newHeight);
 				if (ip2!=null)
 					stack2.addSlice(label, ip2);
@@ -117,23 +116,6 @@ public class StackProcessor {
 		return stack2;
 	}
 
-	/** Crops the stack to the specified rectangle. */
-	public ImageStack crop(int x, int y, int width, int height) {
-	    ImageStack stack2 = new ImageStack(width, height);
- 		ImageProcessor ip2;
-		for (int i=1; i<=nSlices; i++) {
-			ImageProcessor ip1 = stack.getProcessor(1);
-			ip1.setRoi(x, y, width, height);
-			String label = stack.getSliceLabel(1);
-			stack.deleteSlice(1);
-			ip2 = ip1.crop();
-			stack2.addSlice(label, ip2);
-			IJ.showProgress((double)i/nSlices);
-		}
-		IJ.showProgress(1.0);
-		return stack2;
-	}
-
 	ImageStack rotate90Degrees(boolean clockwise) {
  	    ImageStack stack2 = new ImageStack(stack.getHeight(), stack.getWidth());
  		ImageProcessor ip2;
@@ -142,17 +124,16 @@ public class StackProcessor {
     		ip.setPixels(stack.getPixels(1));
     		String label = stack.getSliceLabel(1);
     		stack.deleteSlice(1);
+			//System.gc();
 			if (clockwise)
 				ip2 = ip.rotateRight();
 			else
 				ip2 = ip.rotateLeft();
 			if (ip2!=null)
 				stack2.addSlice(label, ip2);
-			if (!Interpreter.isBatchMode())
-				IJ.showProgress((double)i/nSlices);
+			IJ.showProgress((double)i/nSlices);
     	}
-		if (!Interpreter.isBatchMode())
-			IJ.showProgress(1.0);
+		IJ.showProgress(1.0);
 		return stack2;
 	}
 	

@@ -3,40 +3,35 @@ import java.io.*;
 
 /**Saves an image described by a FileInfo object as an uncompressed, big-endian TIFF file.*/
 public class TiffEncoder {
+	static final int IMAGE_START = 768;
 	static final int HDR_SIZE = 8;
 	static final int MAP_SIZE = 768; // in 16-bit words
 	static final int BPS_DATA_SIZE = 6;
 	static final int SCALE_DATA_SIZE = 16;
-		
+	
+	
 	private FileInfo fi;
 	private int bitsPerSample;
 	private int photoInterp;
 	private int samplesPerPixel;
 	private int nEntries;
 	private int ifdSize;
-	private long imageOffset;
+	private int imageOffset = IMAGE_START;
 	private int imageSize;
-	private long stackSize;
+	private int stackSize;
 	private byte[] description;
 	private int metaDataSize;
-	private int nMetaDataTypes;
-	private int nMetaDataEntries;
+	private int metaDataEntries;
 	private int nSliceLabels;
 	private int extraMetaDataEntries;
-	private int scaleSize;
-	private boolean littleEndian = ij.Prefs.intelByteOrder;
-	private byte buffer[] = new byte[8];
 		
 	public TiffEncoder (FileInfo fi) {
 		this.fi = fi;
-		fi.intelByteOrder = littleEndian;
+		fi.intelByteOrder = false;
 		bitsPerSample = 8;
 		samplesPerPixel = 1;
 		nEntries = 9;
 		int bytesPerPixel = 1;
-		int bpsSize = 0;
-		int colorMapSize = 0;
-
 		switch (fi.fileType) {
 			case FileInfo.GRAY8:
 				photoInterp = fi.whiteIsZero?0:1;
@@ -56,20 +51,10 @@ public class TiffEncoder {
 				photoInterp = 2;
 				samplesPerPixel = 3;
 				bytesPerPixel = 3;
-				bpsSize = BPS_DATA_SIZE;
-				break;
-			case FileInfo.RGB48:
-				bitsPerSample = 16;
-				photoInterp = 2;
-				samplesPerPixel = 3;
-				bytesPerPixel = 6;
-				fi.nImages /= 3;
-				bpsSize = BPS_DATA_SIZE;
 				break;
 			case FileInfo.COLOR8:
 				photoInterp = 3;
 				nEntries = 10;
-				colorMapSize = MAP_SIZE*2;
 				break;
 			default:
 				photoInterp = 0;
@@ -81,165 +66,121 @@ public class TiffEncoder {
 		makeDescriptionString();
 		if (description!=null)
 			nEntries++;  // ImageDescription tag
-		imageSize = fi.width*fi.height*bytesPerPixel;
-		stackSize = (long)imageSize*fi.nImages;
 		metaDataSize = getMetaDataSize();
 		if (metaDataSize>0)
 			nEntries += 2; // MetaData & MetaDataCounts
 		ifdSize = 2 + nEntries*12 + 4;
-		int descriptionSize = description!=null?description.length:0;
-		scaleSize = fi.unit!=null && fi.pixelWidth!=0 && fi.pixelHeight!=0?SCALE_DATA_SIZE:0;
-		imageOffset = HDR_SIZE+ifdSize+bpsSize+descriptionSize+scaleSize+colorMapSize + nMetaDataEntries*4 + metaDataSize;
-		fi.offset = (int)imageOffset;
-		//ij.IJ.log(imageOffset+", "+ifdSize+", "+bpsSize+", "+descriptionSize+", "+scaleSize+", "+colorMapSize+", "+nMetaDataEntries*4+", "+metaDataSize);
+		imageSize = fi.width*fi.height*bytesPerPixel;
+		stackSize = imageSize*fi.nImages;
 	}
 	
-	/** Saves the image as a TIFF file. The OutputStream is not closed.
+	/** Saves the image as a TIFF file. The DataOutputStream is not closed.
 		The fi.pixels field must contain the image data. If fi.nImages>1
 		then fi.pixels must be a 2D array. The fi.offset field is ignored. */
-	public void write(OutputStream out) throws IOException {
+	public void write(DataOutputStream out) throws IOException {
 		writeHeader(out);
-		long nextIFD = 0L;
-		if (fi.nImages>1)
-			nextIFD = imageOffset+stackSize;
-        if (nextIFD+fi.nImages*ifdSize>=0xffffffffL)
-            nextIFD = 0L;
-		writeIFD(out, (int)imageOffset, (int)nextIFD);
-		if (fi.fileType==FileInfo.RGB||fi.fileType==FileInfo.RGB48)
-			writeBitsPerPixel(out);
+		int nextIFD = 0;
+		if (fi.nImages>1) {
+			nextIFD = IMAGE_START+stackSize;
+			if (fi.fileType==FileInfo.COLOR8) nextIFD += MAP_SIZE*2;
+            if (metaDataSize>0) 
+                nextIFD += metaDataEntries*4 + metaDataSize;
+		}
+		writeIFD(out, imageOffset, nextIFD);
+		int bpsSize=0, scaleSize=0, descriptionSize=0;
+		if (fi.fileType==FileInfo.RGB)
+			bpsSize = writeBitsPerPixel(out);
 		if (description!=null)
-			writeDescription(out);
-		if (scaleSize>0)
-			writeScale(out);
+			descriptionSize = writeDescription(out);
+		if (fi.unit!=null && fi.pixelWidth!=0 && fi.pixelHeight!=0)
+			scaleSize = writeScale(out);
+		int fillerSize = IMAGE_START - (HDR_SIZE+ifdSize+bpsSize+descriptionSize+scaleSize);
+		byte[] filler = new byte[fillerSize];
+		out.write(filler); // force image to start at offset 768
+		//ij.IJ.write("filler: "+filler.length);
+		new ImageWriter(fi).write(out);
 		if (fi.fileType==FileInfo.COLOR8)
 			writeColorMap(out);
 		if (metaDataSize>0)
 			writeMetaData(out);
-		new ImageWriter(fi).write(out);
-        if (nextIFD>0L) {
-            for (int i=2; i<=fi.nImages; i++) {
-                if (i==fi.nImages)
-                    nextIFD = 0;
-                else
-                    nextIFD += ifdSize;
-                imageOffset += imageSize;
-                writeIFD(out, (int)imageOffset, (int)nextIFD);
-            }
-        }
+		for (int i=2; i<=fi.nImages; i++) {
+			if (i==fi.nImages)
+				nextIFD = 0;
+			else
+				nextIFD += ifdSize;
+			imageOffset += imageSize;
+			writeIFD(out, imageOffset, nextIFD);
+		}
 	}
 	
-	public void write(DataOutputStream out) throws IOException {
-		write((OutputStream)out);
-	}
-
 	int getMetaDataSize() {
-        //if (stackSize+IMAGE_START>0xffffffffL) return 0;
 		nSliceLabels = 0;
-		nMetaDataEntries = 0;
+		metaDataEntries = 0;
 		int size = 0;
 		int nTypes = 0;
-		if (fi.info!=null && fi.info.length()>0) {
-			nMetaDataEntries = 1;
+		if (fi.info!=null) {
+			metaDataEntries = 1;
 			size = fi.info.length()*2;
 			nTypes++;
 		}
-		if (fi.sliceLabels!=null) {
-			int max = Math.min(fi.sliceLabels.length, fi.nImages);
-			boolean isNonNullLabel = false;
-			for (int i=0; i<max; i++) {
-				if (fi.sliceLabels[i]!=null && fi.sliceLabels[i].length()>0) {
-					isNonNullLabel = true;
-					break;
-				}
-			}
-			if (isNonNullLabel) {
-				for (int i=0; i<max; i++) {
+		if (fi.nImages>1 && fi.sliceLabels!=null) {
+			int max = fi.sliceLabels.length;
+			for (int i=0; i<fi.nImages&&i<max; i++) {
+				if (fi.sliceLabels[i]!=null) {
 					nSliceLabels++;
-					if (fi.sliceLabels[i]!=null)
-						size += fi.sliceLabels[i].length()*2;
-				}
-				if (nSliceLabels>0) nTypes++;
-				nMetaDataEntries += nSliceLabels;
+					size += fi.sliceLabels[i].length()*2;
+				} else
+					break;
 			}
+			if (nSliceLabels>0) nTypes++;
+			metaDataEntries += nSliceLabels;
 		}
-
-		if (fi.displayRanges!=null) {
-			nMetaDataEntries++;
-			size += fi.displayRanges.length*8;
-			nTypes++;
-		}
-
-		if (fi.channelLuts!=null) {
-			for (int i=0; i<fi.channelLuts.length; i++) {
-                if (fi.channelLuts[i]!=null)
-                    size += fi.channelLuts[i].length;
-            }
-			nTypes++;
-			nMetaDataEntries += fi.channelLuts.length;
-		}
-
 		if (fi.metaDataTypes!=null && fi.metaData!=null && fi.metaData[0]!=null
 		&& fi.metaDataTypes.length==fi.metaData.length) {
 			extraMetaDataEntries = fi.metaData.length;
 			nTypes += extraMetaDataEntries;
-			nMetaDataEntries += extraMetaDataEntries;
-			for (int i=0; i<extraMetaDataEntries; i++) {
-                if (fi.metaData[i]!=null)
-                    size += fi.metaData[i].length;
-            }
+			metaDataEntries += extraMetaDataEntries;
+			for (int i=0; i<extraMetaDataEntries; i++)
+				size += fi.metaData.length;
 		}
-		if (nMetaDataEntries>0) nMetaDataEntries++; // add entry for header
+		if (metaDataEntries>0) metaDataEntries++; // add entry for header
 		int hdrSize = 4 + nTypes*8;
 		if (size>0) size += hdrSize;
-		nMetaDataTypes = nTypes;
 		return size;
 	}
 	
 	/** Writes the 8-byte image file header. */
-	void writeHeader(OutputStream out) throws IOException {
+	void writeHeader(DataOutputStream out) throws IOException {
 		byte[] hdr = new byte[8];
-		if (littleEndian) {
-			hdr[0] = 73; // "II" (Intel byte order)
-			hdr[1] = 73;
-			hdr[2] = 42;  // 42 (magic number)
-			hdr[3] = 0;
-			hdr[4] = 8;  // 8 (offset to first IFD)
-			hdr[5] = 0;
-			hdr[6] = 0;
-			hdr[7] = 0;
-		} else {
-			hdr[0] = 77; // "MM" (Motorola byte order)
-			hdr[1] = 77;
-			hdr[2] = 0;  // 42 (magic number)
-			hdr[3] = 42;
-			hdr[4] = 0;  // 8 (offset to first IFD)
-			hdr[5] = 0;
-			hdr[6] = 0;
-			hdr[7] = 8;
-		}
+		hdr[0] = 77; // "MM" (Motorola byte order)
+		hdr[1] = 77;
+		hdr[2] = 0;  // 42 (magic number)
+		hdr[3] = 42;
+		hdr[4] = 0;  // 8 (offset to first IFD)
+		hdr[5] = 0;
+		hdr[6] = 0;
+		hdr[7] = 8;
 		out.write(hdr);
 	}
 	
 	/** Writes one 12-byte IFD entry. */
-	void writeEntry(OutputStream out, int tag, int fieldType, int count, int value) throws IOException {
-		writeShort(out, tag);
-		writeShort(out, fieldType);
-		writeInt(out, count);
-		if (count==1 && fieldType==TiffDecoder.SHORT) {
-			writeShort(out, value);
-			writeShort(out, 0);
-		} else
-			writeInt(out, value); // may be an offset
+	void writeEntry(DataOutputStream out, int tag, int fieldType, int count, int value) throws IOException {
+		out.writeShort(tag);
+		out.writeShort(fieldType);
+		out.writeInt(count);
+		if (count==1 && fieldType==TiffDecoder.SHORT)
+			value <<= 16; //left justify 16-bit values
+		out.writeInt(value); // may be an offset
 	}
 	
 	/** Writes one IFD (Image File Directory). */
-	void writeIFD(OutputStream out, int imageOffset, int nextIFD) throws IOException {	
+	void writeIFD(DataOutputStream out, int imageOffset, int nextIFD) throws IOException {	
 		int tagDataOffset = HDR_SIZE + ifdSize;
-		writeShort(out, nEntries);
+		out.writeShort(nEntries);
 		writeEntry(out, TiffDecoder.NEW_SUBFILE_TYPE, 4, 1, 0);
 		writeEntry(out, TiffDecoder.IMAGE_WIDTH,      3, 1, fi.width);
 		writeEntry(out, TiffDecoder.IMAGE_LENGTH,     3, 1, fi.height);
-		if (fi.fileType==FileInfo.RGB||fi.fileType==FileInfo.RGB48) {
+		if (fi.fileType==FileInfo.RGB) {
 			writeEntry(out, TiffDecoder.BITS_PER_SAMPLE,  3, 3, tagDataOffset);
 			tagDataOffset += BPS_DATA_SIZE;
 		} else
@@ -268,47 +209,48 @@ public class TiffEncoder {
 			int format = TiffDecoder.FLOATING_POINT;
 			writeEntry(out, TiffDecoder.SAMPLE_FORMAT, 3, 1, format);
 		}
-		if (fi.fileType==FileInfo.COLOR8) {
-			writeEntry(out, TiffDecoder.COLOR_MAP, 3, MAP_SIZE, tagDataOffset);
-			tagDataOffset += MAP_SIZE*2;
-		}
+		if (fi.fileType==FileInfo.COLOR8)
+			writeEntry(out, TiffDecoder.COLOR_MAP, 3, MAP_SIZE, IMAGE_START+stackSize);
 		if (metaDataSize>0) {
-			writeEntry(out, TiffDecoder.META_DATA_BYTE_COUNTS, 4, nMetaDataEntries, tagDataOffset);
-			writeEntry(out, TiffDecoder.META_DATA, 1, metaDataSize, tagDataOffset+4*nMetaDataEntries);
-			tagDataOffset += nMetaDataEntries*4 + metaDataSize;
+			int metaDataOffset = IMAGE_START+stackSize;
+			if (fi.fileType==FileInfo.COLOR8) metaDataOffset += MAP_SIZE*2;
+			writeEntry(out, TiffDecoder.META_DATA_BYTE_COUNTS, 4, metaDataEntries, metaDataOffset);
+			writeEntry(out, TiffDecoder.META_DATA, 1, metaDataSize, metaDataOffset+4*(metaDataEntries));
 		}
-		writeInt(out, nextIFD);
+		out.writeInt(nextIFD);
 	}
 	
 	/** Writes the 6 bytes of data required by RGB BitsPerSample tag. */
-	void writeBitsPerPixel(OutputStream out) throws IOException {
-		int bitsPerPixel = fi.fileType==FileInfo.RGB48?16:8;
-		writeShort(out, bitsPerPixel);
-		writeShort(out, bitsPerPixel);
-		writeShort(out, bitsPerPixel);
+	int writeBitsPerPixel(DataOutputStream out) throws IOException {
+		out.writeShort(8);
+		out.writeShort(8);
+		out.writeShort(8);
+		return BPS_DATA_SIZE;
 	}
 
 	/** Writes the 16 bytes of data required by the XResolution and YResolution tags. */
-	void writeScale(OutputStream out) throws IOException {
+	int writeScale(DataOutputStream out) throws IOException {
 		double xscale = 1.0/fi.pixelWidth;
 		double yscale = 1.0/fi.pixelHeight;
 		double scale = 1000000.0;
 		if (xscale>1000.0) scale = 1000.0;
-		writeInt(out, (int)(xscale*scale));
-		writeInt(out, (int)scale);
-		writeInt(out, (int)(yscale*scale));
-		writeInt(out, (int)scale);
+		out.writeInt((int)(xscale*scale));
+		out.writeInt((int)scale);
+		out.writeInt((int)(yscale*scale));
+		out.writeInt((int)scale);
+		return SCALE_DATA_SIZE;
 	}
 
 	/** Writes the variable length ImageDescription string. */
-	void writeDescription(OutputStream out) throws IOException {
+	int writeDescription(DataOutputStream out) throws IOException {
 		out.write(description,0,description.length);
+		return description.length;
 	}
 
 	/** Writes color palette following the image. */
-	void writeColorMap(OutputStream out) throws IOException {
+	void writeColorMap(DataOutputStream out) throws IOException {
 		byte[] colorTable16 = new byte[MAP_SIZE*2];
-		int j=littleEndian?1:0;
+		int j=0;
 		for (int i=0; i<fi.lutSize; i++) {
 			colorTable16[j] = fi.reds[i];
 			colorTable16[512+j] = fi.greens[i];
@@ -318,68 +260,45 @@ public class TiffEncoder {
 		out.write(colorTable16);
 	}
 	
-	/** Writes image metadata ("info" image propery, 
-		stack slice labels, channel display ranges and luts,
-		and extra metadata). */
-	void writeMetaData(OutputStream out) throws IOException {
+	/** Writes image metadata ("info" image propery, stack slice labels
+		and extra metadata) following the image and any color palette. */
+	void writeMetaData(DataOutputStream out) throws IOException {
 	
-		// write byte counts (META_DATA_BYTE_COUNTS tag)
-		writeInt(out, 4+nMetaDataTypes*8); // header size	
-		if (fi.info!=null && fi.info.length()>0)
-			writeInt(out, fi.info.length()*2);
-		for (int i=0; i<nSliceLabels; i++) {
-			if (fi.sliceLabels[i]==null)
-				writeInt(out, 0);
-			else
-				writeInt(out, fi.sliceLabels[i].length()*2);
-		}
-		if (fi.displayRanges!=null)
-			writeInt(out, fi.displayRanges.length*8);
-		if (fi.channelLuts!=null) {
-			for (int i=0; i<fi.channelLuts.length; i++)
-				writeInt(out, fi.channelLuts[i].length);
-		}
-		for (int i=0; i<extraMetaDataEntries; i++)
-			writeInt(out, fi.metaData[i].length);	
+		// write byte counts
+		int nTypes = 0;
+		if (fi.info!=null) nTypes++;
+		if (nSliceLabels>0) nTypes++;
+		nTypes += extraMetaDataEntries;
 		
-		// write header (META_DATA tag header)
-		writeInt(out, TiffDecoder.MAGIC_NUMBER); // "IJIJ"
+		// write byte counts
+		out.writeInt(4+nTypes*8); // header size	
+		if (fi.info!=null)
+			out.writeInt(fi.info.length()*2);
+		for (int i=0; i<nSliceLabels; i++)
+			out.writeInt(fi.sliceLabels[i].length()*2);
+		for (int i=0; i<extraMetaDataEntries; i++)
+			out.writeInt(fi.metaData[i].length);	
+		
+		// write header
+		out.writeInt(0x494a494a); // magic number ("IJIJ")
 		if (fi.info!=null) {
-			writeInt(out, TiffDecoder.INFO); // type="info"
-			writeInt(out, 1); // count
+			out.writeInt(0x696e666f); // type="info"
+			out.writeInt(1); // count
 		}
 		if (nSliceLabels>0) {
-			writeInt(out, TiffDecoder.LABELS); // type="labl"
-			writeInt(out, nSliceLabels); // count
-		}
-		if (fi.displayRanges!=null) {
-			writeInt(out, TiffDecoder.RANGES); // type="rang"
-			writeInt(out, 1); // count
-		}
-		if (fi.channelLuts!=null) {
-			writeInt(out, TiffDecoder.LUTS); // type="luts"
-			writeInt(out, fi.channelLuts.length); // count
+			out.writeInt(0x6c61626c); // type="labl"
+			out.writeInt(nSliceLabels); // count
 		}
 		for (int i=0; i<extraMetaDataEntries; i++) {
-			writeInt(out, fi.metaDataTypes[i]);
-			writeInt(out, 1); // count
+			out.writeInt(fi.metaDataTypes[i]);
+			out.writeInt(1); // count
 		}
 		
-		// write data (META_DATA tag body)
+		// write data
 		if (fi.info!=null)
-			writeChars(out, fi.info);
-		for (int i=0; i<nSliceLabels; i++) {
-			if (fi.sliceLabels[i]!=null)
-				writeChars(out, fi.sliceLabels[i]);
-		}
-		if (fi.displayRanges!=null) {
-			for (int i=0; i<fi.displayRanges.length; i++)
-				writeDouble(out, fi.displayRanges[i]);
-		}
-		if (fi.channelLuts!=null) {
-			for (int i=0; i<fi.channelLuts.length; i++)
-				out.write(fi.channelLuts[i]);
-		}
+			out.writeChars(fi.info);
+		for (int i=0; i<nSliceLabels; i++)
+			out.writeChars(fi.sliceLabels[i]);
 		for (int i=0; i<extraMetaDataEntries; i++)
 			out.write(fi.metaData[i]); 
 					
@@ -397,74 +316,5 @@ public class TiffEncoder {
 		} else
 			description = null;
 	}
-		
-	final void writeShort(OutputStream out, int v) throws IOException {
-		if (littleEndian) {
-       		out.write(v&255);
-        	out.write((v>>>8)&255);
- 		} else {
-        	out.write((v>>>8)&255);
-        	out.write(v&255);
-        }
-	}
-
-	final void writeInt(OutputStream out, int v) throws IOException {
-		if (littleEndian) {
-        	out.write(v&255);
-        	out.write((v>>>8)&255);
-        	out.write((v>>>16)&255);
-         	out.write((v>>>24)&255);
-		} else {
-        	out.write((v>>>24)&255);
-        	out.write((v>>>16)&255);
-        	out.write((v>>>8)&255);
-        	out.write(v&255);
-        }
-	}
-
-    final void writeLong(OutputStream out, long v) throws IOException {
-    	if (littleEndian) {
-			buffer[7] = (byte)(v>>>56);
-			buffer[6] = (byte)(v>>>48);
-			buffer[5] = (byte)(v>>>40);
-			buffer[4] = (byte)(v>>>32);
-			buffer[3] = (byte)(v>>>24);
-			buffer[2] = (byte)(v>>>16);
-			buffer[1] = (byte)(v>>> 8);
-			buffer[0] = (byte)v;
-			out.write(buffer, 0, 8);
-        } else {
-			buffer[0] = (byte)(v>>>56);
-			buffer[1] = (byte)(v>>>48);
-			buffer[2] = (byte)(v>>>40);
-			buffer[3] = (byte)(v>>>32);
-			buffer[4] = (byte)(v>>>24);
-			buffer[5] = (byte)(v>>>16);
-			buffer[6] = (byte)(v>>> 8);
-			buffer[7] = (byte)v;
-			out.write(buffer, 0, 8);
-        }
-     }
-
-    final void writeDouble(OutputStream out, double v) throws IOException {
-		writeLong(out, Double.doubleToLongBits(v));
-    }
-    
-	final void writeChars(OutputStream out, String s) throws IOException {
-        int len = s.length();
-        if (littleEndian) {
-			for (int i = 0 ; i < len ; i++) {
-				int v = s.charAt(i);
-				out.write(v&255); 
-				out.write((v>>>8)&255); 
-			}
-        } else {
-			for (int i = 0 ; i < len ; i++) {
-				int v = s.charAt(i);
-				out.write((v>>>8)&255); 
-				out.write(v&255); 
-			}
-        }
-    }
 
 }

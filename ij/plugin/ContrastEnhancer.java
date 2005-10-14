@@ -11,13 +11,11 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 	int max, range;
 	boolean classicEqualization;
 	int stackSize;
-	boolean updateSelectionOnly;
 	
 	static boolean equalize;
 	static boolean normalize;
 	static boolean processStack;
 	static boolean useStackHistogram;
-	static boolean entireImage;
 	static double saturated = 0.5;
 
 	public void run(String arg) {
@@ -43,38 +41,23 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 
 	boolean showDialog(ImagePlus imp) {
 		int bitDepth = imp.getBitDepth();
-		boolean composite = imp.isComposite();
-		if (composite) stackSize = 1;
-		Roi roi = imp.getRoi();
-		boolean areaRoi = roi!=null && roi.isArea() && !composite;
 		GenericDialog gd = new GenericDialog("Enhance Contrast");
 		gd.addNumericField("Saturated Pixels:", saturated, 1, 4, "%");
-		if (bitDepth!=24 && !composite)
+		if (bitDepth!=24)
 			gd.addCheckbox("Normalize", normalize);
-		if (areaRoi) {
-			String label = bitDepth==24?"Update Entire Image":"Update All When Normalizing";
-			gd.addCheckbox(label, entireImage);
-		}
 		gd.addCheckbox("Equalize Histogram", equalize);
 		if (stackSize>1) {
-			if (!composite)
-				gd.addCheckbox("Normalize_All "+stackSize+" Slices", processStack);
+			gd.addCheckbox("Normalize_All "+stackSize+" Slices", processStack);
 			gd.addCheckbox("Use Stack Histogram", useStackHistogram);
 		}
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return false;
 		saturated = gd.getNextNumber();
-		if (bitDepth!=24 && !composite)
+		if (bitDepth!=24)
 			normalize = gd.getNextBoolean();
 		else
-			normalize = false;
-		if (areaRoi) {
-			entireImage = gd.getNextBoolean();
-			updateSelectionOnly = !entireImage;
-			if (!normalize && bitDepth!=24) 
-				updateSelectionOnly = false;
-		}
+			normalize = false;		
 		equalize = gd.getNextBoolean();
 		processStack = stackSize>1?gd.getNextBoolean():false;
 		useStackHistogram = stackSize>1?gd.getNextBoolean():false;
@@ -94,81 +77,24 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 			for (int i=1; i<=stackSize; i++) {
 				IJ.showProgress(i, stackSize);
 				ImageProcessor ip = stack.getProcessor(i);
-				ip.setRoi(imp.getRoi());
 				if (!useStackHistogram)
 					stats = ImageStatistics.getStatistics(ip, MIN_MAX, null);
 				stretchHistogram(ip, saturated, stats);
 			}
 		} else {
 			ImageProcessor ip = imp.getProcessor();
-			ip.setRoi(imp.getRoi());
 			if (stats==null)
 				stats = ImageStatistics.getStatistics(ip, MIN_MAX, null);
-			if (imp.isComposite())
-				stretchCompositeImageHistogram((CompositeImage)imp, saturated, stats);
-			else
-				stretchHistogram(ip, saturated, stats);
+			stretchHistogram(ip, saturated, stats);
 		}
 	}
-	
+
 	public void stretchHistogram(ImageProcessor ip, double saturated) {
 		useStackHistogram = false;
 		stretchHistogram(new ImagePlus("", ip), saturated);
 	}
 
 	public void stretchHistogram(ImageProcessor ip, double saturated, ImageStatistics stats) {
-		int[] a = getMinAndMax(ip, saturated, stats);
-		int hmin=a[0], hmax=a[1];
-		//IJ.log(hmin+" "+hmax+" "+threshold);
-		if (hmax>hmin) {
-			double min = stats.histMin+hmin*stats.binSize;
-			double max = stats.histMin+hmax*stats.binSize;
-			if (!updateSelectionOnly)
-				ip.resetRoi();
-			if (normalize)
-				normalize(ip, min, max);
-			else {
-				if (updateSelectionOnly) {
-					ImageProcessor mask = ip.getMask();
-					if (mask!=null) ip.snapshot();
-					ip.setMinAndMax(min, max);
-					if (mask!=null) ip.reset(mask);
-				} else
-					ip.setMinAndMax(min, max);
-			}
-		}
-	}
-	
-	void stretchCompositeImageHistogram(CompositeImage imp, double saturated, ImageStatistics stats) {
-		ImageProcessor ip = imp.getProcessor();
-		int[] a = getMinAndMax(ip, saturated, stats);
-		int hmin=a[0], hmax=a[1];
-		if (hmax>hmin) {
-			double min = stats.histMin+hmin*stats.binSize;
-			double max = stats.histMin+hmax*stats.binSize;
-			imp.setDisplayRange(min, max);
-		}
-		/*
-		int channels = imp.getNChannels();b
-		int channel = imp.getChannel();
-		int slice = imp.getSlice();
-		int frame = imp.getFrame();
-		for (int c=1; c<=channels; c++) {
-			imp.setPosition(c, slice, frame);
-			ImageProcessor ip = imp.getProcessor();
-			int[] a = getMinAndMax(ip, saturated, stats);
-			int hmin=a[0], hmax=a[1];
-			if (hmax>hmin) {
-				double min = stats.histMin+hmin*stats.binSize;
-				double max = stats.histMin+hmax*stats.binSize;
-				imp.setDisplayRange(min, max);
-			}
-		}
-		imp.setPosition(channel, slice, frame);
-		*/
-	}
-
-	int[] getMinAndMax(ImageProcessor ip, double saturated, ImageStatistics stats) {
 		int hmin, hmax;
 		int threshold;
 		int[] histogram = stats.histogram;		
@@ -195,9 +121,16 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 			//IJ.log(i+" "+count+" "+found);
 		} while (!found && i>0);
 		hmax = i;
-		int[] a = new int[2];
-		a[0]=hmin; a[1]=hmax;
-		return a;
+				
+		//IJ.log(hmin+" "+hmax+" "+threshold);
+		if (hmax>hmin) {
+			double min = stats.histMin+hmin*stats.binSize;
+			double max = stats.histMin+hmax*stats.binSize;
+			if (normalize)
+				normalize(ip, min, max);
+			else
+				ip.setMinAndMax(min, max);
+		}
 	}
 	
 	void normalize(ImageProcessor ip, double min, double max) {
@@ -219,17 +152,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 			else
 				lut[i] = (int)(((double)(i-min)/(max-min))*max2);
 		}
-		applyTable(ip, lut);
-	}
-	
-	void applyTable(ImageProcessor ip, int[] lut) {
-		if (updateSelectionOnly) {
-			ImageProcessor mask = ip.getMask();
-			if (mask!=null) ip.snapshot();
-				ip.applyTable(lut);
-			if (mask!=null) ip.reset(mask);
-		} else
-			ip.applyTable(lut);
+		ip.applyTable(lut);
 	}
 
 	void normalizeFloat(ImageProcessor ip, double min, double max) {
@@ -243,6 +166,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 			v *= scale;
 			if (v>1.0) v = 1.0;
 			pixels[i] = (float)v;
+		
 		}
 	}
 
@@ -307,7 +231,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		}
 		lut[max] = max;
 		
-		applyTable(ip, lut);
+		ip.applyTable(lut);
 	}
 
 	private double getWeightedValue(int[] histogram, int i) {

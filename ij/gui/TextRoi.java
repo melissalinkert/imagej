@@ -15,8 +15,6 @@ public class TextRoi extends Roi {
 	private static int style = Font.PLAIN;
 	private static int size = 18;
 	private static Font font;
-	private static boolean antialiasedText = true;
-	private static boolean recordSetFont = true;
 	private double previousMag;
 	private boolean firstChar = true;
 	private boolean firstMouseUp = true;
@@ -24,8 +22,8 @@ public class TextRoi extends Roi {
 
 	public TextRoi(int x, int y, ImagePlus imp) {
 		super(x, y, imp);
-        ImageCanvas ic = imp.getCanvas();
-        double mag = (ic!=null)?ic.getMagnification():1.0;
+        ImageWindow win = imp.getWindow();
+        double mag = (win!=null)?win.getCanvas().getMagnification():1.0;
         if (mag>1.0)
             mag = 1.0;
         if (size<(12/mag))
@@ -88,7 +86,7 @@ public class TextRoi extends Roi {
 	public void drawPixels(ImageProcessor ip) {
 		Font font = new Font(name, style, size);
 		ip.setFont(font);
-		ip.setAntialiasedText(antialiasedText);
+		ip.setAntialiasedText(true);
 		FontMetrics metrics = ip.getFontMetrics();
 		int fontHeight = metrics.getHeight();
 		int descent = metrics.getDescent();
@@ -104,13 +102,14 @@ public class TextRoi extends Roi {
 	/** Draws the text on the screen, clipped to the ROI. */
 	public void draw(Graphics g) {
 		super.draw(g); // draw the rectangle
-		g.setColor(instanceColor!=null?instanceColor:ROIColor);
+		g.setColor(ROIColor);
 		double mag = ic.getMagnification();
 		int sx = ic.screenX(x);
 		int sy = ic.screenY(y);
 		int swidth = (int)(width*mag);
 		int sheight = (int)(height*mag);
-		Java2.setAntialiasedText(g, antialiasedText);
+		if (IJ.isJava2())
+			Java2.setAntialiasedText(g, true);
 		if (font==null)
 			adjustSize();
 		Font font = getCurrentFont();
@@ -151,24 +150,12 @@ public class TextRoi extends Roi {
 	public static int getStyle() {
 		return style;
 	}
-	
-	public static boolean isAntialiased() {
-		return antialiasedText;
-	}
 
 	/** Sets the font face, size and style. */
 	public static void setFont(String fontName, int fontSize, int fontStyle) {
-		recordSetFont = true;
-		setFont(fontName, fontSize, fontStyle, true);
-	}
-	
-	/** Sets the font face, size, style and antialiasing mode. */
-	public static void setFont(String fontName, int fontSize, int fontStyle, boolean antialiased) {
-		recordSetFont = true;
 		name = fontName;
 		size = fontSize;
 		style = fontStyle;
-		antialiasedText = antialiased;
 		font = null;
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
@@ -177,7 +164,8 @@ public class TextRoi extends Roi {
 				imp.draw();
 		}
 	}
-
+	
+	//v1.24g
 	protected void handleMouseUp(int screenX, int screenY) {
 		super.handleMouseUp(screenX, screenY);
 		if (firstMouseUp) {
@@ -190,14 +178,15 @@ public class TextRoi extends Roi {
 	}
 	
 	/** Increases the size of the rectangle so it's large
-		enough to hold the text. */ 
+		enough to hold the text. */ //v1.24g
 	void adjustSize() {
 		if (ic==null)
 			return;
 		double mag = ic.getMagnification();
 		Font font = getCurrentFont();
 		Graphics g = ic.getGraphics();
-		Java2.setAntialiasedText(g, true);
+		if (IJ.isJava2())
+			Java2.setAntialiasedText(g, true);
 		FontMetrics metrics = g.getFontMetrics(font);
 		int fontHeight = (int)(metrics.getHeight()/mag);
 		int descent = metrics.getDescent();
@@ -228,38 +217,10 @@ public class TextRoi extends Roi {
 	}
 
 	int stringWidth(String s, FontMetrics metrics, Graphics g) {
-		return Java2.getStringWidth(s, metrics, g);
-	}
-	
-	public String getMacroCode(ImageProcessor ip) {
-		String code = "";
-		if (recordSetFont) {
-			String options = "";
-			if (style==Font.BOLD)
-				options += "bold";
-			if (style==Font.ITALIC)
-				options += " italic";
-			if (antialiasedText)
-				options += " antialiased";
-			if (options.equals(""))
-				options = "plain";
-			code += "setFont(\""+name+"\", "+size+", \""+options+"\");\n";
-			recordSetFont = false;
-		}
-		FontMetrics metrics = ip.getFontMetrics();
-		int fontHeight = metrics.getHeight();
-		String text = "";
-		for (int i=0; i<MAX_LINES; i++) {
-			if (theText[i]==null) break;
-			text += theText[i];
-			if (theText[i+1]!=null) text += "\\n";
-		}
-		code += "drawString(\""+text+"\", "+x+", "+(y+fontHeight)+");\n";
-		return (code);
-	}
-	
-	public static void recordSetFont() {
-		recordSetFont = true;
+		if (IJ.isJava2())
+			return Java2.getStringWidth(s, metrics, g);
+		else
+			return  metrics.stringWidth(s);
 	}
 
 }

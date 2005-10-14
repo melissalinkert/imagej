@@ -2,18 +2,16 @@ package ij.plugin;
 import java.awt.*;
 import java.io.*;
 import java.text.DecimalFormat;	
-import java.util.*;
 import ij.*;
 import ij.io.*;
 import ij.gui.*;
-import ij.measure.Calibration;
 
 /** Writes the slices of stack as separate files. */
 public class StackWriter implements PlugIn {
 
 	//private static String defaultDirectory = null;
-	private static String[] choices = {"BMP",  "FITS", "GIF", "JPEG", "PGM", "PNG", "Raw", "Text", "TIFF",  "ZIP"};
-	private static String fileType = "TIFF";
+	private static String[] choices = {"Tiff","Gif","Jpeg","Bmp", "Raw","Zip","Text"};
+	private static String fileType = "Tiff";
 	private static int ndigits = 4;
 	private static int startAt;
 	private static boolean useLabels;
@@ -55,20 +53,25 @@ public class StackWriter implements PlugIn {
 				+" digits are required to generate \nunique file names for "+stackSize+" images.");
 			return;			
 		}
-		String format = fileType.toLowerCase(Locale.US);
-		if (format.equals("gif") && !FileSaver.okForGif(imp))
+		if (fileType.equals("Gif") && !FileSaver.okForGif(imp))
 			return;
-		else if (format.equals("fits") && !FileSaver.okForFits(imp))
-			return;
-			
-		if (format.equals("text"))
-			format = "text image";
-		String extension = "." + format;
-		if (format.equals("tiff"))
+
+		String extension = "";
+		if (fileType.equals("Tiff"))
 			extension = ".tif";
-		else if (format.equals("text image"))
+		else if (fileType.equals("Jpeg"))
+			extension = ".jpg";
+		else if (fileType.equals("Gif"))
+			extension = ".gif";
+		else if (fileType.equals("Bmp"))
+			extension = ".bmp";
+		else if (fileType.equals("Raw"))
+			extension = ".raw";
+		else if (fileType.equals("Zip"))
+			extension = ".zip";
+		else if (fileType.equals("Text"))
 			extension = ".txt";
-			
+		
 		String digits = getDigits(number);
 		SaveDialog sd = new SaveDialog("Save Image Sequence", name+digits+extension, extension);
 		String name2 = sd.getFileName();
@@ -77,33 +80,53 @@ public class StackWriter implements PlugIn {
 		String directory = sd.getDirectory();
 		
 		ImageStack stack = imp.getStack();
-		ImagePlus imp2 = new ImagePlus();
-		imp2.setTitle(imp.getTitle());
-		Calibration cal = imp.getCalibration();
+		ImagePlus tmp = new ImagePlus();
+		tmp.setTitle(imp.getTitle());
 		int nSlices = stack.getSize();
 		String path,label=null;
 		for (int i=1; i<=nSlices; i++) {
 			IJ.showStatus("writing: "+i+"/"+nSlices);
 			IJ.showProgress((double)i/nSlices);
-			imp2.setProcessor(null, stack.getProcessor(i));
-			String label2 = stack.getSliceLabel(i);
-			if (label2!=null && label2.indexOf("\n")!=-1)
-				imp2.setProperty("Info", label2);
-			else {
-				Properties props = imp2.getProperties();
-				if (props!=null) props.remove("Info");
-			}
-			imp2.setCalibration(cal);
+			tmp.setProcessor(null, stack.getProcessor(i));
 			digits = getDigits(number++);
 			if (useLabels) {
-				label = stack.getShortSliceLabel(i);
-				if (label!=null && label.equals("")) label = null;
+				label = stack.getSliceLabel(i);
+				if (label!=null && label.equals(""))
+					label = null;
+				if (label!=null) {
+					int index = label.lastIndexOf(".");
+					if (index>=0)
+						label = label.substring(0, index);
+				}
 			}
 			if (label==null)
 				path = directory+name+digits+extension;
 			else
 				path = directory+label+extension;
-			IJ.saveAs(imp2, format, path);
+			if (fileType.equals("Tiff")) {
+				if (!(new FileSaver(tmp).saveAsTiff(path)))
+					break;
+			} else if (fileType.equals("Gif")) {
+				if (!(new FileSaver(tmp).saveAsGif(path)))
+					break;
+			} else if (fileType.equals("Jpeg")) {
+				if (!(new FileSaver(tmp).saveAsJpeg(path)))
+					break;
+			} else if (fileType.equals("Bmp")) {
+				if (!(new FileSaver(tmp).saveAsBmp(path)))
+					break;
+			} else if (fileType.equals("Raw")) {
+				if (!(new FileSaver(tmp).saveAsRaw(path)))
+					break;
+			} else if (fileType.equals("Zip")) {
+				tmp.setTitle(name+digits+extension);
+				if (!(new FileSaver(tmp).saveAsZip(path)))
+					break;
+			} else if (fileType.equals("Text")) {
+				if (!(new FileSaver(tmp).saveAsText(path)))
+					break;
+			}
+			//System.gc();
 		}
 		IJ.showStatus("");
 		IJ.showProgress(1.0);

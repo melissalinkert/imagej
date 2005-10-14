@@ -16,7 +16,7 @@ public class Benchmark implements PlugInFilter{
 	
 	public int setup(String arg, ImagePlus imp) {
 		this.imp = imp;
-		return DOES_ALL+NO_CHANGES+SNAPSHOT;
+		return DOES_ALL+NO_CHANGES;
 	}
 
 	public void run(ImageProcessor ip) {

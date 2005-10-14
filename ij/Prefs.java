@@ -1,10 +1,10 @@
 package ij;
-import ij.util.Java2;
 import java.io.*;
 import java.util.*;
 import java.applet.*;
 import java.net.URL;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Font;
 import java.applet.Applet;
 import ij.io.*;
 import ij.util.Tools;
@@ -30,28 +30,22 @@ public class Prefs {
 	public static final String FCOLOR = "fcolor";
 	public static final String BCOLOR = "bcolor";
 	public static final String ROICOLOR = "roicolor";
-	public static final String SHOW_ALL_COLOR = "showcolor";
 	public static final String JPEG = "jpeg";
 	public static final String FPS = "fps";
     public static final String DIV_BY_ZERO_VALUE = "div-by-zero";
     public static final String NOISE_SD = "noise.sd";
-    public static final String MENU_SIZE = "menu.size";
-    public static final String THREADS = "threads";
-	public static final String KEY_PREFIX = ".";
+    public static final String KEY_PREFIX = ".";
  
 	private static final int USE_POINTER=1, ANTIALIASING=2, INTERPOLATE=4, ONE_HUNDRED_PERCENT=8,
 		BLACK_BACKGROUND=16, JFILE_CHOOSER=32, UNUSED=64, BLACK_CANVAS=128, WEIGHTED=256, 
-		AUTO_MEASURE=512, REQUIRE_CONTROL=1024, USE_INVERTING_LUT=2048, ANTIALIASED_TOOLS=4096,
-		INTEL_BYTE_ORDER=8192, DOUBLE_BUFFER=16384, NO_POINT_LABELS=32768, NO_BORDER=65536,
-		SHOW_ALL_SLICE_ONLY=131072, COPY_HEADERS=262144, NO_ROW_NUMBERS=524288,
-		MOVE_TO_MISC=1048576; 
+		AUTO_MEASURE=512, REQUIRE_CONTROL=1024, USE_INVERTING_LUT=2048;  
     public static final String OPTIONS = "prefs.options";
 
 	/** file.separator system property */
 	public static String separator = System.getProperty("file.separator");
 	/** Use pointer cursor instead of cross */
 	public static boolean usePointerCursor;
-	/** No longer used */
+	/** Display antialiased text */
 	public static boolean antialiasedText;
 	/** Display images scaled <100% using bilinear interpolation */
 	public static boolean interpolateScaledImages;
@@ -73,34 +67,12 @@ public class Prefs {
 	public static boolean requireControlKey;
 	/** Open 8-bit images with inverting LUT so 0 is white and 255 is black. */
 	public static boolean useInvertingLut;
-	/** Draw tool icons using antialiasing. */
-	public static boolean antialiasedTools;
-	/** Export Raw using little-endian byte order. */
-	public static boolean intelByteOrder;
-	/** Double buffer display of selections. */
-	public static boolean doubleBuffer;
-	/** Do not label multiple points created using point tool. */
-	public static boolean noPointLabels = true;
-	/** Disable Edit/Undo command. */
-	public static boolean disableUndo;
-	/** Do not draw black border around image. */
-	public static boolean noBorder;
-	/** Only show ROIs associated with current slice in Roi Manager "Show All" mode. */
-	public static boolean showAllSliceOnly;
-	/** Include column headers when copying tables to clipboard. */
-	public static boolean copyColumnHeaders;
-	/** Do not include row numbers when copying tables to clipboard. */
-	public static boolean noRowNumbers;
-	/** Move isolated plugins to Miscellaneous submenu. */
-	public static boolean moveToMisc;
 
 	static Properties ijPrefs = new Properties();
 	static Properties props = new Properties(ijPrefs);
 	static String prefsDir;
 	static String imagesURL;
 	static String homeDir; // ImageJ folder
-	static int threads;
-	static int transparentIndex = -1;
 
 	/** Finds and loads the ImageJ configuration file, "IJ_Props.txt".
 		@return	an error message if "IJ_Props.txt" not found.
@@ -108,20 +80,16 @@ public class Prefs {
 	public static String load(Object ij, Applet applet) {
 		InputStream f = ij.getClass().getResourceAsStream("/"+PROPS_NAME);
 		if (applet!=null)
-			return loadAppletProps(f, applet);
-		if (homeDir==null)
-			homeDir = System.getProperty("user.dir");
+			return loadAppletProps(f,applet);
+		homeDir = System.getProperty("user.dir");
 		String userHome = System.getProperty("user.home");
-		if (IJ.isWindows()) {
+		String osName = System.getProperty("os.name");
+		if (osName.indexOf("Windows",0)>-1)
 			prefsDir = homeDir; //ImageJ folder on Windows
-			if (prefsDir.endsWith("Desktop"))
-				prefsDir = userHome;
-		} else {
+		else {
 			prefsDir = userHome; // Mac Preferences folder or Unix home dir
 			if (IJ.isMacOSX())
 				prefsDir += "/Library/Preferences";
-			else
-				prefsDir += "/.imagej";
 		} 
 		if (f==null) {
 			try {f = new FileInputStream(homeDir+"/"+PROPS_NAME);}
@@ -166,32 +134,14 @@ public class Prefs {
 		return null;
 	}
 
-	/** Returns the URL of the directory that contains the ImageJ sample images. */
+	/** Returns the URL for the ImageJ sample images. */
 	public static String getImagesURL() {
 		return imagesURL;
-	}
-
-	/** Sets the URL of the directory that contains the ImageJ sample images. */
-	public static void setImagesURL(String url) {
-		imagesURL = url;
 	}
 
 	/** Returns the path to the ImageJ directory. */
 	public static String getHomeDir() {
 		return homeDir;
-	}
-
-	/** Gets the path to the directory where the 
-		preferences file (IJPrefs.txt) is saved. */
-	public static String getPrefsDir() {
-		return prefsDir;
-	}
-
-	/** Sets the path to the ImageJ directory. */
-	static void setHomeDir(String path) {
-		if (path.endsWith(File.separator))
-			path = path.substring(0, path.length()-1);
-		homeDir = path;
 	}
 
 	/** Finds an string in IJ_Props or IJ_Prefs.txt. */
@@ -265,10 +215,11 @@ public class Prefs {
 	static void loadPreferences() {
 		String path = prefsDir+separator+PREFS_NAME;
 		boolean ok =  loadPrefs(path);
-		if (!ok && !IJ.isWindows()) {
+		if (!ok && IJ.isMacOSX()) {
 			path = System.getProperty("user.home")+separator+PREFS_NAME;
 			ok = loadPrefs(path); // look in home dir
-			if (ok) new File(path).delete();
+			if (ok)
+				new File(path).delete();
 		}
 
 	}
@@ -285,22 +236,19 @@ public class Prefs {
 	}
 
 	/** Saves user preferences in the IJ_Prefs.txt properties file. */
-	public static void savePreferences() {
+	static void savePreferences() {
 		try {
 			Properties prefs = new Properties();
 			String dir = OpenDialog.getDefaultDirectory();
 			if (dir!=null)
-				prefs.put(DIR_IMAGE, dir);
+				prefs.put(DIR_IMAGE, escapeBackSlashes(dir));
 			prefs.put(ROICOLOR, Tools.c2hex(Roi.getColor()));
-			prefs.put(SHOW_ALL_COLOR, Tools.c2hex(ImageCanvas.getShowAllColor()));
 			prefs.put(FCOLOR, Tools.c2hex(Toolbar.getForegroundColor()));
 			prefs.put(BCOLOR, Tools.c2hex(Toolbar.getBackgroundColor()));
 			prefs.put(JPEG, Integer.toString(JpegWriter.getQuality()));
 			prefs.put(FPS, Double.toString(Animator.getFrameRate()));
 			prefs.put(DIV_BY_ZERO_VALUE, Double.toString(FloatBlitter.divideByZeroValue));
 			prefs.put(NOISE_SD, Double.toString(Filters.getSD()));
-			if (threads>1) prefs.put(THREADS, Integer.toString(threads));
-			if (IJ.isMacOSX()) useJFileChooser = false;
 			saveOptions(prefs);
 			savePluginPrefs(prefs);
 			IJ.getInstance().savePreferences(prefs);
@@ -312,16 +260,12 @@ public class Prefs {
 			GelAnalyzer.savePreferences(prefs);
 			NewImage.savePreferences(prefs);
 			String path = prefsDir+separator+PREFS_NAME;
-			if (prefsDir.endsWith(".imagej")) {
-				File f = new File(prefsDir);
-				if (!f.exists()) f.mkdir(); // create .imagej directory
-			}
 			savePrefs(prefs, path);
-		} catch (Throwable t) {
-			CharArrayWriter caw = new CharArrayWriter();
-			PrintWriter pw = new PrintWriter(caw);
-			t.printStackTrace(pw);
-			IJ.log(caw.toString());
+		} catch (Exception e) {
+			//CharArrayWriter caw = new CharArrayWriter();
+			//PrintWriter pw = new PrintWriter(caw);
+			//e.printStackTrace(pw);
+			//IJ.write(caw.toString());
 			IJ.log("<Unable to save preferences>");
 			IJ.wait(3000);
 		}
@@ -330,8 +274,7 @@ public class Prefs {
 	static void loadOptions() {
 		int options = getInt(OPTIONS, ANTIALIASING);
 		usePointerCursor = (options&USE_POINTER)!=0;
-		//antialiasedText = (options&ANTIALIASING)!=0;
-		antialiasedText = false;
+		antialiasedText = (options&ANTIALIASING)!=0;
 		interpolateScaledImages = (options&INTERPOLATE)!=0;
 		open100Percent = (options&ONE_HUNDRED_PERCENT)!=0;
 		open100Percent = (options&ONE_HUNDRED_PERCENT)!=0;
@@ -344,15 +287,6 @@ public class Prefs {
 		pointAutoMeasure = (options&AUTO_MEASURE)!=0;
 		requireControlKey = (options&REQUIRE_CONTROL)!=0;
 		useInvertingLut = (options&USE_INVERTING_LUT)!=0;
-		antialiasedTools = (options&ANTIALIASED_TOOLS)!=0;
-		intelByteOrder = (options&INTEL_BYTE_ORDER)!=0;
-		doubleBuffer = (options&DOUBLE_BUFFER)!=0;
-		noPointLabels = (options&NO_POINT_LABELS)!=0;
-		noBorder = (options&NO_BORDER)!=0;
-		showAllSliceOnly = (options&SHOW_ALL_SLICE_ONLY)!=0;
-		copyColumnHeaders = (options&COPY_HEADERS)!=0;
-		noRowNumbers = (options&NO_ROW_NUMBERS)!=0;
-		moveToMisc = (options&MOVE_TO_MISC)!=0;
 	}
 
 	static void saveOptions(Properties prefs) {
@@ -361,11 +295,7 @@ public class Prefs {
 			+ (blackBackground?BLACK_BACKGROUND:0) + (useJFileChooser?JFILE_CHOOSER:0)
 			+ (blackCanvas?BLACK_CANVAS:0) + (weightedColor?WEIGHTED:0) 
 			+ (pointAutoMeasure?AUTO_MEASURE:0) + (requireControlKey?REQUIRE_CONTROL:0)
-			+ (useInvertingLut?USE_INVERTING_LUT:0) + (antialiasedTools?ANTIALIASED_TOOLS:0)
-			+ (intelByteOrder?INTEL_BYTE_ORDER:0) + (doubleBuffer?DOUBLE_BUFFER:0)
-			+ (noPointLabels?NO_POINT_LABELS:0) + (noBorder?NO_BORDER:0)
-			+ (showAllSliceOnly?SHOW_ALL_SLICE_ONLY:0) + (copyColumnHeaders?COPY_HEADERS:0)
-			+ (noRowNumbers?NO_ROW_NUMBERS:0) + (moveToMisc?MOVE_TO_MISC:0);
+			+ (useInvertingLut?USE_INVERTING_LUT:0);
 		prefs.put(OPTIONS, Integer.toString(options));
 	}
 
@@ -381,13 +311,6 @@ public class Prefs {
 	/** Saves <code>value</code> in the preferences file using 
 		the keyword <code>key</code>. This value can be retrieved 
 		using the appropriate <code>getPref()</code> method. */
-	public static void set(String key, int value) {
-		set(key, Integer.toString(value));
-	}
-
-	/** Saves <code>value</code> in the preferences file using 
-		the keyword <code>key</code>. This value can be retrieved 
-		using the appropriate <code>getPref()</code> method. */
 	public static void set(String key, double value) {
 		set(key, ""+value);
 	}
@@ -396,7 +319,7 @@ public class Prefs {
 		 file using the keyword <code>key</code>. This value can be retrieved 
 		using the appropriate <code>getPref()</code> method. */
 	public static void set(String key, boolean value) {
-		set(key, ""+value);
+		set (key, ""+value);
 	}
 
 	/** Uses the keyword <code>key</code> to retrieve a string from the
@@ -436,78 +359,44 @@ public class Prefs {
 			return value.equals("true");
 	}
 
-	/** Saves the Point <code>loc</code> in the preferences
-		 file as a string using the keyword <code>key</code>. */
-	public static void saveLocation(String key, Point loc) {
-		set(key, loc.x+","+loc.y);
-	}
-
-	/** Uses the keyword <code>key</code> to retrieve a location
-		from the preferences file. Returns null if the
-		key is not found or the location is not valid (e.g., offscreen). */
-	public static Point getLocation(String key) {
-		String value = ijPrefs.getProperty(KEY_PREFIX+key);
-		if (value==null) return null;
-		int index = value.indexOf(",");
-		if (index==-1) return null;
-		double xloc = Tools.parseDouble(value.substring(0, index));
-		if (Double.isNaN(xloc) || index==value.length()-1) return null;
-		double yloc = Tools.parseDouble(value.substring(index+1));
-		if (Double.isNaN(yloc)) return null;
-		Point p = new Point((int)xloc, (int)yloc);
-		Dimension screen = IJ.getScreenSize();
-		if (p.x>screen.width-100 || p.y>screen.height-40)
-			return null;
-		else
-			return p;
-	}
-
 	/** Save plugin preferences. */
 	static void savePluginPrefs(Properties prefs) {
 		Enumeration e = ijPrefs.keys();
 		while (e.hasMoreElements()) {
 			String key = (String) e.nextElement();
 			if (key.indexOf(KEY_PREFIX) == 0)
-				prefs.put(key, ijPrefs.getProperty(key));
+				prefs.put(key, escapeBackSlashes(ijPrefs.getProperty(key)));
 		}
 	}
 
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
-		bos.close();
-	}
-	
-	/** Returns the number of threads used by PlugInFilters to process stacks. */
-	public static int getThreads() {
-		if (threads==0) {
-			threads = getInt(THREADS, 0);
-			int processors = Runtime.getRuntime().availableProcessors();
-			if (threads<1 || threads>processors) threads = processors;
+		PrintWriter pw = new PrintWriter(bos);
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
+		pw.println("# "+new Date());
+		pw.println("");
+		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {
+			String key = (String)e.nextElement();
+			pw.print(key);
+			pw.write('=');
+			pw.println((String)prefs.get(key));
 		}
-		return threads;
-	}
-	
-	/** Sets the number of threads (1-32) used by PlugInFilters to process stacks. */
-	public static void setThreads(int n) {
-		if (n<1) n = 1;
-		if (n>32) n = 32;
-		threads = n;
-	}
-	
-	/** Sets the transparent index (0-255), or set to -1 to disable transparency. */
-	public static void setTransparentIndex(int index) {
-		if (index<-1 || index>255) index = -1;
-		transparentIndex = index;
+		pw.close();
 	}
 
-	/** Returns the transparent index (0-255), or -1 if transparency is disabled. */
-	public static int getTransparentIndex() {
-		return transparentIndex;
+	static String escapeBackSlashes(String s) {
+		if (s.indexOf('\\')==-1)
+			return s;
+		StringBuffer sb = new StringBuffer(s.length()+10);
+		char[] chars = s.toCharArray();
+		for (int i=0; i<chars.length; i++) {
+			sb.append(chars[i]);
+			if (chars[i]=='\\')
+				sb.append('\\');
+		}
+		return sb.toString();
 	}
-
-
 
 }
 

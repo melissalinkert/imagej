@@ -80,12 +80,10 @@ public class CanvasResizer implements PlugIn {
 			ImageStack stackNew = expandStack(stackOld, wNew, hNew, xOff, yOff);
 			imp.setStack(null, stackNew);
 		} else {
-			if (!IJ.macroRunning())
-				Undo.setup(Undo.COMPOUND_FILTER, imp);
+			Undo.setup(Undo.COMPOUND_FILTER, imp);
 			ImageProcessor newIP = expandImage(imp.getProcessor(), wNew, hNew, xOff, yOff);
 			imp.setProcessor(null, newIP);
-			if (!IJ.macroRunning())
-				Undo.setup(Undo.COMPOUND_FILTER_DONE, imp);
+			Undo.setup(Undo.COMPOUND_FILTER_DONE, imp);
 		}
 	}
 	
@@ -106,7 +104,7 @@ public class CanvasResizer implements PlugIn {
 				ipNew.setColor(colorBack);
 			ipNew.fill();
 			ipNew.insert(stackOld.getProcessor(i), xOff, yOff);
-			stackNew.addSlice(stackOld.getSliceLabel(i), ipNew);
+			stackNew.addSlice(null, ipNew);
 		}
 		return stackNew;
 	}

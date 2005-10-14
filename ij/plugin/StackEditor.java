@@ -4,66 +4,57 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.Calibration;
 import ij.macro.Interpreter;
-import ij.io.FileInfo;
 
 
 /** Implements the AddSlice, DeleteSlice and "Convert Windows to Stack" commands. */
 public class StackEditor implements PlugIn {
+	String arg;
 	ImagePlus imp;
 	int nSlices, width, height;
 
+	/** 'arg' must be "add", "delete" or "convert". */
 	public void run(String arg) {
-		imp = IJ.getImage();
+		imp = WindowManager.getCurrentImage();
+		if (imp==null)
+			{IJ.noImage(); return;}
     	nSlices = imp.getStackSize();
     	width = imp.getWidth();
     	height = imp.getHeight();
     	
     	if (arg.equals("tostack"))
-    		convertImagesToStack();
-    	else if (arg.equals("add"))
-    		addSlice();
-    	else if (arg.equals("delete"))
+    		{convertImagesToStack(); return;}
+    	if (arg.equals("add"))
+    		{addSlice(); return;}
+    		
+		if (nSlices<2)
+			{IJ.error("Stack requred"); return;}
+    	if (arg.equals("delete"))
     		deleteSlice();
     	else if (arg.equals("toimages"))
     		convertStackToImages(imp);
 	}
 
-	void addSlice() {
-		if (imp.isHyperStack()) return;
- 		if (!imp.lock()) return;
-		int id = 0;
+    void addSlice() {
+		if (!imp.lock())
+			return;
 		ImageStack stack = imp.getStack();
-		if (stack.getSize()==1) {
-			String label = stack.getSliceLabel(1);
-			if (label!=null && label.indexOf("\n")!=-1)
-				stack.setSliceLabel(null, 1);
-			Object obj = imp.getProperty("Label");
-			if (obj!=null && (obj instanceof String))
-				stack.setSliceLabel((String)obj, 1);
-			id = imp.getID();
-		}
+		if (stack.getSize()==1) stack.setSliceLabel(null, 1);
 		ImageProcessor ip = imp.getProcessor();
 		int n = imp.getCurrentSlice();
-		if (IJ.altKeyDown()) n--; // insert in front of current slice
+		if (IJ.altKeyDown())
+			n--; // insert in front of current slice
 		stack.addSlice(null, ip.createProcessor(width, height), n);
 		imp.setStack(null, stack);
 		imp.setSlice(n+1);
 		imp.unlock();
-		if (id!=0) IJ.selectWindow(id); // prevents macros from failing
 	}
-	
+
 	void deleteSlice() {
-		if (imp.isHyperStack()) return;
-		if (nSlices<2)
-			{IJ.error("\"Delete Slice\" requires a stack"); return;}
-		if (!imp.lock()) return;
+		if (!imp.lock())
+			return;
 		ImageStack stack = imp.getStack();
 		int n = imp.getCurrentSlice();
  		stack.deleteSlice(n);
- 		if (stack.getSize()==1) {
-			String label = stack.getSliceLabel(1);
- 			if (label!=null) imp.setProperty("Label", label);
- 		}
 		imp.setStack(null, stack);
  		if (n--<1) n = 1;
 		imp.setSlice(n);
@@ -110,8 +101,6 @@ public class StackEditor implements PlugIn {
 		double min = Double.MAX_VALUE;
 		double max = -Double.MAX_VALUE;
 		ImageStack stack = new ImageStack(width, height);
-		FileInfo fi = image[0].getOriginalFileInfo();
-		if (fi!=null && fi.directory==null) fi = null;
 		for (int i=0; i<count; i++) {
 			ImageProcessor ip = image[i].getProcessor();
 			if (ip.getMin()<min) min = ip.getMin();
@@ -119,36 +108,28 @@ public class StackEditor implements PlugIn {
             String label = image[i].getTitle();
             String info = (String)image[i].getProperty("Info");
             if (info!=null) label += "\n" + info;
-            if (fi!=null) {
-				FileInfo fi2 = image[i].getOriginalFileInfo();
-				if (fi2!=null && !fi.directory.equals(fi2.directory))
-					fi = null;
-            }
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			image[i].close();
+			ImageWindow win = image[i].getWindow();
+			if (win!=null)
+				win.close();
+			else if (Interpreter.isBatchMode())
+				Interpreter.removeBatchModeImage(image[i]);
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
 			imp.getProcessor().setMinAndMax(min, max);
 		if (cal2!=null)
 			imp.setCalibration(cal2);
-		if (fi!=null) {
-			fi.fileName = "";
-			fi.nImages = imp.getStackSize();
-			imp.setFileInfo(fi);
-		}
 		imp.show();
 	}
 
 	public void convertStackToImages(ImagePlus imp) {
-		if (nSlices<2)
-			{IJ.error("\"Convert Stack to Images\" requires a stack"); return;}
 		if (!imp.lock())
 			return;
 		ImageStack stack = imp.getStack();
 		int size = stack.getSize();
-		if (size>30 && !IJ.isMacro()) {
+		if (size>30 && !IJ.macroRunning()) {
 			boolean ok = IJ.showMessageWithCancel("Convert to Images?",
 			"Are you sure you want to convert this\nstack to "
 			+size+" separate windows?");
@@ -156,20 +137,10 @@ public class StackEditor implements PlugIn {
 				{imp.unlock(); return;}
 		}
 		Calibration cal = imp.getCalibration();
-		CompositeImage cimg = imp.isComposite()?(CompositeImage)imp:null;
-		if (imp.getNChannels()!=imp.getStackSize()) cimg = null;
 		for (int i=1; i<=size; i++) {
 			String label = stack.getShortSliceLabel(i);
-			String title = label!=null&&!label.equals("")?label:getTitle(imp, i);
-			ImageProcessor ip = stack.getProcessor(i);
-			if (cimg!=null) {
-				LUT lut = cimg.getChannelLut(i);
-				if (lut!=null) {
-					ip.setColorModel(lut);
-					ip.setMinAndMax(lut.min, lut.max);
-				}
-			}
-			ImagePlus imp2 = new ImagePlus(title, ip);
+			String title = label!=null&&!label.equals("")?label:getDigits(i);
+			ImagePlus imp2 = new ImagePlus(title, stack.getProcessor(i));
 			imp2.setCalibration(cal);
 			imp2.show();
 		}
@@ -182,10 +153,10 @@ public class StackEditor implements PlugIn {
 		imp.unlock();
 	}
 
-	String getTitle(ImagePlus imp, int n) {
+	String getDigits(int n) {
 		String digits = "00000000"+n;
-		return imp.getShortTitle()+"-"+digits.substring(digits.length()-4,digits.length());
+		return digits.substring(digits.length()-4,digits.length());
 	}
-	
+
 }
 

@@ -20,7 +20,7 @@ public class FloatStatistics extends ImageStatistics {
 		setup(ip, cal);
 		double minT = ip.getMinThreshold();
 		double minThreshold,maxThreshold;
-		if ((mOptions&LIMIT)==0 || minT==ImageProcessor.NO_THRESHOLD)
+		if ((mOptions&LIMIT)==0 || minT==ip.NO_THRESHOLD)
 			{minThreshold=-Float.MAX_VALUE; maxThreshold=Float.MAX_VALUE;}
 		else
 			{minThreshold=minT; maxThreshold=ip.getMaxThreshold();}
@@ -37,7 +37,7 @@ public class FloatStatistics extends ImageStatistics {
 			if (Double.isInfinite(binSize)||Double.isNaN(binSize))
 				median = 0.0;
 			else {
-				calculateMedian(histogram, 0, histogram.length-1, null);
+				calculateMedian(histogram, 0, null);
 				median = histMin + median*binSize;
 				if (binSize!=1.0) median += binSize/2.0; 
 			}       	
@@ -158,12 +158,8 @@ public class FloatStatistics extends ImageStatistics {
 	    double sDeviation = Math.sqrt(variance);
 	    skewness = ((sum3 - 3.0*mean*sum2)/pixelCount + 2.0*mean*mean2)/(variance*sDeviation);
 	    kurtosis = (((sum4 - 4.0*mean*sum3 + 6.0*mean2*sum2)/pixelCount - 3.0*mean2*mean2)/(variance*variance)-3.0);
-		xCenterOfMass = xsum/sum1+0.5;
-		yCenterOfMass = ysum/sum1+0.5;
-		if (cal!=null) {
-			xCenterOfMass = cal.getX(xCenterOfMass);
-			yCenterOfMass = cal.getY(yCenterOfMass, height);
-		}
+		xCenterOfMass = (xsum/sum1+0.5)*pw;
+		yCenterOfMass = (ysum/sum1+0.5)*ph;
 	}
 
 	void getCentroid(ImageProcessor ip, double minThreshold, double maxThreshold) {
@@ -186,12 +182,8 @@ public class FloatStatistics extends ImageStatistics {
 				i++;
 			}
 		}
-		xCentroid = xsum/count+0.5;
-		yCentroid = ysum/count+0.5;
-		if (cal!=null) {
-			xCentroid = cal.getX(xCentroid);
-			yCentroid = cal.getY(yCentroid, height);
-		}
+		xCentroid = ((double)xsum/count+0.5)*pw;
+		yCentroid = ((double)ysum/count+0.5)*ph;
 	}
 
 	void calculateAreaFraction(ImageProcessor ip) {

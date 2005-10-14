@@ -20,7 +20,6 @@ public class PolygonRoi extends Roi {
 	
 	private double angle1, degrees=Double.NaN;
 	private int xClipMin, yClipMin, xClipMax, yClipMax;
-	private boolean userCreated;
 
 	long mouseUpTime = 0;
 
@@ -76,8 +75,8 @@ public class PolygonRoi extends Roi {
 	}
 
 	/** Starts the process of creating a new user-generated polygon or polyline ROI. */
-	public PolygonRoi(int sx, int sy, ImagePlus imp) {
-		super(sx, sy, imp);
+	public PolygonRoi(int ox, int oy, ImagePlus imp) {
+		super(ox, oy, imp);
 		int tool = Toolbar.getToolId();
 		if (tool==Toolbar.POLYGON)
 			type = POLYGON;
@@ -90,16 +89,16 @@ public class PolygonRoi extends Roi {
 		xp2 = new int[maxPoints];
 		yp2 = new int[maxPoints];
 		nPoints = 2;
-		x = ic.offScreenX(sx);
-		y = ic.offScreenY(sy);
+		x = ox;
+		y = oy;
 		width=1;
 		height=1;
-		clipX = x;
-		clipY = y;
+		clipX = ox;
+		clipY = oy;
 		clipWidth = 1;
 		clipHeight = 1;
+		ImageWindow win = imp.getWindow();
 		state = CONSTRUCTING;
-		userCreated = true;
 	}
 
 	private void drawStartBox(Graphics g) {
@@ -109,7 +108,7 @@ public class PolygonRoi extends Roi {
 	
 	public void draw(Graphics g) {
         updatePolygon();
-        g.setColor(instanceColor!=null?instanceColor:ROIColor);
+        g.setColor(ROIColor);
         if (xSpline!=null) {
             if (type==POLYLINE || type==FREELINE)
                 g.drawPolyline(xScreenSpline, yScreenSpline, splinePoints);
@@ -132,8 +131,7 @@ public class PolygonRoi extends Roi {
                 drawHandle(g, xp2[activeHandle-1]-size2, yp2[activeHandle-1]-size2);
             if (activeHandle<nPoints-1)
                 drawHandle(g, xp2[activeHandle+1]-size2, yp2[activeHandle+1]-size2);
-            handleColor=instanceColor!=null?instanceColor:ROIColor; drawHandle(g, xp2[0]-size2, yp2[0]-size2); handleColor=Color.white;
-            for (int i=1; i<nPoints; i++)
+            for (int i=0; i<nPoints; i++)
                 drawHandle(g, xp2[i]-size2, yp2[i]-size2);
         }
 		drawPreviousRoi(g);
@@ -161,7 +159,7 @@ public class PolygonRoi extends Roi {
 			updateFullWindow = true;
 	}
 
-	protected void grow(int sx, int sy) {
+	protected void grow(int x, int y) {
 	// Overrides grow() in Roi class
 	}
 
@@ -207,9 +205,8 @@ public class PolygonRoi extends Roi {
 			degrees = getAngle(x1, y1, x2, y2);
 			if (tool!=Toolbar.ANGLE) {
 				Calibration cal = imp.getCalibration();
-				double pw=cal.pixelWidth, ph=cal.pixelHeight;
-				if (IJ.altKeyDown()) {pw=1.0; ph=1.0;}
-				len = Math.sqrt((x2-x1)*pw*(x2-x1)*pw + (y2-y1)*ph*(y2-y1)*ph);
+				len = Math.sqrt((x2-x1)*cal.pixelWidth*(x2-x1)*cal.pixelWidth
+				+ (y2-y1)*cal.pixelHeight*(y2-y1)*cal.pixelHeight);
 			}
 		}
 		if (tool==Toolbar.ANGLE) {
@@ -275,15 +272,14 @@ public class PolygonRoi extends Roi {
 		if (imp!=null && !(type==TRACED_ROI))
 			imp.draw(x-5, y-5, width+10, height+10);
 		oldX=x; oldY=y; oldWidth=width; oldHeight=height;
-		if (Recorder.record && userCreated && (type==POLYGON||type==POLYLINE||type==ANGLE))
+		if (Recorder.record && (type==POLYGON||type==POLYLINE||type==ANGLE))
 			Recorder.recordRoi(getPolygon(), type);
 		if (type!=POINT) modifyRoi();
 	}
 	
-    protected void moveHandle(int sx, int sy) {
-		if (clipboard!=null) return;
-		int ox = ic.offScreenX(sx);
-		int oy = ic.offScreenY(sy);
+    protected void moveHandle(int ox, int oy) {
+		if (clipboard!=null)
+			return;
 		xp[activeHandle] = ox-x;
 		yp[activeHandle] = oy-y;
 		if (xSpline!=null) {
@@ -332,8 +328,7 @@ public class PolygonRoi extends Roi {
 		if (yClipMax>ymax2) ymax2 = yClipMax;
 		xClipMin=xmin; yClipMin=ymin; xClipMax=xmax; yClipMax=ymax;
 		double mag = ic.getMagnification();
-		int handleSize = type==POINT?HANDLE_SIZE+8:HANDLE_SIZE;
-		int m = mag<1.0?(int)(handleSize/mag):handleSize;
+		int m = mag<1.0?(int)(HANDLE_SIZE/mag):HANDLE_SIZE;
 		imp.draw(xmin2-m, ymin2-m, xmax2-xmin2+m*2, ymax2-ymin2+m*2);
 	}
 
@@ -556,8 +551,6 @@ public class PolygonRoi extends Roi {
 		}		
 		if (state!=CONSTRUCTING)
 			return;
-		if (IJ.spaceBarDown()) // is user scrolling image?
-			return;
 		boolean samePoint = (xp[nPoints-2]==xp[nPoints-1] && yp[nPoints-2]==yp[nPoints-1]);
 		Rectangle biggerStartBox = new Rectangle(ic.screenX(startX)-5, ic.screenY(startY)-5, 10, 10);
 		if (nPoints>2 && (biggerStartBox.contains(sx, sy)
@@ -768,12 +761,9 @@ public class PolygonRoi extends Roi {
 		
 		double length = 0.0;
 		int dx, dy;
-		double w2=1.0, h2=1.0;
-		if (imp!=null) {
-			Calibration cal = imp.getCalibration();
-			w2 = cal.pixelWidth*cal.pixelWidth;
-			h2 = cal.pixelHeight*cal.pixelHeight;
-		}
+		Calibration cal = imp.getCalibration();
+		double w2 = cal.pixelWidth*cal.pixelWidth;
+		double h2 = cal.pixelHeight*cal.pixelHeight;
 		if (xSpline!=null) {
 			for (int i=0; i<(splinePoints-1); i++) {
 				dx = xSpline[i+1]-xSpline[i];

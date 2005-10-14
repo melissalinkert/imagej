@@ -15,12 +15,14 @@ public class Options implements PlugIn {
 			{miscOptions(); return;}
 		else if (arg.equals("line"))
 			{lineWidth(); return;}
-		else if (arg.equals("io"))
-			{io(); return;}
+		else if (arg.equals("quality"))
+			{jpegQuality(); return;}
+		else if (arg.equals("point"))
+			{pointToolOptions(); return;}
 		else if (arg.equals("conv"))
 			{conversions(); return;}
-		else if (arg.equals("display"))
-			{appearance(); return;}
+		else if (arg.equals("image"))
+			{imageOptions(); return;}
 	}
 				
 	// Miscellaneous Options
@@ -30,10 +32,9 @@ public class Options implements PlugIn {
 		gd.addStringField("Divide by Zero Value:", ""+FloatBlitter.divideByZeroValue, 10);
 		gd.addCheckbox("Use Pointer Cursor", Prefs.usePointerCursor);
 		gd.addCheckbox("Hide \"Process Stack?\" Dialog", IJ.hideProcessStackDialog);
-		//gd.addCheckbox("Antialiased_Text", Prefs.antialiasedText);
-		gd.addCheckbox("Antialiased_Tool Icons", Prefs.antialiasedTools);
+		gd.addCheckbox("Antialiased Text", Prefs.antialiasedText);
+		gd.addCheckbox("Open/Save Using JFileChooser", Prefs.useJFileChooser);
 		gd.addCheckbox("Require "+key+" Key for Shortcuts", Prefs.requireControlKey);
-		gd.addCheckbox("Move Isolated Plugins to Misc. Menu", Prefs.moveToMisc);
 		gd.addCheckbox("Debug Mode", IJ.debugMode);
 		gd.showDialog();
 		if (gd.wasCanceled())
@@ -53,18 +54,16 @@ public class Options implements PlugIn {
 			if (f!=null)
 				FloatBlitter.divideByZeroValue = f.floatValue();
 		}
-		IJ.register(FloatBlitter.class); 
 			
 		Prefs.usePointerCursor = gd.getNextBoolean();
 		IJ.hideProcessStackDialog = gd.getNextBoolean();
-		//Prefs.antialiasedText = gd.getNextBoolean();
-		boolean antialiasedTools = gd.getNextBoolean();
-		boolean change = antialiasedTools!=Prefs.antialiasedTools;
-		Prefs.antialiasedTools = antialiasedTools;
-		if (change) Toolbar.getInstance().repaint();
+		Prefs.antialiasedText = gd.getNextBoolean();
+		Prefs.useJFileChooser = gd.getNextBoolean();
 		Prefs.requireControlKey = gd.getNextBoolean();
-		Prefs.moveToMisc = gd.getNextBoolean();
 		IJ.debugMode = gd.getNextBoolean();
+
+		if (!IJ.isJava2())
+			Prefs.useJFileChooser = false;
 	}
 
 	void lineWidth() {
@@ -80,33 +79,28 @@ public class Options implements PlugIn {
 		}
 	}
 
-	// Input/Output options
-	void io() {
-		GenericDialog gd = new GenericDialog("I/O Options");
-		gd.addNumericField("JPEG Quality (0-100):", JpegWriter.getQuality(), 0, 3, "");
-		gd.addNumericField("GIF and PNG Transparent Index:", Prefs.getTransparentIndex(), 0, 3, "");
-		gd.addStringField("File Extension for Tables:", Prefs.get("options.ext", ".xls"), 4);
-		gd.addCheckbox("Use JFileChooser to Open/Save", Prefs.useJFileChooser);
-		gd.addCheckbox("Save TIFF and Raw in Intel Byte Order", Prefs.intelByteOrder);
-		gd.addCheckbox("Copy Column Headers", Prefs.copyColumnHeaders);
-		gd.addCheckbox("Copy Row Numbers", !Prefs.noRowNumbers);
+	void jpegQuality() {
+		int quality = (int)IJ.getNumber("JPEG quality (0-100):", JpegWriter.getQuality());
+		if (quality==IJ.CANCELED) return;
+		JpegWriter.setQuality(quality);
+		return;
+	}
+
+	// Cross hair mark width
+	void pointToolOptions() {
+		GenericDialog gd = new GenericDialog("Point Tool");
+		gd.addNumericField("Mark Width:", Analyzer.markWidth, 0, 2, "pixels");
+		gd.addCheckbox("Auto-Measure", Prefs.pointAutoMeasure);
+		gd.addCheckbox("Auto-Next Slice", Prefs.pointAutoNextSlice);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
-		int quality = (int)gd.getNextNumber();
-		if (quality<0) quality = 0;
-		if (quality>100) quality = 100;
-		JpegWriter.setQuality(quality);
-		int transparentIndex = (int)gd.getNextNumber();
-		Prefs.setTransparentIndex(transparentIndex);
-		String extension = gd.getNextString();
-		if (!extension.startsWith("."))
-			extension = "." + extension;
-		Prefs.set("options.ext", extension);
-		Prefs.useJFileChooser = gd.getNextBoolean();
-		Prefs.intelByteOrder = gd.getNextBoolean();
-		Prefs.copyColumnHeaders = gd.getNextBoolean();
-		Prefs.noRowNumbers = !gd.getNextBoolean();
+		int width = (int)gd.getNextNumber();
+		if (width<0) width = 0;
+		Analyzer.markWidth = width;
+		Prefs.pointAutoMeasure = gd.getNextBoolean();
+		Prefs.pointAutoNextSlice = gd.getNextBoolean();
+		if (Prefs.pointAutoNextSlice) Prefs.pointAutoMeasure = true;
 		return;
 	}
 
@@ -133,25 +127,19 @@ public class Options implements PlugIn {
 		return;
 	}
 		
-	void appearance() {
-		GenericDialog gd = new GenericDialog("Appearance", IJ.getInstance());
-		gd.addCheckbox("Interpolate Zoomed Images", Prefs.interpolateScaledImages);
+	void imageOptions() {
+		GenericDialog gd = new GenericDialog("Image Options", IJ.getInstance());
+		gd.addCheckbox("Interpolate Images <100%", Prefs.interpolateScaledImages);
 		gd.addCheckbox("Open Images at 100%", Prefs.open100Percent);
 		gd.addCheckbox("Black Canvas", Prefs.blackCanvas);
-		gd.addCheckbox("No Image Border", Prefs.noBorder);
 		gd.addCheckbox("Use Inverting Lookup Table", Prefs.useInvertingLut);
-		gd.addCheckbox("Double Buffer Selections", Prefs.doubleBuffer);
-		gd.addNumericField("Menu Font Size:", Menus.getFontSize(), 0, 3, "points");
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;			
 		boolean interpolate = gd.getNextBoolean();
 		Prefs.open100Percent = gd.getNextBoolean();
 		boolean blackCanvas = gd.getNextBoolean();
-		boolean noBorder = gd.getNextBoolean();
 		boolean useInvertingLut = gd.getNextBoolean();
-		Prefs.doubleBuffer = gd.getNextBoolean();
-		int menuSize = (int)gd.getNextNumber();
 		if (interpolate!=Prefs.interpolateScaledImages) {
 			Prefs.interpolateScaledImages = interpolate;
 			ImagePlus imp = WindowManager.getCurrentImage();
@@ -175,22 +163,9 @@ public class Options implements PlugIn {
 				}
 			}
 		}
-		if (noBorder!=Prefs.noBorder) {
-			Prefs.noBorder = noBorder;
-			ImagePlus imp = WindowManager.getCurrentImage();
-			if (imp!=null) imp.repaintWindow();
-		}
 		if (useInvertingLut!=Prefs.useInvertingLut) {
 			invertLuts(useInvertingLut);
 			Prefs.useInvertingLut = useInvertingLut;
-		}
-		if (Prefs.doubleBuffer && IJ.isMacOSX()) {
-			IJ.error("Double-buffering is built into Mac OS X.");
-			Prefs.doubleBuffer = false;
-		}
-		if (menuSize!=Menus.getFontSize() && !IJ.isMacintosh()) {
-			Menus.setFontSize(menuSize);
-			IJ.showMessage("Appearance", "Restart ImageJ to use the new font size");
 		}
 	}
 	

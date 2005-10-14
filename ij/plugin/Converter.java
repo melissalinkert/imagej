@@ -7,16 +7,14 @@ import java.awt.*;
 /** Implements the conversion commands in the Image/Type submenu. */
 public class Converter implements PlugIn {
 
-	/** obsolete */
+	/** Used by WindowManager.setCurrentWindow(). */
 	public static boolean newWindowCreated;
 	private ImagePlus imp;
 
 	public void run(String arg) {
 		imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
-			if (imp.isComposite() && arg.equals("RGB Color"))
-				(new RGBStackConverter()).run("");
-			else if (imp.lock()) {
+			if (imp.lock()) { //v1.24f
 				convert(arg);
 				imp.unlock();
 			}
@@ -35,20 +33,23 @@ public class Converter implements PlugIn {
 		String msg = "Converting to " + item;
 		IJ.showStatus(msg + "...");
 	 	long start = System.currentTimeMillis();
-	 	Roi roi = imp.getRoi();
+	 	boolean isRoi = imp.getRoi()!=null;
 	 	imp.killRoi();
 	 	boolean saveChanges = imp.changes;
 		imp.changes = IJ.getApplet()==null; //if not applet, set 'changes' flag
+	 	newWindowCreated = false;
 	 	ImageWindow win = imp.getWindow();
 		try {
  			if (stack!=null) {
 				// do stack conversions
 		    	if (stack.isRGB() && item.equals("RGB Color")) {
 					new ImageConverter(imp).convertRGBStackToRGB();
-		    		if (win!=null) new ImageWindow(imp, imp.getCanvas()); // replace StackWindow with ImageWindow
+		    		newWindowCreated = true;
+		    		if (win!=null) new ImageWindow(imp); // replace StackWindow with ImageWindow
 		    	} else if (stack.isHSB() && item.equals("RGB Color")) {
 					new ImageConverter(imp).convertHSBToRGB();
-		    		if (win!=null) new ImageWindow(imp, imp.getCanvas());
+		    		newWindowCreated = true;
+		    		if (win!=null) new ImageWindow(imp);
 				} else if (item.equals("8-bit"))
 					new StackConverter(imp).convertToGray8();
 				else if (item.equals("16-bit"))
@@ -76,9 +77,13 @@ public class Converter implements PlugIn {
 				else if (item.equals("RGB Stack")) {
 			    	Undo.reset(); // Reversible; no need for Undo
 					ic.convertToRGBStack();
+		    		newWindowCreated = true;
+			    	//new StackWindow(imp); // replace window with a StackWindow
 		    	} else if (item.equals("HSB Stack")) {
 			    	Undo.reset();
 					ic.convertToHSB();
+		    		newWindowCreated = true;
+			    	//new StackWindow(imp);
 		    	} else if (item.equals("RGB Color")) {
 					ic.convertToRGB();
 		    	} else if (item.equals("8-bit Color")) {
@@ -103,8 +108,8 @@ public class Converter implements PlugIn {
 			Macro.abort();
 			return;
 		}
-		if (roi!=null)
-			imp.setRoi(roi);
+		if (isRoi)
+			imp.restoreRoi();
 		IJ.showTime(imp, start, "");
 		imp.repaintWindow();
 		Menus.updateMenus();

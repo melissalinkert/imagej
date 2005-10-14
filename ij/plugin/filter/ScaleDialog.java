@@ -4,7 +4,6 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.util.Tools;
-import ij.io.FileOpener;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -53,7 +52,6 @@ public class ScaleDialog implements PlugInFilter {
 		gd.addStringField("Unit of Length:", unit);
 		gd.addMessage("Scale: "+"12345.789 pixels per centimeter");
 		gd.addCheckbox("Global", global1);
-		gd.addPanel(makeButtonPanel(gd), GridBagConstraints.EAST, new Insets(5, 0, 0, 25));
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -73,7 +71,6 @@ public class ScaleDialog implements PlugInFilter {
 		if (measured<=0.0 || unit.startsWith("pixel") || unit.startsWith("Pixel") || unit.equals("")) {
 			cal.pixelWidth = 1.0;
 			cal.pixelHeight = 1.0;
-			cal.pixelDepth = 1.0;
 			cal.setUnit("pixel");
 		} else {
 			cal.pixelWidth = known/measured;
@@ -81,7 +78,6 @@ public class ScaleDialog implements PlugInFilter {
 				cal.pixelHeight = cal.pixelWidth*aspectRatio;
 			else
 				cal.pixelHeight = cal.pixelWidth;
-			cal.pixelDepth = cal.pixelWidth;
 			cal.setUnit(unit);
 		}
 		if (!cal.equals(calOrig))
@@ -91,26 +87,12 @@ public class ScaleDialog implements PlugInFilter {
 			WindowManager.repaintImageWindows();
 		else
 			imp.repaintWindow();
-		if (global2 && global2!=global1)
-			FileOpener.setShowConflictMessage(true);
 	}
-	
-	/** Creates a panel containing an "Unscale" button. */
-	Panel makeButtonPanel(SetScaleDialog gd) {
-		Panel panel = new Panel();
-    	panel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-		gd.unscaleButton = new Button("Reset");
-		gd.unscaleButton.addActionListener(gd);
-		panel.add(gd.unscaleButton);
-		return panel;
-	}
-
 }
 
 class SetScaleDialog extends GenericDialog {
 	static final String NO_SCALE = "<no scale>";
 	String initialScale;
-	Button unscaleButton;
 
 	public SetScaleDialog(String title, String scale) {
 		super(title);
@@ -118,7 +100,8 @@ class SetScaleDialog extends GenericDialog {
 	}
 
     protected void setup() {
-    	initialScale += "          ";
+    	if (IJ.isJava2())
+    		initialScale += "          ";
    		setScale(initialScale);
     }
  	
@@ -144,17 +127,6 @@ class SetScaleDialog extends GenericDialog {
  		setScale(theScale);
 	}
 	
-	public void actionPerformed(ActionEvent e) {
-		super.actionPerformed(e);
-		if (e.getSource()==unscaleButton) {
-			((TextField)numberField.elementAt(0)).setText("0.00");
-			((TextField)numberField.elementAt(1)).setText("1.00");
-			((TextField)numberField.elementAt(2)).setText("1.0");
-			((TextField)stringField.elementAt(0)).setText("pixel");
-			setScale(NO_SCALE);
-		}
-	}
-
 	void setScale(String theScale) {
  		((Label)theLabel).setText("Scale: "+theScale);
 	}

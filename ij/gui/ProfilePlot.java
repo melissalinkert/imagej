@@ -36,7 +36,7 @@ public class ProfilePlot {
 		this.imp = imp;
 		Roi roi = imp.getRoi();
 		if (roi==null) {
-			IJ.error("Profile Plot", "Selection required.");
+			IJ.error("Selection required.");
 			return;
 		}
 		int roiType = roi.getType();
@@ -49,7 +49,7 @@ public class ProfilePlot {
 		units = cal.getUnits();
 		yLabel = cal.getValueUnit();
 		ImageProcessor ip = imp.getProcessor();
-		//ip.setCalibrationTable(cal.getCTable());
+		ip.setCalibrationTable(cal.getCTable());
 		if (roiType==Roi.LINE)
 			profile = getStraightLineProfile(roi, cal, ip);
 		else if (roiType==Roi.POLYLINE || roiType==Roi.FREELINE)
@@ -59,9 +59,9 @@ public class ProfilePlot {
 		else
 			profile = getColumnAverageProfile(roi.getBounds(), ip);
 		ip.setCalibrationTable(null);
-		ImageCanvas ic = imp.getCanvas();
-		if (ic!=null)
-			magnification = ic.getMagnification();
+		ImageWindow win = imp.getWindow();
+		if (win!=null)
+			magnification = win.getCanvas().getMagnification();
 		else
 			magnification = 1.0;
 	}
@@ -83,7 +83,7 @@ public class ProfilePlot {
 			width = MIN_WIDTH;
 			height = (int)(width*ASPECT_RATIO);
 		}
-		Dimension screen = IJ.getScreenSize();
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 		int maxWidth = Math.min(screen.width-200, 1000);
 		if (width>maxWidth) {
 			width = maxWidth;
@@ -153,7 +153,7 @@ public class ProfilePlot {
 	}
 	
 	double[] getStraightLineProfile(Roi roi, Calibration cal, ImageProcessor ip) {
-			ip.setInterpolate(PlotWindow.interpolate);
+			ip.setInterpolate(true);
 			Line line = (Line)roi;
 			double[] values = line.getPixels();
 			if (cal!=null && cal.pixelWidth!=cal.pixelHeight) {
@@ -199,7 +199,6 @@ public class ProfilePlot {
 	}	
 	
 	double[] getIrregularProfile(Roi roi, ImageProcessor ip, Calibration cal) {
-		boolean interpolate = PlotWindow.interpolate;
 		boolean calcXValues = cal!=null && cal.pixelWidth!=cal.pixelHeight;
 		int n = ((PolygonRoi)roi).getNCoordinates();
 		int[] x = ((PolygonRoi)roi).getXCoordinates();
@@ -241,12 +240,8 @@ public class ProfilePlot {
 			int n2 = (int)len2;
 			for (int j=0; j<=n2; j++) {
 				index = (int)distance+j;
-				//IJ.log(i+" "+index+" "+distance+" "+j);
 				if (index<values.length) {
-					if (interpolate)
-						values[index] = ip.getInterpolatedValue(rx, ry);
-					else
-						values[index] = ip.getPixelValue((int)(rx+0.5), (int)(ry+0.5));
+					values[index] = ip.getInterpolatedValue(rx, ry);
 					if (calcXValues && index>0) {
 						double deltax = cal.pixelWidth*(rx-oldrx);
 						double deltay = cal.pixelHeight*(ry-oldry);
@@ -265,6 +260,25 @@ public class ProfilePlot {
 		return values;
 
 	}
+
+	private double[] getLineSegment(ImageProcessor ip, double x1, double y1, double x2, double y2) {
+		double dx = x2-x1;
+		double dy = y2-y1;
+		int n = (int)Math.round(Math.sqrt(dx*dx + dy*dy));
+		double xinc = dx/n;
+		double yinc = dy/n;
+		n++;
+		double[] data = new double[n];
+		double rx = x1;
+		double ry = y1;
+		for (int i=0; i<n; i++) {
+			data[i] = ip.getInterpolatedValue(rx, ry);
+			rx += xinc;
+			ry += yinc;
+		}
+		return data;
+	}
+	
 
 	void findMinAndMax() {
 		if (profile==null) return;

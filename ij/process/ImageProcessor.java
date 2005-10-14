@@ -5,8 +5,7 @@ import java.awt.*;
 import java.awt.image.*;
 import java.lang.reflect.*; 
 import ij.gui.*;
-import ij.util.*;
-import ij.plugin.filter.GaussianBlur;
+import ij.util.Java2;
 
 /**
 This abstract class is the superclass for classes that process
@@ -30,18 +29,12 @@ public abstract class ImageProcessor extends Object {
 	public static final int CENTER_JUSTIFY = 1;
 	/** Right justify text. */
 	public static final int RIGHT_JUSTIFY = 2;
-	
-	/** Isodata thresholding method */
-	public static final int ISODATA = 0;
-
-	/** Modified isodata method used in Image/Adjust/Threshold tool */
-	public static final int ISODATA2 = 1;
 
 	static public final int RED_LUT=0, BLACK_AND_WHITE_LUT=1, NO_LUT_UPDATE=2, OVER_UNDER_LUT=3;
 	static final int INVERT=0, FILL=1, ADD=2, MULT=3, AND=4, OR=5,
-		XOR=6, GAMMA=7, LOG=8, MINIMUM=9, MAXIMUM=10, SQR=11, SQRT=12, EXP=13, ABS=14;
-	static final int BLUR_MORE=0, FIND_EDGES=1, MEDIAN_FILTER=2, MIN=3, MAX=4, CONVOLVE=5;
-	static final String WRONG_LENGTH = "width*height!=pixels.length";
+		XOR=6, GAMMA=7, LOG=8, MINIMUM=9, MAXIMUM=10, SQR=11, SQRT=12;
+	static final int BLUR_MORE=0, FIND_EDGES=1, MEDIAN_FILTER=2, MIN=3, MAX=4;
+	static final String WRONG_LENGTH = "(width*height) != pixels.length";
 	
 	int fgColor = 0;
 	protected int lineWidth = 1;
@@ -50,15 +43,16 @@ public abstract class ImageProcessor extends Object {
 	protected FontMetrics fontMetrics;
 	protected boolean antialiasedText;
 	protected boolean boldFont;
-	//static Frame frame;
+	static Frame frame;
 		
     ProgressBar progressBar;
+    boolean pixelsModified;
 	protected int width, snapshotWidth;
 	protected int height, snapshotHeight;
 	protected int roiX, roiY, roiWidth, roiHeight;
 	protected int xMin, xMax, yMin, yMax;
-	boolean snapshotCopyMode;
-	ImageProcessor mask;
+	boolean newSnapshot = false; // true if pixels = snapshotPixels
+	ImageProcessor mask = null;
 	protected ColorModel baseCM; // base color model
 	protected ColorModel cm;
 	protected byte[] rLUT1, gLUT1, bLUT1; // base LUT
@@ -76,12 +70,6 @@ public abstract class ImageProcessor extends Object {
 	protected int clipXMin, clipXMax, clipYMin, clipYMax; // clip rect used by drawTo, drawLine, drawDot and drawPixel 
 	protected int justification = LEFT_JUSTIFY;
 	protected int lutUpdateMode;
-	protected WritableRaster raster;
-	protected BufferedImage image;
-	protected BufferedImage fmImage;
-	protected ColorModel cm2;
-	protected SampleModel sampleModel;
-	protected static IndexColorModel defaultColorModel;
 
 		
 	protected void showProgress(double percentDone) {
@@ -89,9 +77,9 @@ public abstract class ImageProcessor extends Object {
         	progressBar.show(percentDone);
 	}
 
-	// Obsolete
 	protected void hideProgress() {
 		showProgress(1.0);
+		newSnapshot = false;
 	}
 		
 	/** Returns the width of this image in pixels. */
@@ -134,7 +122,6 @@ public abstract class ImageProcessor extends Object {
 		newPixels = true;
 		inversionTested = false;
 		minThreshold = NO_THRESHOLD;
-		source = null;
 	}
 
 	protected void makeDefaultColorModel() {
@@ -313,7 +300,7 @@ public abstract class ImageProcessor extends Object {
 	/** Sets the default fill/draw value. */
 	public abstract void setValue(double value);
 
-	/** Sets the background fill value used by the rotate(), scale() and translate() methods. */
+	/** Sets the background fill value used by the rotate() and scale() methods. */
 	public abstract void setBackgroundValue(double value);
 
 	/** Returns the smallest displayed pixel value. */
@@ -408,87 +395,6 @@ public abstract class ImageProcessor extends Object {
 
 		cm = new IndexColorModel(8, 256, rLUT2, gLUT2, bLUT2);
 		newPixels = true;
-		source = null;
-	}
-	
-	/** Automatically sets the lower and upper threshold levels, where 'method'
-		 must be ISODATA or ISODATA2 and 'lutUpdate' must be RED_LUT,
-		 BLACK_AND_WHITE_LUT, OVER_UNDER_LUT or NO_LUT_UPDATE.
-	*/
-	public void setAutoThreshold(int method, int lutUpdate) {
-		if (method<0 || method>ISODATA2)
-			throw new IllegalArgumentException("Invalid thresholding method");
-		if (this instanceof ColorProcessor)
-			return;
-		double min=0.0, max=0.0;
-		boolean notByteData = !(this instanceof ByteProcessor);
-		ImageProcessor ip2 = this;
-		if (notByteData) {
-			ImageProcessor mask = ip2.getMask();
-			Rectangle rect = ip2.getRoi();
-			resetMinAndMax();
-			min = getMin(); max = getMax();
-			ip2 = convertToByte(true);
-			ip2.setMask(mask);
-			ip2.setRoi(rect);	
-		}
-		int options = ij.measure.Measurements.AREA+ ij.measure.Measurements.MIN_MAX+ ij.measure.Measurements.MODE;
-		ImageStatistics stats = ImageStatistics.getStatistics(ip2, options, null);
-		int[] histogram = stats.histogram;
-		int originalModeCount = histogram[stats.mode];
-		if (method==ISODATA2) {
-			int maxCount2 = 0;
-			for (int i = 0; i<stats.nBins; i++) {
-				if ((histogram[i] > maxCount2) && (i!=stats.mode))
-					maxCount2 = histogram[i];
-			}
-			int hmax = stats.maxCount;
-			if ((hmax>(maxCount2 * 2)) && (maxCount2 != 0)) {
-				hmax = (int)(maxCount2 * 1.5);
-				histogram[stats.mode] = hmax;
-        		}
-		}
-		int threshold = ip2.getAutoThreshold(stats.histogram);
-		histogram[stats.mode] = originalModeCount;
-		float[] hist = new float[256];
-		for (int i=0; i<256; i++)
-			hist[i] = stats.histogram[i];
-		FloatProcessor fp = new FloatProcessor(256, 1, hist, null);
-		GaussianBlur gb = new GaussianBlur();
-		gb.blur1Direction(fp, 2.0, 0.01, true, 0);
-		float maxCount=0f, sum=0f, mean, count;
-		int mode = 0;
-		for (int i=0; i<256; i++) {
-			count = hist[i];
-			sum += count;
-			if (count>maxCount) {
-				maxCount = count;
-				mode = i;
-			}
-		}
-		double avg = sum/256.0;
-		double lower, upper;
-		if (maxCount/avg>1.5) {
-			if ((stats.max-mode)>(mode-stats.min))
-				{lower=threshold; upper=255.0;}
-			else
-				{lower=0.0; upper=threshold;}
-		} else {
-			if (isInvertedLut())
-				{lower=threshold; upper=255.0;}
-			else
-				{lower=0.0; upper=threshold;}
-		}
-		if (notByteData) {
-			if (max>min) {
-				lower = min + (lower/255.0)*(max-min);
-				upper = min + (upper/255.0)*(max-min);
-			} else
-				lower = upper = min;
-		}
-		setThreshold(lower, upper, lutUpdate);
-		if (notByteData && lutUpdate!=NO_LUT_UPDATE)
-			setLutAnimation(true);
 	}
 
 	/** Disables thresholding. */
@@ -501,7 +407,6 @@ public abstract class ImageProcessor extends Object {
 		rLUT1 = rLUT2 = null;
 		inversionTested = false;
 		newPixels = true;
-		source = null;
 	}
 
 	/** Returns the lower threshold level. Returns NO_THRESHOLD
@@ -519,13 +424,6 @@ public abstract class ImageProcessor extends Object {
 		OVER_UNDER_LUT or NO_LUT_UPDATE. */
 	public int getLutUpdateMode() {
 		return lutUpdateMode;
-	}
-
-	/** Resets the threshold if minThreshold=maxThreshold and lutUpdateMode=NO_LUT_UPDATE. 
-		This removes the invisible threshold set by the MakeBinary and Convert to Mask commands.*/
-	public void resetBinaryThreshold() {
-		if (minThreshold==maxThreshold && lutUpdateMode==NO_LUT_UPDATE)
-			resetThreshold();
 	}
 
 	/** Defines a rectangular region of interest and sets the mask 
@@ -723,9 +621,6 @@ public abstract class ImageProcessor extends Object {
 					else
 						v = (int)(Math.log(i) * SCALE);
 					break;
-				case EXP:
-					v = (int)(Math.exp(i/SCALE));
-					break;
 				case SQR:
 						v = i*i;
 					break;
@@ -773,19 +668,21 @@ public abstract class ImageProcessor extends Object {
 		double[] data = new double[n];
 		double rx = x1;
 		double ry = y1;
-		if (interpolate) {
+		if (interpolate)
 			for (int i=0; i<n; i++) {
-				data[i] = getInterpolatedValue(rx, ry);
+				if (cTable!=null)
+					data[i] = getInterpolatedValue(rx, ry);
+				else
+					data[i] = getInterpolatedPixel(rx, ry);
 				rx += xinc;
 				ry += yinc;
 			}
-		} else {
+		else
 			for (int i=0; i<n; i++) {
 				data[i] = getPixelValue((int)(rx+0.5), (int)(ry+0.5));
 				rx += xinc;
 				ry += yinc;
 			}
-		}
 		return data;
 	}
 	
@@ -834,8 +731,7 @@ public abstract class ImageProcessor extends Object {
 		if (lineWidth<1) lineWidth = 1;
 	}
 		
-		
-	/** Draws a line from the current drawing location to (x2,y2). */
+	/** Draws a line from the current drawing location to (x,y). */
 	public void lineTo(int x2, int y2) {
 		int dx = x2-cx;
 		int dy = y2-cy;
@@ -847,8 +743,6 @@ public abstract class ImageProcessor extends Object {
 		double x = cx<0?cx-0.5:cx+0.5;
 		double y = cy<0?cy-0.5:cy+0.5;
 		n++;
-		cx = x2; cy = y2;
-		if (n>1000000) return;
 		do {
 			if (lineWidth==1)
 				drawPixel((int)x, (int)y);
@@ -859,7 +753,7 @@ public abstract class ImageProcessor extends Object {
 			x += xinc;
 			y += yinc;
 		} while (--n>0);
-		//if (lineWidth>2) resetRoi();
+		cx = x2; cy = y2;
 	}
 		
 	/** Draws a line from (x1,y1) to (x2,y2). */
@@ -887,20 +781,6 @@ public abstract class ImageProcessor extends Object {
 		}
 	}
 
-	/** Draws an elliptical shape. */
-	public void drawOval(int x, int y, int width, int height) {
-		if ((long)width*height>4*this.width*this.height) return;
-		OvalRoi oval = new OvalRoi(x, y, width, height);
-		drawPolygon(oval.getPolygon());
-	}
-
-	/** Fills an elliptical shape. */
-	public void fillOval(int x, int y, int width, int height) {
-		if ((long)width*height>4*this.width*this.height) return;
-		OvalRoi oval = new OvalRoi(x, y, width, height);
-		fillPolygon(oval.getPolygon());
-	}
-
 	/** Draws a polygon. */
 	public void drawPolygon(Polygon p) {
 		moveTo(p.xpoints[0], p.ypoints[0]);
@@ -924,88 +804,71 @@ public abstract class ImageProcessor extends Object {
 		drawPixel(x-1, y-1);
 	}
 		
-    /** Draws a dot using the current line width and fill/draw value. */
+	/** Draws a dot using the current line width and fill/draw value. */
 	public void drawDot(int xcenter, int ycenter) {
 		double r = lineWidth/2.0;
+		double r2 = r*r;
 		int xmin=(int)(xcenter-r+0.5), ymin=(int)(ycenter-r+0.5);
 		int xmax=xmin+lineWidth, ymax=ymin+lineWidth;
-		if (xmin<clipXMin || ymin<clipYMin || xmax>clipXMax || ymax>clipYMax ) {
-			// draw edge dot
-			double r2 = r*r;
-			r -= 0.5;
-			double xoffset=xmin+r, yoffset=ymin+r;
-			double xx, yy;
-			for (int y=ymin; y<ymax; y++) {
-				for (int x=xmin; x<xmax; x++) {
-					xx = x-xoffset; yy = y-yoffset;
-					if (xx*xx+yy*yy<=r2)
-						drawPixel(x, y);
-				}
+		r -= 0.5;
+		double xoffset=xmin+r, yoffset=ymin+r;
+		double xx, yy;
+		for (int y=ymin; y<ymax; y++) {
+			for (int x=xmin; x<xmax; x++) {
+				xx = x-xoffset; yy = y-yoffset;
+				if (xx*xx+yy*yy<=r2)
+				drawPixel(x, y);
 			}
-		} else {
-			if (dotMask==null || lineWidth!=dotMask.getWidth()) {
-				OvalRoi oval = new OvalRoi(0, 0, lineWidth, lineWidth);
-				dotMask = oval.getMask();
-			}
-			setRoi(xmin, ymin, lineWidth, lineWidth);
-			fill(dotMask);
 		}
 	}
-	
-    private ImageProcessor dotMask;
 
-	private void setupFontMetrics() {
-		if (fmImage==null)
-			fmImage=new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+	private void setupFrame() {
+		if (frame==null) {
+			frame = new Frame();
+			frame.pack();
+			frame.setBackground(Color.white);
+		}
 		if (font==null)
 			font = new Font("SansSerif", Font.PLAIN, 12);
 		if (fontMetrics==null) {
-			Graphics g = fmImage.getGraphics();
-			fontMetrics = g.getFontMetrics(font);
+			frame.setFont(font);
+			fontMetrics = frame.getFontMetrics(font);
 		}
 	}
 
-	/** Draws a string at the current location using the current fill/draw value.
-        Draws multiple lines if the string contains newline characters. */
+	/** Draws a string at the current location using the current fill/draw value. */
 	public void drawString(String s) {
-		if (s==null || s.equals("")) return;
-		setupFontMetrics();
-		if (ij.IJ.isMacOSX()) s += " ";
-		if (s.indexOf("\n")==-1)
-			drawString2(s);
-		else {
-			String[] s2 = Tools.split(s, "\n");
-			for (int i=0; i<s2.length; i++)
-				drawString2(s2[i]);
-		}
-	}
-
-	private void drawString2(String s) {
+		if (s.equals(""))
+			return;
+		setupFrame();
+		if (ij.IJ.isMacOSX())
+			s += " ";
 		int w =  getStringWidth(s);
 		int cxx = cx;
 		if (justification==CENTER_JUSTIFY)
 			cxx -= w/2;
 		else if (justification==RIGHT_JUSTIFY)
 			cxx -= w;
+		//if (antialiasedText)
+		//	w = boldFont?(int)(1.15*w):(int)(1.08*w);
 		int h =  fontMetrics.getHeight();
-		if (w<=0 || h<=0) return;
-		Image bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-		Graphics g = bi.getGraphics();
+		Image img = frame.createImage(w, h);
+		Graphics g = img.getGraphics();
 		FontMetrics metrics = g.getFontMetrics(font);
 		int fontHeight = metrics.getHeight();
 		int descent = metrics.getDescent();
 		g.setFont(font);
 
-		if (antialiasedText && cxx>=00 && cy-h>=0) {
+		if (antialiasedText) {
 			Java2.setAntialiasedText(g, true);
-			setRoi(cxx, cy-h, w, h);
+			setRoi(cxx,cy-h,w,h);
 			ImageProcessor ip = crop();
 			resetRoi();
 			g.drawImage(ip.createImage(), 0, 0, null);
 			g.setColor(drawingColor);
 			g.drawString(s, 0, h-descent);
 			g.dispose();
-			ip = new ColorProcessor(bi);
+			ip = new ColorProcessor(img);
 			if (this instanceof ByteProcessor) {
 				ip = ip.convertToByte(false);
 				if (isInvertedLut()) ip.invert();
@@ -1016,13 +879,15 @@ public abstract class ImageProcessor extends Object {
 			return;
 		}
 		
-		Java2.setAntialiasedText(g, false);
-		g.setColor(Color.white);
-		g.fillRect(0, 0, w, h);
+		if (ij.IJ.isMacOSX()) {
+			Java2.setAntialiasedText(g, false);
+			g.setColor(Color.white);
+			g.fillRect(0, 0, w, h);
+		}
 		g.setColor(Color.black);
 		g.drawString(s, 0, h-descent);
 		g.dispose();
-		ImageProcessor ip = new ColorProcessor(bi);
+		ImageProcessor ip = new ColorProcessor(img);
 		ImageProcessor textMask = ip.convertToByte(false);
 		byte[] mpixels = (byte[])textMask.getPixels();
 		//new ij.ImagePlus("textmask",textMask).show();
@@ -1056,10 +921,9 @@ public abstract class ImageProcessor extends Object {
 	}
 	
 	/** Specifies whether or not text is drawn using antialiasing. Antialiased
-		test requires Java 2 and an 8 bit or RGB image. Antialiasing does not
-		work with 8-bit images that are not using 0-255 display range. */
+		test requires Java 2 and an 8 bit or RGB image. */
 	public void setAntialiasedText(boolean antialiasedText) {
-		if (antialiasedText && (((this instanceof ByteProcessor)&&getMin()==0.0&&getMax()==255.0) || (this instanceof ColorProcessor)))
+		if (antialiasedText && ij.IJ.isJava2() && ((this instanceof ByteProcessor) || (this instanceof ColorProcessor)))
 			this.antialiasedText = true;
 		else
 			this.antialiasedText = false;
@@ -1067,15 +931,10 @@ public abstract class ImageProcessor extends Object {
 
 	/** Returns the width in pixels of the specified string. */
 	public int getStringWidth(String s) {
-		setupFontMetrics();
+		setupFrame();
 		int w;
 		if (antialiasedText) {
-			Graphics g = fmImage.getGraphics();
-			if (g==null) {
-				fmImage = null;
-				setupFontMetrics();
-				g = fmImage.getGraphics();
-			}
+			Graphics g = frame.getGraphics();
 			Java2.setAntialiasedText(g, true);
 			w = Java2.getStringWidth(s, fontMetrics, g);
 			g.dispose();
@@ -1086,7 +945,7 @@ public abstract class ImageProcessor extends Object {
 	
 	/** Returns the current FontMetrics. */
 	public FontMetrics getFontMetrics() {
-		setupFontMetrics();
+		setupFrame();
 		return fontMetrics;
 	}
 
@@ -1114,6 +973,18 @@ public abstract class ImageProcessor extends Object {
 
 	/** Flips the image or ROI vertically. */
 	public abstract void flipVertical();
+	/* {
+		int[] row1 = new int[roiWidth];
+		int[] row2 = new int[roiWidth];
+		for (int y=0; y<roiHeight/2; y++) {
+			getRow(roiX, roiY+y, row1, roiWidth);
+			getRow(roiX, roiY+roiHeight-y-1, row2, roiWidth);
+			putRow(roiX, roiY+y, row2, roiWidth);
+			putRow(roiX, roiY+roiHeight-y-1, row1, roiWidth);
+		}
+		newSnapshot = false;
+	}
+	*/
 
 	/** Flips the image or ROI horizontally. */
 	public void flipHorizontal() {
@@ -1125,6 +996,7 @@ public abstract class ImageProcessor extends Object {
 			putColumn(roiX+x, roiY, col2, roiHeight);
 			putColumn(roiX+roiWidth-x-1, roiY, col1, roiHeight);
 		}
+		newSnapshot = false;
 	}
 
 	/** Rotates the entire image 90 degrees clockwise. Returns
@@ -1169,10 +1041,7 @@ public abstract class ImageProcessor extends Object {
 		return ("ip[width="+width+", height="+height+", min="+getMin()+", max="+getMax()+"]");
 	}
 
-	/**	Fills the image or ROI bounding rectangle with the current fill/draw value. Use
-	*	fill(mask) to fill non-rectangular selections.
-	*	@see ImageProcessor fill(ImageProcessor)
-	*/
+	/** Fills the image or ROI with the current fill/draw value. */
 	public void fill() {
 		process(FILL, 0.0);
 	}
@@ -1199,7 +1068,6 @@ public abstract class ImageProcessor extends Object {
 	/** Set the number of bins to be used for histograms of float images. */
 	public void setHistogramSize(int size) {
 		histogramSize = size;
-		if (histogramSize<1) histogramSize = 1;
 	}
 
 	/**	Returns the number of float image histogram bins. The bin
@@ -1234,11 +1102,9 @@ public abstract class ImageProcessor extends Object {
 		depending on the image type. */
 	public abstract Object getPixels();
 	
-	/** Returns a copy of the pixel data. Or returns a reference to the
-		snapshot buffer if it is not null and 'snapshotCopyMode' is true.
-		@see ImageProcessor#snapshot
-		@see ImageProcessor#setSnapshotCopyMode
-	*/
+	/** Returns a reference to this image's snapshot (undo) array. If
+		the snapshot array is null, returns a copy of the pixel data.
+		The array type varies depending on the image type. */
 	public abstract Object getPixelsCopy();
 
 	/** Returns the value of the pixel at (x,y). For RGB images, the
@@ -1246,61 +1112,6 @@ public abstract class ImageProcessor extends Object {
 		the value must be converted using Float.intBitsToFloat().
 		Returns zero if either the x or y coodinate is out of range. */
 	public abstract int getPixel(int x, int y);
-	
-	public int getPixelCount() {
-		return width*height;
-	}
-
-	/** This is a faster version of getPixel() that does not do bounds checking. */
-	public abstract int get(int x, int y);
-	
-	public abstract int get(int index);
-
-	/** This is a faster version of putPixel() that does not clip  
-		out of range values and does not do bounds checking. */
-	public abstract void set(int x, int y, int value);
-
-	public abstract void set(int index, int value);
-
-	public abstract float getf(int x, int y);
-	
-	public abstract float getf(int index);
-
-	public abstract void setf(int x, int y, float value);
-
-	public abstract void setf(int index, float value);
-
-	public int[][] getIntArray() {
-		int[][] a = new int [width][height];
-		for(int y=0; y<height; y++) {
-			for(int x=0; x<width; x++)
-				a[x][y]=get(x,y);
-		}
-		return a; 
-	}
-
-	public void setIntArray(int[][] a) {
-		for(int y=0; y<height; y++) {
-			for(int x=0; x<width; x++)
-				set(x, y, a[x][y]);
-		}
-	}
-
-	public float[][] getFloatArray() {
-		float[][] a = new float[width][height];
-		for(int y=0; y<height; y++) {
-			for(int x=0; x<width; x++)
-				a[x][y]=getf(x,y);
-		}
-		return a; 
-	}
-
-	public void setFloatArray(float[][] a) {
-		for(int y=0; y<height; y++) {
-			for(int x=0; x<width; x++)
-				setf(x, y, a[x][y]);
-		}
-	}
 	
     /** Returns the samples for the pixel at (x,y) in an int array.
     	RGB pixels have three samples, all others have one.
@@ -1321,54 +1132,12 @@ public abstract class ImageProcessor extends Object {
 	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). */
 	public abstract double getInterpolatedPixel(double x, double y);
 
-	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). 
-		Returns zero if the (x, y) is not inside the image. */
-	public final double getInterpolatedValue(double x, double y) {
-		if (x<0.0 || x>=width-1.0 || y<0.0 || y>=height-1.0)
-			return getInterpolatedEdgeValue(x, y);
-		int xbase = (int)x;
-		int ybase = (int)y;
-		double xFraction = x - xbase;
-		double yFraction = y - ybase;
-		if (xFraction<0.0) xFraction = 0.0;
-		if (yFraction<0.0) yFraction = 0.0;
-		double lowerLeft = getPixelValue(xbase, ybase);
-		double lowerRight = getPixelValue(xbase+1, ybase);
-		double upperRight = getPixelValue(xbase+1, ybase+1);
-		double upperLeft = getPixelValue(xbase, ybase+1);
-		double upperAverage = upperLeft + xFraction * (upperRight - upperLeft);
-		double lowerAverage = lowerLeft + xFraction * (lowerRight - lowerLeft);
-		return lowerAverage + yFraction * (upperAverage - lowerAverage);
+	/** For color and float images, this is the same as getInterpolatedPixel(). */
+	public double getInterpolatedValue(double x, double y) {
+		return getInterpolatedPixel(x, y);
 	}
 
-	private final double getInterpolatedEdgeValue(double x, double y) {
-		int xbase = (int)x;
-		int ybase = (int)y;
-		double xFraction = x - xbase;
-		double yFraction = y - ybase;
-		if (xFraction<0.0) xFraction = 0.0;
-		if (yFraction<0.0) yFraction = 0.0;
-		double lowerLeft = getEdgeValue(xbase, ybase);
-		double lowerRight = getEdgeValue(xbase+1, ybase);
-		double upperRight = getEdgeValue(xbase+1, ybase+1);
-		double upperLeft = getEdgeValue(xbase, ybase+1);
-		double upperAverage = upperLeft + xFraction * (upperRight - upperLeft);
-		double lowerAverage = lowerLeft + xFraction * (lowerRight - lowerLeft);
-		return lowerAverage + yFraction * (upperAverage - lowerAverage);
-	}
-
-	private float getEdgeValue(int x, int y) {
-		if (x<=0) x = 0;
-		if (x>=width) x = width-1;
-		if (y<=0) y = 0;
-		if (y>=height) y = height-1;
-		return getPixelValue(x, y);
-	}
-
-	/** Stores the specified value at (x,y). Does
-		nothing if (x,y) is outside the image boundary.
-		For 8-bit and 16-bit images, out of range values
-		are clipped. For RGB images, the
+	/** Stores the specified value at (x,y). For RGB images, the
 		argb values are packed in 'value'. For float images,
 		'value' is expected to be a float converted to an int
 		using Float.floatToIntBits(). */
@@ -1386,8 +1155,8 @@ public abstract class ImageProcessor extends Object {
 	/** Sets the pixel at (x,y) to the current fill/draw value. */
 	public abstract void drawPixel(int x, int y);
 	
-	/** Sets a new pixel array for the image. The length of the array must be equal to width*height.
-		Use setSnapshotPixels(null) to clear the snapshot buffer. */
+	/** Sets a new pixel array for the image and resets the snapshot
+		buffer. The length of the array must be equal to width*height. */
 	public abstract void setPixels(Object pixels);
 	
 	/** Copies the image contained in 'ip' to (xloc, yloc) using one of
@@ -1427,18 +1196,11 @@ public abstract class ImageProcessor extends Object {
 	/** Performs a log transform on the image or ROI. */
 	public void log() {process(LOG, 0.0);}
 
-	/** Performs a exponential transform on the image or ROI. */
-	public void exp() {process(EXP, 0.0);}
-
 	/** Performs a square transform on the image or ROI. */
 	public void sqr() {process(SQR, 0.0);}
 
 	/** Performs a square root transform on the image or ROI. */
 	public void sqrt() {process(SQRT, 0.0);}
-
-	/** If this is a 32-bit or signed 16-bit image, performs an 
-		absolute value transform, otherwise does nothing. */
-	public void abs() {}
 
 	/** Pixels less than 'value' are set to 'value'. */
 	public void min(double value) {process(MINIMUM, value);}
@@ -1449,37 +1211,18 @@ public abstract class ImageProcessor extends Object {
 	/** Returns a copy of this image is the form of an AWT Image. */
 	public abstract Image createImage();
 	
-	/** Returns this image as a BufferedImage. */
-	public BufferedImage getBufferedImage() {
-		BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = (Graphics2D)bi.getGraphics();
-		g.drawImage(createImage(), 0, 0, null);
-		return bi;
-	}
-
 	/** Returns a new, blank processor with the specified width and height. */
 	public abstract ImageProcessor createProcessor(int width, int height);
 	
-	/** Makes a copy of this image's pixel data that can be 
-		later restored using reset() or reset(mask).
-		@see ImageProcessor#reset		
-		@see ImageProcessor#reset(ImageProcessor)		
-	*/
+	/** Makes a copy of this image's pixel data. */
 	public abstract void snapshot();
 	
 	/** Restores the pixel data from the snapshot (undo) buffer. */
 	public abstract void reset();
 	
-	/** Restores pixels from the snapshot buffer that are 
-		within the rectangular roi but not part of the mask. */
+	/** Restore pixels that are within roi but not part of the mask. */
 	public abstract void reset(ImageProcessor mask);
 	
-	/** Sets a new pixel array for the snapshot (undo) buffer. */
-	public abstract void setSnapshotPixels(Object pixels);
-
-	/** Returns a reference to the snapshot (undo) buffer, or null. */
-	public abstract Object getSnapshotPixels();
-
 	/** Convolves the image or ROI with the specified
 		3x3 integer convolution kernel. */
 	public abstract void convolve3x3(int[] kernel);
@@ -1505,7 +1248,15 @@ public abstract class ImageProcessor extends Object {
 	public abstract void threshold(int level);
 
 	/** Returns a duplicate of this image. */
-	public abstract ImageProcessor duplicate();
+	public ImageProcessor duplicate() {
+		Rectangle saveRoi = getRoi();
+		ImageProcessor saveMask= getMask();
+		resetRoi();
+		ImageProcessor ip2 = crop();
+		setRoi(saveRoi);
+		setMask(saveMask);
+		return ip2;
+	}
 
 	/** Scales the image by the specified factors. Does not
 		change the image size.
@@ -1519,37 +1270,11 @@ public abstract class ImageProcessor extends Object {
 	*/
 	public abstract ImageProcessor resize(int dstWidth, int dstHeight);
 	
-	/** Creates a new ImageProcessor containing a scaled copy 
-		of this image or ROI, with the aspect ratio maintained. */
-	public ImageProcessor resize(int dstWidth) {
-		return resize(dstWidth, (int)(dstWidth*((double)roiHeight/roiWidth)));
-	}
-
 	/** Rotates the image or selection 'angle' degrees clockwise.
 		@see ImageProcessor#setInterpolate
 	*/
   	public abstract void rotate(double angle);
   		
-	/**  Moves the image or selection vertically or horizontally by a specified 
-	      number of pixels. Positive x values move the image or selection to the 
-	      right, negative values move it to the left. Positive y values move the 
-	      image or selection down, negative values move it up.
-	*/
-  	public void translate(int xOffset, int yOffset, boolean eraseBackground) {
-  		ImageProcessor ip2 = this.duplicate();
-  		if (eraseBackground) {
-  			Rectangle roi = getRoi();
-  			resetRoi();
-  			setValue(0);
-  			fill();
-  			setRoi(roi);
-  		}
-		for (int y=roiY; y<(roiY + roiHeight); y++) {
-			for (int x=roiX; x<(roiX + roiWidth); x++)
-				putPixel(x+xOffset, y+yOffset, ip2.getPixel(x, y));
-		}
-  	}
-
 	/** Returns the histogram of the image or ROI. Returns
 		a luminosity histogram for RGB images and null
 		for float images. */
@@ -1567,7 +1292,6 @@ public abstract class ImageProcessor extends Object {
 	public void setLutAnimation(boolean lutAnimation) {
 		this.lutAnimation = lutAnimation;
 		newPixels = true;
-		source = null;
 	}
 	
 	void resetPixels(Object pixels) {
@@ -1579,7 +1303,6 @@ public abstract class ImageProcessor extends Object {
 			source = null;
 		}
 		newPixels = true;
-		source = null;
 	}
 
 	/** Returns an 8-bit version of this image as a ByteProcessor. */
@@ -1637,10 +1360,8 @@ public abstract class ImageProcessor extends Object {
 		int level;
 		int maxValue = histogram.length - 1;
 		double result, sum1, sum2, sum3, sum4;
-		
-		int count0 = histogram[0];
+
 		histogram[0] = 0; //set to zero so erased areas aren't included
-		int countMax = histogram[maxValue];
 		histogram[maxValue] = 0;
 		int min = 0;
 		while ((histogram[min]==0) && (min<maxValue))
@@ -1649,7 +1370,6 @@ public abstract class ImageProcessor extends Object {
 		while ((histogram[max]==0) && (max>0))
 			max--;
 		if (min>=max) {
-			histogram[0]= count0; histogram[maxValue]=countMax;
 			level = histogram.length/2;
 			return level;
 		}
@@ -1673,7 +1393,6 @@ public abstract class ImageProcessor extends Object {
 		} while ((movingIndex+1)<=result && movingIndex<max-1);
 		
 		showProgress(1.0);
-		histogram[0]= count0; histogram[maxValue]=countMax;
 		level = (int)Math.round(result);
 		return level;
 	}
@@ -1701,148 +1420,6 @@ public abstract class ImageProcessor extends Object {
 	protected String maskSizeError(ImageProcessor mask) {
 		return "Mask size ("+mask.getWidth()+"x"+mask.getHeight()+") != ROI size ("+
 			roiWidth+"x"+roiHeight+")";
-	}
-	
-	protected SampleModel getIndexSampleModel() {
-		if (sampleModel==null) {
-			IndexColorModel icm = getDefaultColorModel();
-			WritableRaster wr = icm.createCompatibleWritableRaster(1, 1);
-			sampleModel = wr.getSampleModel();
-			sampleModel = sampleModel.createCompatibleSampleModel(width, height);
-		}
-		return sampleModel;
-	}
-
-	/** Returns the default grayscale IndexColorModel. */
-	public IndexColorModel getDefaultColorModel() {
-		if (defaultColorModel==null) {
-			byte[] r = new byte[256];
-			byte[] g = new byte[256];
-			byte[] b = new byte[256];
-			for(int i=0; i<256; i++) {
-				r[i]=(byte)i;
-				g[i]=(byte)i;
-				b[i]=(byte)i;
-			}
-			defaultColorModel = new IndexColorModel(8, 256, r, g, b);
-		}
-		return defaultColorModel;
-	}
-	
-	/**	The getPixelsCopy() method returns a reference to the
-		snapshot buffer if it is not null and 'snapshotCopyMode' is true.
-		@see ImageProcessor#getPixelsCopy		
-		@see ImageProcessor#snapshot		
-	*/
-	public void setSnapshotCopyMode(boolean b) {
-		snapshotCopyMode = b;
-	}
-	
-	/** Returns the number of color channels in the image. The color channels can be
-	*  accessed by toFloat(channelNumber, fp) and written by setPixels(channelNumber, fp).
-	* @return 1 for grayscale images, 3 for RGB images
-	*/
-	public int getNChannels() {
-		return 1;   /* superseded by ColorProcessor */
-	}
-	
-	/** Returns a FloatProcessor with the image or one color channel thereof.
-	*  The roi and mask are also set for the FloatProcessor.
-	*  @param channelNumber   Determines the color channel, 0=red, 1=green, 2=blue. Ignored for
-	*                         grayscale images.
-	*  @param fp     Here a FloatProcessor can be supplied, or null. The FloatProcessor
-	*                         is overwritten when converting data (re-using its pixels array 
-	*                         improves performance).
-	*  @return A FloatProcessor with the converted image data of the color channel selected
-	*/
-	public abstract FloatProcessor toFloat(int channelNumber, FloatProcessor fp);
-	
-	/** Sets the pixels (of one color channel for RGB images) from a FloatProcessor.
-	*  @param channelNumber   Determines the color channel, 0=red, 1=green, 2=blue.Ignored for
-	*                         grayscale images.
-	*  @param fp              The FloatProcessor where the image data are read from.
-	*/
-	public abstract void setPixels(int channelNumber, FloatProcessor fp);
-	
-	/** Returns the minimum possible pixel value. */
-	public double minValue() {
-		return 0.0;
-	}
-
-	/** Returns the maximum possible pixel value. */
-	public double maxValue() {
-		return 255.0;
-	}
-	
-	/** CompositeImage calls this method to generate an updated color image. */
-	public void updateComposite(int[] rgbPixels, int channel) {
-		int redValue, greenValue, blueValue;
-		int size = width*height;
-		if (bytes==null || !lutAnimation)
-			bytes = create8BitImage();
-		if (cm==null)
-			makeDefaultColorModel();
-		if (reds==null || cm!=cm2)
-			updateLutBytes();
-		switch (channel) {
-			case 1: // update red channel
-				for (int i=0; i<size; i++)
-					rgbPixels[i] = (rgbPixels[i]&0xff00ffff) | reds[bytes[i]&0xff];
-				break;
-			case 2: // update green channel
-				for (int i=0; i<size; i++)
-					rgbPixels[i] = (rgbPixels[i]&0xffff00ff) | greens[bytes[i]&0xff];
-				break;
-			case 3: // update blue channel
-				for (int i=0; i<size; i++)
-					rgbPixels[i] = (rgbPixels[i]&0xffffff00) | blues[bytes[i]&0xff];
-				break;
-			case 4: // get first channel
-				for (int i=0; i<size; i++) {
-					redValue = reds[bytes[i]&0xff];
-					greenValue = greens[bytes[i]&0xff];
-					blueValue = blues[bytes[i]&0xff];
-					rgbPixels[i] = redValue | greenValue | blueValue;	
-				}
-				break;
-			case 5: // merge next channel
-				int pixel;
-				for (int i=0; i<size; i++) {
-					pixel = rgbPixels[i];
-					redValue = (pixel&0x00ff0000) + reds[bytes[i]&0xff];
-					greenValue = (pixel&0x0000ff00) + greens[bytes[i]&0xff];
-					blueValue = (pixel&0x000000ff) + blues[bytes[i]&0xff];
-					if (redValue>16711680) redValue = 16711680;
-					if (greenValue>65280) greenValue = 65280;
-					if (blueValue>255) blueValue = 255;
-					rgbPixels[i] = redValue | greenValue | blueValue;	
-				}
-				break;
-		}
-		lutAnimation = false;
-	}
-	
-	// method and variables used by updateComposite()
-	byte[]  create8BitImage() {return null;}
-	private byte[] bytes;
-	private int[] reds, greens, blues;
-
-	void updateLutBytes() {
-		IndexColorModel icm = (IndexColorModel)cm;
-		int mapSize = icm.getMapSize();
-		if (reds==null || reds.length!=mapSize) {
-			reds = new int[mapSize];
-			greens = new int[mapSize];
-			blues = new int[mapSize];
-		}
-		byte[] tmp = new byte[mapSize];
-		icm.getReds(tmp);
-		for (int i=0; i<mapSize; i++) reds[i] = (tmp[i]&0xff)<<16;
-		icm.getGreens(tmp); 
-		for (int i=0; i<mapSize; i++) greens[i] = (tmp[i]&0xff)<<8;
-		icm.getBlues(tmp);
-		for (int i=0; i<mapSize; i++) blues[i] = tmp[i]&0xff;
-		cm2 = cm;
 	}
 
 }

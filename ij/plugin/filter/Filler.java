@@ -82,7 +82,7 @@ public class Filler implements PlugInFilter, Measurements {
 			if (isStraightLine() && Line.getWidth()>1)
 				ip.fillPolygon(roi.getPolygon());
 			else
-				roi.drawPixels(ip);
+				roi.drawPixels();
 		} else
 	 		ip.fill(); // fill with foreground color
 	}
@@ -103,9 +103,9 @@ public class Filler implements PlugInFilter, Measurements {
 			drawParticleLabels(ip);
 		else {
 			ip.setColor(Toolbar.getForegroundColor());
-			ImageCanvas ic = imp.getCanvas();
-			if (ic!=null) {
-				double mag = ic.getMagnification();
+			ImageWindow win = imp.getWindow();
+			if (win!=null) {
+				double mag = win.getCanvas().getMagnification();
 				if (mag<1.0) {
 					int lineWidth = 1;
 					lineWidth = (int)(lineWidth/mag);
@@ -132,17 +132,17 @@ public class Filler implements PlugInFilter, Measurements {
 		for (int i=first; i<=last; i++) {
 			int x = (int)rt.getValueAsDouble(ResultsTable.X_CENTROID, i);		
 			int y = (int)rt.getValueAsDouble(ResultsTable.Y_CENTROID, i);		
-			drawLabel(imp, ip, i+1, new Rectangle(x,y,0,0));
+			drawLabel(ip, i+1, new Rectangle(x,y,0,0));
 		}
 	}
 
 	void drawLabel(ImageProcessor ip) {
 		int count = Analyzer.getCounter();
 		if (count>0 && roi!=null)
-			drawLabel(imp, ip, count, roi.getBounds());
+			drawLabel(ip, count, roi.getBounds());
 	}
 
-	public void drawLabel(ImagePlus imp, ImageProcessor ip, int count, Rectangle r) {
+	void drawLabel(ImageProcessor ip, int count, Rectangle r) {
 		Color foreground = Toolbar.getForegroundColor();
 		Color background = Toolbar.getBackgroundColor();
 		if (foreground.equals(background)) {
@@ -150,9 +150,9 @@ public class Filler implements PlugInFilter, Measurements {
 			background = Color.white;
 		}
 		int size = 9;
-		ImageCanvas ic = imp.getCanvas();
-		if (ic!=null) {
-			double mag = ic.getMagnification();
+		ImageWindow win = imp.getWindow();
+		if (win!=null) {
+			double mag = win.getCanvas().getMagnification();
 			if (mag<1.0)
 				size /= mag;
 		}

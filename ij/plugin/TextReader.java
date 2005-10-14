@@ -12,7 +12,6 @@ import ij.util.Tools;
 public class TextReader implements PlugIn {
     int words = 0, chars = 0, lines = 0, width=1;;
     String directory, name, path;
-    boolean hideErrorMessages;
     
     public void run(String arg) {
         if (showDialog()) {
@@ -60,18 +59,12 @@ public class TextReader implements PlugIn {
             String msg = e.getMessage();
             if (msg==null || msg.equals(""))
                 msg = ""+e;
-			IJ.showProgress(1.0);
-            if (!hideErrorMessages) 
-            	IJ.error("TextReader", msg);
+            IJ.error("TextReader", msg);
             ip = null;
         }
         return ip;
     }
     
-    public void hideErrorMessages() {
-        hideErrorMessages = true;
-    }
-
     /** Returns the file name. */
     public String getName() {
         return name;
@@ -82,9 +75,8 @@ public class TextReader implements PlugIn {
         int wordsPerLine=0, wordsInPreviousLine=0;
 
         tok.resetSyntax();
-        tok.wordChars(33, 127);
+        tok.wordChars(33, 255);
         tok.whitespaceChars(0, ' ');
-        tok.whitespaceChars(128, 255);
         tok.eolIsSignificant(true);
 
         while (tok.nextToken() != StreamTokenizer.TT_EOF) {
@@ -96,7 +88,7 @@ public class TextReader implements PlugIn {
                     if (lines==1)
                         width = wordsPerLine;
                     else if (wordsPerLine!=0 && wordsPerLine!=wordsInPreviousLine)
-                        throw new IOException("Line "+lines+ " is not the same length as the first line.");
+                         throw new IOException("Line "+lines+ " is not the same length as the first line.");
                     if (wordsPerLine!=0)
                         wordsInPreviousLine = wordsPerLine;
                     wordsPerLine = 0;
@@ -109,16 +101,13 @@ public class TextReader implements PlugIn {
                     break;
             }
         }
-        if (wordsPerLine==width) 
-            lines++; // last line does not end with EOL
    }
 
     void read(Reader r, int size, float[] pixels) throws IOException {
         StreamTokenizer tok = new StreamTokenizer(r);
         tok.resetSyntax();
-        tok.wordChars(33, 127);
+        tok.wordChars(33, 255);
         tok.whitespaceChars(0, ' ');
-        tok.whitespaceChars(128, 255);
         //tok.parseNumbers();
 
         int i = 0;

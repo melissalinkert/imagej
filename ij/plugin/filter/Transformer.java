@@ -22,14 +22,17 @@ public class Transformer implements PlugInFilter {
 	}
 
 	public void run(ImageProcessor ip) {
+
 		if (arg.equals("fliph")) {
 			ip.flipHorizontal();
 			return;
 		}
+		
 		if (arg.equals("flipv")) {
 			ip.flipVertical();
 			return;
 		}
+		
 		if (arg.equals("right") || arg.equals("left")) {
 	    	StackProcessor sp = new StackProcessor(imp.getStack(), ip);
 	    	ImageStack s2 = null;

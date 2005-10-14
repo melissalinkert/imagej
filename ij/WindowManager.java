@@ -11,31 +11,34 @@ import ij.gui.*;
 /** This class consists of static methods used to manage ImageJ's windows. */
 public class WindowManager {
 
-	public static boolean checkForDuplicateName;
 	private static Vector imageList = new Vector();		 // list of image windows
 	private static Vector nonImageList = new Vector();	 // list of non-image windows
 	private static ImageWindow currentWindow;			 // active image window
 	private static Frame frontWindow;
-	private static Hashtable tempImageTable = new Hashtable();
+	private static ImagePlus tempCurrentImage;
 	
 	private WindowManager() {
 	}
 
-	/** Makes the image contained in the specified window the active image. */
-	public static void setCurrentWindow(ImageWindow win) {
+	/** Makes the specified image active. */
+	public synchronized static void setCurrentWindow(ImageWindow win) {
 		if (win==null || win.isClosed() || win.getImagePlus()==null) // deadlock-"wait to lock"
 			return;
-		//IJ.log("setCurrentWindow: "+win.getImagePlus().getTitle()+" ("+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
 		setWindow(win);
-		tempImageTable.remove(Thread.currentThread());
+		tempCurrentImage = null;
 		if (win==currentWindow || imageList.size()==0)
 			return;
+		//IJ.log(win.getImagePlus().getTitle()+", previous="+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
 		if (currentWindow!=null) {
-			// free up pixel buffers used by current window
+			// free up pixel buffers AWT Image resources used by current window
 			ImagePlus imp = currentWindow.getImagePlus();
-			if (imp!=null ) {
+			if (imp!=null && imp.lockSilently()) {
 				imp.trimProcessor();
-				imp.saveRoi();
+				Image img = imp.getImage();
+				if (!Converter.newWindowCreated)
+					imp.saveRoi();
+				Converter.newWindowCreated = false;
+				imp.unlock();
 			}
 		}
 		Undo.reset();
@@ -53,40 +56,12 @@ public class WindowManager {
 		return imageList.indexOf(currentWindow);
 	}
 
-	/** Returns a reference to the active image or null if there isn't one. */
-	public static ImagePlus getCurrentImage() {
-		ImagePlus img = (ImagePlus)tempImageTable.get(Thread.currentThread());
-		//String str = (img==null)?" null":"";
-		if (img==null)
-			img = getActiveImage();
-		//if (img!=null) IJ.log("getCurrentImage: "+img.getTitle()+" "+Thread.currentThread().hashCode()+str);
-		return img;
-	}
-
-	/** Makes the specified image temporarily the active 
-		image for this thread. Call again with a null
-		argument to revert to the previous active image. */
-	public static void setTempCurrentImage(ImagePlus img) {
-		//IJ.log("setTempImage: "+(img!=null?img.getTitle():"null ")+Thread.currentThread().hashCode());
-		if (img==null)
-			tempImageTable.remove(Thread.currentThread());
-		else
-			tempImageTable.put(Thread.currentThread(), img);
-	}
-	
-	/** Sets a temporary image for the specified thread. */
-	public static void setTempCurrentImage(Thread thread, ImagePlus img) {
-		if (thread==null)
-			throw new RuntimeException("thread==null");
-		if (img==null)
-			tempImageTable.remove(thread);
-		else
-			tempImageTable.put(thread, img);
-	}
-
 	/** Returns the active ImagePlus. */
-	private static ImagePlus getActiveImage() {
-		if (currentWindow!=null)
+	public synchronized static ImagePlus getCurrentImage() {
+		//IJ.log("getCurrentImage: "+tempCurrentImage+"  "+currentWindow);
+		if (tempCurrentImage!=null)
+			return tempCurrentImage;
+		else if (currentWindow!=null)
 			return currentWindow.getImagePlus();
 		else if (frontWindow!=null && (frontWindow instanceof ImageWindow))
 			return ((ImageWindow)frontWindow).getImagePlus();
@@ -100,6 +75,8 @@ public class WindowManager {
 	/** Returns the number of open image windows. */
 	public static int getWindowCount() {
 		int count = imageList.size();
+		if (count==0 && tempCurrentImage!=null)
+			count = 1;
 		return count;
 	}
 
@@ -107,7 +84,7 @@ public class WindowManager {
 	public static int getImageCount() {
 		int count = imageList.size();
 		count += Interpreter.getBatchModeImageCount();
-		if (count==0 && getCurrentImage()!=null)
+		if (count==0 && tempCurrentImage!=null)
 			count = 1;
 		return count;
 	}
@@ -137,7 +114,7 @@ public class WindowManager {
 	}
 
 	/** Returns an array containing a list of the non-image windows. */
-	public synchronized static Frame[] getNonImageWindows() {
+	synchronized static Frame[] getNonImageWindows() {
 		Frame[] list = new Frame[nonImageList.size()];
 		nonImageList.copyInto((Frame[])list);
 		return list;
@@ -149,48 +126,35 @@ public class WindowManager {
 		the ID is zero. */
 	public synchronized static ImagePlus getImage(int imageID) {
 		//if (IJ.debugMode) IJ.write("ImageWindow.getImage");
-		if (imageID>0)
-			imageID = getNthImageID(imageID);
-		if (imageID==0 || getImageCount()==0)
+		if (imageID==0)
 			return null;
-		ImagePlus imp2 = Interpreter.getBatchModeImage(imageID);
-		if (imp2!=null)
-			return imp2;
+		if (imageID<0) {
+			ImagePlus imp2 = Interpreter.getBatchModeImage(imageID);
+			if (imp2!=null) return imp2;
+		}
+		int nImages = imageList.size();
+		if (nImages==0)
+			return null;
+		if (imageID>0) {
+			if (imageID>nImages)
+				return null;
+			ImageWindow win = (ImageWindow)imageList.elementAt(imageID-1);
+			if (win!=null)
+				return win.getImagePlus();
+			else
+				return null;
+		}
 		ImagePlus imp = null;
 		for (int i=0; i<imageList.size(); i++) {
 			ImageWindow win = (ImageWindow)imageList.elementAt(i);
-			imp2 = win.getImagePlus();
+			ImagePlus imp2 = win.getImagePlus();
 			if (imageID==imp2.getID()) {
 				imp = imp2;
 				break;
 			}
 		}
-		imp2 = getCurrentImage();
-		if (imp==null &&imp2!=null && imp2.getID()==imageID)
-			return imp2;
 		return imp;
 	}
-	
-	/** Returns the ID of the Nth open image. Returns zero if n<=0 
-		or n greater than the number of open image windows. */
-	public synchronized static int getNthImageID(int n) {
-			if (n<=0) return 0;
-            if (Interpreter.isBatchMode()) {
-                int[] list = getIDList();
-                if (n>list.length)
-                	return 0;
-                else
-                	return list[n-1];
-            } else {
-            	if (n>imageList.size()) return 0;
-                ImageWindow win = (ImageWindow)imageList.elementAt(n-1);
-                if (win!=null)
-                    return win.getImagePlus().getID();
-                else
-                    return 0;
-            }
-	}
-
 	
 	/** Returns the first image that has the specified title or null if it is not found. */
 	public synchronized static ImagePlus getImage(String title) {
@@ -218,59 +182,9 @@ public class WindowManager {
     }
 
 	private static void addImageWindow(ImageWindow win) {
-		ImagePlus imp = win.getImagePlus();
-		if (imp==null) return;
-		checkForDuplicateName(imp);
 		imageList.addElement(win);
-        Menus.addWindowMenuItem(imp);
+        Menus.addWindowMenuItem(win.getImagePlus());
         setCurrentWindow(win);
-    }
-
-	static void checkForDuplicateName(ImagePlus imp) {
-		if (checkForDuplicateName) {
-			String name = imp.getTitle();
-			if (isDuplicateName(name))
-				imp.setTitle(getUniqueName(name));
-		} 
-		checkForDuplicateName = false;
-    }
-
-	static boolean isDuplicateName(String name) {
-		int n = imageList.size();
-		for (int i=0; i<n; i++) {
-			ImageWindow win = (ImageWindow)imageList.elementAt(i);
-			String name2 = win.getImagePlus().getTitle();
-			if (name.equals(name2))
-				return true;
-		}
-		return false;
-	}
-
-	/** Returns a unique name by adding, before the extension,  -1, -2, etc. as needed. */
-	public static String getUniqueName(String name) {
-        String name2 = name;
-        String extension = "";
-        int len = name2.length();
-        int lastDot = name2.lastIndexOf(".");
-        if (lastDot!=-1 && len-lastDot<6 && lastDot!=len-1) {
-            extension = name2.substring(lastDot, len);
-            name2 = name2.substring(0, lastDot);
-        }
-        int lastDash = name2.lastIndexOf("-");
-        if (lastDash!=-1 && name2.length()-lastDash<4)
-            name2 = name2.substring(0, lastDash);
-        for (int i=1; i<=99; i++) {
-            String name3 = name2+"-"+ i + extension;
-            //IJ.log(i+" "+name3);
-            if (!isDuplicateName(name3))
-                return name3;
-        }
-        return name;
-	}
-
-	/** If 'name' is not unique, adds -1, -2, etc. as needed to make it unique. */
-	public static String makeUniqueName(String name) {
-    	return isDuplicateName(name)?getUniqueName(name):name;
     }
 
 	/** Removes the specified window from the Window menu. */
@@ -302,7 +216,6 @@ public class WindowManager {
 		} else
 			currentWindow = null;
 		imageList.removeElementAt(index);
-		setTempCurrentImage(null);  //???
 		int nonImageCount = nonImageList.size();
 		if (nonImageCount>0)
 			nonImageCount++;
@@ -313,14 +226,6 @@ public class WindowManager {
 
 	/** The specified frame becomes the front window, the one returnd by getFrontWindow(). */
 	public static void setWindow(Frame win) {
-		/*
-		if (Recorder.record && win!=null && win!=frontWindow) {
-			String title = win.getTitle();
-			IJ.log("Set window: "+title+"  "+(getFrame(title)!=null?"not null":"null"));
-			if (getFrame(title)!=null && !title.equals("Recorder"))
-				Recorder.record("selectWindow", title);
-		}
-		*/
 		frontWindow = win;
 		//IJ.log("Set window: "+(win!=null?win.getTitle():"null"));
     }
@@ -328,50 +233,49 @@ public class WindowManager {
 	/** Closes all windows. Stops and returns false if any image "save changes" dialog is canceled. */
 	public synchronized static boolean closeAllWindows() {
 		while (imageList.size()>0) {
+			//ImagePlus imp = ((ImageWindow)imageList.elementAt(0)).getImagePlus();
+			//IJ.write("Closing: " + imp.getTitle() + " " + imageList.size());
 			if (!((ImageWindow)imageList.elementAt(0)).close())
 				return false;
 			IJ.wait(100);
 		}
-		ImageJ ij = IJ.getInstance();
-		if (ij!=null && ij.quitting() && IJ.getApplet()==null)
-			return true;
 		Frame[] list = getNonImageWindows();
 		for (int i=0; i<list.length; i++) {
 			Frame frame = list[i];
 			if (frame instanceof PlugInFrame)
 				((PlugInFrame)frame).close();
 			else if (frame instanceof TextWindow)
-				((TextWindow)frame).close();
-			else {
-				frame.setVisible(false);
-				frame.dispose();
-			}
+			((TextWindow)frame).close();
 		}
 		return true;
     }
     
-	/** Activates the next image window on the window list. */
+	/** Activates the next window on the window list. */
 	public static void putBehind() {
 		if (IJ.debugMode) IJ.log("putBehind");
 		if(imageList.size()<1 || currentWindow==null)
 			return;
 		int index = imageList.indexOf(currentWindow);
-		ImageWindow win;
-		int count = 0;
-		do {
-			index--;
-			if (index<0) index = imageList.size()-1;
-			win = (ImageWindow)imageList.elementAt(index);
-			if (++count==imageList.size()) return;
-		} while (win instanceof HistogramWindow || win instanceof PlotWindow);
+		index--;
+		if (index<0)
+			index = imageList.size()-1;
+		ImageWindow win = (ImageWindow)imageList.elementAt(index);
 		setCurrentWindow(win);
 		win.toFront();
 		Menus.updateMenus();
     }
 
-	/** Returns the temporary current image for this thread, or null. */
+	/** Makes the specified image temporarily the active image.
+		Allows use of IJ.run() commands on images that
+		are not displayed in a window. Call again with a null
+		argument to revert to the previous active image. */
+	public static void setTempCurrentImage(ImagePlus imp) {
+		tempCurrentImage = imp;
+    }
+    
+	/** Returns <code>tempCurrentImage</code>, which may be null. */
 	public static ImagePlus getTempCurrentImage() {
-		return (ImagePlus)tempImageTable.get(Thread.currentThread()); 
+		return tempCurrentImage;
 	}
 
     /** Returns the frame with the specified title or null if a frame with that 
@@ -438,7 +342,6 @@ public class WindowManager {
 		for (int i=0; i<list.length; i++) {
 			ImagePlus imp2 = getImage(list[i]);
 			if (imp2!=null) {
-				imp2.setTitle(imp2.getTitle()); // update "(G)" flag (global calibration)
 				ImageWindow win = imp2.getWindow();
 				if (win!=null) win.repaint();
 			}

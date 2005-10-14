@@ -61,7 +61,6 @@ public class Fitter extends PlugInFrame implements PlugIn, ItemListener, ActionL
 		textArea = new TextArea("",15,30,TextArea.SCROLLBARS_VERTICAL_ONLY);
 		//textArea.setBackground(Color.white);
 		textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-		if (IJ.isLinux()) textArea.setBackground(Color.white);
 		textArea.append(text);
 		add("Center", textArea);
 		pack();
@@ -79,8 +78,6 @@ public class Fitter extends PlugInFrame implements PlugIn, ItemListener, ActionL
 		a = Tools.getMinMax(y);
 		double ymin=a[0], ymax=a[1]; 
 		cf = new CurveFitter(x, y);
-		//double[] params = {0.4, 3.0, 4.6, 44.0};
-		//cf.setInitialParameters(params);
 		cf.doFit(fitType, settings.getState());
 		IJ.log(cf.getResultString());
 
@@ -109,9 +106,8 @@ public class Fitter extends PlugInFrame implements PlugIn, ItemListener, ActionL
 	boolean getData() {
 		textArea.selectAll();
 		String text = textArea.getText();
-		text = zapGremlins(text);
 		textArea.select(0,0);
-		StringTokenizer st = new StringTokenizer(text, " \t\n\r,");
+		StringTokenizer st = new StringTokenizer(text);
 		int nTokens = st.countTokens();
 		if (nTokens<4 || (nTokens%2)!=0)
 			return false;
@@ -206,23 +202,6 @@ public class Fitter extends PlugInFrame implements PlugIn, ItemListener, ActionL
 		//	try {doFit(fit.getSelectedIndex());}
 		//	catch (Exception ex) {IJ.write(ex.getMessage());}
 		//}
-	}
-	
-	String zapGremlins(String text) {
-		char[] chars = new char[text.length()];
-		chars = text.toCharArray();
-		int count=0;
-		for (int i=0; i<chars.length; i++) {
-			char c = chars[i];
-			if (c!='\n' && c!='\t' && (c<32||c>127)) {
-				count++;
-				chars[i] = ' ';
-			}
-		}
-		if (count>0)
-			return new String(chars);
-		else
-			return text;
 	}
 
 }

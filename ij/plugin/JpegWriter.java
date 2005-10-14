@@ -3,8 +3,6 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.io.*;
-import ij.measure.Calibration;
-import java.util.Locale;	
 import com.sun.image.codec.jpeg.*;
 import java.awt.image.*;
 import java.awt.*;
@@ -22,7 +20,8 @@ public class JpegWriter implements PlugIn {
 
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
-        if (imp==null) return;
+        if (imp==null)
+	 return;
         imp.startTiming();
         saveAsJpeg(imp,arg);
         IJ.showTime(imp, imp.getStartTime(), "JpegWriter: ");
@@ -40,23 +39,7 @@ public class JpegWriter implements PlugIn {
             g.dispose();            
             JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(f);
             JPEGEncodeParam param = encoder.getDefaultJPEGEncodeParam(bi);
-			if (quality==100) { // no color subsampling, better quality
-            	param.setQuality(1f, true);
-				param.setHorizontalSubsampling(1, 1);
-				param.setHorizontalSubsampling(2, 1);
-				param.setVerticalSubsampling(1, 1);
-				param.setVerticalSubsampling(2, 1);
-			} else {
-				float q = quality==99?1f:(float)(quality/100.0);
-            	param.setQuality(q, true);
-            }
-			Calibration cal = imp.getCalibration();
-			String unit = cal.getUnit().toLowerCase(Locale.US);
-			if (cal.getUnit().equals("inch")||cal.getUnit().equals("in")) {
-					param.setDensityUnit(JPEGEncodeParam.DENSITY_UNIT_DOTS_INCH);
-					param.setXDensity((int)Math.round(1.0/cal.pixelWidth));
-					param.setYDensity((int)Math.round(1.0/cal.pixelHeight));
-			}
+            param.setQuality((float)(quality/100.0), true);
             encoder.encode(bi, param);
             f.close();
         }

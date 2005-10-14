@@ -7,14 +7,10 @@ import ij.plugin.ContrastEnhancer;
 import java.awt.*;
 import java.util.*;
 
+
 /** 
-This class implements the Process/FFT/bandpass Filter command. It started out as 
+This class implements the Process/FFT/bandpass Filter command. It is based on 
 Joachim Walter's FFT Filter plugin at "http://rsb.info.nih.gov/ij/plugins/fft-filter.html".
-2001/10/29: First Version (JW)
-2003/02/06: 1st bugfix (works in macros/plugins, works on stacks, overwrites image(=>filter)) (JW)
-2003/07/03: integrated into ImageJ, added "Display Filter" option (WSR)
-2007/03/26: 2nd bugfix (Fixed incorrect calculation of filter from structure sizes, which caused
-            the real structure sizes to be wrong by a factor of 0.75 to 1.5 depending on the image size.)
 */
 public class FFTFilter implements  PlugInFilter, Measurements {
 
@@ -66,6 +62,9 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 		} 
 		Rectangle roiRect = ip2.getRoi();		
 		int maxN = Math.max(roiRect.width, roiRect.height);
+		// scale filterLarge and filterSmall to fractions of image size
+		double filterLarge = filterLargeDia / maxN;
+		double filterSmall = filterSmallDia / maxN;
 		double sharpness = (100.0 - toleranceDia) / 100.0;
 		boolean doScaling = doScalingDia;
 		boolean saturate = saturateDia;
@@ -78,11 +77,7 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 
 		int i=2;
 		while(i<1.5 * maxN) i *= 2;		
-        
-        // Calculate the inverse of the 1/e frequencies for large and small structures.
-        double filterLarge = 2.0*filterLargeDia / (double)i;
-        double filterSmall = 2.0*filterSmallDia / (double)i;
-        
+		
 		// fit image into power of 2 size 
 		Rectangle fitRect = new Rectangle();
 		fitRect.x = (int) Math.round( (i - roiRect.width) / 2.0 );
@@ -101,6 +96,7 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 		FHT fht = new FHT(ip2);
 		fht.setShowProgress(false);
 		fht.transform();
+		System.gc();
 		IJ.showProgress(9,20);
 		//new ImagePlus("after fht",ip2.crop()).show();	
 
@@ -145,6 +141,7 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 			ip.copyBits(ip2, roiRect.x, roiRect.y, Blitter.COPY);
 		}
 		ip.resetMinAndMax();
+		System.gc();		
 		IJ.showProgress(20,20);
 	}
 	

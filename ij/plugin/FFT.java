@@ -5,9 +5,9 @@ import ij.gui.*;
 import ij.measure.*;
 import ij.plugin.ContrastEnhancer;
 import ij.measure.Calibration;
-import ij.util.Tools;
 import java.awt.*;
 import java.util.*;
+
 
 /** 
 This class implements the FFT, Inverse FFT and Redisplay Power Spectrum commands 
@@ -19,39 +19,23 @@ in the public domain by Stanford University in 1995 and is now freely available.
 */
 public class FFT implements  PlugIn, Measurements {
 
-	static boolean displayFFT = true;
-	public static boolean displayRawPS;
-	public static boolean displayFHT;
-	public static boolean displayComplex;
-	public static String fileName;
-	
 	private ImagePlus imp;
+	private String arg;
+	private FHT transform;
+	private ImageProcessor filter;
+	private static boolean processStack;
 	private boolean padded;
 	private	int originalWidth;
 	private int originalHeight;
 	private int stackSize = 1;
 	private int slice = 1;
-	private boolean doFFT;
 
 	public void run(String arg) {
-		if (arg.equals("options")) {
- 			showDialog();
- 			if (doFFT) arg="fft"; else return;
- 		}
 		imp = IJ.getImage();
 		if (arg.equals("redisplay"))
  			{redisplayPowerSpectrum(); return;}
-		if (arg.equals("swap"))
- 			{swapQuadrants(imp.getStack()); imp.updateAndDraw(); return;}
- 		if (arg.equals("inverse")) {
- 			if (imp.getTitle().startsWith("FHT of"))
- 				{doFHTInverseTransform(); return;}
- 			if (imp.getStackSize()==2)
- 				{doComplexInverseTransform(); return;}
- 		}
-		ImageProcessor ip = imp.getProcessor();
-		Object obj = imp.getProperty("FHT");
-		FHT fht = (obj instanceof FHT)?(FHT)obj:null;
+ 		ImageProcessor ip = imp.getProcessor();
+		FHT fht = (FHT)imp.getProperty("FHT");
 		stackSize = imp.getStackSize();
 		boolean inverse;
 		if (fht==null && arg.equals("inverse")) {
@@ -68,15 +52,13 @@ public class FFT implements  PlugIn, Measurements {
 			inverse = false;
 		}
 		if (inverse)
-			doInverseTransform(fht);
-		else {
-			fileName = imp.getTitle();
-			doForewardTransform(fht);	
-		}	 
+			doInverseTransform(fht, ip);
+		else
+			doForewardTransform(fht, ip);		 
 		IJ.showProgress(1.0);
 	}
 	
-	void doInverseTransform(FHT fht) {
+	void doInverseTransform(FHT fht, ImageProcessor ip) {
 		fht = fht.getCopy();
 		doMasking(fht);
 		showStatus("Inverse transform");
@@ -117,18 +99,15 @@ public class FFT implements  PlugIn, Measurements {
 		imp2.show();
 	}
 
-	void doForewardTransform(FHT fht) {
+	public void doForewardTransform(FHT fht, ImageProcessor ip) {
 		showStatus("Foreward transform");
 		fht.transform();
 		showStatus("Calculating power spectrum");
 		ImageProcessor ps = fht.getPowerSpectrum();
-		if (!(displayFHT||displayComplex)) displayFFT = true;
-		if (displayFFT) {
-			ImagePlus imp2 = new ImagePlus("FFT of "+imp.getTitle(), ps);
-			imp2.show();
-			imp2.setProperty("FHT", fht);
-			imp2.setCalibration(imp.getCalibration());
-		}
+		ImagePlus imp2 = new ImagePlus("FFT of "+imp.getTitle(), ps);
+		imp2.show();
+		imp2.setProperty("FHT", fht);
+		imp2.setCalibration(imp.getCalibration());
 	}
 	
 	FHT newFHT(ImageProcessor ip) {
@@ -219,7 +198,7 @@ public class FFT implements  PlugIn, Measurements {
 		}
 	}
 	
-	void redisplayPowerSpectrum() {
+	public void redisplayPowerSpectrum() {
 		FHT fht = (FHT)imp.getProperty("FHT");
 		if (fht==null)
 			{IJ.error("FFT", "Frequency domain image required"); return;}
@@ -227,118 +206,5 @@ public class FFT implements  PlugIn, Measurements {
 		imp.setProcessor(null, ps);
 	}
 	
-	void swapQuadrants(ImageStack stack) {
-		FHT fht = new FHT(new FloatProcessor(1, 1));
-		for (int i=1; i<=stack.getSize(); i++)
-			fht.swapQuadrants(stack.getProcessor(i));
-	}
-
-	void showDialog() {
-		GenericDialog gd = new GenericDialog("FFT Options");
-		gd.setInsets(0, 20, 0);
-		gd.addMessage("Display:");
-		gd.setInsets(5, 35, 0);
-		gd.addCheckbox("FFT Window", displayFFT);
-		gd.setInsets(0, 35, 0);
-		gd.addCheckbox("Raw Power Spectrum", displayRawPS);
-		gd.setInsets(0, 35, 0);
-		gd.addCheckbox("Fast Hartley Transform", displayFHT);
-		gd.setInsets(0, 35, 0);
-		gd.addCheckbox("Complex Fourier Transform", displayComplex);
-		gd.setInsets(8, 20, 0);
-		gd.addCheckbox("Do Forward Transform", false);
-		gd.showDialog();
-		if (gd.wasCanceled())
-			return;
-		displayFFT = gd.getNextBoolean();
-		displayRawPS = gd.getNextBoolean();
-		displayFHT = gd.getNextBoolean();
-		displayComplex = gd.getNextBoolean();
-		doFFT = gd.getNextBoolean();
-	}
-	
-	void doFHTInverseTransform() {
-		FHT fht = new FHT(imp.getProcessor().duplicate());
-		fht.inverseTransform();
-		fht.resetMinAndMax();
-		String name = WindowManager.getUniqueName(imp.getTitle().substring(7));
-		new ImagePlus(name, fht).show();
-	}
-
-	void doComplexInverseTransform() {
-		ImageStack stack = imp.getStack();
-		if (!stack.getSliceLabel(1).equals("Real"))
-			return;
-		int maxN = imp.getWidth();
-		swapQuadrants(stack);
-		float[] rein = (float[])stack.getPixels(1);
-		float[] imin = (float[])stack.getPixels(2);
-		float[] reout= new float[maxN*maxN];
-		float[] imout = new float[maxN*maxN];
-		c2c2DFFT(rein, imin, maxN, reout, imout);
-		ImageStack stack2 = new ImageStack(maxN, maxN);
-		swapQuadrants(stack);
-		stack2.addSlice("Real", reout);
-		stack2.addSlice("Imaginary", imout);
-		stack2 = unpad(stack2);
-		String name = WindowManager.getUniqueName(imp.getTitle().substring(10));
-		ImagePlus imp2 = new ImagePlus(name, stack2);
-		imp2.getProcessor().resetMinAndMax();
-		imp2.show();
-	}
-	
-	ImageStack unpad(ImageStack stack) {
-		Object w = imp.getProperty("FFT width");
-		Object h = imp.getProperty("FFT height");
-		if (w==null || h==null) return stack;
-		int width = (int)Tools.parseDouble((String)w, 0.0);
-		int height = (int)Tools.parseDouble((String)h, 0.0);
-		if (width==0 || height==0 || (width==stack.getWidth()&&height==stack.getHeight()))
-			return stack;
-	    StackProcessor sp = new StackProcessor(stack, null);
-		ImageStack stack2 = sp.crop(0, 0, width, height);
-		return stack2;
-	}
-	
-	/** Complex to Complex Inverse Fourier Transform
-	*	@author Joachim Wesner
-	*/
-	void c2c2DFFT(float[] rein, float[] imin, int maxN, float[] reout, float[] imout) {
-			FHT fht = new FHT(new FloatProcessor(maxN,maxN));
-			float[] fhtpixels = (float[])fht.getPixels();
-			// Real part of inverse transform
-            for (int iy = 0; iy < maxN; iy++)
-                  cplxFHT(iy, maxN, rein, imin, false, fhtpixels);
-            fht.inverseTransform();
-			// Save intermediate result, so we can do a "in-place" transform
-            float[] hlp = new float[maxN*maxN];
-            System.arraycopy(fhtpixels, 0, hlp, 0, maxN*maxN);
-			// Imaginary part of inverse transform
-            for (int iy = 0; iy < maxN; iy++)
-                  cplxFHT(iy, maxN, rein, imin, true, fhtpixels);
-            fht.inverseTransform();
-            System.arraycopy(hlp, 0, reout, 0, maxN*maxN);
-            System.arraycopy(fhtpixels, 0, imout, 0, maxN*maxN);
-      }
-
-	/** Build FHT input for equivalent inverse FFT
-	*	@author Joachim Wesner
-	*/
-	void cplxFHT(int row, int maxN, float[] re, float[] im, boolean reim, float[] fht) {
-            int base = row*maxN;
-            int offs = ((maxN-row)%maxN) * maxN;
-            if (!reim) {
-                  for (int c=0; c<maxN; c++) {
-                        int l =  offs + (maxN-c)%maxN;
-                        fht[base+c] = ((re[base+c]+re[l]) - (im[base+c]-im[l]))*0.5f;
-                  }
-            } else {
-                  for (int c=0; c<maxN; c++) {
-                        int l = offs + (maxN-c)%maxN;
-                        fht[base+c] = ((im[base+c]+im[l]) + (re[base+c]-re[l]))*0.5f;
-                  }
-            }
-      }
-
 }
 

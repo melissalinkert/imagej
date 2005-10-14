@@ -1,5 +1,4 @@
 package ij.text;
-import ij.util.Java2;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -10,14 +9,12 @@ class TextCanvas extends Canvas {
 	FontMetrics fMetrics;
 	Graphics gImage;
 	Image iImage;
-	boolean antialiased;
 
 	TextCanvas(TextPanel tp) {
 		this.tp = tp;
 		addMouseListener(tp);
 		addMouseMotionListener(tp);
 		addKeyListener(tp);
-		addMouseWheelListener(tp);
 	}
 
     public void setBounds(int x, int y, int width, int height) {
@@ -66,13 +63,10 @@ class TextCanvas extends Canvas {
 				int w=tp.iColWidth[i];
 				Color b=Color.white,t=Color.black;
 				if(j>=tp.selStart && j<=tp.selEnd) {
-					int w2 = w;
-					if (tp.iColCount==1)
-						w2 = iWidth;
 					b=Color.black;
 					t=Color.white;
 					gImage.setColor(b);
-					gImage.fillRect(x,y,w2-1,tp.iRowHeight);
+					gImage.fillRect(x,y,w-1,tp.iRowHeight);
 				}
 				gImage.setColor(t);
 				char[] chars = getChars(i,j);
@@ -86,12 +80,13 @@ class TextCanvas extends Canvas {
 	}
   
  	void makeImage(int iWidth, int iHeight) {
-		iImage=createImage(iWidth, iHeight);
+		iImage=createImage(iWidth,iHeight);
 		if (gImage!=null)
 			gImage.dispose();
 		gImage=iImage.getGraphics();
+		if (fFont==null)
+			fFont=new Font("Dialog",Font.PLAIN,12);
 		gImage.setFont(fFont);
-		Java2.setAntialiasedText(gImage, antialiased);
 		if(fMetrics==null)
 			fMetrics=gImage.getFontMetrics();
 	}
@@ -131,10 +126,10 @@ class TextCanvas extends Canvas {
 			return null;
 		
 		if (tp.iColCount==1) {
-	    	//for (int i=0; i<chars.length; i++) {
-	    	//	if (chars[i]<' ')
-	    	//		chars[i] = ' ';
-	    	//}
+	    	for (int i=0; i<chars.length; i++) {
+	    		if (chars[i]<' ')
+	    			chars[i] = ' ';
+	    	}
 	    	return chars;
 	    }
 	    
@@ -166,6 +161,7 @@ class TextCanvas extends Canvas {
 	    for (int i=0,j=start; i<chars2.length; i++,j++) {
 	    	chars2[i] = chars[j];
 	    } 
+		//System.out.println(row+" "+column+" "+start+" "+end);
 		return chars2;
 	}
 	

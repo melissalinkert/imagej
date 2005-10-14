@@ -3,11 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
-import ij.plugin.frame.RoiManager;
-import ij.macro.Interpreter;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-
 
 
 /** This plugin implements the commands in the Edit/Section submenu. */
@@ -21,8 +17,6 @@ public class Selection implements PlugIn, Measurements {
 
 	public void run(String arg) {
 		imp = WindowManager.getCurrentImage();
-    	if (arg.equals("add"))
-    		{addToRoiManager(imp); return;}
 		if (imp==null)
 			{IJ.noImage(); return;}
     	if (arg.equals("all"))
@@ -39,8 +33,6 @@ public class Selection implements PlugIn, Measurements {
     		convexHull(imp);
     	else if (arg.equals("mask"))
     		createMask(imp);    	
-     	else if (arg.equals("from"))
-    		createSelectionFromMask(imp);    	
     	else if (arg.equals("inverse"))
     		invert(imp); 
     	else
@@ -81,9 +73,9 @@ public class Selection implements PlugIn, Measurements {
 		if (!segmentedSelection)
 			p = trimPolygon(p, length);
 		int evaluationPoints = (int)(length/2.0);
-		ImageCanvas ic = imp.getCanvas();
-		if (ic!=null) {
-			double mag = ic.getMagnification();
+		ImageWindow win = imp.getWindow();
+		if (win!=null) {
+			double mag = win.getCanvas().getMagnification();
 			if (mag<1.0)
 				evaluationPoints *= mag;;
 		}
@@ -268,21 +260,15 @@ public class Selection implements PlugIn, Measurements {
 	
 	void createMask(ImagePlus imp) {
 		Roi roi = imp.getRoi();
-		boolean useInvertingLut = Prefs.useInvertingLut;
-		Prefs.useInvertingLut = false;
-		if (roi==null || !(roi.isArea()||roi.getType()==Roi.POINT)) {
-			createMaskFromThreshold(imp);
-			Prefs.useInvertingLut = useInvertingLut;
-			return;
-		}
+		if (roi==null || !(roi.isArea()||roi.getType()==Roi.POINT))
+			{IJ.error("Create Mask", "Area selection required"); return;}
 		ImagePlus maskImp = null;
 		Frame frame = WindowManager.getFrame("Mask");
 		if (frame!=null && (frame instanceof ImageWindow))
 			maskImp = ((ImageWindow)frame).getImagePlus();
 		if (maskImp==null) {
 			ImageProcessor ip = new ByteProcessor(imp.getWidth(), imp.getHeight());
-			if (!Prefs.blackBackground)
-				ip.invertLut();
+			ip.invertLut();
 			maskImp = new ImagePlus("Mask", ip);
 			maskImp.show();
 		}
@@ -291,46 +277,11 @@ public class Selection implements PlugIn, Measurements {
 		ip.setValue(255);
 		ip.fill(ip.getMask());
 		maskImp.updateAndDraw();
-		Prefs.useInvertingLut = useInvertingLut;
-	}
-	
-	void createMaskFromThreshold(ImagePlus imp) {
-		ImageProcessor ip = imp.getProcessor();
-		if (ip.getMinThreshold()==ImageProcessor.NO_THRESHOLD)
-			{IJ.error("Create Mask", "Area selection or thresholded image required"); return;}
-		double t1 = ip.getMinThreshold();
-		double t2 = ip.getMaxThreshold();
-		IJ.run("Duplicate...", "title=mask");
-		ImagePlus imp2 = WindowManager.getCurrentImage();
-		ImageProcessor ip2 = imp2.getProcessor();
-		ip2.setThreshold(t1, t2, ImageProcessor.NO_LUT_UPDATE);
-		IJ.run("Convert to Mask");
-	}
-
-	void createSelectionFromMask(ImagePlus imp) {
-		ImageProcessor ip = imp.getProcessor();
-		if (ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD) {
-			IJ.runPlugIn("ij.plugin.filter.ThresholdToSelection", "");
-			return;
-		}
-		ImageStatistics stats = null;
-		if (imp.getBitDepth()==8)
-			stats = imp.getStatistics();
-		if (stats==null || (stats.histogram[0]+stats.histogram[255]!=stats.pixelCount)) {
-			IJ.error("Create Selection",
-				"This command creates a composite selection from\n"+
-				"a mask (8-bit binary image with white background)\n"+
-				"or from an image that has been thresholded using\n"+
-				"the Image>Adjust>Threshold tool. The current\n"+
-				"image is not a mask and has not been thresholded.");
-			return;
-		}
-		int threshold = ip.isInvertedLut()?255:0;
-		ip.setThreshold(threshold, threshold, ImageProcessor.NO_LUT_UPDATE);
-		IJ.runPlugIn("ij.plugin.filter.ThresholdToSelection", "");
 	}
 
 	void invert(ImagePlus imp) {
+		if (!IJ.isJava2())
+			{IJ.error("Inverse", "Java 1.2 or later required"); return;}
 		Roi roi = imp.getRoi();
 		if (roi==null || !roi.isArea())
 			{IJ.error("Inverse", "Area selection required"); return;}
@@ -339,28 +290,9 @@ public class Selection implements PlugIn, Measurements {
 			s1 = (ShapeRoi)roi;
 		else
 			s1 = new ShapeRoi(roi);
+		
 		s2 = new ShapeRoi(new Roi(0,0, imp.getWidth(), imp.getHeight()));
 		imp.setRoi(s1.xor(s2));
-	}
-	
-	void addToRoiManager(ImagePlus imp) {
-		if (IJ.macroRunning() &&  Interpreter.isBatchModeRoiManager())
-			IJ.error("run(\"Add to Manager\") may not work in batch mode macros");
-		Frame frame = WindowManager.getFrame("ROI Manager");
-		if (frame==null)
-			IJ.run("ROI Manager...");
-		if (imp==null) return;
-		Roi roi = imp.getRoi();
-		if (roi==null) return;
-		frame = WindowManager.getFrame("ROI Manager");
-		if (frame==null || !(frame instanceof RoiManager))
-			IJ.error("ROI Manager not found");
-		RoiManager rm = (RoiManager)frame;
-		boolean altDown= IJ.altKeyDown();
-		IJ.setKeyUp(IJ.ALL_KEYS);
-		if (altDown) IJ.setKeyDown(KeyEvent.VK_SHIFT);
-		rm.runCommand("add");
-		IJ.setKeyUp(IJ.ALL_KEYS);
 	}
 
 }

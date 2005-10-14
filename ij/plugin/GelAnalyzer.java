@@ -3,12 +3,11 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
-import ij.plugin.filter.Analyzer;
 
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
-import java.util.*;
+import java.util.Properties;
 
 /** This plugin generates gel profile plots that can be analyzed using
 the wand tool. It is similar to the "Gel Plotting Macros" in NIH Image. */
@@ -17,28 +16,27 @@ public class GelAnalyzer implements PlugIn {
     static final String GEL = "gel.options"; 
     static final int OD=1, PERCENT=2, OUTLINE=4, INVERT=8;
 	static int saveID;
-	static int nLanes, saveNLanes;
+	static int nLanes = 0;
 	static Rectangle firstRect;
 	static final int MAX_LANES = 100;
 	static int[] x = new int[MAX_LANES+1];
 	static PlotsCanvas plotsCanvas;
 	static ImageProcessor ipLanes;
-	static ImagePlus  gel;
+	static ImagePlus lanes, gel;
 	static int plotHeight;
-	static int options = Prefs.getInt(GEL, PERCENT+INVERT);
+	static int options = Prefs.getInt(GEL, PERCENT);
 	static boolean uncalibratedOD = (options&OD)!=0;
 	static boolean labelWithPercentages = (options&PERCENT)!=0;;
-	static boolean outlineLanes;
-	static boolean invertPeaks = (options&INVERT)!=0;
-	static Vector roiList;
+	static boolean outlineLanes = (options&OUTLINE)!=0;;
+	static boolean invertPeaks = (options&INVERT)!=0;;
 	boolean invertedLut;
 	
 	ImagePlus imp;
 	Font f;
+	FontMetrics fm;
 	double odMin=Double.MAX_VALUE, odMax=-Double.MAX_VALUE;
 	static boolean isVertical;
-	static boolean showLaneDialog = true;
-	
+
 	public void run(String arg) {
 		if (arg.equals("options")) {
 			showDialog();
@@ -53,17 +51,10 @@ public class GelAnalyzer implements PlugIn {
 
 		if (arg.equals("reset")) {
 			nLanes = 0;
-			saveNLanes = 0;
 			saveID = 0;
 			if (plotsCanvas!=null)
 				plotsCanvas.reset();
 			ipLanes = null;
-			roiList = null;
-			if (gel!=null) {
-				ImageCanvas ic = gel.getCanvas();
-				if (ic!=null) ic.setDisplayList(null);
-				gel.draw();
-			}
 			return;
 		}
 
@@ -86,21 +77,6 @@ public class GelAnalyzer implements PlugIn {
 			saveID = 0;
 		}
 
-		if (arg.equals("replot")) {
-			if (saveNLanes==0) {
-				show("The data needed to re-plot the lanes is not available");
-				return;
-			}
-			nLanes = saveNLanes;
-			plotLanes(gel, true);
-			return;
-		}
-		
-		if (arg.equals("draw")) {
-			outlineLanes();
-			return;
-		}
-
 		Roi roi = imp.getRoi();
 		if (roi==null || roi.getType()!=Roi.RECTANGLE) {
 			show("Rectangular selection required.");
@@ -116,7 +92,6 @@ public class GelAnalyzer implements PlugIn {
 			selectFirstLane(rect);
 			return;
 		}
-
 		if (nLanes==0) {
 			show("You must first use the \"Outline First Lane\" command.");
 			return;
@@ -130,7 +105,8 @@ public class GelAnalyzer implements PlugIn {
 			if (( isVertical && (rect.x!=x[nLanes]) ) || ( !(isVertical) && (rect.y!=x[nLanes]) )) {
 				selectNextLane(rect);
 			}
-			plotLanes(gel, false);
+			if (lanes!=null) lanes.killRoi();
+			plotLanes(gel);
 			return;
 		}
 
@@ -140,39 +116,28 @@ public class GelAnalyzer implements PlugIn {
 		GenericDialog gd = new GenericDialog("Gel Analyzer");
 		gd.addCheckbox("Uncalibrated OD", uncalibratedOD);
 		gd.addCheckbox("Label with Percentages", labelWithPercentages);
+		gd.addCheckbox("Outline Lanes", outlineLanes);
 		gd.addCheckbox("Invert Peaks", invertPeaks);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
 		uncalibratedOD = gd.getNextBoolean();
 		labelWithPercentages = gd.getNextBoolean();
+		outlineLanes = gd.getNextBoolean();
 		invertPeaks = gd.getNextBoolean();
 		options = 0;
 		if (uncalibratedOD) options |= OD;
 		if (labelWithPercentages) options |= PERCENT;
+		if (outlineLanes) options |= OUTLINE;
 		if (invertPeaks) options |= INVERT;
 		return;
 	}
 
 
 	void selectFirstLane(Rectangle rect) {
-		if (rect.width/rect.height>=2 || IJ.altKeyDown()) {
-			if (showLaneDialog) {
-				String msg = "Are the lanes really horizontal?\n \n"+
-					"ImageJ assumes the lanes are\n"+
-					"horizontal if the selection is more\n"+
-					"than twice as wide as it is tall. Note\n"+
-					"that the selection can only be moved\n"+
-					"vertically when the lanes are horizontal.";
-				GenericDialog gd = new GenericDialog("Gel Analyzer");
-				gd.addMessage(msg);
-				gd.setOKLabel("Yes");
-				gd.showDialog();
-				if (gd.wasCanceled()) return;
-				showLaneDialog = false;
-			}
+		if (rect.width/rect.height>=2 || IJ.altKeyDown())
 			isVertical = false;
-		} else
+		else
 			isVertical = true;
 			
 		/*
@@ -195,15 +160,16 @@ public class GelAnalyzer implements PlugIn {
 		IJ.showStatus("Lane 1 selected ("+(isVertical?"vertical":"horizontal")+" lanes)");
 		firstRect = rect;
 		nLanes = 1;
-		saveNLanes = 0;
 		if(isVertical)
 			x[1] = rect.x;
 		else
 			x[1] = rect.y;
-		gel = imp;
-		saveID = imp.getID();
-		roiList = null;
-		updateRoiList(rect);
+		if (outlineLanes)
+			outlineLane(x[1]);
+		else {
+			gel = imp;
+			saveID = imp.getID();
+		}
 	}
 
 	void selectNextLane(Rectangle rect) {
@@ -219,28 +185,63 @@ public class GelAnalyzer implements PlugIn {
 			x[nLanes] = rect.x;
 		else
 			x[nLanes] = rect.y;
-		if (isVertical && rect.y!=firstRect.y) {
-			rect.y = firstRect.y;
-			gel.setRoi(rect);
-		} else if (!isVertical && rect.x!=firstRect.x) {
-			rect.x = firstRect.x;
-			gel.setRoi(rect);
-		}
-		updateRoiList(rect);
-	}
-	
-	void updateRoiList(Rectangle rect) {
-			if (gel==null) return;
-			if (roiList==null) {
-				roiList = new Vector();
-				ImageCanvas ic = gel.getCanvas();
-				if (ic!=null) ic.setDisplayList(roiList);
+		if (outlineLanes)
+			outlineLane(x[nLanes]);
+		else {
+			if (isVertical && rect.y!=firstRect.y) {
+				rect.y = firstRect.y;
+				gel.setRoi(rect);
+			} else if (!isVertical && rect.x!=firstRect.x) {
+				rect.x = firstRect.x;
+				gel.setRoi(rect);
 			}
-			roiList.addElement(new Roi(rect.x, rect.y, rect.width, rect.height, null));
-			gel.draw();
+		}
 	}
 
-	void plotLanes(ImagePlus imp, boolean replot) {
+	void outlineLane(int x) {
+		if (!outlineLanes)
+			return;
+		//IJ.write("outlining lane "+x);
+		int lineWidth = (int)(1.0/imp.getWindow().getCanvas().getMagnification());
+		if (lineWidth<1)
+			lineWidth = 1;
+		if (nLanes==1) {
+			f = new Font("Helvetica", Font.PLAIN, 12*lineWidth);
+			ImageProcessor ip = imp.getProcessor();
+			gel = imp;
+			ipLanes = ip.duplicate();
+			if (!(ipLanes instanceof ByteProcessor))
+				ipLanes = ipLanes.convertToByte(true);
+			ipLanes.setFont(f);
+			ipLanes.setLineWidth(lineWidth);
+			setCustomLut(ipLanes);
+			lanes = new ImagePlus("Lanes of "+imp.getShortTitle(), ipLanes);
+			lanes.changes = true;
+			lanes.show();
+			lanes.setRoi(imp.getRoi());
+			imp.killRoi();
+			saveID = lanes.getID();
+		}
+		if (ipLanes==null)
+		   return;
+		if(isVertical)
+			ipLanes.drawRect(x, firstRect.y, firstRect.width, firstRect.height);
+		else
+			ipLanes.drawRect(firstRect.x, x, firstRect.width, firstRect.height);
+		String s = ""+nLanes;
+		if(isVertical) {
+			int yloc = firstRect.y;
+			if (yloc<lineWidth*12) yloc += lineWidth*14;
+			ipLanes.drawString(s, x+firstRect.width/2-ipLanes.getStringWidth(s)/2, yloc);
+		} else {
+			int xloc = firstRect.x-ipLanes.getStringWidth(s)-2;
+			if (xloc<lineWidth*10) xloc = firstRect.x + 2;
+			ipLanes.drawString(s, xloc, x+firstRect.height/2+6);
+		}
+		lanes.updateAndDraw();
+	}
+
+	void plotLanes(ImagePlus imp) {
 		int topMargin = 16;
 		int bottomMargin = 2;
 		double min = Double.MAX_VALUE;
@@ -299,7 +300,7 @@ public class GelAnalyzer implements PlugIn {
 				plotWidth = 2*firstRect.width;
 		}
 
-		Dimension screen = IJ.getScreenSize();
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 		if (plotWidth>screen.width-40)
 			plotWidth = screen.width - 40;
 		plotHeight = plotWidth/2;
@@ -360,10 +361,10 @@ public class GelAnalyzer implements PlugIn {
 			plotsCal.pixelHeight = 1.0/scale;
 		}
 		plots.show();
-		saveNLanes = nLanes;
 		nLanes = 0;
 		saveID = 0;
-		//gel = null;
+		lanes = null;
+		gel = null;
 		ipLanes = null;
 		Toolbar toolbar = Toolbar.getInstance();
 		toolbar.setColor(Color.black);
@@ -388,46 +389,7 @@ public class GelAnalyzer implements PlugIn {
 		return profile;
 	}
 
-	void outlineLanes() {
-		if (gel==null || roiList==null) {
-			show("Data needed to outline lanes is no longer available.");
-			return;
-		}
-		int lineWidth = (int)(1.0/gel.getCanvas().getMagnification());
-		if (lineWidth<1)
-			lineWidth = 1;
-		Font f = new Font("Helvetica", Font.PLAIN, 12*lineWidth);
-		ImageProcessor ip = gel.getProcessor();
-		ImageProcessor ipLanes = ip.duplicate();
-		if (!(ipLanes instanceof ByteProcessor))
-			ipLanes = ipLanes.convertToByte(true);
-		ipLanes.setFont(f);
-		ipLanes.setLineWidth(lineWidth);
-		setCustomLut(ipLanes);
-		ImagePlus lanes = new ImagePlus("Lanes of "+gel.getShortTitle(), ipLanes);
-		lanes.changes = true;
-		lanes.setRoi(gel.getRoi());
-		gel.killRoi();
-		for (int i=0; i<roiList.size(); i++) {
-			Roi roi = (Roi)roiList.elementAt(i);
-			Rectangle r = roi.getBounds();
-			ipLanes.drawRect(r.x, r.y, r.width, r.height);
-			String s = ""+(i+1);
-			if(isVertical) {
-				int yloc = r.y;
-				if (yloc<lineWidth*12) yloc += lineWidth*14;
-				ipLanes.drawString(s, r.x+r.width/2-ipLanes.getStringWidth(s)/2, yloc);
-			} else {
-				int xloc = r.x-ipLanes.getStringWidth(s)-2;
-				if (xloc<lineWidth*10) xloc = r.x + 2;
-				ipLanes.drawString(s, xloc, r.y+r.height/2+6);
-			}
-		}
-		lanes.killRoi();
-		lanes.show();
-	}
-	
-	void setCustomLut(ImageProcessor ip) {
+   void setCustomLut(ImageProcessor ip) {
 		IndexColorModel cm = (IndexColorModel)ip.getColorModel();
 		byte[] reds = new byte[256];
 		byte[] greens = new byte[256];
@@ -473,7 +435,7 @@ class Plots extends ImagePlus {
 		Point loc = win.getLocation();
 		int w = getWidth()+20;
 		int h = getHeight()+30;
-		Dimension screen = IJ.getScreenSize();
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 		if (loc.x+w>screen.width)
 			w = screen.width-loc.x-20;
 		if (loc.y+h>screen.height)
@@ -495,7 +457,6 @@ class PlotsCanvas extends ImageCanvas {
 	double[] measured = new double[MAX_PEAKS];
 	Rectangle[] rect = new Rectangle[MAX_PEAKS];
 	int counter;
-	ResultsTable rt;
 
 	public PlotsCanvas(ImagePlus imp) {
 		super(imp);
@@ -512,18 +473,9 @@ class PlotsCanvas extends ImageCanvas {
 			Roi.setColor(Color.yellow);
 		if (Toolbar.getToolId()!=Toolbar.WAND || IJ.spaceBarDown())
 			return;
-		if (IJ.shiftKeyDown()) {
-			IJ.showMessage("Gel Analyzer", "Unable to measure area because shift key is down.");
-			imp.killRoi();
-			counter = 0;
-			return;
-		}
 		ImageStatistics s = imp.getStatistics();
-		if (counter==0) {
-			rt = ResultsTable.getResultsTable();
-			rt.reset();
-		}
-		//IJ.setColumnHeadings(" \tArea");
+		if (counter==0)
+			IJ.setColumnHeadings(" \tArea");
 		double perimeter = roi.getLength();
 		String error = "";
 		double circularity = 4.0*Math.PI*(s.pixelCount/(perimeter*perimeter));
@@ -537,11 +489,7 @@ class PlotsCanvas extends ImageCanvas {
 		//area += (rect[counter].width/rect[counter].height)*1.5;
 		// adjustment for small peaks from NIH Image gel macros
 
-		int places = cal.scaled()?3:0;
-		rt.incrementCounter();
-		rt.addValue("Area", area);
-		rt.show("Results");
-		// IJ.write((counter+1)+"\t"+IJ.d2s(area, places)+error);
+		IJ.write((counter+1)+"\t"+IJ.d2s(area, 0)+error);
 		measured[counter] = area;
 		if (counter<MAX_PEAKS)
 			counter++;
@@ -603,9 +551,7 @@ class PlotsCanvas extends ImageCanvas {
 	}
 
 	void displayPercentages() {
-		ResultsTable rt = ResultsTable.getResultsTable();
-		rt.reset();
-		//IJ.setColumnHeadings(" \tarea\tpercent");
+		IJ.setColumnHeadings(" \tarea\tpercent");
 		double total = 0.0;
 		for (int i=0; i<counter; i++)
 			total += measured[i];
@@ -615,12 +561,8 @@ class PlotsCanvas extends ImageCanvas {
 		}
 		for (int i=0; i<counter; i++) {
 			double percent = (measured[i]/total)*100;
-			rt.incrementCounter();
-			rt.addValue("Area", measured[i]);
-			rt.addValue("Percent", percent);
-			//IJ.write((i+1)+"\t"+IJ.d2s(measured[i],3)+"\t"+IJ.d2s(percent,3));
+			IJ.write((i+1)+"\t"+IJ.d2s(measured[i],4)+"\t"+IJ.d2s(percent,4));
 		}
-		rt.show("Results");
 	}
 
 	void debug() {

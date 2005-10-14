@@ -21,7 +21,7 @@ public class Info implements PlugInFilter {
 	public void run(ImageProcessor ip) {
 		String info = getImageInfo(imp, ip);
 		if (info.indexOf("----")>0)
-			showInfo(info, 450, 500);
+			showInfo(info, 400, 500);
 		else
 			showInfo(info, 300, 300);
 	}
@@ -73,9 +73,6 @@ public class Info implements PlugInFilter {
 	    	if (nSlices>1)
 	    		s += "Depth:  " + nSlices + " pixels\n";
 	    }
-	    s += "ID: "+imp.getID()+"\n";
-	    String zOrigin = nSlices>1||cal.zOrigin!=0.0?","+d2s(cal.zOrigin):"";
-	    s += "Coordinate origin:  " + d2s(cal.xOrigin)+","+d2s(cal.yOrigin)+zOrigin+"\n";
 	    int type = imp.getType();
     	switch (type) {
 	    	case ImagePlus.GRAY8:
@@ -111,8 +108,7 @@ public class Info implements PlugInFilter {
 	    		s += "Bits per pixel: 32 (RGB)\n";
 	    		break;
     	}
-		double interval = cal.frameInterval;	
-		double fps = cal.fps;	
+		double interval = cal.frameInterval;		
     	if (nSlices>1) {
     		ImageStack stack = imp.getStack();
     		int slice = imp.getCurrentSlice();
@@ -122,19 +118,19 @@ public class Info implements PlugInFilter {
     			label = " (" + label + ")";
     		else
     			label = "";
-			if (interval>0.0 || fps!=0.0) {
+			if (interval>0.0) {
 				s += "Frame: " + number + label + "\n";
-				if (fps!=0.0) {
-					String sRate = Math.abs(fps-Math.round(fps))<0.00001?IJ.d2s(fps,0):IJ.d2s(fps,5);
+				if (interval<1.0) {
+					double rate = 1.0/interval;
+					String sRate = Math.abs(rate-Math.round(rate))<0.00001?IJ.d2s(rate,0):IJ.d2s(rate,5);
 					s += "Frame rate: " + sRate + " fps\n";
-				}
-				if (interval!=0.0)
-					s += "Frame interval: " + ((int)interval==interval?IJ.d2s(interval,0):IJ.d2s(interval,5)) + " " + cal.getTimeUnit() + "\n";
+				} else
+					s += "Frame interval: " + IJ.d2s(interval,5) + " seconds\n";
 			} else
 				s += "Slice: " + number + label + "\n";
 		}
 
-		if (ip.getMinThreshold()==ImageProcessor.NO_THRESHOLD)
+		if (ip.getMinThreshold()==ip.NO_THRESHOLD)
 	    	s += "No Threshold\n";
 	    else {
 	    	double lower = ip.getMinThreshold();
@@ -147,7 +143,8 @@ public class Info implements PlugInFilter {
 			}
 			s += "Threshold: "+IJ.d2s(lower,dp)+"-"+IJ.d2s(upper,dp)+"\n";
 		}
-		ImageCanvas ic = imp.getCanvas();
+		ImageWindow win = imp.getWindow();
+		ImageCanvas ic = win!=null?win.getCanvas():null;
     	double mag = ic!=null?ic.getMagnification():1.0;
     	if (mag!=1.0)
 			s += "Magnification: " + mag + "\n";
@@ -158,8 +155,6 @@ public class Info implements PlugInFilter {
 			s += "Calibration Function: ";
 			if (curveFit==Calibration.UNCALIBRATED_OD)
 				s += "Uncalibrated OD\n";	    	
-			else if (curveFit==Calibration.CUSTOM)
-				s += "Custom lookup table\n";	    	
 			else
 				s += CurveFitter.fList[curveFit]+"\n";
 			double[] c = cal.getCoefficients();
@@ -179,8 +174,9 @@ public class Info implements PlugInFilter {
 
 	    FileInfo fi = imp.getOriginalFileInfo();
 		if (fi!=null) {
-			if (fi.directory!=null && fi.fileName!=null)
+			if (fi.directory!=null && fi.fileName!=null) {
 				s += "Path: " + fi.directory + fi.fileName + "\n";
+			}
 			if (fi.url!=null && !fi.url.equals("")) {
 				s += "URL: " + fi.url + "\n";
 			}
@@ -194,26 +190,18 @@ public class Info implements PlugInFilter {
 	    } else {
 	    	s += " \n";
 	    	s += roi.getTypeAsString()+" Selection";
-	    	String points = null;
-			if (roi instanceof PointRoi) {
-				int npoints = ((PolygonRoi)roi).getNCoordinates();
-				String suffix = npoints>1?"s)":")";
-				points = " (" + npoints + " point" + suffix;
-			}
     		String name = roi.getName();
-    		if (name!=null) {
+    		if (name!=null)
 				s += " (\"" + name + "\")";
-				if (points!=null) s += "\n " + points;		
-			} else if (points!=null)
-				s += points;
-			s += "\n";		
+			s += "\n";			
 	    	Rectangle r = roi.getBounds();
 	    	if (roi instanceof Line) {
 	    		Line line = (Line)roi;
-	    		s += "  X1: " + IJ.d2s(line.x1d*cal.pixelWidth) + "\n";
-	    		s += "  Y1: " + IJ.d2s(yy(line.y1d,imp)*cal.pixelHeight) + "\n";
-	    		s += "  X2: " + IJ.d2s(line.x2d*cal.pixelWidth) + "\n";
-	    		s += "  Y2: " + IJ.d2s(yy(line.y2d,imp)*cal.pixelHeight) + "\n";
+	    		s += "  X1: " + IJ.d2s(line.x1*cal.pixelWidth) + "\n";
+	    		s += "  Y1: " + IJ.d2s(yy(line.y1,imp)*cal.pixelHeight) + "\n";
+	    		s += "  X2: " + IJ.d2s(line.x2*cal.pixelWidth) + "\n";
+	    		s += "  Y2: " + IJ.d2s(yy(line.y2,imp)*cal.pixelHeight) + "\n";
+	    	
 			} else if (cal.scaled()) {
 				s += "  X: " + IJ.d2s(r.x*cal.pixelWidth) + " (" + r.x + ")\n";
 				s += "  Y: " + IJ.d2s(yy(r.y,imp)*cal.pixelHeight) + " (" +  r.y + ")\n";
@@ -224,23 +212,14 @@ public class Info implements PlugInFilter {
 				s += "  Y: " + yy(r.y,imp) + "\n";
 				s += "  Width: " + r.width + "\n";
 				s += "  Height: " + r.height + "\n";
-			}
+	    	}
 	    }
 	    
 		return s;
 	}
 	
-    String d2s(double n) {
-		return n==(int)n?Integer.toString((int)n):IJ.d2s(n);
-	}
-
 	// returns a Y coordinate based on the "Invert Y Coodinates" flag
 	int yy(int y, ImagePlus imp) {
-		return Analyzer.updateY(y, imp.getHeight());
-	}
-
-	// returns a Y coordinate based on the "Invert Y Coodinates" flag
-	double yy(double y, ImagePlus imp) {
 		return Analyzer.updateY(y, imp.getHeight());
 	}
 

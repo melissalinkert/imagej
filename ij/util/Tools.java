@@ -1,7 +1,5 @@
 package ij.util;
 import java.awt.Color;
-import java.util.*;
-import java.io.*;
 
 /** This class contains static utility methods. */
  public class Tools {
@@ -103,9 +101,9 @@ import java.io.*;
 	*	<code>defaultValue</code> if the string does not contain a parsable double
 	*/
 	public static double parseDouble(String s, double defaultValue) {
-		if (s==null) return defaultValue;
 		try {
-			defaultValue = Double.parseDouble(s);
+			Double d = new Double(s);
+			defaultValue = d.doubleValue();
 		} catch (NumberFormatException e) {}
 		return defaultValue;			
 	}
@@ -141,48 +139,5 @@ import java.io.*;
 			return digits;
 		}
 	}
-	
-	/** Splits a string into substrings using the default delimiter set, 
-	which is " \t\n\r" (space, tab, newline and carriage-return). */
-	public static String[] split(String str) {
-		return split(str, " \t\n\r");
-	}
 
-	/** Splits a string into substring using the characters
-	contained in the second argument as the delimiter set. */
-	public static String[] split(String str, String delim) {
-		if (delim.equals("\n"))
-			return splitLines(str);
-		StringTokenizer t = new StringTokenizer(str, delim);
-		int tokens = t.countTokens();
-		String[] strings;
-		if (tokens>0) {
-       		strings = new String[tokens];
-        	for(int i=0; i<tokens; i++) 
-        		strings[i] = t.nextToken();
-        } else {
-        	strings = new String[1];
-        	strings[0] = str;
-        	tokens = 1;
-        }
-		return strings;
-	}
-	
-	static String[] splitLines(String str) {
-		Vector v = new Vector();
-        try {
-            BufferedReader br  = new BufferedReader(new StringReader(str));
-            String line;
-            while (true) {
-                line = br.readLine();
-                if (line == null) break;
-                v.addElement(line);
-            }
-            br.close();
-        } catch(Exception e) { }
-		String[] lines = new String[v.size()];
-		v.copyInto((String[])lines);
-		return lines;
-	}
-	
 }

@@ -35,14 +35,9 @@ public class Histogram implements PlugIn, TextListener {
  			int flags = setupDialog(imp, 0);
  			if (flags==PlugInFilter.DONE) return;
 			stackHistogram = flags==PlugInFilter.DOES_STACKS;
-			Calibration cal = imp.getCalibration();
  			nBins = 256;
-			if (stackHistogram && ((bitDepth==8&&!cal.calibrated())||bitDepth==24)) {
-				xMin = 0.0;
-				xMax = 256.0;
-				useImageMinAndMax = false;
-			} else
-				useImageMinAndMax = true;
+ 			xMin = 0.0;
+ 			xMax = 0.0;
  			yMax = "Auto";
  		}
  		ImageStatistics stats = null;
@@ -50,7 +45,6 @@ public class Histogram implements PlugIn, TextListener {
  			{xMin=0.0; xMax=0.0;}
  		int iyMax = (int)Tools.parseDouble(yMax, 0.0);
  		boolean customHistogram = (bitDepth==8||bitDepth==24) && (!(xMin==0.0&&xMax==0.0)||nBins!=256||iyMax>0);
- 		ImageWindow.centerNextImage();
  		if (stackHistogram || customHistogram) {
  			ImagePlus imp2 = imp;
  			if (customHistogram && !stackHistogram && imp.getStackSize()>1)
@@ -132,7 +126,7 @@ public class Histogram implements PlugIn, TextListener {
 					return flags;
 			}
 			YesNoCancelDialog d = new YesNoCancelDialog(IJ.getInstance(),
-				"Histogram", "Include all "+stackSize+" images?");
+				"Histogram", "Include all "+stackSize+" slices?");
 			if (d.cancelPressed())
 				return PlugInFilter.DONE;
 			else if (d.yesPressed()) {

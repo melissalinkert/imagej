@@ -43,10 +43,6 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	protected double mag = 1.0;
 	protected String name;
 	protected ImageProcessor cachedMask;
-	protected Color handleColor = Color.white;
-	protected Color instanceColor;
-	protected BasicStroke stroke;
-
 
 	/** Creates a new rectangular Roi. */
 	public Roi(int x, int y, int width, int height) {
@@ -82,16 +78,10 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		this(r.x, r.y, r.width, r.height);
 	}
 
-	/** Starts the process of creating a user-defined rectangular Roi,
-		where sx and sy are the starting screen coordinates. */
-	public Roi(int sx, int sy, ImagePlus imp) {
+	/** Starts the process of creating a user-defined rectangular Roi. */
+	public Roi(int x, int y, ImagePlus imp) {
 		setImage(imp);
-		int ox=sx, oy=sy;
-		if (ic!=null) {
-			ox = ic.offScreenX(sx);
-			oy = ic.offScreenY(sy);
-		}
-		setLocation(ox, oy);
+		setLocation(x, y);
 		width = 0;
 		height = 0;
 		state = CONSTRUCTING;
@@ -105,10 +95,10 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	}
 
 	public void setLocation(int x, int y) {
-		//if (x<0) x = 0;
-		//if (y<0) y = 0;
-		//if ((x+width)>xMax) x = xMax-width;
-		//if ((y+height)>yMax) y = yMax-height;
+		if (x<0) x = 0;
+		if (y<0) y = 0;
+		if ((x+width)>xMax) x = xMax-width;
+		if ((y+height)>yMax) y = yMax-height;
 		//IJ.write(imp.getTitle() + ": Roi.setlocation(" + x + "," + y + ")");
 		this.x = x;
 		this.y = y;
@@ -125,7 +115,9 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 			xMax = 99999;
 			yMax = 99999;
 		} else {
-			ic = imp.getCanvas();
+			ImageWindow win = imp.getWindow();
+			if (win!=null)
+				ic = win.getCanvas();
 			xMax = imp.getWidth();
 			yMax = imp.getHeight();
 		}
@@ -203,14 +195,11 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		catch (CloneNotSupportedException e) {return null;}
 	}
 	
-	protected void grow(int sx, int sy) {
-		if (clipboard!=null) return;
-		int xNew = ic.offScreenX(sx);
-		int yNew = ic.offScreenY(sy);
-		if (type==RECTANGLE) {
-			if (xNew < 0) xNew = 0;
-			if (yNew < 0) yNew = 0;
-		}
+	protected void grow(int xNew, int yNew) {
+		if (clipboard!=null)
+			return;
+		if (xNew < 0) xNew = 0;
+		if (yNew < 0) yNew = 0;
 		if (constrain) {
 			// constrain selection to be square
 			int dx, dy, d;
@@ -234,10 +223,10 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 			height = Math.abs(yNew - startY);
 			x = (xNew>=startX)?startX:startX - width;
 			y = (yNew>=startY)?startY:startY - height;
-			if (type==RECTANGLE) {
-				if ((x+width) > xMax) width = xMax-x;
-				if ((y+height) > yMax) height = yMax-y;
-			}
+			if ((x+width) > xMax)
+				width = xMax-x;
+			if ((y+height) > yMax)
+				height = yMax-y;
 		}
 		updateClipRect();
 		imp.draw(clipX, clipY, clipWidth, clipHeight);
@@ -247,10 +236,9 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		oldHeight = height;
 	}
 
-	protected void moveHandle(int sx, int sy) {
-		if (clipboard!=null) return;
-		int ox = ic.offScreenX(sx);
-		int oy = ic.offScreenY(sy);
+	protected void moveHandle(int ox, int oy) {
+		if (clipboard!=null)
+			return;
 		if (ox<0) ox=0; if (oy<0) oy=0;
 		if (ox>xMax) ox=xMax; if (oy>yMax) oy=yMax;
 		//IJ.log("moveHandle: "+activeHandle+" "+ox+" "+oy);
@@ -281,9 +269,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		oldWidth=width; oldHeight=height;
 	}
 
-	void move(int sx, int sy) {
-		int xNew = ic.offScreenX(sx);
-		int yNew = ic.offScreenY(sy);
+	void move(int xNew, int yNew) {
 		x += xNew - startX;
 		y += yNew - startY;
 		if (clipboard==null && type==RECTANGLE) {
@@ -368,7 +354,6 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		clipWidth = ((x+width>=oldX+oldWidth)?x+width:oldX+oldWidth) - clipX + 1;
 		clipHeight = ((y+height>=oldY+oldHeight)?y+height:oldY+oldHeight) - clipY + 1;
 		int m = 3;
-		if (type==POINT) m += 4;
 		if (ic!=null) {
 			double mag = ic.getMagnification();
 			if (mag<1.0)
@@ -382,15 +367,17 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		if (ic==null) return;
 		constrain = (flags&Event.SHIFT_MASK)!=0;
 		center = (flags&Event.CTRL_MASK)!=0 || (IJ.isMacintosh()&&(flags&Event.META_MASK)!=0);
+		int ox = ic.offScreenX(sx);
+		int oy = ic.offScreenY(sy);
 		switch(state) {
 			case CONSTRUCTING:
-				grow(sx, sy);
+				grow(ox, oy);
 				break;
 			case MOVING:
-				move(sx, sy);
+				move(ox, oy);
 				break;
 			case MOVING_HANDLE:
-				moveHandle(sx, sy);
+				moveHandle(ox, oy);
 				break;
 			default:
 				break;
@@ -405,12 +392,10 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	
 	public void draw(Graphics g) {
 		if (ic==null) return;
-		g.setColor(instanceColor!=null?instanceColor:ROIColor);
+		g.setColor(ROIColor);
 		mag = ic.getMagnification();
 		int sw = (int)(width*mag);
 		int sh = (int)(height*mag);
-		//if (x+width==imp.getWidth()) sw -= 1;
-		//if (y+height==imp.getHeight()) sh -= 1;
 		int sx1 = ic.screenX(x);
 		int sy1 = ic.screenY(y);
 		int sx2 = sx1+sw/2;
@@ -453,31 +438,26 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		if (size>6000.0) {
 			g.setColor(Color.black);
 			g.fillRect(x,y,5,5);
-			g.setColor(handleColor);
+			g.setColor(Color.white);
 			g.fillRect(x+1,y+1,3,3);
 		} else if (size>1500.0) {
 			g.setColor(Color.black);
 			g.fillRect(x+1,y+1,4,4);
-			g.setColor(handleColor);
+			g.setColor(Color.white);
 			g.fillRect(x+2,y+2,2,2);
 		} else {			
 			g.setColor(Color.black);
 			g.fillRect(x+1,y+1,3,3);
-			g.setColor(handleColor);
+			g.setColor(Color.white);
 			g.fillRect(x+2,y+2,1,1);
 		}
 	}
 
-	/** Obsolete, use drawPixels(ImageProcessor) */
 	public void drawPixels() {
 		if (imp!=null)
 			drawPixels(imp.getProcessor());	
 	}
 
-	/** Draws the selection outline on the specified ImageProcessor.
-		@see ij.process.ImageProcessor#setColor
-		@see ij.process.ImageProcessor#setLineWidth
-	*/
 	public void drawPixels(ImageProcessor ip) {
 		endPaste();
 		ip.drawRect(x, y, width, height);
@@ -493,7 +473,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	/** Returns a handle number if the specified screen coordinates are  
 		inside or near a handle, otherwise returns -1. */
 	public int isHandle(int sx, int sy) {
-		if (clipboard!=null || ic==null) return -1;
+		if (clipboard!=null) return -1;
 		double mag = ic.getMagnification();
 		int size = HANDLE_SIZE+3;
 		int halfSize = size/2;
@@ -539,19 +519,14 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 				Recorder.record("makeLine", line.x1, line.y1, line.x2, line.y2);
 			} else if (type==OVAL)
 				Recorder.record("makeOval", x, y, width, height);
-			else if (!(this instanceof TextRoi))
+			else
 				Recorder.record("makeRectangle", x, y, width, height);
-		}
-		if (Toolbar.getToolId()==Toolbar.OVAL&&Toolbar.getBrushSize()>0)  {
-			int flags = ic!=null?ic.getModifiers():16;
-			if ((flags&16)==0) // erase ROI Brush
-				{imp.draw(); return;}
 		}
 		modifyRoi();
 	}
 
     void modifyRoi() {
-    	if (previousRoi==null || previousRoi.modState==NO_MODS || imp==null)
+    	if (previousRoi==null || previousRoi.modState==NO_MODS)
     		return;
 		//IJ.log("modifyRoi: "+ type+"  "+modState+" "+previousRoi.type+"  "+previousRoi.modState);
     	if (type==POINT || previousRoi.getType()==POINT) {
@@ -561,8 +536,6 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
     			subtractPoints();
     		return;
     	}
-		Roi previous = (Roi)previousRoi.clone();
-		previous.modState = NO_MODS;
         ShapeRoi s1  = null;
         ShapeRoi s2 = null;
         if (previousRoi instanceof ShapeRoi)
@@ -582,15 +555,10 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		if (rois.length==0) return;
 		int type2 = rois[0].getType();
 		//IJ.log(rois.length+" "+type2);
-		Roi roi2 = null;
 		if (rois.length==1 && (type2==POLYGON||type2==FREEROI))
-			roi2 = rois[0];
+			imp.setRoi(rois[0]);
 		else
-			roi2 = s1;
-		if (roi2!=null)
-			roi2.setName(previousRoi.getName());
-		imp.setRoi(roi2);
-		previousRoi = previous;
+			imp.setRoi(s1);
     }
     
     void addPoint() {
@@ -615,20 +583,19 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 			imp.killRoi();
     }
 
-    /** If 'add' is true, adds this selection to the previous one. If 'subtract' is true, subtracts 
-    	it from the previous selection. Called by the IJ.doWand() method, and the makeRectangle(), 
-    	makeOval(), makePolygon() and makeSelection() macro functions. */
-    public void update(boolean add, boolean subtract) {
-     	if (previousRoi==null) return;
-    	if (add) {
+    /** Called by IJ.doWand(), IJ.makeRectangle(), IJ.makeOval() and the
+    	makeSelection() macro function when the shift or alt key is down to
+    	to add to or subtract from an existing selection. */
+    public void addOrSubtract() {
+    	if (!IJ.isJava2() || previousRoi==null) return;
+    	if (IJ.shiftKeyDown())
 			previousRoi.modState = ADD_TO_ROI;
-   			modifyRoi();
-		} else if (subtract) {
+		else if (IJ.altKeyDown())
 			previousRoi.modState = SUBTRACT_FROM_ROI;
-   			modifyRoi();
-		} else
+		else
 			previousRoi.modState = NO_MODS;
-     }
+    	modifyRoi();
+    }
 
 	protected void showStatus() {
 		String value;
@@ -648,7 +615,6 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		IJ.showStatus(imp.getLocationAsString(x,y)+size+value);
 	}
 		
-	/** Always returns null for rectangular Roi's */
 	public ImageProcessor getMask() {
 		return null;
 	}
@@ -658,6 +624,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		this.clipboard = clipboard;
 		imp.getProcessor().snapshot();
 		updateClipRect();
+		if (IJ.debugMode) IJ.log("startPaste: "+clipX+" "+clipY+" "+clipWidth+" "+clipHeight);
 		imp.draw(clipX, clipY, clipWidth, clipHeight);
 	}
 	
@@ -698,7 +665,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	public double getAngle(int x1, int y1, int x2, int y2) {
 		double dx = x2-x1;
 		double dy = y1-y2;
-		if (imp!=null && !IJ.altKeyDown()) {
+		if (imp!=null) {
 			Calibration cal = imp.getCalibration();
 			dx *= cal.pixelWidth;
 			dy *= cal.pixelHeight;
@@ -711,32 +678,11 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		return ROIColor;
 	}
 
-	/** Sets the color used for ROI outlines to the specified value. */
+	/** Sets the color used for ROI outline to the specified value. */
 	public static void setColor(Color c) {
 		ROIColor = c;
 	}
 	
-	/** Sets the color used by this ROI to draw its outline. This color, if not null, 
-		overrides the global color set by the static setColor() method. */
-	public void setInstanceColor(Color c) {
-		instanceColor = c;
-	}
-
-	/** Returns the the color used to draw the ROI outline or null if the default color is being used. */
-	public Color getInstanceColor() {
-		return instanceColor;
-	}
-
-	/** Sets the width of lines used to draw composite ROIs. */
-	public void setLineWidth(int width) {
-		this.stroke = new BasicStroke(width);
-	}
-
-	/** Sets the Stroke used to draw composite ROIs. */
-	public void setStroke(BasicStroke stroke) {
-		this.stroke = stroke;
-	}
-
 	/** Returns the name of this ROI, or null. */
 	public String getName() {
 		return name;
@@ -807,19 +753,6 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	public boolean isVisible() {
 		return ic!=null;
 	}
-
-
-    /** Checks whether two rectangles are equal. */
-    public boolean equals(Object obj) {
-		if (obj instanceof Roi) {
-			Roi roi2 = (Roi)obj;
-			if (type!=roi2.getType()) return false;
-			if (!getBounds().equals(roi2.getBounds())) return false;
-			if (getLength()!=roi2.getLength()) return false;
-			return true;
-		} else
-			return false;
-    }
 
 	public String toString() {
 		return ("Roi["+getTypeAsString()+", x="+x+", y="+y+", width="+width+", height="+height+"]");

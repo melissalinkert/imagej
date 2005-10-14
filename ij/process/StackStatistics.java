@@ -13,7 +13,10 @@ public class StackStatistics extends ImageStatistics {
 	}
 
 	public StackStatistics(ImagePlus imp, int nBins, double histMin, double histMax) {
+		//if (imp.getBitDepth()==8)
+		//	histMax = 255.0;
 		doCalculations(imp, nBins, histMin, histMax);
+		//IJ.log("StackStatistics: "+histMin+"  "+histMax+"  "+nBins);
 	}
 
     void doCalculations(ImagePlus imp,  int bins, double histogramMin, double histogramMax) {
@@ -21,16 +24,16 @@ public class StackStatistics extends ImageStatistics {
 		boolean limitToThreshold = (Analyzer.getMeasurements()&LIMIT)!=0;
 		double minThreshold = -Float.MAX_VALUE;
 		double maxThreshold = Float.MAX_VALUE;
-        Calibration cal = imp.getCalibration();
-		if (limitToThreshold && ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD) {
-			minThreshold=cal.getCValue(ip.getMinThreshold());
-			maxThreshold=cal.getCValue(ip.getMaxThreshold());
+		if (limitToThreshold && ip.getMinThreshold()!=ip.NO_THRESHOLD) {
+			minThreshold=ip.getMinThreshold();
+			maxThreshold=ip.getMaxThreshold();
 		}
     	nBins = bins;
     	histMin = histogramMin;
     	histMax = histogramMax;
         ImageStack stack = imp.getStack();
         int size = stack.getSize();
+        Calibration cal = imp.getCalibration();
         ip.setRoi(imp.getRoi());
         byte[] mask = ip.getMaskArray();
         float[] cTable = imp.getCalibration().getCTable();
@@ -72,7 +75,7 @@ public class StackStatistics extends ImageStatistics {
 			IJ.showStatus("Calculating stack histogram...");
 			IJ.showProgress(slice/2, size);
 			ip = stack.getProcessor(slice);
-			//ip.setCalibrationTable(cTable);
+			ip.setCalibrationTable(cTable);
 			for (int y=ry, my=0; y<(ry+rh); y++, my++) {
 				int i = y * width + rx;
 				int mi = my * rw;
@@ -129,13 +132,12 @@ public class StackStatistics extends ImageStatistics {
         }
         area = pixelCount*pw*ph;
         mean = sum/pixelCount;
+        //IJ.write(sum+" "+stats.pixelCount);
         calculateStdDev(pixelCount, sum, sum2);
         histMin = cal.getRawValue(histMin); 
         histMax =  cal.getRawValue(histMax);
         binSize = (histMax-histMin)/nBins;
-        int bits = imp.getBitDepth();
-        if (histMin==0.0 && histMax==256.0 && (bits==8||bits==24))
-        	histMax = 255.0;
+        //IJ.log(stats.histMin+" "+stats.histMax+" "+stats.nBins);
         dmode = getMode(cal);
         IJ.showStatus("");
         IJ.showProgress(1.0);

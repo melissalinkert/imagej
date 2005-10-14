@@ -3,7 +3,6 @@ import java.awt.*;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import ij.macro.Interpreter;
 
 /** This plugin implements ImageJ's Image/Duplicate command. */
 public class Duplicater implements PlugInFilter {
@@ -22,14 +21,17 @@ public class Duplicater implements PlugInFilter {
 
 	public void duplicate(ImagePlus imp) {
 		int stackSize = imp.getStackSize();
+		String newTitle;
 		String title = imp.getTitle();
-		String newTitle = WindowManager.getUniqueName(title);
+		if (!title.endsWith("-copy"))
+			newTitle = title + "-copy";
+		else
+			newTitle = title;
 		if (!IJ.altKeyDown()||stackSize>1)
 			newTitle = getString("Duplicate...", "Title: ", newTitle);
 		if (newTitle==null)
 			return;
 		ImagePlus imp2;
-		Roi roi = imp.getRoi();
 		if (duplicateStack)
 			imp2 = duplicateStack(imp, newTitle);
 		else {
@@ -46,9 +48,8 @@ public class Duplicater implements PlugInFilter {
 					imp2.setProperty("Info", label);
 			}
 		}
+		//imp.killRoi();
 		imp2.show();
-		if (roi!=null && roi.isArea() && roi.getType()!=Roi.RECTANGLE)
-			imp2.restoreRoi();
 	}
                 
 	public ImagePlus duplicateStack(ImagePlus imp, String newTitle) {
@@ -68,14 +69,6 @@ public class Duplicater implements PlugInFilter {
 		}
 		ImagePlus imp2 = imp.createImagePlus();
 		imp2.setStack(newTitle, stack2);
-		int[] dim = imp.getDimensions();
-		imp2.setDimensions(dim[2], dim[3], dim[4]);
-		if (imp.isComposite()) {
-			imp2 = new CompositeImage(imp2, 0);
-			((CompositeImage)imp2).copyLuts(imp);
-		}
-		if (imp.isHyperStack())
-			imp2.setOpenAsHyperStack(true);
 		return imp2;
 	}
 	
@@ -87,7 +80,7 @@ public class Duplicater implements PlugInFilter {
 		GenericDialog gd = new GenericDialog(title, win);
 		gd.addStringField(prompt, defaultString, 20);
 		if (stackSize>1)
-			gd.addCheckbox("Duplicate Entire Stack", duplicateStack||imp.isComposite());
+			gd.addCheckbox("Duplicate Entire Stack", duplicateStack);
 		else
 			duplicateStack = false;
 		gd.showDialog();

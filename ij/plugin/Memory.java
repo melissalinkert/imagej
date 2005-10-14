@@ -1,6 +1,8 @@
 package ij.plugin;
 import ij.*;
+//import ij.process.*;
 import ij.gui.*;
+//import java.awt.*;
 import java.io.*;
 import ij.util.Tools;
 import java.lang.reflect.*;
@@ -11,8 +13,6 @@ public class Memory implements PlugIn {
 	String s;
 	int index1, index2;
 	File f;
-	boolean fileMissing;
-	boolean sixtyFourBit;
 
 	public void run(String arg) {
 		changeMemoryAllocation();
@@ -23,40 +23,31 @@ public class Memory implements PlugIn {
 	void changeMemoryAllocation() {
 		IJ.maxMemory(); // forces IJ to cache old limit
 		int max = (int)(getMemorySetting()/1048576L);
-		boolean unableToSet = max==0;
-		if (max==0) max = (int)(maxMemory()/1048576L);
-		GenericDialog gd = new GenericDialog("Memory "+(IJ.is64Bit()?"(64-bit)":"(32-bit)"));
-		gd.addNumericField("Maximum Memory:", max, 0, 5, "MB");
-        gd.addNumericField("Parallel Threads for Stacks:", Prefs.getThreads(), 0, 5, "");
+		if (max==0)
+			{showError(); return;}
+		GenericDialog gd = new GenericDialog("Memory");
+		gd.addNumericField("Maximum Memory: ", max, 0, 4, "MB");
 		gd.showDialog();
 		if (gd.wasCanceled()) return;
 		int max2 = (int)gd.getNextNumber();
-        Prefs.setThreads((int)gd.getNextNumber());
 		if (gd.invalidNumber()) {
 			IJ.showMessage("Memory", "The number entered was invalid.");
 			return;
 		}
-		if (unableToSet && max2!=max)
-			{showError(); return;}
 		if (max2<32 && IJ.isMacOSX()) max2 = 32;
 		if (max2<8 && IJ.isWindows()) max2 = 8;
 		if (max2==max) return;
-		int limit = IJ.isWindows()?1600:1700;
-		if (max2>=limit && !IJ.is64Bit()) {
+		if (max2>=1700) {
 			if (!IJ.showMessageWithCancel("Memory", 
-			"Note: setting the memory limit to a value\n"
-			+"greater than "+limit+"MB on a 32-bit system\n"
-			+"may cause ImageJ to fail to start."))
+			"Note: setting the memory limit to a value greater\n"
+			+"than 1700MB may cause ImageJ to fail to start."))
 				return;
 		}
 		try {
-			String s2 = s.substring(index2);
-			if (s2.startsWith("g"))
-				s2 = "m"+s2.substring(1);
-			String s3 = s.substring(0, index1) + max2 + s2;
+			String s2 = s.substring(0, index1) + max2 + s.substring(index2);
 			FileOutputStream fos = new FileOutputStream(f);
 			PrintWriter pw = new PrintWriter(fos);
-			pw.print(s3);
+			pw.print(s2);
 			pw.close();
 		} catch (IOException e) {
 			String error = e.getMessage();
@@ -69,21 +60,14 @@ public class Memory implements PlugIn {
 			IJ.showMessage("Memory", msg);
 			return;
 		}
-		String hint = "";
-		if (IJ.isWindows() && max2>640 && max2>max)
-			hint = "\nDelete the \"ImageJ.cfg\" file, located in the ImageJ folder,\nif ImageJ fails to start.";
-		IJ.showMessage("Memory", "The new " + max2 +"MB limit will take effect after ImageJ is restarted."+hint);		
+		IJ.showMessage("Memory", "The new " + max2 +"MB limit will take effect after ImageJ is restarted.");		
 	}
 
 	public long getMemorySetting() {
 		if (IJ.getApplet()!=null) return 0L;
 		long max = 0L;
 		if (IJ.isMacOSX()) {
-			if (IJ.is64Bit())
-				max = getMemorySetting("ImageJ64.app/Contents/Info.plist");
-			if (max==0L) {
-				max = getMemorySetting("ImageJ.app/Contents/Info.plist");
-			}
+			max = getMemorySetting("ImageJ.app/Contents/Info.plist");
 		} else
 			max = getMemorySetting("ImageJ.cfg");		
 		return max;
@@ -92,29 +76,18 @@ public class Memory implements PlugIn {
 	void showError() {
 		int max = (int)(maxMemory()/1048576L);
 		String msg =
-			   "ImageJ is unable to change the memory limit. For \n"
-			+ "more information, refer to the installation notes at\n \n"
-			+ "    http://rsb.info.nih.gov/ij/docs/install/\n"
+			   "ImageJ is unable to change the memory limit. For\n"
+			+ "more information, refer to the installation notes.\n"
 			+ " \n";
-		if (fileMissing) {
-			if (IJ.isMacOSX())
-				msg += "The ImageJ application (ImageJ.app) was not found.\n \n";
-			else if (IJ.isWindows())
-				msg += "ImageJ.cfg not found.\n \n";
-			fileMissing = false;
-		}
 		if (max>0)
 			msg += "Current limit: " + max + "MB";
 		IJ.showMessage("Memory", msg);
 	}
 
 	long getMemorySetting(String file) {
-		String path = Prefs.getHomeDir()+File.separator+file;
+		String path = System.getProperty("user.dir")+File.separator+file;
 		f = new File(path);
-		if (!f.exists()) {
-			fileMissing = true;
-			return 0L;
-		}
+		if (!f.exists()) return 0L;
 		long max = 0L;
 		try {
 			int size = (int)f.length();
@@ -131,8 +104,6 @@ public class Memory implements PlugIn {
 			while (index2<s.length()-1 && Character.isDigit(s.charAt(++index2))) {}
 			String s2 = s.substring(index1, index2);
 			max = (long)Tools.parseDouble(s2, 0.0)*1024*1024;
-			if (index2<s.length() && s.charAt(index2)=='g')
-				max = max*1024L;
 		}
 		catch (Exception e) {
 			IJ.log(""+e);
@@ -141,9 +112,19 @@ public class Memory implements PlugIn {
 		return max;
 	}
 
-	/** Returns the maximum amount of memory this JVM will attempt to use. */
+	/** With Java 1.4.1 or later, returns the maximum amount of memory
+		that this JVM will attempt to use, otherwise, returns zero. */
 	public long maxMemory() {
-			return Runtime.getRuntime().maxMemory();
+		// Call maxMemory using reflection so this class can be compiled with Java 1.3
+		long max = 0L;
+		try {
+			Runtime rt = Runtime.getRuntime();
+			Class c = rt.getClass();
+			Method maxMemory = c.getDeclaredMethod("maxMemory", new Class[0]);
+			Long l = (Long)maxMemory.invoke(rt, new Object[] {});
+			max = l.longValue();
+		} catch (Exception e) {}
+		return max;
 	}
 	
 }

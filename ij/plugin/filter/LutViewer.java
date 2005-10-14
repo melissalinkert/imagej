@@ -28,15 +28,10 @@ public class LutViewer implements PlugInFilter {
 		boolean isGray;
 		double scale;
 
-        ip = imp.getChannelProcessor();
-        IndexColorModel cm = (IndexColorModel)ip.getColorModel();
-        LookUpTable lut = new LookUpTable(cm);
+		LookUpTable lut = imp.createLut();
 		int mapSize = lut.getMapSize();
-		byte[] reds = lut.getReds();
-		byte[] greens = lut.getGreens();
-		byte[] blues = lut.getBlues();
-        isGray = lut.isGrayscale();
-
+		if (mapSize == 0)
+			return;
 		imageWidth = width + 2*xMargin;
 		imageHeight = height + 3*yMargin;
 		Image img = IJ.getInstance().createImage(imageWidth, imageHeight);
@@ -46,7 +41,11 @@ public class LutViewer implements PlugInFilter {
 		g.setColor(Color.black);
 		g.drawRect(xMargin, yMargin, width, height);
 
+		byte[] reds = lut.getReds();
+		byte[] greens = lut.getGreens();
+		byte[] blues = lut.getBlues();
 		scale = 256.0/mapSize;
+		isGray  = lut.isGrayscale();
 		if (isGray)
 			g.setColor(Color.black);
 		else

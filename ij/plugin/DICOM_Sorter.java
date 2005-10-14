@@ -7,7 +7,6 @@ import ij.util.*;
 
 /* Sorts a DICOM stack by image number. */
 public class DICOM_Sorter implements PlugIn {
-	static final int MAX_DIGITS = 5;
 
 	public void run(String arg) {
 		ImagePlus imp = IJ.getImage();
@@ -18,11 +17,11 @@ public class DICOM_Sorter implements PlugIn {
 		int stackSize = imp.getStackSize();
 		ImageStack stack = imp.getStack();
 		String[] strings = getSortStrings(stack, "0020,0013");
-		if (strings==null) return;
+		//for (int i=0; i<stackSize; i++)
+		//	IJ.log(strings[i]);
 		StringSorter.sort(strings);
 		ImageStack stack2 = sortStack(stack, strings);
-		if (stack2!=null)
-			imp.setStack(null, stack2);
+		imp.setStack(null, stack2);
 	}
 	
 	public ImageStack sort(ImageStack stack) {
@@ -34,13 +33,12 @@ public class DICOM_Sorter implements PlugIn {
 		ImageStack stack2 = sortStack(stack, strings);
 		return stack2!=null?stack2:stack;
 	}
-	
+
 	ImageStack sortStack(ImageStack stack, String[] strings) {
 		ImageProcessor ip = stack.getProcessor(1);
 		ImageStack stack2 = new ImageStack(ip.getWidth(), ip.getHeight(), ip.getColorModel());
 		for (int i=0; i<stack.getSize(); i++) {
-			int slice = (int)Tools.parseDouble(strings[i].substring(strings[i].length()-MAX_DIGITS), 0.0);
-			if (slice==0) return null;
+			int slice = (int)Tools.parseDouble(strings[i].substring(strings[i].length()-4));
 			stack2.addSlice(stack.getSliceLabel(slice), stack.getPixels(slice));
 		}
 		stack2.update(stack.getProcessor(1));
@@ -48,7 +46,11 @@ public class DICOM_Sorter implements PlugIn {
 	}
 
 	String[] getSortStrings(ImageStack stack, String tag) {
-		double series = getSeriesNumber(stack.getSliceLabel(1));
+		double series = getNumericTag(stack.getSliceLabel(1), "0020,0011");
+		if (Double.isNaN(series)) {
+			if (IJ.debugMode) IJ.log("  0020,0011 tag missing in first slice");
+			return null;
+		}
 		int n = stack.getSize();
 		String[] values = new String[n];
 		for (int i=1; i<=n; i++) {
@@ -59,18 +61,18 @@ public class DICOM_Sorter implements PlugIn {
 				if (IJ.debugMode) IJ.log("  "+tag+"  tag missing in slice "+i);
 				return null;
 			}
-			if (getSeriesNumber(tags)!=series) {
+			if (getNumericTag(tags, "0020,0011")!=series) {
 				if (IJ.debugMode) IJ.log("  all slices must be part of the same series");
 				return null;
 			}
-			values[i-1] = toString(value, MAX_DIGITS) + toString(i, MAX_DIGITS);
+			values[i-1] = toString(value, 4) + toString(i, 4);
 		}
 		return values;
 	}
 
 	String toString(double value, int width) {
-		String s = "       " + IJ.d2s(value,0);
-		return s.substring(s.length()-MAX_DIGITS);
+		String s = "      " + IJ.d2s(value,0);
+		return s.substring(s.length()-4);
 	}
 
 	boolean isDicomStack(ImagePlus imp) {
@@ -79,12 +81,6 @@ public class DICOM_Sorter implements PlugIn {
 		ImageStack stack = imp.getStack();
 		String label = stack.getSliceLabel(1);
 		return label!=null && label.lastIndexOf("7FE0,0010")>0;
-	}
-	
-	double getSeriesNumber(String tags) {
-		double series = getNumericTag(tags, "0020,0011");
-		if (Double.isNaN(series)) series = 0;
-		return series;
 	}
 
 	double getNumericTag(String hdr, String tag) {

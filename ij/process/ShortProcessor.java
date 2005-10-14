@@ -11,8 +11,8 @@ public class ShortProcessor extends ImageProcessor {
 
 	private int min, max, snapshotMin, snapshotMax;
 	private short[] pixels;
-	private byte[] pixels8;
 	private short[] snapshotPixels;
+	private byte[] pixels8;
 	private byte[] LUT;
 	private boolean fixedScale;
 
@@ -21,28 +21,6 @@ public class ShortProcessor extends ImageProcessor {
 	public ShortProcessor(int width, int height, short[] pixels, ColorModel cm) {
 		if (pixels!=null && width*height!=pixels.length)
 			throw new IllegalArgumentException(WRONG_LENGTH);
-		init(width, height, pixels, cm);
-	}
-
-	/** Creates a blank ShortProcessor using the default grayscale LUT that
-		displays zero as black. Call invertLut() to display zero as white. */
-	public ShortProcessor(int width, int height) {
-		this(width, height, new short[width*height], null);
-	}
-	
-	/** Creates a ShortProcessor from a TYPE_USHORT_GRAY BufferedImage. */
-	public ShortProcessor(BufferedImage bi) {
-		if (bi.getType()!=BufferedImage.TYPE_USHORT_GRAY)
-			throw new IllegalArgumentException("Type!=TYPE_USHORT_GRAY");
-		WritableRaster raster = bi.getRaster();
-		DataBuffer buffer = raster.getDataBuffer();
-		short[] data = ((DataBufferUShort) buffer).getData();
-		//short[] data2 = new short[data.length];
-		//System.arraycopy(data, 0, data2, 0, data.length);
-		init(raster.getWidth(), raster.getHeight(), data, null);
-	}
-
-	void init(int width, int height, short[] pixels, ColorModel cm) {
 		this.width = width;
 		this.height = height;
 		this.pixels = pixels;
@@ -51,6 +29,12 @@ public class ShortProcessor extends ImageProcessor {
 		if (pixels!=null)
 			findMinAndMax();
 		fgColor = max;
+	}
+
+	/** Creates a blank ShortProcessor using the default grayscale LUT that
+		displays zero as black. Call invertLut() to display zero as white. */
+	public ShortProcessor(int width, int height) {
+		this(width, height, new short[width*height], null);
 	}
 
 	/** Obsolete. 16 bit images are normally unsigned but signed images can be used by
@@ -79,18 +63,32 @@ public class ShortProcessor extends ImageProcessor {
 			if (value>max)
 				max = value;
 		}
+		hideProgress();
 	}
 
 	/** Create an 8-bit AWT image by scaling pixels in the range min-max to 0-255. */
 	public Image createImage() {
+		//ij.IJ.log("createImage: "+min+" "+max);
 		boolean firstTime = pixels8==null;
-		if (firstTime || !lutAnimation)
-			create8BitImage();
+		if (firstTime || !lutAnimation) {
+			// scale from 16-bits to 8-bits
+			int size = width*height;
+			if (pixels8==null)
+				pixels8 = new byte[size];
+				
+			int value;
+			double scale = 256.0/(max-min+1);
+			for (int i=0; i<size; i++) {
+				value = (pixels[i]&0xffff)-min;
+				if (value<0) value = 0;
+				value = (int)(value*scale);
+				if (value>255) value = 255;
+				pixels8[i] = (byte)value;
+			}
+		}
 		if (cm==null)
 			makeDefaultColorModel();
-		if (ij.IJ.isJava16())
-			return createBufferedImage();
-		if (source==null) {
+		if (source==null || (ij.IJ.isMacintosh()&&(!ij.IJ.isJava2()||lutAnimation))) {
 			source = new MemoryImageSource(width, height, cm, pixels8, 0, width);
 			source.setAnimated(true);
 			source.setFullBufferUpdates(true);
@@ -102,52 +100,6 @@ public class ShortProcessor extends ImageProcessor {
 			source.newPixels();
 		lutAnimation = false;
 	    return img;
-	}
-	
-	// create 8-bit image by linearly scaling from 16-bits to 8-bits
-	byte[] create8BitImage() {
-		int size = width*height;
-		if (pixels8==null)
-			pixels8 = new byte[size];
-		int value;
-		double scale = 256.0/(max-min+1);
-		for (int i=0; i<size; i++) {
-			value = (pixels[i]&0xffff)-min;
-			if (value<0) value = 0;
-			value = (int)(value*scale+0.5);
-			if (value>255) value = 255;
-			pixels8[i] = (byte)value;
-		}
-		return pixels8;
-	}
-
-	Image createBufferedImage() {
-		if (raster==null) {
-			SampleModel sm = getIndexSampleModel();
-			DataBuffer db = new DataBufferByte(pixels8, width*height, 0);
-			raster = Raster.createWritableRaster(sm, db, null);
-		}
-		if (image==null || cm!=cm2) {
-			image = new BufferedImage(cm, raster, false, null);
-			cm2 = cm;
-		}
-		lutAnimation = false;
-		return image;
-	}
-
-	/** Returns this image as an 8-bit BufferedImage . */
-	public BufferedImage getBufferedImage() {
-		return convertToByte(true).getBufferedImage();
-	}
-
-	/** Returns a copy of this image as a TYPE_USHORT_GRAY BufferedImage. */
-	public BufferedImage get16BitBufferedImage() {
-        BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_GRAY);
-        Raster raster = bi.getData();
-        DataBufferUShort db = (DataBufferUShort)raster.getDataBuffer();
-        System.arraycopy(getPixels(), 0, db.getData(), 0, db.getData().length);
-        bi.setData(raster);
-        return bi;
 	}
 
 	/** Returns a new, blank ShortProcessor with the specified width and height. */
@@ -165,6 +117,7 @@ public class ShortProcessor extends ImageProcessor {
 		if (snapshotPixels==null || (snapshotPixels!=null && snapshotPixels.length!=pixels.length))
 			snapshotPixels = new short[width * height];
 		System.arraycopy(pixels, 0, snapshotPixels, 0, width*height);
+		newSnapshot = true;
 	}
 	
 	public void reset() {
@@ -173,6 +126,7 @@ public class ShortProcessor extends ImageProcessor {
 	    min=snapshotMin;
 		max=snapshotMax;
         System.arraycopy(snapshotPixels, 0, pixels, 0, width*height);
+        newSnapshot = true;
 	}
 	
 	public void reset(ImageProcessor mask) {
@@ -190,16 +144,6 @@ public class ShortProcessor extends ImageProcessor {
 				i++;
 			}
 		}
-	}
-
-	public void setSnapshotPixels(Object pixels) {
-		snapshotPixels = (short[])pixels;
-		snapshotWidth=width;
-		snapshotHeight=height;
-	}
-
-	public Object getSnapshotPixels() {
-		return snapshotPixels;
 	}
 
 	/* Obsolete. */
@@ -252,38 +196,6 @@ public class ShortProcessor extends ImageProcessor {
 			return 0;
 	}
 
-	public final int get(int x, int y) {
-		return pixels[y*width+x]&0xffff;
-	}
-
-	public final void set(int x, int y, int value) {
-		pixels[y*width + x] = (short)value;
-	}
-
-	public final int get(int index) {
-		return pixels[index]&0xffff;
-	}
-
-	public final void set(int index, int value) {
-		pixels[index] = (short)value;
-	}
-
-	public final float getf(int x, int y) {
-		return pixels[y*width+x]&0xffff;
-	}
-
-	public final void setf(int x, int y, float value) {
-		pixels[y*width + x] = (short)value;
-	}
-
-	public final float getf(int index) {
-		return pixels[index]&0xffff;
-	}
-
-	public final void setf(int index, float value) {
-		pixels[index] = (short)value;
-	}
-
 	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). */
 	public double getInterpolatedPixel(double x, double y) {
 		if (x<0.0) x = 0.0;
@@ -292,6 +204,16 @@ public class ShortProcessor extends ImageProcessor {
 		if (y>=height-1.0) y = height-1.001;
 		return getInterpolatedPixel(x, y, pixels);
 	}
+
+	/** Uses bilinear interpolation to find the calibrated
+		pixel value at real coordinates (x,y). */
+		public double getInterpolatedValue(double x, double y) {
+			double value = getInterpolatedPixel(x, y);
+			if (cTable==null)
+				return value;
+			else
+				return cTable[(int)(value+0.5)]; 
+		}
 
 	/** Stores the specified value at (x,y). Does
 		nothing if (x,y) is outside the image boundary.
@@ -331,7 +253,7 @@ public class ShortProcessor extends ImageProcessor {
 
 	/** Returns the value of the pixel at (x,y) as a float. For signed
 		images, returns a signed value if a calibration table has
-		been set using setCalibrationTable() (this is done automatically 
+		been set using setCalibraionTable() (this is done automatically 
 		in PlugInFilters). */
 	public float getPixelValue(int x, int y) {
 		if (x>=0 && x<width && y>=0 && y<height) {
@@ -350,16 +272,12 @@ public class ShortProcessor extends ImageProcessor {
 		return (Object)pixels;
 	}
 
-	/** Returns a copy of the pixel data. Or returns a reference to the
-		snapshot buffer if it is not null and 'snapshotCopyMode' is true.
-		@see ImageProcessor#snapshot
-		@see ImageProcessor#setSnapshotCopyMode
-	*/
+	/** Returns a reference to this image's snapshot (undo) array. If
+		the snapshot array is null, returns a copy of the pixel data. */
 	public Object getPixelsCopy() {
-		if (snapshotPixels!=null && snapshotCopyMode) {
-			snapshotCopyMode = false;
+		if (newSnapshot)
 			return snapshotPixels;
-		} else {
+		else {
 			short[] pixels2 = new short[width*height];
         	System.arraycopy(pixels, 0, pixels2, 0, width*height);
 			return pixels2;
@@ -369,9 +287,9 @@ public class ShortProcessor extends ImageProcessor {
 	public void setPixels(Object pixels) {
 		this.pixels = (short[])pixels;
 		resetPixels(pixels);
-		if (pixels==null) snapshotPixels = null;
-		if (pixels==null) pixels8 = null;
-		raster = null;
+		snapshotPixels = null;
+		if (pixels==null)
+			pixels8 = null;
 	}
 
 	void getRow2(int x, int y, int[] data, int length) {
@@ -457,17 +375,11 @@ public class ShortProcessor extends ImageProcessor {
 						else 
 							v2 = (int)(Math.log(v1)*(max2/Math.log(max2)));
 						break;
-					case EXP:
-						v2 = (int)(Math.exp(v1*(Math.log(max2)/max2)));
-						break;
 					case SQR:
 							v2 = v1*v1;
 						break;
 					case SQRT:
-						v2 = (int)Math.sqrt(v1);
-						break;
-					case ABS:
-						v2 = (int)Math.abs(v1);
+							v2 = (int)Math.sqrt(v1);
 						break;
 					case MINIMUM:
 						if (v1<value)
@@ -491,9 +403,12 @@ public class ShortProcessor extends ImageProcessor {
 					v2 = 65535;
 				pixels[i++] = (short)v2;
 			}
+			if (y%20==0)
+				showProgress((double)(y-roiY)/roiHeight);
 		}
 		if (resetMinMax)
 			findMinAndMax();
+		showProgress(1.0);
     }
 
 	public void invert() {
@@ -509,10 +424,8 @@ public class ShortProcessor extends ImageProcessor {
 	public void xor(int value) {process(XOR, value);}
 	public void gamma(double value) {process(GAMMA, value);}
 	public void log() {process(LOG, 0.0);}
-	public void exp() {process(EXP, 0.0);}
 	public void sqr() {process(SQR, 0.0);}
 	public void sqrt() {process(SQRT, 0.0);}
-	public void abs() {process(ABS, 0.0);}
 	public void min(double value) {process(MINIMUM, value);}
 	public void max(double value) {process(MAXIMUM, value);}
 
@@ -522,14 +435,13 @@ public class ShortProcessor extends ImageProcessor {
 	}
 
 	/** Fills pixels that are within roi and part of the mask.
-		Does nothing if the mask is not the same as the ROI. */
+		Throws an IllegalArgumentException if the mask is null or
+		the size of the mask is not the same as the size of the ROI. */
 	public void fill(ImageProcessor mask) {
 		if (mask==null)
 			{fill(); return;}
-		int roiWidth=this.roiWidth, roiHeight=this.roiHeight;
-		int roiX=this.roiX, roiY=this.roiY;
 		if (mask.getWidth()!=roiWidth||mask.getHeight()!=roiHeight)
-			return;
+			throw new IllegalArgumentException(maskSizeError(mask));
 		byte[] mpixels = (byte[])mask.getPixels();
 		for (int y=roiY, my=0; y<(roiY+roiHeight); y++, my++) {
 			int i = y * width + roiX;
@@ -542,106 +454,108 @@ public class ShortProcessor extends ImageProcessor {
 		}
 	}
 
-	/** Does 3x3 convolution. */
+	/** 3x3 convolution contributed by Glynne Casteel. */
 	public void convolve3x3(int[] kernel) {
-		filter3x3(CONVOLVE, kernel);
+		int p1, p2, p3,
+		    p4, p5, p6,
+		    p7, p8, p9;
+		int k1=kernel[0], k2=kernel[1], k3=kernel[2],
+		    k4=kernel[3], k5=kernel[4], k6=kernel[5],
+		    k7=kernel[6], k8=kernel[7], k9=kernel[8];
+
+		int scale = 0;
+		for (int i=0; i<kernel.length; i++)
+			scale += kernel[i];
+		if (scale==0) scale = 1;
+		int inc = roiHeight/25;
+		if (inc<1) inc = 1;
+		
+		short[] pixels2 = (short[])getPixelsCopy();
+		int offset, sum;
+        int rowOffset = width;
+		for (int y=yMin; y<=yMax; y++) {
+			offset = xMin + y * width;
+			p1 = 0;
+			p2 = pixels2[offset-rowOffset-1]&0xffff;
+			p3 = pixels2[offset-rowOffset]&0xffff;
+			p4 = 0;
+			p5 = pixels2[offset-1]&0xffff;
+			p6 = pixels2[offset]&0xffff;
+			p7 = 0;
+			p8 = pixels2[offset+rowOffset-1]&0xffff;
+			p9 = pixels2[offset+rowOffset]&0xffff;
+
+			for (int x=xMin; x<=xMax; x++) {
+				p1 = p2; p2 = p3;
+				p3 = pixels2[offset-rowOffset+1]&0xffff;
+				p4 = p5; p5 = p6;
+				p6 = pixels2[offset+1]&0xffff;
+				p7 = p8; p8 = p9;
+				p9 = pixels2[offset+rowOffset+1]&0xffff;
+				sum = k1*p1 + k2*p2 + k3*p3
+				    + k4*p4 + k5*p5 + k6*p6
+				    + k7*p7 + k8*p8 + k9*p9;
+				sum /= scale;
+				if(sum>65535) sum = 65535;
+				if(sum<0) sum= 0;
+				pixels[offset++] = (short)sum;
+			}
+			if (y%inc==0)
+				showProgress((double)(y-roiY)/roiHeight);
+		}
+		hideProgress();
 	}
 
 	/** Filters using a 3x3 neighborhood. */
 	public void filter(int type) {
-		filter3x3(type, null);
+		int p1, p2, p3, p4, p5, p6, p7, p8, p9;
+		int inc = roiHeight/25;
+		if (inc<1) inc = 1;
+		
+		short[] pixels2 = (short[])getPixelsCopy();
+		int offset, sum1, sum2, sum=0;
+        int rowOffset = width;
+		for (int y=yMin; y<=yMax; y++) {
+			offset = xMin + y * width;
+			p1 = 0;
+			p2 = pixels2[offset-rowOffset-1]&0xffff;
+			p3 = pixels2[offset-rowOffset]&0xffff;
+			p4 = 0;
+			p5 = pixels2[offset-1]&0xffff;
+			p6 = pixels2[offset]&0xffff;
+			p7 = 0;
+			p8 = pixels2[offset+rowOffset-1]&0xffff;
+			p9 = pixels2[offset+rowOffset]&0xffff;
+
+			for (int x=xMin; x<=xMax; x++) {
+				p1 = p2; p2 = p3;
+				p3 = pixels2[offset-rowOffset+1]&0xffff;
+				p4 = p5; p5 = p6;
+				p6 = pixels2[offset+1]&0xffff;
+				p7 = p8; p8 = p9;
+				p9 = pixels2[offset+rowOffset+1]&0xffff;
+
+				switch (type) {
+					case BLUR_MORE:
+						sum = (p1+p2+p3+p4+p5+p6+p7+p8+p9)/9;
+						break;
+					case FIND_EDGES:
+	        			sum1 = p1 + 2*p2 + p3 - p7 - 2*p8 - p9;
+	        			sum2 = p1  + 2*p4 + p7 - p3 - 2*p6 - p9;
+	        			sum = (int)Math.sqrt(sum1*sum1 + sum2*sum2);
+	        			break;
+				}
+				
+				pixels[offset++] = (short)sum;
+			}
+			if (y%inc==0)
+				showProgress((double)(y-roiY)/roiHeight);
+		}
+		if (type==BLUR_MORE)
+			hideProgress();
+		else
+			findMinAndMax();
 	}
-
-    /** 3x3 filter operations, code partly based on 3x3 convolution code
-     *  contributed by Glynne Casteel. */
-    void filter3x3(int type, int[] kernel) {
-        int v1, v2, v3;           //input pixel values around the current pixel
-        int v4, v5, v6;
-        int v7, v8, v9;
-        int k1=0, k2=0, k3=0;  //kernel values (used for CONVOLVE only)
-        int k4=0, k5=0, k6=0;
-        int k7=0, k8=0, k9=0;
-        int scale = 0;
-        if (type==CONVOLVE) {
-            k1=kernel[0]; k2=kernel[1]; k3=kernel[2];
-            k4=kernel[3]; k5=kernel[4]; k6=kernel[5];
-            k7=kernel[6]; k8=kernel[7]; k9=kernel[8];
-            for (int i=0; i<kernel.length; i++)
-                scale += kernel[i];
-            if (scale==0) scale = 1;
-        }
-        int inc = roiHeight/25;
-        if (inc<1) inc = 1;
-
-        short[] pixels2 = (short[])getPixelsCopy();
-        int xEnd = roiX + roiWidth;
-        int yEnd = roiY + roiHeight;
-        for (int y=roiY; y<yEnd; y++) {
-            int p  = roiX + y*width;            //points to current pixel
-            int p6 = p - (roiX>0 ? 1 : 0);      //will point to v6, currently lower
-            int p3 = p6 - (y>0 ? width : 0);    //will point to v3, currently lower
-            int p9 = p6 + (y<height-1 ? width : 0); // ...  to v9, currently lower
-            v2 = pixels2[p3]&0xffff;
-            v5 = pixels2[p6]&0xffff;
-            v8 = pixels2[p9]&0xffff;
-            if (roiX>0) { p3++; p6++; p9++; }
-            v3 = pixels2[p3]&0xffff;
-            v6 = pixels2[p6]&0xffff;
-            v9 = pixels2[p9]&0xffff;
-
-            switch (type) {
-                case BLUR_MORE:
-                for (int x=roiX; x<xEnd; x++,p++) {
-                    if (x<width-1) { p3++; p6++; p9++; }
-                    v1 = v2; v2 = v3;
-                    v3 = pixels2[p3]&0xffff;
-                    v4 = v5; v5 = v6;
-                    v6 = pixels2[p6]&0xffff;
-                    v7 = v8; v8 = v9;
-                    v9 = pixels2[p9]&0xffff;
-                    pixels[p] = (short)((v1+v2+v3+v4+v5+v6+v7+v8+v9+4)/9);
-                }
-                break;
-                case FIND_EDGES:
-                for (int x=roiX; x<xEnd; x++,p++) {
-                    if (x<width-1) { p3++; p6++; p9++; }
-                    v1 = v2; v2 = v3;
-                    v3 = pixels2[p3]&0xffff;
-                    v4 = v5; v5 = v6;
-                    v6 = pixels2[p6]&0xffff;
-                    v7 = v8; v8 = v9;
-                    v9 = pixels2[p9]&0xffff;
-                    double sum1 = v1 + 2*v2 + v3 - v7 - 2*v8 - v9;
-                    double sum2 = v1  + 2*v4 + v7 - v3 - 2*v6 - v9;
-                    double result = Math.sqrt(sum1*sum1 + sum2*sum2)+0.5;
-                    if (result>65535.0) result = 65535.0;
-                    pixels[p] = (short)result;
-                }
-                break;
-                case CONVOLVE:
-                for (int x=roiX; x<xEnd; x++,p++) {
-                    if (x<width-1) { p3++; p6++; p9++; }
-                    v1 = v2; v2 = v3;
-                    v3 = pixels2[p3]&0xffff;
-                    v4 = v5; v5 = v6;
-                    v6 = pixels2[p6]&0xffff;
-                    v7 = v8; v8 = v9;
-                    v9 = pixels2[p9]&0xffff;
-                    int sum = k1*v1 + k2*v2 + k3*v3
-                            + k4*v4 + k5*v5 + k6*v6
-                            + k7*v7 + k8*v8 + k9*v9;
-                    sum = (sum+scale/2)/scale;   //scale/2 for rounding
-                    if(sum>65535) sum = 65535;
-                    if(sum<0) sum = 0;
-                    pixels[p] = (short)sum;
-                }
-                break;
-            }
-            if (y%inc==0)
-                showProgress((double)(y-roiY)/roiHeight);
-        }
-        showProgress(1.0);
-    }
 
 	/** Rotates the image or ROI 'angle' degrees clockwise.
 		@see ImageProcessor#setInterpolate
@@ -692,7 +606,7 @@ public class ShortProcessor extends ImageProcessor {
 			if (y%30==0)
 			showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	public void flipVertical() {
@@ -707,6 +621,7 @@ public class ShortProcessor extends ImageProcessor {
 				pixels[index2++] = tmp;
 			}
 		}
+		newSnapshot = false;
 	}
 	
 	/** Scales the image or selection using the specified scale factors.
@@ -763,7 +678,7 @@ public class ShortProcessor extends ImageProcessor {
 			if (y%20==0)
 			showProgress((double)(y-ymin)/height);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). */
@@ -820,7 +735,7 @@ public class ShortProcessor extends ImageProcessor {
 			if (y%20==0)
 			showProgress((double)y/dstHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 		return ip2;
 	}
 
@@ -836,26 +751,15 @@ public class ShortProcessor extends ImageProcessor {
         return ip2;
 	}
 	
-	/** Returns a duplicate of this image. */ 
-	public synchronized ImageProcessor duplicate() { 
-		ImageProcessor ip2 = createProcessor(width, height); 
-		short[] pixels2 = (short[])ip2.getPixels(); 
-		System.arraycopy(pixels, 0, pixels2, 0, width*height); 
-		return ip2; 
-	} 
-
 	/** Sets the foreground fill/draw color. */
 	public void setColor(Color color) {
 		int bestIndex = getBestIndex(color);
 		if (bestIndex>0 && getMin()==0.0 && getMax()==0.0) {
 			setValue(bestIndex);
 			setMinAndMax(0.0,255.0);
-		} else if (bestIndex==0 && getMin()>0.0 && (color.getRGB()&0xffffff)==0) {
-			if (cTable!=null&&cTable[0]==-32768f) // signed image
-				setValue(32768.0);
-			else
-				setValue(0.0);
-		} else
+		} else if (bestIndex==0 && getMin()>0.0 && (color.getRGB()&0xffffff)==0)
+			setValue(0.0);
+		else
 			fgColor = (int)(getMin() + (getMax()-getMin())*(bestIndex/255.0));
 
 	}
@@ -903,18 +807,14 @@ public class ShortProcessor extends ImageProcessor {
 	}
 
 	public void setThreshold(double minThreshold, double maxThreshold, int lutUpdate) {
-		if (minThreshold==NO_THRESHOLD)
-			{resetThreshold(); return;}
-		if (minThreshold<0.0) minThreshold = 0.0;
-		if (maxThreshold>65535.0) maxThreshold = 65535.0;
-		if (max>min) {
+		if (minThreshold!=NO_THRESHOLD && max>min) {
 			double minT = Math.round(((minThreshold-min)/(max-min))*255.0);
 			double maxT = Math.round(((maxThreshold-min)/(max-min))*255.0);
-			super.setThreshold(minT, maxT, lutUpdate); // update LUT
+			super.setThreshold(minT, maxT, lutUpdate);
+			this.minThreshold = Math.round(minThreshold);
+			this.maxThreshold = Math.round(maxThreshold);
 		} else
 			super.resetThreshold();
-		this.minThreshold = Math.round(minThreshold);
-		this.maxThreshold = Math.round(maxThreshold);
 	}
 
 	/** Performs a convolution operation using the specified kernel. */
@@ -954,55 +854,8 @@ public class ShortProcessor extends ImageProcessor {
 			else
 				pixels[i] = (short)255;
 		}
+		newSnapshot = false;
 		findMinAndMax();
-	}
-
-	/** Returns a FloatProcessor with the same image, no scaling or calibration
-	*  (pixel values 0 to 65535).
-	*  The roi, mask, lut (ColorModel), threshold, min&max are
-	*  also set for the FloatProcessor
-	*  @param channelNumber   Ignored (needed for compatibility with ColorProcessor.toFloat)
-	*  @param fp              Here a FloatProcessor can be supplied, or null. The FloatProcessor
-	*                         is overwritten by this method (re-using its pixels array 
-	*                         improves performance).
-	*  @return A FloatProcessor with the converted image data
-	*/
-	public FloatProcessor toFloat(int channelNumber, FloatProcessor fp) {
-		int size = width*height;
-		if (fp == null || fp.getWidth()!=width || fp.getHeight()!=height)
-			fp = new FloatProcessor(width, height, new float[size], cm);
-		float[] fPixels = (float[])fp.getPixels();
-		for (int i=0; i<size; i++)
-			fPixels[i] = pixels[i]&0xffff;
-		fp.setRoi(getRoi());
-		fp.setMask(mask);
-		fp.setThreshold(minThreshold, maxThreshold, ImageProcessor.NO_LUT_UPDATE);
-		//##can be NO_LUT_UPDATE
-		fp.setMinAndMax(min, max);
-		return fp;
-	}
-	
-	/** Sets the pixels from a FloatProcessor, no scaling.
-	*  Also the min&max values are taken from the FloatProcessor.
-	*  @param channelNumber   Ignored (needed for compatibility with ColorProcessor.toFloat)
-	*  @param fp              The FloatProcessor where the image data are read from.
-	*/
-	public void setPixels(int channelNumber, FloatProcessor fp) {
-		float[] fPixels = (float[])fp.getPixels();
-		float value;
-		int size = width*height;
-		for (int i=0; i<size; i++) {
-			value = fPixels[i] + 0.49999995f;
-			if (value<0f) value = 0f;
-			if (value>65535f) value = 65535f;
-			pixels[i] = (short)value;
-		}
-		setMinAndMax(fp.getMin(), fp.getMax());
-	}
-		
-	/** Returns the maximum possible pixel value. */
-	public double maxValue() {
-		return 65535.0;
 	}
 
 	/** Not implemented. */

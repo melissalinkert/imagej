@@ -15,7 +15,6 @@ public class Fonts extends PlugInFrame implements PlugIn, ItemListener {
 	private Choice font;
 	private Choice size;
 	private Choice style;
-	private Checkbox checkbox;
 	private static Frame instance;
 
 	public Fonts() {
@@ -29,16 +28,10 @@ public class Fonts extends PlugInFrame implements PlugIn, ItemListener {
 		setLayout(new FlowLayout(FlowLayout.CENTER, 10, 5));
 		
 		font = new Choice();
-		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-		String[] fonts = ge.getAvailableFontFamilyNames();
-		font.add("SansSerif");
-		font.add("Serif");
-		font.add("Monospaced");
-		for (int i=0; i<fonts.length; i++) {
-			String f = fonts[i];
-			if (!(f.equals("SansSerif")||f.equals("Serif")||f.equals("Monospaced")))
-				font.add(f);
-		}
+		String[] fonts = Toolkit.getDefaultToolkit().getFontList();
+		//String[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames(); //requires Java 2
+		for (int i=0; i<fonts.length; i++)
+			font.add(fonts[i]);
 		font.select(TextRoi.getFont());
 		font.addItemListener(this);
 		add(font);
@@ -66,10 +59,6 @@ public class Fonts extends PlugInFrame implements PlugIn, ItemListener {
 		style.select(s);
 		style.addItemListener(this);
 		add(style);
-		
-		checkbox = new Checkbox("Smooth", TextRoi.isAntialiased());
-		add(checkbox);
-		checkbox.addItemListener(this);
 
 		pack();
 		GUI.center(this);
@@ -98,7 +87,7 @@ public class Fonts extends PlugInFrame implements PlugIn, ItemListener {
 			fontStyle = Font.ITALIC;
 		else if (styleName.equals("Bold+Italic"))
 			fontStyle = Font.BOLD+Font.ITALIC;
-		TextRoi.setFont(fontName, fontSize, fontStyle, checkbox.getState());
+		TextRoi.setFont(fontName, fontSize, fontStyle);
 		IJ.showStatus(fontSize+" point "+fontName + " " + styleName);
 	}
 	

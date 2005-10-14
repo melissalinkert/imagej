@@ -19,7 +19,7 @@ public class ByteStatistics extends ImageStatistics {
 		setup(ip, cal);
 		double minT = ip.getMinThreshold();
 		int minThreshold,maxThreshold;
-		if ((mOptions&LIMIT)==0 || minT==ImageProcessor.NO_THRESHOLD)
+		if ((mOptions&LIMIT)==0 || minT==ip.NO_THRESHOLD)
 			{minThreshold=0; maxThreshold=255;}
 		else
 			{minThreshold=(int)minT; maxThreshold=(int)ip.getMaxThreshold();}
@@ -41,7 +41,7 @@ public class ByteStatistics extends ImageStatistics {
 		if ((mOptions&(CENTER_OF_MASS|SKEWNESS|KURTOSIS))!=0)
 			calculateMoments(ip, minThreshold, maxThreshold, cTable);
 		if ((mOptions&MEDIAN)!=0)
-			calculateMedian(histogram, minThreshold, maxThreshold, cal);
+			calculateMedian(histogram, 0, cal);
 		if ((mOptions&AREA_FRACTION)!=0)
 			calculateAreaFraction(ip, histogram);
 	}
@@ -55,16 +55,14 @@ public class ByteStatistics extends ImageStatistics {
 		
 		for (int i=minThreshold; i<=maxThreshold; i++) {
 			count = histogram[i];
+			pixelCount += count;
 			value = cTable[i];
-			if (count>0 && !Double.isNaN(value)) {
-				pixelCount += count;
-				sum += value*count;
-				isum += i*count;
-				sum2 += (value*value)*count;
-				if (count>maxCount) {
-					maxCount = count;
-					mode = i;
-				}
+			sum += value*count;
+			isum += i*count;
+			sum2 += (value*value)*count;
+			if (count>maxCount) {
+				maxCount = count;
+				mode = i;
 			}
 		}
 		area = pixelCount*pw*ph;
@@ -80,8 +78,7 @@ public class ByteStatistics extends ImageStatistics {
 		byte[] pixels = (byte[])ip.getPixels();
 		byte[] mask = ip.getMaskArray();
 		boolean limit = minThreshold>0 || maxThreshold<255;
-		double xsum=0, ysum=0;
-		int count=0,i,mi,v;
+		int count=0, xsum=0, ysum=0,i,mi,v;
 		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
 			i = y*width + rx;
 			mi = my*rw;
@@ -103,12 +100,8 @@ public class ByteStatistics extends ImageStatistics {
 				i++;
 			}
 		}
-		xCentroid = xsum/count+0.5;
-		yCentroid = ysum/count+0.5;
-		if (cal!=null) {
-			xCentroid = cal.getX(xCentroid);
-			yCentroid = cal.getY(yCentroid, height);
-		}
+		xCentroid = ((double)xsum/count+0.5)*pw;
+		yCentroid = ((double)ysum/count+0.5)*ph;
 	}
 
 	void calculateMoments(ImageProcessor ip,  int minThreshold, int maxThreshold, float[] cTable) {
@@ -141,17 +134,11 @@ public class ByteStatistics extends ImageStatistics {
 	    double sDeviation = Math.sqrt(variance);
 	    skewness = ((sum3 - 3.0*mean*sum2)/pixelCount + 2.0*mean*mean2)/(variance*sDeviation);
 	    kurtosis = (((sum4 - 4.0*mean*sum3 + 6.0*mean2*sum2)/pixelCount - 3.0*mean2*mean2)/(variance*variance)-3.0);
-		xCenterOfMass = xsum/sum1+0.5;
-		yCenterOfMass = ysum/sum1+0.5;
-		if (cal!=null) {
-			xCenterOfMass = cal.getX(xCenterOfMass);
-			yCenterOfMass = cal.getY(yCenterOfMass, height);
-		}
+		xCenterOfMass = (xsum/sum1+0.5)*pw;
+		yCenterOfMass = (ysum/sum1+0.5)*ph;
 	}
 	
 	void getCalibratedMinAndMax(int minThreshold, int maxThreshold, float[] cTable) {
-		if (pixelCount==0)
-			{min=0.0; max=0.0; return;}
 		min = Double.MAX_VALUE;
 		max = -Double.MAX_VALUE;
 		double v = 0.0;

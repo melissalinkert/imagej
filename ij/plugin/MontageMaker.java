@@ -13,34 +13,15 @@ public class MontageMaker implements PlugIn {
 	private static int columns, rows, first, last, inc, borderWidth;
 	private static double scale;
 	private static boolean label;
-	private static boolean useForegroundColor;
 	private static int saveID;
 
 	public void run(String arg) {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null || imp.getStackSize()==1)
 			{IJ.error("Stack required"); return;}
-		int channels = imp.getNChannels();
-		if (imp.isComposite() && channels>1) {
-			int channel = imp.getChannel();
-			CompositeImage ci = (CompositeImage)imp;
-			int mode = ci.getMode();
-			if (mode==CompositeImage.COMPOSITE)
-				ci.setMode(CompositeImage.COLOR);
-			ImageStack stack = new ImageStack(imp.getWidth(), imp.getHeight());
-			for (int c=1; c<=channels; c++) {
-				imp.setPosition(c, imp.getSlice(), imp.getFrame());
-				Image img = imp.getImage();
-				stack.addSlice(null, new ColorProcessor(img));
-			}
-			if (ci.getMode()!=mode)
-				ci.setMode(mode);
-			imp.setPosition(channel, imp.getSlice(), imp.getFrame());
-			imp = new ImagePlus(imp.getTitle(), stack);
-		}
 		makeMontage(imp);
-		imp.updateImage();
 		saveID = imp.getID();
+    	IJ.register(MontageMaker.class);
 	}
 	
 	public void makeMontage(ImagePlus imp) {
@@ -69,7 +50,6 @@ public class MontageMaker implements PlugIn {
 			gd.addNumericField("Increment:", inc, 0);
 			gd.addNumericField("Border Width:", borderWidth, 0);
 			gd.addCheckbox("Label Slices", label);
-			gd.addCheckbox("Use Foreground Color", useForegroundColor);
 			gd.showDialog();
 			if (gd.wasCanceled())
 				return;
@@ -83,15 +63,12 @@ public class MontageMaker implements PlugIn {
 			if (borderWidth<0) borderWidth = 0;
 			if (first<1) first = 1;
 			if (last>nSlices) last = nSlices;
-			if (first>last)
-				{first=1; last=nSlices;}
 			if (inc<1) inc = 1;
 			if (gd.invalidNumber()) {
 				IJ.error("Invalid number");
 				return;
 			}
 			label = gd.getNextBoolean();
-			useForegroundColor = gd.getNextBoolean();
 			makeMontage(imp, columns, rows, scale, first, last, inc, borderWidth, label);
 	}
 	
@@ -105,27 +82,26 @@ public class MontageMaker implements PlugIn {
 		int montageHeight = height*rows;
 		ImageProcessor ip = imp.getProcessor();
 		ImageProcessor montage = ip.createProcessor(montageWidth+borderWidth/2, montageHeight+borderWidth/2);
-		Color fgColor=Color.white;
-		Color bgColor = Color.black;
-		if (useForegroundColor) {
-			fgColor = Toolbar.getForegroundColor();
-			bgColor = Toolbar.getBackgroundColor();
+		ImageStatistics is = imp.getStatistics();
+		boolean blackBackground = is.mode<200;
+		if (imp.isInvertedLut())
+			blackBackground = !blackBackground;
+		if ((ip instanceof ShortProcessor) || (ip instanceof FloatProcessor))
+			blackBackground = true;
+		if (blackBackground) {
+			float[] cTable = imp.getCalibration().getCTable();
+		    boolean signed16Bit = cTable!=null && cTable[0]==-32768;
+			if (signed16Bit)
+				montage.setValue(32768);
+			else
+				montage.setColor(Color.black);
+			montage.fill();
+			montage.setColor(Color.white);
 		} else {
-			boolean whiteBackground = false;
-			if ((ip instanceof ByteProcessor) || (ip instanceof ColorProcessor)) {
-				ImageStatistics is = imp.getStatistics();
-				whiteBackground = is.mode>=200;
-				if (imp.isInvertedLut())
-					whiteBackground = !whiteBackground;
-			}
-			if (whiteBackground) {
-				fgColor=Color.black;
-				bgColor = Color.white;
-			}
+			montage.setColor(Color.white);
+			montage.fill();
+			montage.setColor(Color.black);
 		}
-		montage.setColor(bgColor);
-		montage.fill();
-		montage.setColor(fgColor);
 		ImageStack stack = imp.getStack();
 		int x = 0;
 		int y = 0;
@@ -161,7 +137,6 @@ public class MontageMaker implements PlugIn {
 			cal.pixelWidth /= scale;
 			cal.pixelHeight /= scale;
 		}
-        imp2.setProperty("Info", "xMontage="+columns+"\nyMontage="+rows+"\n");
 		imp2.show();
 	}
 		

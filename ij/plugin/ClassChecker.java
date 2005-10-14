@@ -15,8 +15,6 @@ public class ClassChecker implements PlugIn {
 	
 	void deleteDuplicates() {
 		String[] paths = getClassFiles();
-		if (paths==null)
-			return;
 		String name;
 		File file1, file2;
 		long date1, date2;

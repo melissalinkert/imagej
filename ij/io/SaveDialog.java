@@ -26,9 +26,9 @@ public class SaveDialog {
 		if (isMacro())
 			return;
 		String defaultDir = OpenDialog.getDefaultDirectory();
-		defaultName = setExtension(defaultName, extension);
+		defaultName = addExtension(defaultName, extension);
 		if (Prefs.useJFileChooser)
-			jSave(title, defaultDir, defaultName);
+			jsave(title, defaultDir, defaultName);
 		else
 			save(title, defaultDir, defaultName);
 		if (name!=null && dir!=null)
@@ -43,9 +43,9 @@ public class SaveDialog {
 		ext = extension;
 		if (isMacro())
 			return;
-		defaultName = setExtension(defaultName, extension);
+		defaultName = addExtension(defaultName, extension);
 		if (Prefs.useJFileChooser)
-			jSave(title, defaultDir, defaultName);
+			jsave(title, defaultDir, defaultName);
 		else
 			save(title, defaultDir, defaultName);
 		IJ.showStatus(title+": "+dir+name);
@@ -70,34 +70,21 @@ public class SaveDialog {
 		return false;
 	}
 	
-	public static String setExtension(String name, String extension) {
-		if (name==null || extension==null)
-			return name;
-		int dotIndex = name.lastIndexOf(".");
-		if (dotIndex>=0 && (name.length()-dotIndex)<=5) {
-			if (dotIndex+1<name.length() && Character.isDigit(name.charAt(dotIndex+1)))
-				name += extension;
-			else
+	String addExtension(String name, String extension) {
+		if (name!=null && extension!=null) {
+			int dotIndex = name.lastIndexOf(".");
+			if (dotIndex>=0)
 				name = name.substring(0, dotIndex) + extension;
-		} else
-			name += extension;
+			else
+				name += extension;
+		}
 		return name;
 	}
 	
-	// Save using JFileChooser.
-	void jSave(String title, String defaultDir, String defaultName) {
+	// Save using JFileChooser
+	void jsave(String title, String defaultDir, String defaultName) {
 		Java2.setSystemLookAndFeel();
-		if (EventQueue.isDispatchThread())
-			jSaveDispatchThread(title, defaultDir, defaultName);
-		else
-			jSaveInvokeAndWait(title, defaultDir, defaultName);
-	}
-
-	// Save using JFileChooser.
-	// assumes we are running on the event dispatch thread
-	void jSaveDispatchThread(String title, String defaultDir, String defaultName) {
 		JFileChooser fc = new JFileChooser();
-		fc.setDialogTitle(title);
 		if (defaultDir!=null) {
 			File f = new File(defaultDir);
 			if (f!=null)
@@ -124,43 +111,6 @@ public class SaveDialog {
 		}
 	}
 
-	// Save using JFileChooser. Runs on event
-	// dispatch thread to avoid thread deadlocks.
-	void jSaveInvokeAndWait(final String title, final String defaultDir, final String defaultName) {
-		try {
-			EventQueue.invokeAndWait(new Runnable() {
-				public void run() {
-					JFileChooser fc = new JFileChooser();
-					fc.setDialogTitle(title);
-					if (defaultDir!=null) {
-						File f = new File(defaultDir);
-						if (f!=null)
-							fc.setCurrentDirectory(f);
-					}
-					if (defaultName!=null)
-						fc.setSelectedFile(new File(defaultName));
-					int returnVal = fc.showSaveDialog(IJ.getInstance());
-					if (returnVal!=JFileChooser.APPROVE_OPTION)
-						{Macro.abort(); return;}
-					File f = fc.getSelectedFile();
-					if(f.exists()) {
-						int ret = JOptionPane.showConfirmDialog (fc,
-							"The file "+ f.getName() + " already exists. \nWould you like to replace it?",
-							"Replace?",
-							JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-						if (ret!=JOptionPane.OK_OPTION) f = null;
-					}
-					if (f==null)
-						Macro.abort();
-					else {
-						dir = fc.getCurrentDirectory().getPath()+File.separator;
-						name = fc.getName(f);
-					}
-				}
-			});
-		} catch (Exception e) {}
-	}
-
 	// Save using FileDialog
 	void save(String title, String defaultDir, String defaultName) {
 		ImageJ ij = IJ.getInstance();
@@ -182,7 +132,6 @@ public class SaveDialog {
 	
 	/** Returns the selected directory. */
 	public String getDirectory() {
-		OpenDialog.lastDir = dir;
 		return dir;
 	}
 	
@@ -196,8 +145,7 @@ public class SaveDialog {
 			//Recorder.record("saveAs", cmd, dir+name);
 			//Recorder.setCommand(null);
 		}
-		OpenDialog.lastName = name;
 		return name;
 	}
-		
+	
 }

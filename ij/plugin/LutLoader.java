@@ -76,15 +76,19 @@ public class LutLoader extends ImagePlus implements PlugIn {
 			if (imp.getType()==ImagePlus.COLOR_RGB)
 				IJ.error("Color tables cannot be assiged to RGB Images.");
 			else {
-				ImageProcessor ip = imp.getChannelProcessor();
-				IndexColorModel cm = new IndexColorModel(8, 256, fi.reds, fi.greens, fi.blues);
-				if (imp.isComposite())
-					((CompositeImage)imp).setChannelColorModel(cm);
-				else
+				ImageProcessor ip = imp.getProcessor();
+				if (IJ.isJava14() && imp.getBitDepth()!=8) { // work around Java 1.4 bug
+					byte[] reds=new byte[256], greens=new byte[256], blues=new byte[256];
+					grays(reds, greens, blues);	
+					ColorModel cm = new IndexColorModel(8, 256, reds, greens, blues);
 					ip.setColorModel(cm);
+					ip.createImage();
+				}
+				ColorModel cm = new IndexColorModel(8, 256, fi.reds, fi.greens, fi.blues);
+				ip.setColorModel(cm);
 				if (imp.getStackSize()>1)
 					imp.getStack().setColorModel(cm);
-				imp.updateAndRepaintWindow();
+				imp.updateAndDraw();
 			}
 		} else
 			createImage(fi, showImage);
@@ -96,24 +100,19 @@ public class LutLoader extends ImagePlus implements PlugIn {
 			{IJ.noImage(); return;}
 		if (imp.getType()==ImagePlus.COLOR_RGB)
 			{IJ.error("RGB images do not use LUTs"); return;}
-		if (imp.isComposite()) {
-			CompositeImage ci = (CompositeImage)imp;
-			LUT lut = ci.getChannelLut();
-			if (lut!=null)
-				ci.setChannelLut(lut.createInvertedLut());
-		} else {
-			ImageProcessor ip = imp.getProcessor();
-			ip.invertLut();
-			if (imp.getStackSize()>1)
-				imp.getStack().setColorModel(ip.getColorModel());
-		}
-		imp.updateAndRepaintWindow();
+		ImageProcessor ip = imp.getProcessor();
+		ip.invertLut();
+		if (imp.getStackSize()>1)
+			imp.getStack().setColorModel(ip.getColorModel());
+		imp.updateAndDraw();
+		if (imp.getRoi()!=null)
+			imp.draw(); // update entire image, not just roi
 	}
 
 	int fire(byte[] reds, byte[] greens, byte[] blues) {
 		int[] r = {0,0,1,25,49,73,98,122,146,162,173,184,195,207,217,229,240,252,255,255,255,255,255,255,255,255,255,255,255,255,255,255};
 		int[] g = {0,0,0,0,0,0,0,0,0,0,0,0,0,14,35,57,79,101,117,133,147,161,175,190,205,219,234,248,255,255,255,255};
-		int[] b = {0,61,96,130,165,192,220,227,210,181,151,122,93,64,35,5,0,0,0,0,0,0,0,0,0,0,0,35,98,160,223,255};
+		int[] b = {31,61,96,130,165,192,220,227,210,181,151,122,93,64,35,5,0,0,0,0,0,0,0,0,0,0,0,35,98,160,223,255};
 		for (int i=0; i<r.length; i++) {
 			reds[i] = (byte)r[i];
 			greens[i] = (byte)g[i];
@@ -214,7 +213,7 @@ public class LutLoader extends ImagePlus implements PlugIn {
 	
 	/** Opens an NIH Image LUT, 768 byte binary LUT or text LUT from a file or URL. */
 	boolean openLut(FileInfo fi) {
-		//IJ.showStatus("Opening: " + fi.directory + fi.fileName);
+		IJ.showStatus("Opening: " + fi.directory + fi.fileName);
 		boolean isURL = fi.url!=null && !fi.url.equals("");
 		int length = 0;
 		if (!isURL) {
@@ -229,8 +228,8 @@ public class LutLoader extends ImagePlus implements PlugIn {
 		try {
 			if (length>768)
 				size = openBinaryLut(fi, isURL, false); // attempt to read NIH Image LUT
-			if (size==0 && (length==0||length==768||length==970))
-				size = openBinaryLut(fi, isURL, true); // otherwise read raw LUT
+			if (size==0 && (length==0||length==768))
+				size = openBinaryLut(fi, isURL, true); // otherwise read 768 byte raw LUT
 			if (size==0 && length>768)
 				size = openTextLut(fi);
 			if (size==0)
@@ -242,7 +241,7 @@ public class LutLoader extends ImagePlus implements PlugIn {
 	}
 	
 	void error() {
-		IJ.error("This is not an ImageJ or NIH Image LUT, a 768 byte \nraw LUT, or a LUT in text format.");
+		IJ.error("This is not an ImageJ or NIH Image LUT, a 768 byte \nbinary LUT, or a LUT in text format.");
 	}
 
 	/** Opens an NIH Image LUT or a 768 byte binary LUT. */
@@ -281,7 +280,6 @@ public class LutLoader extends ImagePlus implements PlugIn {
 	
 	int openTextLut(FileInfo fi) throws IOException {
 		TextReader tr = new TextReader();
-		tr.hideErrorMessages();
 		ImageProcessor ip = tr.open(fi.directory+fi.fileName);
 		if (ip==null)
 			return 0;

@@ -21,7 +21,7 @@ public class ShortStatistics extends ImageStatistics {
 		nBins = 256;
 		double minT = ip.getMinThreshold();
 		int minThreshold,maxThreshold;
-		if ((mOptions&LIMIT)==0 || minT==ImageProcessor.NO_THRESHOLD)
+		if ((mOptions&LIMIT)==0 || minT==ip.NO_THRESHOLD)
 			{minThreshold=0; maxThreshold=65535;}
 		else
 			{minThreshold=(int)minT; maxThreshold=(int)ip.getMaxThreshold();}
@@ -43,7 +43,7 @@ public class ShortStatistics extends ImageStatistics {
 		if ((mOptions&MIN_MAX)!=0 && cTable!=null)
 			getCalibratedMinAndMax(hist, (int)min, (int)max, cTable);
 		if ((mOptions&MEDIAN)!=0)
-			calculateMedian(hist, minThreshold, maxThreshold, cal);
+			calculateMedian(hist, (int)histMin, cal);
 		if ((mOptions&AREA_FRACTION)!=0)
 			calculateAreaFraction(ip, hist);
 	}
@@ -123,8 +123,7 @@ public class ShortStatistics extends ImageStatistics {
 		short[] pixels = (short[])ip.getPixels();
 		byte[] mask = ip.getMaskArray();
 		boolean limit = minThreshold>0 || maxThreshold<65535;
-		int count=0, i, mi, v;
-		double xsum=0.0, ysum=0.0;
+		int count=0, xsum=0, ysum=0,i,mi,v;
 		for (int y=ry,my=0; y<(ry+rh); y++,my++) {
 			i = y*width + rx;
 			mi = my*rw;
@@ -146,12 +145,8 @@ public class ShortStatistics extends ImageStatistics {
 				i++;
 			}
 		}
-		xCentroid = xsum/count+0.5;
-		yCentroid = ysum/count+0.5;
-		if (cal!=null) {
-			xCentroid = cal.getX(xCentroid);
-			yCentroid = cal.getY(yCentroid, height);
-		}
+		xCentroid = ((double)xsum/count+0.5)*pw;
+		yCentroid = ((double)ysum/count+0.5)*ph;
 	}
 
 	void calculateMoments(ImageProcessor ip,  int minThreshold, int maxThreshold, float[] cTable) {
@@ -184,12 +179,8 @@ public class ShortStatistics extends ImageStatistics {
 	    double sDeviation = Math.sqrt(variance);
 	    skewness = ((sum3 - 3.0*mean*sum2)/pixelCount + 2.0*mean*mean2)/(variance*sDeviation);
 	    kurtosis = (((sum4 - 4.0*mean*sum3 + 6.0*mean2*sum2)/pixelCount - 3.0*mean2*mean2)/(variance*variance)-3.0);
-		xCenterOfMass = xsum/sum1+0.5;
-		yCenterOfMass = ysum/sum1+0.5;
-		if (cal!=null) {
-			xCenterOfMass = cal.getX(xCenterOfMass);
-			yCenterOfMass = cal.getY(yCenterOfMass, height);
-		}
+		xCenterOfMass = (xsum/sum1+0.5)*pw;
+		yCenterOfMass = (ysum/sum1+0.5)*ph;
 	}
 
 	void getCalibratedMinAndMax(int[] hist, int minValue, int maxValue, float[] cTable) {

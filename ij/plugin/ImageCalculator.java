@@ -5,13 +5,12 @@ import ij.process.*;
 import ij.plugin.filter.*;
 import ij.measure.Calibration;
 import ij.plugin.frame.Recorder;
-import ij.macro.Interpreter;
 
 /** This plugin implements the Process/Image Calculator command. */
 public class ImageCalculator implements PlugIn {
 
-	private static String[] operators = {"Add","Subtract","Multiply","Divide", "AND", "OR", "XOR", "Min", "Max", "Average", "Difference", "Copy", "Transparent-zero"};
-	private static String[] lcOperators = {"add","sub","mul","div", "and", "or", "xor", "min", "max", "ave", "diff", "copy", "zero"};
+	private static String[] operators = {"Add","Subtract","Multiply","Divide", "AND", "OR", "XOR", "Min", "Max", "Average", "Difference", "Copy"};
+	private static String[] lcOperators = {"add","sub","mul","div", "and", "or", "xor", "min", "max", "ave", "diff", "copy"};
 	private static int operator;
 	private static String title1 = "";
 	private static String title2 = "";
@@ -96,15 +95,20 @@ public class ImageCalculator implements PlugIn {
 			createWindow = true;
 		int size1 = img1.getStackSize();
 		int size2 = img2.getStackSize();
+		if (size1>1 && size2>1 && size1!=size2) {
+			IJ.error("Image Calculator", "Both stacks must have the same number of slices.");
+			return;
+		}
+		boolean isStack = size1>1 && (size2==1||size1==size2);
 		if (apiCall) {
-			if (processStack && (size1>1||size2>1))
+			if (processStack && isStack)
 				doStackOperation(img1, img2);
 			else
 				doOperation(img1, img2);
 			return;
 		}
 		boolean stackOp = false;
-		if (size1>1) {
+		if (isStack) {
 			int result = IJ.setupDialog(img1, 0);
 			if (result==PlugInFilter.DONE)
 				return;
@@ -126,12 +130,6 @@ public class ImageCalculator implements PlugIn {
 
 	/** img1 = img2 op img2 (e.g. img1 = img2/img1) */
 	void doStackOperation(ImagePlus img1, ImagePlus img2) {
-		int size1 = img1.getStackSize();
-		int size2 = img2.getStackSize();
-		if (size1>1 && size2>1 && size1!=size2) {
-			IJ.error("Image Calculator", "'Image1' and 'image2' must be stacks with the same\nnumber of slices, or 'image2' must be a single image.");
-			return;
-		}
 		if (createWindow) {
 			img1 = duplicateStack(img1);
 			if (img1==null) {
@@ -147,8 +145,10 @@ public class ImageCalculator implements PlugIn {
 		Undo.reset();
 		ImageStack stack1 = img1.getStack();
 		StackProcessor sp = new StackProcessor(stack1, img1.getProcessor());
+		Calibration cal2 = img2.getCalibration();
+		img2.getProcessor().setCalibrationTable(cal2.getCTable());
 		try {
-			if (size2==1)
+			if (img2.getStackSize()==1)
 				sp.copyBits(img2.getProcessor(), 0, 0, mode);
 			else
 				sp.copyBits(img2.getStack(), 0, 0, mode);
@@ -171,7 +171,7 @@ public class ImageCalculator implements PlugIn {
 		Calibration cal1 = img1.getCalibration();
 		Calibration cal2 = img2.getCalibration();
 		if (createWindow)
-			ip1 = createNewImage(ip1, ip2);
+			ip1 = createNewImage(ip1, ip2, cal1);
 		else {
 			ImageWindow win = img1.getWindow();
 			if (win!=null)
@@ -179,7 +179,10 @@ public class ImageCalculator implements PlugIn {
 			ip1.snapshot();
 			Undo.setup(Undo.FILTER, img1);
 		}
-		if (floatResult) ip2 = ip2.convertToFloat();
+		if (floatResult) {
+			ip2.setCalibrationTable(cal2.getCTable());
+			ip2 = ip2.convertToFloat();
+		}
 		try {
 			ip1.copyBits(ip2, 0, 0, mode);
 		}
@@ -197,11 +200,12 @@ public class ImageCalculator implements PlugIn {
 			img1.updateAndDraw();
 	}
 
-	ImageProcessor createNewImage(ImageProcessor ip1, ImageProcessor ip2) {
+	ImageProcessor createNewImage(ImageProcessor ip1, ImageProcessor ip2, Calibration cal) {
 		int width = Math.min(ip1.getWidth(), ip2.getWidth());
 		int height = Math.min(ip1.getHeight(), ip2.getHeight());
 		ImageProcessor ip3 = ip1.createProcessor(width, height);
 		if (floatResult) {
+			ip1.setCalibrationTable(cal.getCTable());
 			ip1 = ip1.convertToFloat();
 			ip3 = ip3.convertToFloat();
 		}
@@ -224,7 +228,6 @@ public class ImageCalculator implements PlugIn {
 			case 9: mode = Blitter.AVERAGE; break;
 			case 10: mode = Blitter.DIFFERENCE; break;
 			case 11: mode = Blitter.COPY; break;
-			case 12: mode = Blitter.COPY_ZERO_TRANSPARENT; break;
 		}
 		return mode;
 	}
@@ -255,17 +258,7 @@ public class ImageCalculator implements PlugIn {
 		}
 		ImagePlus img3 = new ImagePlus("Result of "+img1.getShortTitle(), stack2);
 		img3.setCalibration(cal);
-		if (img3.getStackSize()==n) {
-			int[] dim = img1.getDimensions();
-			img3.setDimensions(dim[2], dim[3], dim[4]);
-			if (img1.isComposite()) {
-				img3 = new CompositeImage(img3, 0);
-				((CompositeImage)img3).copyLuts(img1);
-			}
-			if (img1.isHyperStack())
-				img3.setOpenAsHyperStack(true);
-		}
 		return img3;
 	}
-	
+
 }

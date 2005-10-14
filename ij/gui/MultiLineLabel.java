@@ -12,22 +12,17 @@ public class MultiLineLabel extends Canvas {
 	int line_height;
 	int line_ascent;
 	int[] line_widths;
-	int min_width, max_width;
+	int max_width;
     
     // Breaks the specified label up into an array of lines.
     public MultiLineLabel(String label) {
-    	this(label, 0);
-    }
-    
-
-    public MultiLineLabel(String label, int minimumWidth) {
         StringTokenizer t = new StringTokenizer(label, "\n");
         num_lines = t.countTokens();
         lines = new String[num_lines];
         line_widths = new int[num_lines];
         for(int i = 0; i < num_lines; i++) lines[i] = t.nextToken();
-        min_width = minimumWidth;
     }
+    
 
     // Figures out how wide each line of the label
     // is, and how wide the widest line is.
@@ -67,7 +62,7 @@ public class MultiLineLabel extends Canvas {
     // Called by a layout manager when it wants to
     // know how big we'd like to be.  
     public Dimension getPreferredSize() {
-        return new Dimension(Math.max(min_width, max_width + 2*margin_width), 
+        return new Dimension(max_width + 2*margin_width, 
                      num_lines * line_height + 2*margin_height);
     }
     
@@ -75,14 +70,14 @@ public class MultiLineLabel extends Canvas {
     // Called when the layout manager wants to know
     // the bare minimum amount of space we need to get by.
     public Dimension getMinimumSize() {
-        return new Dimension(Math.max(min_width, max_width), num_lines * line_height);
+        return new Dimension(max_width, num_lines * line_height);
     }
     
     // Draws the label
     public void paint(Graphics g) {
         int x, y;
         Dimension d = this.getSize();
-		if (!ij.IJ.isLinux()) setAntialiasedText(g);
+		if (ij.IJ.isJava2()) setAntialiasedText(g);
         y = line_ascent + (d.height - num_lines * line_height)/2;
         for(int i = 0; i < num_lines; i++, y += line_height) {
             x = margin_width;

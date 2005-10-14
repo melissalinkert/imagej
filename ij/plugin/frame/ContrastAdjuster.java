@@ -17,9 +17,8 @@ import ij.measure.*;
 public class ContrastAdjuster extends PlugInFrame implements Runnable,
 	ActionListener, AdjustmentListener, ItemListener {
 
-	public static final String LOC_KEY = "b&c.loc";
 	static final int AUTO_THRESHOLD = 5000;
-	static final String[] channelLabels = {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "All"};
+	static final String[] channelLabels = {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "RGB"};
 	static final int[] channelConstants = {4, 2, 1, 3, 5, 6, 7};
 	
 	ContrastPlot plot = new ContrastPlot();
@@ -34,7 +33,6 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 	Button autoB, resetB, setB, applyB;
 	int previousImageID;
 	int previousType;
-	int previousSlice = 1;
 	Object previousSnapshot;
 	ImageJ ij;
 	double min, max;
@@ -54,11 +52,11 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 	Font sanFont = new Font("SansSerif", Font.PLAIN, 12);
 	int channels = 7; // RGB
 	Choice choice;
-	boolean updatingRGBStack;
 
 
 	public ContrastAdjuster() {
 		super("B&C");
+		if (IJ.isMacOSX()) setResizable(false);
 	}
 	
 	public void run(String arg) {
@@ -72,14 +70,8 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		}
 
 		if (instance!=null) {
-			if (!instance.getTitle().equals(getTitle())) {
-				ContrastAdjuster ca = (ContrastAdjuster)instance;
-				Prefs.saveLocation(LOC_KEY, ca.getLocation());
-				ca.close();
-			} else {
-				instance.toFront();
-				return;
-			}
+			instance.toFront();
+			return;
 		}
 		instance = this;
 		IJ.register(ContrastAdjuster.class);
@@ -99,9 +91,8 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		c.insets = new Insets(10, 10, 0, 10);
 		gridbag.setConstraints(plot, c);
 		add(plot);
-		plot.addKeyListener(ij);		
-		// min and max labels
 		
+		// min and max labels
 		if (!windowLevel) {
 			panel = new Panel();
 			c.gridy = y++;
@@ -125,9 +116,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			gridbag.setConstraints(minSlider, c);
 			add(minSlider);
 			minSlider.addAdjustmentListener(this);
-			minSlider.addKeyListener(ij);		
 			minSlider.setUnitIncrement(1);
-			minSlider.setFocusable(false); // prevents blinking on Windows
 			addLabel("Minimum", null);
 		}
 
@@ -139,9 +128,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			gridbag.setConstraints(maxSlider, c);
 			add(maxSlider);
 			maxSlider.addAdjustmentListener(this);
-			maxSlider.addKeyListener(ij);		
 			maxSlider.setUnitIncrement(1);
-			maxSlider.setFocusable(false);
 			addLabel("Maximum", null);
 		}
 		
@@ -152,9 +139,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		gridbag.setConstraints(brightnessSlider, c);
 		add(brightnessSlider);
 		brightnessSlider.addAdjustmentListener(this);
-		brightnessSlider.addKeyListener(ij);		
 		brightnessSlider.setUnitIncrement(1);
-		brightnessSlider.setFocusable(false);
 		if (windowLevel)
 			addLabel("Level: ", levelLabel=new TrimmedLabel("        "));
 		else
@@ -168,9 +153,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			gridbag.setConstraints(contrastSlider, c);
 			add(contrastSlider);
 			contrastSlider.addAdjustmentListener(this);
-			contrastSlider.addKeyListener(ij);		
 			contrastSlider.setUnitIncrement(1);
-			contrastSlider.setFocusable(false);
 			if (windowLevel)
 				addLabel("Window: ", windowLabel=new TrimmedLabel("        "));
 			else
@@ -186,7 +169,6 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 				choice.addItem(channelLabels[i]);
 			gridbag.setConstraints(choice, c);
 			choice.addItemListener(this);
-			choice.addKeyListener(ij);		
 			add(choice);
 		}
 
@@ -217,12 +199,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		
  		addKeyListener(ij);  // ImageJ handles keyboard shortcuts
 		pack();
-		Point loc = Prefs.getLocation(LOC_KEY);
-		if (loc!=null)
-			setLocation(loc);
-		else
-			GUI.center(this);
-		if (IJ.isMacOSX()) setResizable(false);
+		GUI.center(this);
 		show();
 
 		thread = new Thread(this, "ContrastAdjuster");
@@ -253,20 +230,21 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 	void setup() {
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
+			//IJ.write("setup");
+			ImageProcessor ip = imp.getProcessor();
 			setup(imp);
 			updatePlot();
-			updateLabels(imp);
+			updateLabels(imp, ip);
 			imp.updateAndDraw();
 		}
 	}
 	
 	public synchronized void adjustmentValueChanged(AdjustmentEvent e) {
-		Object source = e.getSource();
-		if (source==minSlider)
+		if (e.getSource()==minSlider)
 			minSliderValue = minSlider.getValue();
-		else if (source==maxSlider)
+		else if (e.getSource()==maxSlider)
 			maxSliderValue = maxSlider.getValue();
-		else if (source==contrastSlider)
+		else if (e.getSource()==contrastSlider)
 			contrastValue = contrastSlider.getValue();
 		else
 			brightnessValue = brightnessSlider.getValue();
@@ -292,14 +270,12 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		if (roi!=null) roi.endPaste();
 		ImageProcessor ip = imp.getProcessor();
 		int type = imp.getType();
-		int slice = imp.getCurrentSlice();
 		RGBImage = type==ImagePlus.COLOR_RGB;
 		boolean snapshotChanged = RGBImage && previousSnapshot!=null && ((ColorProcessor)ip).getSnapshotPixels()!=previousSnapshot;
-		if (imp.getID()!=previousImageID || snapshotChanged || type!=previousType || slice!=previousSlice)
+		if (imp.getID()!=previousImageID || snapshotChanged || type!=previousType)
 			setupNewImage(imp, ip);
 		previousImageID = imp.getID();
 	 	previousType = type;
-	 	previousSlice = slice;
 	 	return ip;
 	}
 
@@ -312,21 +288,21 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 	 		previousSnapshot = ((ColorProcessor)ip).getSnapshotPixels();
 	 	} else
 			previousSnapshot = null;
-		double min2 = imp.getDisplayRangeMin();
-		double max2 = imp.getDisplayRangeMax();
+		double min2 = ip.getMin();
+		double max2 = ip.getMax();
 		if (imp.getType()==ImagePlus.COLOR_RGB)
 			{min2=0.0; max2=255.0;}
 		if ((ip instanceof ShortProcessor) || (ip instanceof FloatProcessor)) {
-			imp.resetDisplayRange();
-			defaultMin = imp.getDisplayRangeMin();
-			defaultMax = imp.getDisplayRangeMax();
+			ip.resetMinAndMax();
+			defaultMin = ip.getMin();
+			defaultMax = ip.getMax();
 		} else {
 			defaultMin = 0;
 			defaultMax = 255;
 		}
-		setMinAndMax(imp, min2, max2);
-		min = imp.getDisplayRangeMin();
-		max = imp.getDisplayRangeMax();
+		setMinAndMax(ip, min2, max2);
+		min = ip.getMin();
+		max = ip.getMax();
 		if (IJ.debugMode) {
 			IJ.log("min: " + min);
 			IJ.log("max: " + max);
@@ -336,40 +312,17 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		plot.defaultMin = defaultMin;
 		plot.defaultMax = defaultMax;
 		//plot.histogram = null;
-		int valueRange = (int)(defaultMax-defaultMin);
-		int newSliderRange = valueRange;
-		if (newSliderRange>640 && newSliderRange<1280)
-			newSliderRange /= 2;
-		else if (newSliderRange>=1280)
-			newSliderRange /= 5;
-		if (newSliderRange<256) newSliderRange = 256;
-		if (newSliderRange>1024) newSliderRange = 1024;
-		double displayRange = max-min;
-		if (valueRange>=1280 && valueRange!=0 && displayRange/valueRange<0.25)
-			newSliderRange *= 1.6666;
-		//IJ.log(valueRange+" "+displayRange+" "+newSliderRange);
-		if (newSliderRange!=sliderRange) {
-			sliderRange = newSliderRange;
-			updateScrollBars(null, true);
-		} else
-			updateScrollBars(null, false);
-		if (balance && imp.isComposite()) {
-			int channel = imp.getChannel();
-			if (channel<=4) {
-				choice.select(channel-1);
-				channels = channelConstants[channel-1];
-			}
-		}
+		updateScrollBars(null);
 		if (!doReset)
 			plotHistogram(imp);
 		autoThreshold = 0;
 	}
 	
-	void setMinAndMax(ImagePlus imp, double min, double max) {
-		if (channels!=7 && imp.getType()==ImagePlus.COLOR_RGB)
-			imp.setDisplayRange(min, max, channels);
+	void setMinAndMax(ImageProcessor ip, double min, double max) {
+		if (channels!=7 && ip instanceof ColorProcessor)
+			((ColorProcessor)ip).setMinAndMax(min, max, channels);
 		else
-			imp.setDisplayRange(min, max);
+			ip.setMinAndMax(min, max);
 	}
 
 	void updatePlot() {
@@ -378,9 +331,9 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		plot.repaint();
 	}
 	
-	void updateLabels(ImagePlus imp) {
-		double min = imp.getDisplayRangeMin();
-		double max = imp.getDisplayRangeMax();;
+	void updateLabels(ImagePlus imp, ImageProcessor ip) {
+		double min = ip.getMin();
+		double max = ip.getMax();
 		int type = imp.getType();
 		Calibration cal = imp.getCalibration();
 		boolean realValue = type==ImagePlus.GRAY32;
@@ -403,47 +356,32 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		}
 	}
 
-	void updateScrollBars(Scrollbar sb, boolean newRange) {
+	void updateScrollBars(Scrollbar sb) {
 		if (sb==null || sb!=contrastSlider) {
 			double mid = sliderRange/2;
 			double c = ((defaultMax-defaultMin)/(max-min))*mid;
 			if (c>mid)
 				c = sliderRange - ((max-min)/(defaultMax-defaultMin))*mid;
 			contrast = (int)c;
-			if (contrastSlider!=null) {
-				if (newRange)
-					contrastSlider.setValues(contrast, 1, 0,  sliderRange);
-				else
-					contrastSlider.setValue(contrast);
-			}
+			if (contrastSlider!=null)
+				contrastSlider.setValue(contrast);
 		}
 		if (sb==null || sb!=brightnessSlider) {
 			double level = min + (max-min)/2.0;
 			double normalizedLevel = 1.0 - (level - defaultMin)/(defaultMax-defaultMin);
 			brightness = (int)(normalizedLevel*sliderRange);
-			if (newRange)
-				brightnessSlider.setValues(brightness, 1, 0,  sliderRange);
-			else
-				brightnessSlider.setValue(brightness);
+			brightnessSlider.setValue(brightness);
 		}
-		if (minSlider!=null && (sb==null || sb!=minSlider)) {
-			if (newRange)
-				minSlider.setValues(scaleDown(min), 1, 0,  sliderRange);
-			else
-				minSlider.setValue(scaleDown(min));
-		}
-		if (maxSlider!=null && (sb==null || sb!=maxSlider)) {
-			if (newRange)
-				maxSlider.setValues(scaleDown(max), 1, 0,  sliderRange);
-			else
-				maxSlider.setValue(scaleDown(max));
-		}
+		if (minSlider!=null && (sb==null || sb!=minSlider))
+			minSlider.setValue(scaleDown(min));
+		if (maxSlider!=null && (sb==null || sb!=maxSlider)) 
+			maxSlider.setValue(scaleDown(max));
 	}
 	
 	int scaleDown(double v) {
 		if (v<defaultMin) v = defaultMin;
 		if (v>defaultMax) v = defaultMax;
-		return (int)((v-defaultMin)*(sliderRange-1.0)/(defaultMax-defaultMin));
+		return (int)((v-defaultMin)*255.0/(defaultMax-defaultMin));
 	}
 	
 	/** Restore image outside non-rectangular roi. */
@@ -454,30 +392,31 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 	}
 
 	void adjustMin(ImagePlus imp, ImageProcessor ip, double minvalue) {
-		min = defaultMin + minvalue*(defaultMax-defaultMin)/(sliderRange-1.0);
+		//IJ.log((int)min+" "+(int)max+" "+minvalue+" "+defaultMin+" "+defaultMax);
+		min = defaultMin + minvalue*(defaultMax-defaultMin)/255.0;
 		if (max>defaultMax)
 			max = defaultMax;
 		if (min>max)
 			max = min;
-		setMinAndMax(imp, min, max);
+		setMinAndMax(ip, min, max);
 		if (min==max)
 			setThreshold(ip);
 		if (RGBImage) doMasking(imp, ip);
-		updateScrollBars(minSlider, false);
+		updateScrollBars(minSlider);
 	}
 
 	void adjustMax(ImagePlus imp, ImageProcessor ip, double maxvalue) {
-		max = defaultMin + maxvalue*(defaultMax-defaultMin)/(sliderRange-1.0);
-		//IJ.log("adjustMax: "+maxvalue+"  "+max);
-		if (min<defaultMin)
-			min = defaultMin;
+		//IJ.log(min+" "+max+" "+maxvalue);
+		max = defaultMin + maxvalue*(defaultMax-defaultMin)/255.0;
+		if (min<0)
+			min = 0;
 		if (max<min)
 			min = max;
-		setMinAndMax(imp, min, max);
+		setMinAndMax(ip, min, max);
 		if (min==max)
 			setThreshold(ip);
 		if (RGBImage) doMasking(imp, ip);
-		updateScrollBars(maxSlider, false);
+		updateScrollBars(maxSlider);
 	}
 
 	void adjustBrightness(ImagePlus imp, ImageProcessor ip, double bvalue) {
@@ -485,11 +424,11 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		double width = max-min;
 		min = center - width/2.0;
 		max = center + width/2.0;
-		setMinAndMax(imp, min, max);
+		setMinAndMax(ip, min, max);
 		if (min==max)
 			setThreshold(ip);
 		if (RGBImage) doMasking(imp, ip);
-		updateScrollBars(brightnessSlider, false);
+		updateScrollBars(brightnessSlider);
 	}
 
 	void adjustContrast(ImagePlus imp, ImageProcessor ip, int cvalue) {
@@ -505,27 +444,29 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			min = center-(0.5*range)/slope;
 			max = center+(0.5*range)/slope;
 		}
-		setMinAndMax(imp, min, max);
+		setMinAndMax(ip, min, max);
 		if (RGBImage) doMasking(imp, ip);
-		updateScrollBars(contrastSlider, false);
+		updateScrollBars(contrastSlider);
 	}
 
 	void reset(ImagePlus imp, ImageProcessor ip) {
  		if (RGBImage)
 			ip.reset();
 		if ((ip instanceof ShortProcessor) || (ip instanceof FloatProcessor)) {
-			imp.resetDisplayRange();
-			defaultMin = imp.getDisplayRangeMin();
-			defaultMax = imp.getDisplayRangeMax();
+			ip.resetMinAndMax();
+			defaultMin = ip.getMin();
+			defaultMax = ip.getMax();
 			plot.defaultMin = defaultMin;
 			plot.defaultMax = defaultMax;
 		}
 		min = defaultMin;
 		max = defaultMax;
-		setMinAndMax(imp, min, max);
-		updateScrollBars(null, false);
+		setMinAndMax(ip, min, max);
+		updateScrollBars(null);
 		plotHistogram(imp);
 		autoThreshold = 0;
+		if (Recorder.record)
+			Recorder.record("resetMinAndMax");
 	}
 
 	void plotHistogram(ImagePlus imp) {
@@ -548,14 +489,10 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			stats = ImageStatistics.getStatistics(ip, 0, imp.getCalibration());
 		} else
 			stats = imp.getStatistics();
-		Color color = Color.gray;
-		if (imp.isComposite() && !(balance&&channels==7))
-			color = ((CompositeImage)imp).getChannelColor();
-		plot.setHistogram(stats, color);
+		plot.setHistogram(stats);
 	}
 
 	void apply(ImagePlus imp, ImageProcessor ip) {
-		String option = null;
 		if (RGBImage)
 			imp.unlock();
 		if (!imp.lock())
@@ -567,14 +504,8 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 				ip.snapshot();
 				reset(imp, ip);
 				imp.changes = true;
-				if (Recorder.record) Recorder.record("run", "Apply LUT");
 			}
 			imp.unlock();
-			return;
-		}
-		if (imp.isComposite()) {
-			imp.unlock();
-			((CompositeImage)imp).updateAllChannelsAndDraw();
 			return;
 		}
 		if (imp.getType()!=ImagePlus.GRAY8) {
@@ -584,8 +515,8 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			return;
 		}
 		int[] table = new int[256];
-		int min = (int)imp.getDisplayRangeMin();
-		int max = (int)imp.getDisplayRangeMax();
+		int min = (int)ip.getMin();
+		int max = (int)ip.getMax();
 		for (int i=0; i<256; i++) {
 			if (i<=min)
 				table[i] = 0;
@@ -612,12 +543,10 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 					ip.reset(mask);
 				}
 				imp.setSlice(current);
-				option = "stack";
 			} else {
 				if (ip.getMask()!=null) ip.snapshot();
 				ip.applyTable(table);
 				ip.reset(ip.getMask());
-				option = "slice";
 			}
 		} else {
 			if (ip.getMask()!=null) ip.snapshot();
@@ -627,12 +556,6 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		reset(imp, ip);
 		imp.changes = true;
 		imp.unlock();
-		if (Recorder.record) {
-			if (option!=null)
-				Recorder.record("run", "Apply LUT", option);
-			else
-				Recorder.record("run", "Apply LUT");
-		}
 	}
 
 	void applyRGBStack(ImagePlus imp) {
@@ -644,22 +567,18 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		"NOTE: There is no Undo for this operation."))
 			return;
  		ImageProcessor mask = imp.getMask();
- 		updatingRGBStack = true;
 		for (int i=1; i<=n; i++) {
 			if (i!=current) {
 				imp.setSlice(i);
 				ImageProcessor ip = imp.getProcessor();
 				if (mask!=null) ip.snapshot();
-				setMinAndMax(imp, min, max);
+				setMinAndMax(ip, min, max);
 				ip.reset(mask);
 				IJ.showProgress((double)i/n);
 			}
 		}
 		imp.setSlice(current);
- 		updatingRGBStack = false;
 		imp.changes = true;
-		if (Recorder.record)
-			Recorder.record("run", "Apply LUT", "stack");
 	}
 
 	void setThreshold(ImageProcessor ip) {
@@ -678,7 +597,6 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		imp.setCalibration(null);
 		ImageStatistics stats = imp.getStatistics(); // get uncalibrated stats
 		imp.setCalibration(cal);
-		int limit = stats.pixelCount/10;
 		int[] histogram = stats.histogram;
 		if (autoThreshold<10)
 			autoThreshold = AUTO_THRESHOLD;
@@ -687,59 +605,49 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		int threshold = stats.pixelCount/autoThreshold;
 		int i = -1;
 		boolean found = false;
-		int count;
 		do {
 			i++;
-			count = histogram[i];
-			if (count>limit) count = 0;
-			found = count> threshold;
+			found = histogram[i] > threshold;
 		} while (!found && i<255);
 		int hmin = i;
 		i = 256;
 		do {
 			i--;
-			count = histogram[i];
-			if (count>limit) count = 0;
-			found = count > threshold;
+			found = histogram[i] > threshold;
 		} while (!found && i>0);
 		int hmax = i;
-		Roi roi = imp.getRoi();
 		if (hmax>=hmin) {
-			if (RGBImage) imp.killRoi();
+			imp.killRoi();
 			min = stats.histMin+hmin*stats.binSize;
 			max = stats.histMin+hmax*stats.binSize;
 			if (min==max)
 				{min=stats.min; max=stats.max;}
-			setMinAndMax(imp, min, max);
-			if (RGBImage && roi!=null) imp.setRoi(roi);
+			setMinAndMax(ip, min, max);
 		} else {
 			reset(imp, ip);
 			return;
 		}
-		updateScrollBars(null, false);
-		//if (roi!=null) { ???
-		//	ImageProcessor mask = roi.getMask();
-		//	if (mask!=null)
-		//		ip.reset(mask);
-		//}
+		updateScrollBars(null);
+		Roi roi = imp.getRoi();
+		if (roi!=null) {
+			ImageProcessor mask = roi.getMask();
+			if (mask!=null)
+				ip.reset(mask);
+		}
 		if (Recorder.record)
 			Recorder.record("run", "Enhance Contrast", "saturated=0.5");
 	}
 	
 	void setMinAndMax(ImagePlus imp, ImageProcessor ip) {
-		min = imp.getDisplayRangeMin();
-		max = imp.getDisplayRangeMax();
+		min = ip.getMin();
+		max = ip.getMax();
 		Calibration cal = imp.getCalibration();
 		int digits = (ip instanceof FloatProcessor)||cal.calibrated()?2:0;
 		double minValue = cal.getCValue(min);
 		double maxValue = cal.getCValue(max);
-		int channels = imp.getNChannels();
 		GenericDialog gd = new GenericDialog("Set Min and Max");
 		gd.addNumericField("Minimum Displayed Value: ", minValue, digits);
 		gd.addNumericField("Maximum Displayed Value: ", maxValue, digits);
-		gd.addCheckbox("Propagate to all open images", false);
-		if (imp.isComposite())
-			gd.addCheckbox("Propagate to all "+channels+" channels", false);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -747,44 +655,20 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		maxValue = gd.getNextNumber();
 		minValue = cal.getRawValue(minValue);
 		maxValue = cal.getRawValue(maxValue);
-		boolean propagate = gd.getNextBoolean();
-		boolean allChannels = imp.isComposite()&&gd.getNextBoolean();
 		if (maxValue>=minValue) {
 			min = minValue;
 			max = maxValue;
-			setMinAndMax(imp, min, max);
-			updateScrollBars(null, false);
+			setMinAndMax(ip, min, max);
+			updateScrollBars(null);
 			if (RGBImage) doMasking(imp, ip);
-			if (propagate)
-				IJ.runMacroFile("ij.jar:PropagateMinAndMax");
-			if (allChannels) {
-				int channel = imp.getChannel();
-				for (int c=1; c<=channels; c++) {
-					imp.setPosition(c, imp.getSlice(), imp.getFrame());
-					imp.setDisplayRange(min, max);
-				}
-				imp.setPosition(channel, imp.getSlice(), imp.getFrame());
-				imp.updateAndDraw();
-			}
-			if (Recorder.record) {
-				if (imp.getBitDepth()==32)
-					Recorder.record("setMinAndMax", min, max);
-				else {
-					int imin = (int)min;
-					int imax = (int)max;
-					if (cal.isSigned16Bit()) {
-						imin = (int)cal.getCValue(imin);
-						imax = (int)cal.getCValue(imax);
-					}
-					Recorder.record("setMinAndMax", imin, imax);
-				}
-			}
+			if (Recorder.record)
+				Recorder.record("setMinAndMax", (int)min, (int)max);
 		}
 	}
 
 	void setWindowLevel(ImagePlus imp, ImageProcessor ip) {
-		min = imp.getDisplayRangeMin();
-		max = imp.getDisplayRangeMax();
+		min = ip.getMin();
+		max = ip.getMax();
 		Calibration cal = imp.getCalibration();
 		int digits = (ip instanceof FloatProcessor)||cal.calibrated()?2:0;
 		double minValue = cal.getCValue(min);
@@ -795,7 +679,6 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		GenericDialog gd = new GenericDialog("Set W&L");
 		gd.addNumericField("Window Center (Level): ", levelValue, digits);
 		gd.addNumericField("Window Width: ", windowValue, digits);
-		gd.addCheckbox("Propagate to all open images", false);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -805,28 +688,14 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		maxValue = levelValue+(windowValue/2.0);
 		minValue = cal.getRawValue(minValue);
 		maxValue = cal.getRawValue(maxValue);
-		boolean propagate = gd.getNextBoolean();
 		if (maxValue>=minValue) {
 			min = minValue;
 			max = maxValue;
-			setMinAndMax(imp, minValue, maxValue);
-			updateScrollBars(null, false);
+			setMinAndMax(ip, minValue, maxValue);
+			updateScrollBars(null);
 			if (RGBImage) doMasking(imp, ip);
-			if (propagate)
-				IJ.runMacroFile("ij.jar:PropagateMinAndMax");
-			if (Recorder.record) {
-				if (imp.getBitDepth()==32)
-					Recorder.record("setMinAndMax", min, max);
-				else {
-					int imin = (int)min;
-					int imax = (int)max;
-					if (cal.isSigned16Bit()) {
-						imin = (int)cal.getCValue(imin);
-						imax = (int)cal.getCValue(imax);
-					}
-					Recorder.record("setMinAndMax", imin, imax);
-				}
-			}
+			if (Recorder.record)
+				Recorder.record("setMinAndMax", (int)min, (int)max);
 		}
 	}
 
@@ -874,10 +743,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			{imp=null; return;}
 		//IJ.write("setup: "+(imp==null?"null":imp.getTitle()));
 		switch (action) {
-			case RESET:
-				reset(imp, ip);
-				if (Recorder.record) Recorder.record("resetMinAndMax");
-				break;
+			case RESET: reset(imp, ip); break;
 			case AUTO: autoAdjust(imp, ip); break;
 			case SET: if (windowLevel) setWindowLevel(imp, ip); else setMinAndMax(imp, ip); break;
 			case APPLY: apply(imp, ip); break;
@@ -887,18 +753,14 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			case CONTRAST: adjustContrast(imp, ip, cvalue); break;
 		}
 		updatePlot();
-		updateLabels(imp);
-		if ((IJ.shiftKeyDown()||(balance && channels==7)) && imp.isComposite()) {
-			((CompositeImage)imp).updateAllChannelsAndDraw();
-		} else
-			imp.updateChannelAndDraw();
+		updateLabels(imp, ip);
+		imp.updateAndDraw();
 		if (RGBImage)
 			imp.unlock();
 	}
 
 	public void windowClosing(WindowEvent e) {
 	 	close();
-		Prefs.saveLocation(LOC_KEY, getLocation());
 	}
 
     /** Overrides close() in PlugInFrame. */
@@ -913,23 +775,12 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 
 	public void windowActivated(WindowEvent e) {
 		super.windowActivated(e);
-		previousImageID = 0; // user may have modified image
 		setup();
 		WindowManager.setWindow(this);
 	}
 
 	public synchronized  void itemStateChanged(ItemEvent e) {
-		int index = choice.getSelectedIndex();
-		channels = channelConstants[index];
-		ImagePlus imp = WindowManager.getCurrentImage();
-		if (imp!=null && imp.isComposite()) {
-			if (index+1<=imp.getNChannels()) 
-				imp.setPosition(index+1, imp.getSlice(), imp.getFrame());
-			else {
-				choice.select(channelLabels.length-1);
-				channels = 7;
-			}
-		}
+		channels = channelConstants[choice.getSelectedIndex()];
 		doReset = true;
 		notify();
 	}
@@ -939,18 +790,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
         previousImageID = 0;
         toFront();
     }
-    
-    /** Updates the ContrastAdjuster. */
-    public static void update() {
-		if (instance!=null) {
-			ContrastAdjuster ca = ((ContrastAdjuster)instance);
-			if (!ca.updatingRGBStack) {
-				ca.previousImageID = 0;
-				ca.setup();
-			}
-		}
-    }
-    
+
 } // ContrastAdjuster class
 
 
@@ -965,7 +805,6 @@ class ContrastPlot extends Canvas implements MouseListener {
 	int hmax;
 	Image os;
 	Graphics osg;
-	Color color = Color.gray;
 	
 	public ContrastPlot() {
 		addMouseListener(this);
@@ -978,8 +817,7 @@ class ContrastPlot extends Canvas implements MouseListener {
         return new Dimension(WIDTH+1, HEIGHT+1);
     }
 
-	void setHistogram(ImageStatistics stats, Color color) {
-		this.color = color;
+	void setHistogram(ImageStatistics stats) {
 		histogram = stats.histogram;
 		if (histogram.length!=256)
 			{histogram=null; return;}
@@ -1042,7 +880,7 @@ class ContrastPlot extends Canvas implements MouseListener {
 				osg = os.getGraphics();
 				osg.setColor(Color.white);
 				osg.fillRect(0, 0, WIDTH, HEIGHT);
-				osg.setColor(color);
+				osg.setColor(Color.gray);
 				for (int i = 0; i < WIDTH; i++)
 					osg.drawLine(i, HEIGHT, i, HEIGHT - ((int)(HEIGHT * histogram[i])/hmax));
 				osg.dispose();

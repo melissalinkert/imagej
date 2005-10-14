@@ -91,23 +91,7 @@ public class FloatBlitter implements Blitter {
 								pixels[dstIndex] = pixels[dstIndex]/src;
 						}
 					break;
-				case AND:
-					for (int i=r1.width; --i>=0;) {
-						dst = (int)srcPixels[srcIndex++]&(int)pixels[dstIndex];
-						pixels[dstIndex++] = dst;
-					}
-					break;
-				case OR:
-					for (int i=r1.width; --i>=0;) {
-						dst = (int)srcPixels[srcIndex++]|(int)pixels[dstIndex];
-						pixels[dstIndex++] = dst;
-					}
-					break;
-				case XOR:
-					for (int i=r1.width; --i>=0;) {
-						dst = (int)srcPixels[srcIndex++]^(int)pixels[dstIndex];
-						pixels[dstIndex++] = dst;
-					}
+				case AND: case OR: case XOR:
 					break;
 				case MIN:
 					for (int i=r1.width; --i>=0;) {
@@ -129,6 +113,6 @@ public class FloatBlitter implements Blitter {
 			if (y%20==0)
 				ip.showProgress((double)(y-r1.y)/r1.height);
 		}
-		ip.showProgress(1.0);
+		ip.hideProgress();
 	}
 }

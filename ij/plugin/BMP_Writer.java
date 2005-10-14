@@ -47,7 +47,7 @@ public class BMP_Writer implements PlugIn {
    IJ.showProgress(0);
    imp = WindowManager.getCurrentImage();
    if (imp==null)
-     {IJ.noImage(); return;}
+   {IJ.noImage(); return;}
    try {
      writeImage(imp, path);
    } catch (Exception e) {
@@ -126,10 +126,14 @@ public class BMP_Writer implements PlugIn {
   */
  private boolean convertImage (Image parImage, int parWidth, int parHeight) {
    int pad;
-   if(biBitCount == 24)
+
+   if(biBitCount == 24) {
+     intBitmap = new int [parWidth * parHeight];
      intBitmap = (int[]) imp.getProcessor().getPixels();
-   else
-     byteBitmap = (byte[]) imp.getProcessor().convertToByte(true).getPixels();
+   } else {
+     byteBitmap = new byte [parWidth * parHeight];
+     byteBitmap = (byte[]) (imp.getProcessor().convertToByte(true)).getPixels();
+   }
    biWidth = parWidth;
    biHeight = parHeight;
    if(biBitCount==24)
@@ -138,7 +142,9 @@ public class BMP_Writer implements PlugIn {
      pad = 4 - ((biWidth) % 4);
    if (pad == 4)       // <==== Bug correction
      pad = 0;            // <==== Bug correction
-   padWidth = biWidth*(biBitCount==24?3:1)+pad;
+
+   padWidth = biWidth+pad;
+
    return (true);
  }
 

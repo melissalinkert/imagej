@@ -1,8 +1,8 @@
 package ij.plugin;
 import java.awt.*;
+import java.awt.image.*;
 import java.io.*;
 import java.awt.event.*;
-import java.awt.image.ColorModel;
 import ij.*;
 import ij.io.*;
 import ij.gui.*;
@@ -14,12 +14,9 @@ opens a folder of images as a stack. */
 public class FolderOpener implements PlugIn {
 
 	private static boolean convertToGrayscale, convertToRGB;
-	private static boolean sortFileNames = true;
 	private static double scale = 100.0;
-	private static boolean virtualStack;
 	private int n, start, increment;
 	private String filter;
-	private boolean isRegex;
 	private FileInfo fi;
 	private String info1;
 
@@ -33,7 +30,7 @@ public class FolderOpener implements PlugIn {
 		if (list==null)
 			return;
 		String title = directory;
-		if (title.endsWith(File.separator) || title.endsWith("/"))
+		if (title.endsWith(File.separator))
 			title = title.substring(0, title.length()-1);
 		int index = title.lastIndexOf(File.separatorChar);
 		if (index!=-1) title = title.substring(index + 1);
@@ -41,8 +38,7 @@ public class FolderOpener implements PlugIn {
 			title = title.substring(0, title.length()-1);
 		
 		IJ.register(FolderOpener.class);
-		list = trimFileList(list);
-		if (list==null) return;
+		list = sortFileList(list);
 		if (IJ.debugMode) IJ.log("FolderOpener: "+directory+" ("+list.length+" files)");
 		int width=0,height=0,depth=0,bitDepth=0;
 		ImageStack stack = null;
@@ -53,6 +49,8 @@ public class FolderOpener implements PlugIn {
 		IJ.resetEscape();		
 		try {
 			for (int i=0; i<list.length; i++) {
+				if (list[i].endsWith(".txt"))
+					continue;
 				IJ.redirectErrorMessages();
 				ImagePlus imp = (new Opener()).openImage(directory, list[i]);
 				if (imp!=null) {
@@ -76,19 +74,14 @@ public class FolderOpener implements PlugIn {
 			if (filter!=null) {
 				int filteredImages = 0;
   				for (int i=0; i<list.length; i++) {
-					if (isRegex&&list[i].matches(filter))
-						filteredImages++;
-					else if (list[i].indexOf(filter)>=0)
-						filteredImages++;
+ 					if (list[i].indexOf(filter)>=0)
+ 						filteredImages++;
  					else
  						list[i] = null;
  				}
   				if (filteredImages==0) {
-  					if (isRegex)
-  						IJ.error("Import Sequence", "None of the file names match the regular expression.");
-  					else
-   						IJ.error("Import Sequence", "None of the "+list.length+" files contain\n the string '"+filter+"' in their name.");
- 					return;
+  					IJ.error("None of the "+list.length+" files contain\n the string '"+filter+"' in their name.");
+  					return;
   				}
   				String[] list2 = new String[filteredImages];
   				int j = 0;
@@ -98,8 +91,6 @@ public class FolderOpener implements PlugIn {
  				}
   				list = list2;
   			}
-			if (sortFileNames)
-				list = sortFileList(list);
 
 			if (n<1)
 				n = list.length;
@@ -109,15 +100,15 @@ public class FolderOpener implements PlugIn {
 				n = list.length-start+1;
 			int count = 0;
 			int counter = 0;
-			ImagePlus imp = null;
 			for (int i=start-1; i<list.length; i++) {
+				if (list[i].endsWith(".txt"))
+					continue;
 				if ((counter++%increment)!=0)
 					continue;
 				Opener opener = new Opener();
 				opener.setSilentMode(true);
 				IJ.redirectErrorMessages();
-				if (!virtualStack||stack==null)
-					imp = opener.openImage(directory, list[i]);
+				ImagePlus imp = opener.openImage(directory, list[i]);
 				if (imp!=null && stack==null) {
 					width = imp.getWidth();
 					height = imp.getHeight();
@@ -127,16 +118,17 @@ public class FolderOpener implements PlugIn {
 					if (convertToRGB) bitDepth = 24;
 					if (convertToGrayscale) bitDepth = 8;
 					ColorModel cm = imp.getProcessor().getColorModel();
-					if (virtualStack)
-						stack = new VirtualStack(width, height, cm, directory);
-					else if (scale<100.0)						
+					if (scale<100.0)						
 						stack = new ImageStack((int)(width*scale/100.0), (int)(height*scale/100.0), cm);
 					else
 						stack = new ImageStack(width, height, cm);
 					info1 = (String)imp.getProperty("Info");
 				}
-				if (imp==null)
+				if (imp==null) {
+					if (!list[i].startsWith("."))
+						IJ.log(list[i] + ": unable to open");
 					continue;
+				}
 				if (imp.getWidth()!=width || imp.getHeight()!=height) {
 					IJ.log(list[i] + ": wrong size; "+width+"x"+height+" expected, "+imp.getWidth()+"x"+imp.getHeight()+" found");
 					continue;
@@ -182,10 +174,7 @@ public class FolderOpener implements PlugIn {
 					if (ip.getMax()>max) max = ip.getMax();
 					String label2 = label;
 					if (depth>1) label2 = ""+slice;
-					if (virtualStack) {
-						if (slice==1) ((VirtualStack)stack).addSlice(list[i]);
-					} else
-						stack.addSlice(label2, ip);
+					stack.addSlice(label2, ip);
 				}
 				if (count>=n)
 					break;
@@ -203,11 +192,6 @@ public class FolderOpener implements PlugIn {
 			ImagePlus imp2 = new ImagePlus(title, stack);
 			if (imp2.getType()==ImagePlus.GRAY16 || imp2.getType()==ImagePlus.GRAY32)
 				imp2.getProcessor().setMinAndMax(min, max);
-			if (fi==null)
-				fi = new FileInfo();
-			fi.fileFormat = FileInfo.UNKNOWN;
-			fi.fileName = "";
-			fi.directory = directory;
 			imp2.setFileInfo(fi); // saves FileInfo of the first image
 			if (allSameCalibration)
 				imp2.setCalibration(cal); // use calibration from first image
@@ -224,13 +208,11 @@ public class FolderOpener implements PlugIn {
 		gd.addNumericField("Number of Images:", fileCount, 0);
 		gd.addNumericField("Starting Image:", 1, 0);
 		gd.addNumericField("Increment:", 1, 0);
+		//gd.addMessage("");
+		gd.addStringField("File Name Contains:", "");
 		gd.addNumericField("Scale Images:", scale, 0, 4, "%");
-		gd.addStringField("File Name Contains:", "", 10);
-		gd.addStringField("or Enter Pattern:", "", 10);
 		gd.addCheckbox("Convert to 8-bit Grayscale", convertToGrayscale);
 		gd.addCheckbox("Convert_to_RGB", convertToRGB);
-		gd.addCheckbox("Sort Names Numerically", sortFileNames);
-		gd.addCheckbox("Use Virtual Stack", virtualStack);
 		gd.addMessage("10000 x 10000 x 1000 (100.3MB)");
 		gd.showDialog();
 		if (gd.wasCanceled())
@@ -244,60 +226,17 @@ public class FolderOpener implements PlugIn {
 		if (scale<5.0) scale = 5.0;
 		if (scale>100.0) scale = 100.0;
 		filter = gd.getNextString();
-		String regex = gd.getNextString();
-		if (!regex.equals("")) {
-			filter = regex;
-			isRegex = true;
-		}
 		convertToGrayscale = gd.getNextBoolean();
 		convertToRGB = gd.getNextBoolean();
-		sortFileNames = gd.getNextBoolean();
-		virtualStack = gd.getNextBoolean();
-		if (virtualStack) {
-			convertToGrayscale = false;
-			convertToRGB = false;
-			scale = 100.0;
-		}
 		return true;
 	}
 
-	/** Removes names that start with "." or end with ".db". ".txt", ".lut", "roi" or ".pty". */
-	public String[] trimFileList(String[] rawlist) {
-		int count = 0;
-		for (int i=0; i< rawlist.length; i++) {
-			String name = rawlist[i];
-			if (name.startsWith(".")||name.equals("Thumbs.db")||name.endsWith(".txt")||name.endsWith(".lut")||name.endsWith(".roi")||name.endsWith(".pty"))
-				rawlist[i] = null;
-			else
-				count++;
-		}
-		if (count==0) return null;
-		String[] list = rawlist;
-		if (count<rawlist.length) {
-			list = new String[count];
-			int index = 0;
-			for (int i=0; i< rawlist.length; i++) {
-				if (rawlist[i]!=null)
-					list[index++] = rawlist[i];
-			}
-		}
-		return list;
-	}
-
-	/** Sorts the file names into numeric order. */
-	public String[] sortFileList(String[] list) {
+	String[] sortFileList(String[] list) {
 		int listLength = list.length;
-		boolean allSameLength = true;
-		int len0 = list[0].length();
-		for (int i=0; i<listLength; i++) {
-			if (list[i].length()!=len0) {
-				allSameLength = false;
-				break;
-			}
-		}
-		if (allSameLength)
-			{ij.util.StringSorter.sort(list); return list;}
-		int maxDigits = 15;		
+		int first = listLength>1?1:0;
+		if ((list[first].length()==list[listLength-1].length())&&(list[first].length()==list[listLength/2].length()))
+			{ij.util.StringSorter.sort(list); return list;} 
+		int maxDigits = 15;     
 		String[] list2 = null;	
 		char ch;	
 		for (int i=0; i<listLength; i++) {
@@ -308,7 +247,6 @@ public class FolderOpener implements PlugIn {
 				if (ch>=48&&ch<=57) num += ch;
 			}
 			if (list2==null) list2 = new String[listLength];
-			if (num.length()==0) num = "aaaaaa";
 			num = "000000000000000" + num; // prepend maxDigits leading zeroes
 			num = num.substring(num.length()-maxDigits);
 			list2[i] = num + list[i];
@@ -317,21 +255,20 @@ public class FolderOpener implements PlugIn {
 			ij.util.StringSorter.sort(list2);
 			for (int i=0; i<listLength; i++)
 				list2[i] = list2[i].substring(maxDigits);
-			return list2;	
+			return list2;   
 		} else {
 			ij.util.StringSorter.sort(list);
 			return list;   
-		}	
+		}   
 	}
 
-} // FolderOpener
+}
 
 class FolderOpenerDialog extends GenericDialog {
 	ImagePlus imp;
 	int fileCount;
  	boolean eightBits, rgb;
  	String[] list;
- 	boolean isRegex;
 
 	public FolderOpenerDialog(String title, ImagePlus imp, String[] list) {
 		super(title);
@@ -383,26 +320,25 @@ class FolderOpenerDialog extends GenericDialog {
 		if (scale<5.0) scale = 5.0;
 		if (scale>100.0) scale = 100.0;
 		
-		if (n<1) n = fileCount;
-		if (start<1 || start>fileCount) start = 1;
-		if (start+n-1>fileCount)
+		if (n<1)
+			n = fileCount;
+		if (start<1 || start>fileCount)
+			start = 1;
+		if (start+n-1>fileCount) {
 			n = fileCount-start+1;
-		if (inc<1) inc = 1;
+			//TextField tf = (TextField)numberField.elementAt(0);
+			//tf.setText(""+nImages);
+		}
+		if (inc<1)
+			inc = 1;
  		TextField tf = (TextField)stringField.elementAt(0);
  		String filter = tf.getText();
-		tf = (TextField)stringField.elementAt(1);
-  		String regex = tf.getText();
-		if (!regex.equals("")) {
-			filter = regex;
-			isRegex = true;
-		}
+		// IJ.write(nImages+" "+startingImage);
  		if (!filter.equals("") && !filter.equals("*")) {
  			int n2 = 0;
-			for (int i=0; i<list.length; i++) {
-				if (isRegex&&list[i].matches(filter))
-					n2++;
-				else if (list[i].indexOf(filter)>=0)
-					n2++;
+ 			for (int i=0; i<list.length; i++) {
+ 				if (list[i].indexOf(filter)>=0)
+ 					n2++;
 			}
 			if (n2<n) n = n2;
  		}
@@ -419,9 +355,9 @@ class FolderOpenerDialog extends GenericDialog {
 			bytesPerPixel = 4;
 		width = (int)(width*scale/100.0);
 		height = (int)(height*scale/100.0);
-		int n2 = ((fileCount-start+1)*depth)/inc;
-		if (n2<0) n2 = 0;
-		if (n2>n) n2 = n;
+		int n2 = (n*depth)/inc;
+		if (n2<0)
+			n2 = 0;
 		double size = ((double)width*height*n2*bytesPerPixel)/(1024*1024);
  		((Label)theLabel).setText(width+" x "+height+" x "+n2+" ("+IJ.d2s(size,1)+"MB)");
 	}
@@ -441,5 +377,4 @@ class FolderOpenerDialog extends GenericDialog {
 			return 0;
       }
 
-} // FolderOpenerDialog
-
+}

@@ -18,7 +18,6 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 	private static final String NONE = "None";
 	private static final String INVERTER = "Pixel Inverter";
 	private static final String UNCALIBRATED_OD = "Uncalibrated OD";
-	private static final String CUSTOM = "Custom";
 	private static boolean showSettings;
 	private boolean global1, global2;
     private ImagePlus imp;
@@ -28,7 +27,6 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 	private int spacerIndex = nFits+1;
 	private int inverterIndex = nFits+2;
 	private int odIndex = nFits+3;
-	private int customIndex = nFits+4;
 	private static String xText = "";
 	private static String yText = "";
 	private static boolean importedValues;
@@ -42,29 +40,20 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 	public int setup(String arg, ImagePlus imp) {
 		this.imp = imp;
 		IJ.register(Calibrator.class);
-		return DOES_ALL-DOES_RGB+NO_CHANGES;
+		return DOES_8G+DOES_8C+DOES_16+NO_CHANGES;
 	}
 
 	public void run(ImageProcessor ip) {
 		global1 = imp.getGlobalCalibration()!=null;
 		if (!showDialog(imp))
 			return;
-		if (choiceIndex==customIndex) {
-			showPlot(null, null, imp.getCalibration(), null);
-			return;
-		} else if (imp.getType()==ImagePlus.GRAY32) {
-			if (choiceIndex==0)
-				imp.getCalibration().setValueUnit(unit);
-			else
-				IJ.error("Calibrate", "Function must be \"None\" for 32-bit images,\nbut you can change the Unit.");
-		} else
-			calibrate(imp);
+		calibrate(imp);
 	}
 
 	public boolean showDialog(ImagePlus imp) {
 		String defaultChoice;
 		Calibration cal = imp.getCalibration();
-		functions = getFunctionList(cal.getFunction()==Calibration.CUSTOM);
+		functions = getFunctionList();
 		int function = cal.getFunction();
 		oldFunction = function;
 		double[] p = cal.getCoefficients();
@@ -77,8 +66,6 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 			defaultChoice = CurveFitter.fitList[function];
 		else if (function==Calibration.UNCALIBRATED_OD)
 			defaultChoice=UNCALIBRATED_OD;
-		else if (function==Calibration.CUSTOM)
-			defaultChoice=CUSTOM;
 		else
 			defaultChoice=NONE;
 			
@@ -130,14 +117,14 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 		boolean zeroClip=false;
 		if (choiceIndex<=0) {
 			if (oldFunction==Calibration.NONE&&!yText.equals("")&&!xText.equals(""))
-				IJ.error("Calibrate", "Please select a function");
+				IJ.error("Calibrator", "Please select a function");
 			function = Calibration.NONE;
 		} else if (choiceIndex<=nFits) {
 			function = choiceIndex - 1;
-			//if (function>0 && is16Bits) {
-			//	IJ.error("Calibrate", "Calibration of 16-bit images, except with straight\nline functions, is currently not supported.");
-			//	return;
-			//}
+			if (function>0 && is16Bits) {
+				IJ.error("Calibration of 16-bit images, except with straight\nline functions, is currently not supported.");
+				return;
+			}
 			x = getData(xText);
 			y = getData(yText);
 			if (!cal.calibrated() || y.length!=0 || function!=oldFunction) {
@@ -159,7 +146,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 			unit = "Inverted Gray Value";
 		} else if (choiceIndex==odIndex) {
 			if (is16Bits) {
-				IJ.error("Calibrate", "Uncalibrated OD is not supported on 16-bit images.");
+				IJ.error("Uncalibrated OD is not supported on 16-bit images.");
 				return;
 			}
 			function = Calibration.UNCALIBRATED_OD;
@@ -173,15 +160,14 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 			WindowManager.repaintImageWindows();
 		else
 			imp.repaintWindow();
-		if (global2 && global2!=global1)
-			FileOpener.setShowConflictMessage(true);
 		if (function!=Calibration.NONE)
-			showPlot(x, y, cal, fitGoodness);
+			showPlot(x, y, cal, sumResiduals, fitGoodness);
+		//IJ.write("cal: "+cal);
 	}
 
 	double[] doCurveFitting(double[] x, double[] y, int fitType) {
 		if (x.length!=y.length || y.length==0) {
-			IJ.error("Calibrate",
+			IJ.error("Calibrator",
 				"To create a calibration curve, the left column must\n"
 				+"contain a list of measured mean pixel values and the\n"
 				+"right column must contain the same number of calibration\n"
@@ -203,16 +189,37 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 		double ymin=a[0], ymax=a[1]; 
 		CurveFitter cf = new CurveFitter(x, y);
 		cf.doFit(fitType, showSettings);
+		//IJ.write("");
+		//IJ.write("n: "+n);
+		//IJ.write("iterations: "+cf.getIterations());
+		//IJ.write("max iterations: "+cf.getMaxIterations());
+		//IJ.write("function: "+cf.fList[fitType]);
 		int np = cf.getNumParams();
 		double[] p = cf.getParams();
-		fitGoodness = IJ.d2s(cf.getRSquared(),6);
+
+		double sumResidualsSqr = p[np];
+		//IJ.write("sum of residuals: "+IJ.d2s(Math.sqrt(sumResidualsSqr),6));
+		double sumY = 0.0;
+		for (int i=0; i<n; i++)
+			sumY += y[i];
+		sumResiduals = IJ.d2s(Math.sqrt(sumResidualsSqr/n),6);
+		double mean = sumY/n;
+		double sumMeanDiffSqr = 0.0;
+		int degreesOfFreedom = n-np;
+		double goodness=1.0;
+		for (int i=0; i<n; i++) {
+			sumMeanDiffSqr += sqr(y[i]-mean);
+			if (sumMeanDiffSqr>0.0 && degreesOfFreedom!=0)
+				goodness = 1.0-(sumResidualsSqr/degreesOfFreedom)*((n-1)/sumMeanDiffSqr);
+		}
+		fitGoodness = IJ.d2s(goodness,6);
 		double[] parameters = new double[np];
 		for (int i=0; i<np; i++)
 			parameters[i] = p[i];
 		return parameters;									
 	}
 	
-	void showPlot(double[] x, double[] y, Calibration cal, String rSquared) {
+	void showPlot(double[] x, double[] y, Calibration cal, String sumResiduals, String fitGoodness) {
 		if (!cal.calibrated())
 			return;
 		int xmin,xmax,range;
@@ -257,8 +264,10 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 				drawLabel(pw, "e="+IJ.d2s(p[4],6));
 			ly += 0.04;
 		}
-		if (rSquared!=null)
-			{drawLabel(pw, "R^2="+rSquared); rSquared=null;}
+		if (sumResiduals!=null)
+			{drawLabel(pw,"S.D.="+sumResiduals); sumResiduals=null;}
+		if (fitGoodness!=null)
+			{drawLabel(pw, "R^2="+fitGoodness); fitGoodness=null;}
 		pw.draw();
 	}
 
@@ -270,18 +279,14 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 
 	double sqr(double x) {return x*x;}
 
-	String[] getFunctionList(boolean custom) {
-		int n = nFits+4;
-		if (custom) n++;
-		String[] list = new String[n];
+	String[] getFunctionList() {
+		String[] list = new String[nFits+4];
 		list[0] = NONE;
 		for (int i=0; i<nFits; i++)
 			list[1+i] = CurveFitter.fitList[i];
 		list[spacerIndex] = "-";
 		list[inverterIndex] = INVERTER;
 		list[odIndex] = UNCALIBRATED_OD;
-		if (custom) 
-			list[customIndex] = CUSTOM;
 		return list;
  	}
 	
@@ -373,7 +378,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 		int width = ip.getWidth();
 		int height = ip.getHeight();
 		if (!((width==1||width==2)&&height>1)) {
-			IJ.error("Calibrate", "This appears to not be a one or two column text file");
+			IJ.error("Calibrator", "This appears to not be a one or two column text file");
 			return;
 		}
 		StringBuffer sb = new StringBuffer();

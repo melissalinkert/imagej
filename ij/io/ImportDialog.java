@@ -9,8 +9,6 @@ import ij.gui.*;
 import ij.process.*;
 import ij.util.StringSorter;
 import ij.plugin.frame.Recorder;
-import ij.plugin.FolderOpener;
-import ij.plugin.FileInfoVirtualStack;
 import ij.measure.Calibration;
 
 
@@ -38,12 +36,10 @@ public class ImportDialog {
     private static int gapBetweenImages = Prefs.getInt(GAP,0);
 	private static int options;
     private static boolean whiteIsZero,intelByteOrder;
-    private static boolean virtual;
     private boolean openAll;
-    private static FileInfo lastFileInfo;
     private static String[] types = {"8-bit", "16-bit Signed", "16-bit Unsigned",
-		"32-bit Signed", "32-bit Unsigned", "32-bit Real", "64-bit Real", "24-bit RGB", 
-		"24-bit RGB Planar", "24-bit BGR", "24-bit Integer", "32-bit ARGB", "1-bit Bitmap"};
+		"32-bit Signed", "32-bit Unsigned", "32-bit Real", "24-bit RGB", 
+		"24-bit RGB Planar", "24-bit BGR", "32-bit ARGB", "1-bit Bitmap"};
     	
     static {
     	options = Prefs.getInt(OPTIONS,0);
@@ -74,7 +70,6 @@ public class ImportDialog {
 		gd.addCheckbox("White is Zero", whiteIsZero);
 		gd.addCheckbox("Little-Endian Byte Order", intelByteOrder);
 		gd.addCheckbox("Open All Files in Folder", openAll);
-		gd.addCheckbox("Use Virtual Stack", virtual);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return false;
@@ -87,18 +82,13 @@ public class ImportDialog {
 		whiteIsZero = gd.getNextBoolean();
 		intelByteOrder = gd.getNextBoolean();
 		openAll = gd.getNextBoolean();
-		virtual = gd.getNextBoolean();
 		IJ.register(ImportDialog.class);
 		return true;
 	}
 	
 	/** Opens all the images in the directory. */
 	void openAll(String[] list, FileInfo fi) {
-		//StringSorter.sort(list);
-		FolderOpener fo = new FolderOpener();
-		list = fo.trimFileList(list);
-		list = fo.sortFileList(list);
-		if (list==null) return;
+		StringSorter.sort(list);
 		ImageStack stack=null;
 		ImagePlus imp=null;
 		double min = Double.MAX_VALUE;
@@ -146,19 +136,14 @@ public class ImportDialog {
 		Does nothing if the dialog is canceled. */
 	public void openImage() {
 		FileInfo fi = getFileInfo();
-		if (fi==null) return;
+		if (fi==null)
+			return;
 		if (openAll) {
-			if (virtual) {
-				virtual = false;
-				IJ.error("Import Raw", "\"Open All\" does not currently support virtual stacks");
-				return;
-			}
 			String[] list = new File(directory).list();
-			if (list==null) return;
+			if (list==null)
+				return;
 			openAll(list, fi);
-		} else if (virtual)
-			new FileInfoVirtualStack(fi);
-		else {
+		} else {
 			FileOpener fo = new FileOpener(fi);
 			fo.open();
 		}
@@ -197,16 +182,12 @@ public class ImportDialog {
 			fi.fileType = FileInfo.GRAY32_UNSIGNED;
 		else if (imageType.equals("32-bit Real"))
 			fi.fileType = FileInfo.GRAY32_FLOAT;
-		else if (imageType.equals("64-bit Real"))
-			fi.fileType = FileInfo.GRAY64_FLOAT;
 		else if (imageType.equals("24-bit RGB"))
 			fi.fileType = FileInfo.RGB;
 		else if (imageType.equals("24-bit RGB Planar"))
 			fi.fileType = FileInfo.RGB_PLANAR;
 		else if (imageType.equals("24-bit BGR"))
 			fi.fileType = FileInfo.BGR;
-		else if (imageType.equals("24-bit Integer"))
-			fi.fileType = FileInfo.GRAY24_UNSIGNED;
 		else if (imageType.equals("32-bit ARGB"))
 			fi.fileType = FileInfo.ARGB;
 		else if (imageType.equals("1-bit Bitmap"))
@@ -214,7 +195,6 @@ public class ImportDialog {
 		else
 			fi.fileType = FileInfo.GRAY8;
 		if (IJ.debugMode) IJ.log("ImportDialog: "+fi);
-		lastFileInfo = (FileInfo)fi.clone();
 		return fi;
 	}
 
@@ -234,12 +214,6 @@ public class ImportDialog {
 		//if (openAll)
 		//	options |= OPEN_ALL;
 		prefs.put(OPTIONS, Integer.toString(options));
-	}
-	
-	/** Returns the FileInfo object used to import the last raw image,
-		or null if a raw image has not been imported. */
-	public static FileInfo getLastFileInfo() {
-		return lastFileInfo;
 	}
 
 }

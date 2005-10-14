@@ -17,7 +17,7 @@ public class ByteProcessor extends ImageProcessor {
 	private int bgColor = 255; //white
 	private boolean bgColorSet;
 	private int min=0, max=255;
-
+	private boolean brokenNewPixels = ij.IJ.brokenNewPixels();
     private int binaryCount, binaryBackground;
 
 	/**Creates a ByteProcessor from an 8-bit, indexed color AWT Image. */
@@ -37,17 +37,6 @@ public class ByteProcessor extends ImageProcessor {
 			pixels = (byte[])(pg.getPixels());
 		else
 			System.err.println("ByteProcessor: not 8-bit image");
-		if (((IndexColorModel)cm).getTransparentPixel()!=-1) {
-    		IndexColorModel icm = (IndexColorModel)cm;
-			int mapSize = icm.getMapSize();
-			byte[] reds = new byte[mapSize];
-			byte[] greens = new byte[mapSize];
-			byte[] blues = new byte[mapSize];	
-			icm.getReds(reds); 
-			icm.getGreens(greens); 
-			icm.getBlues(blues);
-			cm = new IndexColorModel(8, mapSize, reds, greens, blues);
-		}
 	}
 
 	/**Creates a blank ByteProcessor of the specified dimensions. */
@@ -66,21 +55,10 @@ public class ByteProcessor extends ImageProcessor {
 		this.cm = cm;
 	}
 
-	/** Creates a ByteProcessor from a TYPE_BYTE_GRAY BufferedImage. */
-	public ByteProcessor(BufferedImage bi) {
-		if (bi.getType()!=BufferedImage.TYPE_BYTE_GRAY)
-			throw new IllegalArgumentException("Type!=TYPE_BYTE_GRAYY");
-		WritableRaster raster = bi.getRaster();
-		DataBuffer buffer = raster.getDataBuffer();
-		pixels = ((DataBufferByte) buffer).getData();
-		width = raster.getWidth();
-		height = raster.getHeight();
-	}
-
 	public Image createImage() {
-		if (cm==null) cm = getDefaultColorModel();
-		if (ij.IJ.isJava16()) return createBufferedImage();
-		if (source==null) {
+		if (cm==null)
+			makeDefaultColorModel();
+		if (source==null || brokenNewPixels) {
 			source = new MemoryImageSource(width, height, cm, pixels, 0, width);
 			source.setAnimated(true);
 			source.setFullBufferUpdates(true);
@@ -91,24 +69,6 @@ public class ByteProcessor extends ImageProcessor {
 		} else
 			source.newPixels();
 		return img;
-	}
-
-	Image createBufferedImage() {
-		if (raster==null) {
-			SampleModel sm = getIndexSampleModel();
-			DataBuffer db = new DataBufferByte(pixels, width*height, 0);
-			raster = Raster.createWritableRaster(sm, db, null);
-		}
-		if (image==null || cm!=cm2) {
-			image = new BufferedImage(cm, raster, false, null);
-			cm2 = cm;
-		}
-		return image;
-	}
-	
-	/** Returns this image as a BufferedImage. */
-	public BufferedImage getBufferedImage() {
-		return (BufferedImage)createBufferedImage();
 	}
 
 	/** Returns a new, blank ByteProcessor with the specified width and height. */
@@ -132,14 +92,6 @@ public class ByteProcessor extends ImageProcessor {
         return ip2;
 	}
 	
-	/** Returns a duplicate of this image. */ 
-	public synchronized ImageProcessor duplicate() { 
-		ImageProcessor ip2 = createProcessor(width, height); 
-		byte[] pixels2 = (byte[])ip2.getPixels(); 
-		System.arraycopy(pixels, 0, pixels2, 0, width*height); 
-		return ip2; 
-	} 
-
 	/**Make a snapshot of the current image.*/
 	public void snapshot() {
 		snapshotWidth=width;
@@ -147,6 +99,11 @@ public class ByteProcessor extends ImageProcessor {
 		if (snapshotPixels==null || (snapshotPixels!=null && snapshotPixels.length!=pixels.length))
 			snapshotPixels = new byte[width * height];
 		System.arraycopy(pixels, 0, snapshotPixels, 0, width*height);
+		newSnapshot = true;
+		//double sum = 0;
+		//for (int i=0; i<width*height; i++)
+		//	sum += pixels[i]&0xff;
+		//ij.IJ.write("snapshot: "+(sum/(width*height)));
 	}
 	
 	/** Reset the image from snapshot.*/
@@ -154,6 +111,7 @@ public class ByteProcessor extends ImageProcessor {
 		if (snapshotPixels==null)
 			return;	
         System.arraycopy(snapshotPixels,0,pixels,0,width*height);
+        newSnapshot = true;
 	}
 	
 	/** Restore pixels that are within roi but not part of mask. */
@@ -174,25 +132,14 @@ public class ByteProcessor extends ImageProcessor {
 		}
 	}
 
-	public void setSnapshotPixels(Object pixels) {
-		snapshotPixels = (byte[])pixels;
-		snapshotWidth=width;
-		snapshotHeight=height;
-	}
-
-	public Object getSnapshotPixels() {
-		return snapshotPixels;
-	}
-
 	/** Fills pixels that are within roi and part of the mask.
-		Does nothing if the mask is not the same size as the ROI. */
+		Throws an IllegalArgumentException if the mask is
+		not the same size as the ROI. */
 	public void fill(ImageProcessor mask) {
 		if (mask==null)
 			{fill(); return;}
-		int roiWidth=this.roiWidth, roiHeight=this.roiHeight;
-		int roiX=this.roiX, roiY=this.roiY;
 		if (mask.getWidth()!=roiWidth||mask.getHeight()!=roiHeight)
-			return;
+			throw new IllegalArgumentException(maskSizeError(mask));
 		byte[] mpixels = (byte[])mask.getPixels();
 		for (int y=roiY, my=0; y<(roiY+roiHeight); y++, my++) {
 			int i = y * width + roiX;
@@ -212,15 +159,6 @@ public class ByteProcessor extends ImageProcessor {
 			return 0;
 	}
 	
-	public final int get(int x, int y) {return pixels[y*width+x]&0xff;}
-	public final void set(int x, int y, int value) {pixels[y*width+x] = (byte)value;}
-	public final int get(int index) {return pixels[index]&0xff;}
-	public final void set(int index, int value) {pixels[index] = (byte)value;}
-	public final float getf(int x, int y) {return pixels[y*width+x]&0xff;}
-	public final void setf(int x, int y, float value) {pixels[y*width+x] = (byte)value;}
-	public final float getf(int index) {return pixels[index]&0xff;}
-	public final void setf(int index, float value) {pixels[index] = (byte)value;}
-
 	static double oldx, oldy;
 
 	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). */
@@ -230,6 +168,31 @@ public class ByteProcessor extends ImageProcessor {
 		if (y<0.0) y = 0.0;
 		if (y>=height-1.0) y = height-1.001;
 		return getInterpolatedPixel(x, y, pixels);
+	}
+
+	/** Uses bilinear interpolation to find the calibrated
+		pixel value at real coordinates (x,y). */
+		public double getInterpolatedValue(double x, double y) {
+		if (cTable==null)
+			return getInterpolatedPixel(x, y);
+		if (x<0.0) x = 0.0;
+		if (x>=width-1.0) x = width-1.001;
+		if (y<0.0) y = 0.0;
+		if (y>=height-1.0) y = height-1.001;
+		int xbase = (int)x;
+		int ybase = (int)y;
+		double xFraction = x - xbase;
+		double yFraction = y - ybase;
+		int offset = ybase * width + xbase;
+		double lowerLeft = cTable[pixels[offset]&255];
+		//if ((xbase>=(width-1))||(ybase>=(height-1)))
+		//	return lowerLeft;
+		double lowerRight = cTable[pixels[offset + 1]&255];
+		double upperRight = cTable[pixels[offset + width + 1]&255];
+		double upperLeft = cTable[pixels[offset + width]&255];
+		double upperAverage = upperLeft + xFraction * (upperRight - upperLeft);
+		double lowerAverage = lowerLeft + xFraction * (lowerRight - lowerLeft);
+		return lowerAverage + yFraction * (upperAverage - lowerAverage);
 	}
 
 	public float getPixelValue(int x, int y) {
@@ -301,16 +264,12 @@ public class ByteProcessor extends ImageProcessor {
 		return (Object)pixels;
 	}
 
-	/** Returns a copy of the pixel data. Or returns a reference to the
-		snapshot buffer if it is not null and 'snapshotCopyMode' is true.
-		@see ImageProcessor#snapshot
-		@see ImageProcessor#setSnapshotCopyMode
-	*/
+	/** Returns a reference to this image's snapshot (undo) byte array. If
+		the snapshot array is null, returns a copy of the pixel data. */
 	public Object getPixelsCopy() {
-		if (snapshotPixels!=null && snapshotCopyMode) {
-			snapshotCopyMode = false;
+		if (snapshotPixels!=null && newSnapshot)
 			return snapshotPixels;
-		} else {
+		else {
 			byte[] pixels2 = new byte[width*height];
         	System.arraycopy(pixels, 0, pixels2, 0, width*height);
 			return pixels2;
@@ -322,9 +281,7 @@ public class ByteProcessor extends ImageProcessor {
 			throw new IllegalArgumentException("");
 		this.pixels = (byte[])pixels;
 		resetPixels(pixels);
-		if (pixels==null) snapshotPixels = null;
-		raster = null;
-		image = null;
+		snapshotPixels = null;
 	}
 
 	/*
@@ -391,7 +348,6 @@ public class ByteProcessor extends ImageProcessor {
 		}
 		cm = new IndexColorModel(8, 256, rLUT2, gLUT2, bLUT2);
 		newPixels = true;
-		if (min==0.0 && max==255.0) source = null;
 		minThreshold = NO_THRESHOLD;
 	}
 
@@ -472,18 +428,10 @@ public class ByteProcessor extends ImageProcessor {
 			if (y%inc==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
-	/** Filters using a 3x3 neighborhood. The p1, p2, etc variables, which
-		contain the values of the pixels in the neighborhood, are arranged
-		as follows:
-		<pre>
-		    p1 p2 p3
-		    p4 p5 p6
-		    p7 p8 p9
-		</pre>
-	*/
+	/** Filters using a 3x3 neighborhood. */
 	public void filter(int type) {
 		int p1, p2, p3, p4, p5, p6, p7, p8, p9;
 		int inc = roiHeight/25;
@@ -599,7 +547,7 @@ public class ByteProcessor extends ImageProcessor {
         if (yMin==1) filterEdge(type, pixels2, roiWidth, roiX, roiY, 1, 0);
         if (xMax==width-2) filterEdge(type, pixels2, roiHeight, width-1, roiY, 0, 1);
         if (yMax==height-2) filterEdge(type, pixels2, roiWidth, roiX, height-1, 1, 0);
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	void filterEdge(int type, byte[] pixels2, int n, int x, int y, int xinc, int yinc) {
@@ -785,7 +733,7 @@ public class ByteProcessor extends ImageProcessor {
 			if (y%20==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
     }
 
 	/** Scales the image or selection using the specified scale factors.
@@ -843,7 +791,7 @@ public class ByteProcessor extends ImageProcessor {
 			if (y%20==0)
 			showProgress((double)(y-ymin)/height);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	/** Uses bilinear interpolation to find the pixel value at real coordinates (x,y). */
@@ -906,7 +854,7 @@ public class ByteProcessor extends ImageProcessor {
 			if (y%20==0)
 			showProgress((double)y/dstHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 		return ip2;
 	}
 
@@ -960,7 +908,7 @@ public class ByteProcessor extends ImageProcessor {
 			if (y%30==0)
 				showProgress((double)(y-roiY)/roiHeight);
 		}
-		showProgress(1.0);
+		hideProgress();
 	}
 
 	public void flipVertical() {
@@ -975,6 +923,7 @@ public class ByteProcessor extends ImageProcessor {
 				pixels[index2++] = tmp;
 			}
 		}
+		newSnapshot = false;
 	}
 	
 	public int[] getHistogram() {
@@ -992,16 +941,15 @@ public class ByteProcessor extends ImageProcessor {
 	}
 
 	public int[] getHistogram(ImageProcessor mask) {
-		int rx=roiX, ry=roiY, rw=roiWidth, rh=roiHeight;
-		if (mask.getWidth()!=rw||mask.getHeight()!=rh)
+		if (mask.getWidth()!=roiWidth||mask.getHeight()!=roiHeight)
 			throw new IllegalArgumentException(maskSizeError(mask));
 		int v;
 		int[] histogram = new int[256];
 		byte[] mpixels = (byte[])mask.getPixels();
-		for (int y=ry, my=0; y<(ry+rh); y++, my++) {
-			int i = y*width + rx;
-			int mi = my*rw;
-			for (int x=rx; x<(rx+rw); x++) {
+		for (int y=roiY, my=0; y<(roiY+roiHeight); y++, my++) {
+			int i = y * width + roiX;
+			int mi = my * roiWidth;
+			for (int x=roiX; x<(roiX+roiWidth); x++) {
 				if (mpixels[mi++]!=0) {
 					v = pixels[i] & 0xff;
 					histogram[v]++;
@@ -1020,6 +968,7 @@ public class ByteProcessor extends ImageProcessor {
 			else
 				pixels[i] = (byte)255;
 		}
+		newSnapshot = false;
 	}
 
 	public void applyLut() {
@@ -1042,78 +991,6 @@ public class ByteProcessor extends ImageProcessor {
 		ip2 = ip2.convertToByte(false);
 		byte[] pixels2 = (byte[])ip2.getPixels();
 		System.arraycopy(pixels2, 0, pixels, 0, pixels.length);
-	}
-	
-	public FloatProcessor[] toFloatProcessors() {
-		FloatProcessor[] fp = new FloatProcessor[1];
-		fp[0] = (FloatProcessor)convertToFloat();
-		return fp;
-	}
-	
-	public void setFromFloatProcessors(FloatProcessor[]  fp) {
-		ImageProcessor ip2 = fp[0].convertToByte(false);
-		setPixels(ip2.getPixels());
-	}
-
-	public float[][] toFloatArrays() {
-		float[][] a = new float[1][];
-		//ImageProcessor fp = crop();
-		ImageProcessor fp = convertToFloat();
-		a[0] = (float[])fp.getPixels();
-		return a;
-	}
-	
-	public void setFromFloatArrays(float[][] arrays) {
-		ImageProcessor ip2 = new FloatProcessor(roiWidth, roiHeight, arrays[0], null);
-		ip2 = ip2.convertToByte(false);
-		setPixels(ip2.getPixels());
-		//insert(ip2, roiX, roiY); 
-	}
-
-	/** Returns a FloatProcessor with the same image, no scaling or calibration
-	*  (pixel values 0 to 255).
-	*  The roi, mask, lut (ColorModel), threshold, min&max are
-	*  also set for the FloatProcessor
-	*  @param channelNumber   Ignored (needed for compatibility with ColorProcessor.toFloat)
-	*  @param fp              Here a FloatProcessor can be supplied, or null. The FloatProcessor
-	*                         is overwritten by this method (re-using its pixels array 
-	*                         improves performance).
-	*  @return A FloatProcessor with the converted image data
-	*/
-	public FloatProcessor toFloat(int channelNumber, FloatProcessor fp) {
-		int size = width*height;
-		if (fp == null || fp.getWidth()!=width || fp.getHeight()!=height)
-			fp = new FloatProcessor(width, height, new float[size], cm);
-		float[] fPixels = (float[])fp.getPixels();
-		for (int i=0; i<size; i++)
-			fPixels[i] = pixels[i]&0xff;
-		fp.setRoi(getRoi());
-		fp.setMask(mask);
-		fp.setThreshold(minThreshold, maxThreshold, ImageProcessor.NO_LUT_UPDATE);
-		fp.setMinAndMax(min, max);
-		return fp;
-	}
-	
-	/** Sets the pixels from a FloatProcessor, no scaling.
-	*  Also the min&max values are taken from the FloatProcessor.
-	*  @param channelNumber   Ignored (needed for compatibility with ColorProcessor.toFloat)
-	*  @param fp              The FloatProcessor where the image data are read from.
-	*/
-	public void setPixels(int channelNumber, FloatProcessor fp) {
-		float[] fPixels = (float[])fp.getPixels();
-		float value;
-		int size = width*height;
-		for (int i=0; i<size; i++) {
-			value = fPixels[i] + 0.49999995f;
-			if (value<0f) value = 0f;
-			if (value>255f) value = 255f;
-			pixels[i] = (byte)value;
-		}
-		setMinAndMax(fp.getMin(), fp.getMax());
-	}
-	
-	byte[] create8BitImage() {
-		return pixels;
 	}
 
 }

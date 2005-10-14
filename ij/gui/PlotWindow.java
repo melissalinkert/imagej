@@ -29,6 +29,10 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	/** Connect points with solid lines. */
 	public static final int LINE = 2;
 
+	private static final int LEFT_MARGIN = 50;
+	private static final int RIGHT_MARGIN = 20;
+	private static final int TOP_MARGIN = 20;
+	private static final int BOTTOM_MARGIN = 30;
 	private static final int WIDTH = 450;
 	private static final int HEIGHT = 200;
 	
@@ -40,8 +44,6 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	private static final int SAVE_X_VALUES = 1;
 	private static final int AUTO_CLOSE = 2;
 	private static final int LIST_VALUES = 4;
-	private static final int INTERPOLATE = 8;
-	private static final int NO_GRID_LINES = 16;
 
 	private Button list, save, copy;
 	private Label coordinates;
@@ -49,7 +51,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	private Font font = new Font("Helvetica", Font.PLAIN, 12);
 	private static int options;
 	private int defaultDigits = -1;
-	private boolean realXValues;
+	private boolean realNumbers;
 	private int xdigits, ydigits;
 	private int markSize = 5;
 	private static Plot staticPlot;
@@ -73,13 +75,6 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 		set, use Edit/Options/Profile Plot Options. */
 	public static boolean listValues;
 
-	/** Interpolate line profiles. To
-		set, use Edit/Options/Profile Plot Options. */
-	public static boolean interpolate;
-
-	/** Add grid lines to plots */
-	public static boolean noGridLines;
-
     // static initializer
     static {
 		IJ.register(PlotWindow.class); //keeps options from being reset on some JVMs
@@ -89,9 +84,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
     	listValues = (options&LIST_VALUES)!=0;
     	plotWidth = Prefs.getInt(PLOT_WIDTH, WIDTH);
     	plotHeight = Prefs.getInt(PLOT_HEIGHT, HEIGHT);
-    	interpolate = (options&INTERPOLATE)==0; // 0=true, 1=false
-     	noGridLines = (options&NO_GRID_LINES)!=0; 
-   }
+    }
 
 	/** Construct a new PlotWindow.
 	* @param title			the window title
@@ -183,13 +176,12 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 		copy = new Button("Copy...");
 		copy.addActionListener(this);
 		buttons.add(copy);
-		coordinates = new Label("X=12345678, Y=12345678"); 
+		coordinates = new Label("                     ");
 		coordinates.setFont(new Font("Monospaced", Font.PLAIN, 12));
 		buttons.add(coordinates);
 		add(buttons);
 		plot.draw();
 		pack();
-		coordinates.setText(""); 
 		ImageProcessor ip = plot.getProcessor();
 		if ((ip instanceof ColorProcessor) && (imp.getProcessor() instanceof ByteProcessor))
 			imp.setProcessor(null, ip);
@@ -222,7 +214,6 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
     	@see ij.gui.ImageWindow#mouseMoved
     */
     public void mouseMoved(int x, int y) {
-    	super.mouseMoved(x, y);
 		if (plot!=null && plot.frame!=null && coordinates!=null)
 			coordinates.setText(plot.getCoordinates(x,y));
 	}
@@ -318,35 +309,18 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	}
 	
 	void initDigits() {
-		int digits = 2;
-		int setDigits = Analyzer.getPrecision();
-		if (ydigits!=9 || setDigits>=6) {
-			ydigits = setDigits;
-			if (ydigits==0) ydigits = 2;
-			digits = ydigits;
-		}
+		ydigits = Analyzer.getPrecision();
+		if (ydigits==0)
+			ydigits = 2;
 		if (ydigits!=defaultDigits) {
-			realXValues = false;
+			realNumbers = false;
 			for (int i=0; i<plot.xValues.length; i++) {
-				if ((int)plot.xValues[i]!=plot.xValues[i]) {
-					realXValues = true;
-					break;
-				}
+				if ((int)plot.xValues[i]!=plot.xValues[i])
+					realNumbers = true;
 			}
-			boolean realYValues = false;
-			for (int i=0; i<plot.yValues.length; i++) {
-				if ((int)plot.yValues[i]!=plot.yValues[i]) {
-					realYValues = true;
-					break;
-				}
-			}
-			if (setDigits<6&&realYValues) ydigits = 9;
-			if (!realYValues) ydigits = 0;
 			defaultDigits = ydigits;
 		}
-		xdigits =  realXValues?ydigits:0;
-		if (xdigits==0 && plot.xValues.length>=2 && (plot.xValues[1]-plot.xValues[0])<1.0)
-			xdigits = digits;
+		xdigits =  realNumbers?ydigits:0;
 	}
 		
 	public void lostOwnership(Clipboard clipboard, Transferable contents) {}
@@ -388,11 +362,12 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 			prefs.put(PLOT_HEIGHT, Integer.toString(plotHeight));
 		}
 		int options = 0;
-		if (saveXValues) options |= SAVE_X_VALUES;
-		if (autoClose && !listValues) options |= AUTO_CLOSE;
-		if (listValues) options |= LIST_VALUES;
-		if (!interpolate) options |= INTERPOLATE; // true=0, false=1
-		if (noGridLines) options |= NO_GRID_LINES; 
+		if (saveXValues)
+			options |= SAVE_X_VALUES;
+		if (autoClose && !listValues)
+			options |= AUTO_CLOSE;
+		if (listValues)
+			options |= LIST_VALUES;
 		prefs.put(OPTIONS, Integer.toString(options));
 	}
 	

@@ -6,7 +6,7 @@ import ij.gui.*;
  *  in the article "Fitting Curves to Data" in the May 1984
  *  issue of Byte magazine, pages 340-362.
  *
- *	2001/02/14: Modified to handle a gamma variate curve.
+ *	2001/02/14: Midified to handle a gamma variate curve.
  *  Uses altered Simplex method based on method in "Numerical Recipes in C".
  *  This method tends to converge closer in less iterations.
  *  Has the option to restart the simplex at the initial best solution in
@@ -14,28 +14,24 @@ import ij.gui.*;
  *  settings dialog option for user control over simplex parameters and functions to
  *  evaluate the goodness-of-fit.  The results can be easily reported with the
  *  getResultString() method.
- *  Kieran Holland (holki659 at student.otago.ac.nz)
  *
- *	2008/01/21: Modified to do Gaussian fitting by Stefan Wörz (s.woerz at dkfz.de).
+ * @author             Kieran Holland (email: holki659@student.otago.ac.nz)
+ * @version            1.0
  *
  */
 public class CurveFitter {    
     public static final int STRAIGHT_LINE=0,POLY2=1,POLY3=2,POLY4=3,
-    EXPONENTIAL=4,POWER=5,LOG=6,RODBARD=7,GAMMA_VARIATE=8, LOG2=9,
-    RODBARD2=10, EXP_WITH_OFFSET=11, GAUSSIAN=12;
+    EXPONENTIAL=4,POWER=5,LOG=6,RODBARD=7,GAMMA_VARIATE=8, LOG2=9;
     
     public static final int IterFactor = 500;
     
     public static final String[] fitList = {"Straight Line","2nd Degree Polynomial",
     "3rd Degree Polynomial", "4th Degree Polynomial","Exponential","Power",
-    "log","Rodbard", "Gamma Variate", "y = a+b*ln(x-c)","Rodbard (NIH Image)",
-    "Exponential with Offset","Gaussian"};
+    "log","Rodbard", "Gamma Variate", "y = a+b*ln(x-c)"};
     
     public static final String[] fList = {"y = a+bx","y = a+bx+cx^2",
     "y = a+bx+cx^2+dx^3", "y = a+bx+cx^2+dx^3+ex^4","y = a*exp(bx)","y = ax^b",
-    "y = a*ln(bx)", "y = d+(a-d)/(1+(x/c)^b)", "y = a*(x-b)^c*exp(-(x-b)/d)",
-    "y = a+b*ln(x-c)", "y = d+(a-d)/(1+(x/c)^b)", "y = a*exp(-bx) + c", 
-    "y = a + (b-a)*exp(-(x-c)*(x-c)/(2*d*d))"};
+    "y = a*ln(bx)", "y = d+(a-d)/(1+(x/c)^b)", "y = a*(x-b)^c*exp(-(x-b)/d)", "y = a+b*ln(x-c)"};
            
     private static final double alpha = -1.0;	  // reflection coefficient
     private static final double beta = 0.5;	  // contraction coefficient
@@ -56,8 +52,7 @@ public class CurveFitter {
     private int maxIter; 	// maximum number of iterations per restart
     private int restarts; 	// number of times to restart simplex after first soln.
     private double maxError;     // maximum error tolerance
-	private double[] initialParams; // user specified initial parameters
-	
+    
     /** Construct a new CurveFitter. */
     public CurveFitter (double[] xData, double[] yData) {
         this.xData = xData;
@@ -77,23 +72,10 @@ public class CurveFitter {
     }
     
     public void doFit(int fitType, boolean showSettings) {
-        if (fitType<STRAIGHT_LINE || fitType>GAUSSIAN)
+        if (fitType < STRAIGHT_LINE || fitType > LOG2)
             throw new IllegalArgumentException("Invalid fit type");
-        int saveFitType = fitType;
-        if (fitType==RODBARD2) {
-			double[] temp;
-			temp = xData;
-			xData = yData;
-			yData = temp;
-        	fitType = RODBARD;
-        }
         fit = fitType;
         initialize();
-		if (initialParams!=null) {
-			for (int i=0; i<numParams; i++)
-				simp[0][i] = initialParams[i];
-			initialParams = null;
-		}
         if (showSettings) settingsDialog();
         restart(0);
         
@@ -166,7 +148,6 @@ public class CurveFitter {
                 }
             }
         }
-        fitType = saveFitType;
     }
         
     /** Initialise the simplex
@@ -184,13 +165,6 @@ public class CurveFitter {
         double lasty = yData[numPoints-1];
         double xmean = (firstx+lastx)/2.0;
         double ymean = (firsty+lasty)/2.0;
-        double miny=firsty, maxy=firsty;
-        if (fit==GAUSSIAN) {
-            for (int i=1; i<numPoints; i++) {
-              if (yData[i]>maxy) maxy = yData[i];
-              if (yData[i]<miny) miny = yData[i];
-            }
-        }
         double slope;
         if ((lastx - firstx) != 0.0)
             slope = (lasty - firsty)/(lastx - firstx);
@@ -227,17 +201,6 @@ public class CurveFitter {
                 simp[0][0] = 0.1;
                 simp[0][1] = 0.01;
                 break;
-            case EXP_WITH_OFFSET:
-                simp[0][0] = 0.1;
-                simp[0][1] = 0.01;
-                simp[0][2] = 0.1;
-                break;            
-            case GAUSSIAN:
-                simp[0][0] = miny;   // a0
-                simp[0][1] = maxy;   // a1
-                simp[0][2] = xmean;  // x0
-                simp[0][3] = 3.0;    // sigma
-                break;            
             case POWER:
                 simp[0][0] = 0.0;
                 simp[0][1] = 1.0;
@@ -246,7 +209,7 @@ public class CurveFitter {
                 simp[0][0] = 0.5;
                 simp[0][1] = 0.05;
                 break;
-            case RODBARD: case RODBARD2:
+            case RODBARD:
                 simp[0][0] = firsty;
                 simp[0][1] = 1.0;
                 simp[0][2] = xmean;
@@ -354,18 +317,15 @@ public class CurveFitter {
             case EXPONENTIAL: return 2;
             case POWER: return 2;
             case LOG: return 2;
-            case RODBARD: case RODBARD2: return 4;
+            case RODBARD: return 4;
             case GAMMA_VARIATE: return 4;
             case LOG2: return 3;
-            case EXP_WITH_OFFSET: return 3;
-            case GAUSSIAN: return 4;
         }
         return 0;
     }
         
-    /** Returns "fit" function value for parameters "p" at "x" */
+    /** Returns "fit" function value for parametres "p" at "x" */
     public static double f(int fit, double[] p, double x) {
-    	double y;
         switch (fit) {
             case STRAIGHT_LINE:
                 return p[0] + p[1]*x;
@@ -377,10 +337,6 @@ public class CurveFitter {
                 return p[0] + p[1]*x + p[2]*x*x + p[3]*x*x*x + p[4]*x*x*x*x;
             case EXPONENTIAL:
                 return p[0]*Math.exp(p[1]*x);
-            case EXP_WITH_OFFSET:
-                return p[0]*Math.exp(p[1]*x*-1)+p[2];
-            case GAUSSIAN:
-                return p[0]+(p[1]-p[0])*Math.exp(-(x-p[2])*(x-p[2])/(2.0*p[3]*p[3]));
             case POWER:
                 if (x == 0.0)
                     return 0.0;
@@ -391,14 +347,14 @@ public class CurveFitter {
                     x = 0.5;
                 return p[0]*Math.log(p[1]*x);
             case RODBARD:
-				double ex;
-				if (x == 0.0)
-					ex = 0.0;
-				else
-					ex = Math.exp(Math.log(x/p[2])*p[1]);
-				y = p[0]-p[3];
-				y = y/(1.0+ex);
-				return y+p[3];
+                double ex;
+                if (x == 0.0)
+                    ex = 0.0;
+                else
+                    ex = Math.exp(Math.log(x/p[2])*p[1]);
+                double y = p[0]-p[3];
+                y = y/(1.0+ex);
+                return y+p[3];
             case GAMMA_VARIATE:
                 if (p[0] >= x) return 0.0;
                 if (p[1] <= 0) return -100000.0;
@@ -412,15 +368,6 @@ public class CurveFitter {
             	double tmp = x-p[2];
             	if (tmp<0.001) tmp = 0.001;
 				return p[0]+p[1]*Math.log(tmp);
-            case RODBARD2:
-				if (x<=p[0])
-					y = 0.0;
-				else {
-					y = (p[0]-x)/(x-p[3]);
-					y = Math.exp(Math.log(y)*(1.0/p[1]));  //y=y**(1/b)
-					y = y*p[2];
-				}
-				return y;
             default:
                 return 0.0;
         }
@@ -434,13 +381,10 @@ public class CurveFitter {
     
     /** Returns residuals array ie. differences between data and curve. */
     public double[] getResiduals() {
-		int saveFit = fit;
-		if (fit==RODBARD2) fit=RODBARD;
         double[] params = getParams();
         double[] residuals = new double[numPoints];
         for (int i = 0; i < numPoints; i++)
             residuals[i] = yData[i] - f(fit, params, xData[i]);
-        fit = saveFit;
         return residuals;
     }
     
@@ -452,45 +396,20 @@ public class CurveFitter {
         return sumResidualsSqr;
     }
     
-    /**  Returns the standard deviation of the residuals. */
+    /**  SD = sqrt(sum of residuals squared / number of params+1)
+     */
     public double getSD() {
-    	double[] residuals = getResiduals();
-		int n = residuals.length;
-		double sum=0.0, sum2=0.0;
-		for (int i=0; i<n; i++) {
-			sum += residuals[i];
-			sum2 += residuals[i]*residuals[i];
-		}
-		double stdDev = (n*sum2-sum*sum)/n;
-		return Math.sqrt(stdDev/(n-1.0));
+        double sd = Math.sqrt(getSumResidualsSqr() / numVertices);
+        return sd;
     }
     
-    /** Returns R^2, where 1.0 is best.
-    <pre>
-     r^2 = 1 - SSE/SSD
-     
-     where:	 SSE = sum of the squares of the errors
-                 SSD = sum of the squares of the deviations about the mean.
-    </pre>
-    */
-    public double getRSquared() {
-        double sumY = 0.0;
-        for (int i=0; i<numPoints; i++) sumY += yData[i];
-        double mean = sumY/numPoints;
-        double sumMeanDiffSqr = 0.0;
-        for (int i=0; i<numPoints; i++)
-            sumMeanDiffSqr += sqr(yData[i]-mean);
-        double rSquared = 0.0;
-        if (sumMeanDiffSqr>0.0)
-            rSquared = 1.0 - getSumResidualsSqr()/sumMeanDiffSqr;
-        return rSquared;
-    }
-
-    /**  Get a measure of "goodness of fit" where 1.0 is best. */
+    /**  Get a measure of "goodness of fit" where 1.0 is best.
+     *
+     */
     public double getFitGoodness() {
         double sumY = 0.0;
         for (int i = 0; i < numPoints; i++) sumY += yData[i];
-        double mean = sumY / numPoints;
+        double mean = sumY / numVertices;
         double sumMeanDiffSqr = 0.0;
         int degreesOfFreedom = numPoints - getNumParams();
         double fitGoodness = 0.0;
@@ -498,7 +417,7 @@ public class CurveFitter {
             sumMeanDiffSqr += sqr(yData[i] - mean);
         }
         if (sumMeanDiffSqr > 0.0 && degreesOfFreedom != 0)
-            fitGoodness = 1.0 - (getSumResidualsSqr() / degreesOfFreedom) * ((numPoints) / sumMeanDiffSqr);
+            fitGoodness = 1.0 - (getSumResidualsSqr() / degreesOfFreedom) * ((numParams) / sumMeanDiffSqr);
         
         return fitGoodness;
     }
@@ -509,14 +428,14 @@ public class CurveFitter {
     public String getResultString() {
         StringBuffer results = new StringBuffer("\nNumber of iterations: " + getIterations() +
         "\nMaximum number of iterations: " + getMaxIterations() +
-        "\nSum of residuals squared: " + IJ.d2s(getSumResidualsSqr(),4) +
-        "\nStandard deviation: " + IJ.d2s(getSD(),4) +
-        "\nR^2: " + IJ.d2s(getRSquared(),4) +
+        "\nSum of residuals squared: " + getSumResidualsSqr() +
+        "\nStandard deviation: " + getSD() +
+        "\nGoodness of fit: " + getFitGoodness() +
         "\nParameters:");
         char pChar = 'a';
         double[] pVal = getParams();
         for (int i = 0; i < numParams; i++) {
-            results.append("\n  " + pChar + " = " + IJ.d2s(pVal[i],4));
+            results.append("\n" + pChar + " = " + pVal[i]);
             pChar++;
         }
         return results.toString();
@@ -579,11 +498,6 @@ public class CurveFitter {
         restarts = x;
     }
 
-	/** Sets the initial parameters, which override the default initial parameters. */
-	public void setInitialParameters(double[] params) {
-		initialParams = params;
-	}
-
     /**
      * Gets index of highest value in an array.
      * 
@@ -601,5 +515,5 @@ public class CurveFitter {
         }
         return index;
     }
-    
+ 
 }

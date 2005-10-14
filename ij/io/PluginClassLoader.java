@@ -30,16 +30,6 @@ public class PluginClassLoader extends ClassLoader {
      * @param path the path to the plugins directory.
      */
 	public PluginClassLoader(String path) {
-		init(path);
-	}
-	
-	/** This version of the constructor is used when ImageJ is launched using Java WebStart. */
-	public PluginClassLoader(String path, boolean callSuper) {
-		super(Thread.currentThread().getContextClassLoader());
-		init(path);
-	}
-
-	void init(String path) {
 		this.path = path;
 		jarFiles = new Vector();
 		//find all JAR files on the path and subdirectories
@@ -236,11 +226,9 @@ public class PluginClassLoader extends ClassLoader {
         classBytes = loadClassBytes(className);
 		//IJ.log("loadClass: "+ className + "  "+ (classBytes!=null?""+classBytes.length:"null"));
 		if (classBytes==null) {
-			result = getParent().loadClass(className);
-			if (result != null) return result;
-		}
-		if (classBytes==null)
+			//IJ.log("ClassNotFoundException");
 			throw new ClassNotFoundException(className);
+		}
 
         // Define it (parse the class file)
         result = defineClass(className, classBytes, 0, classBytes.length);
@@ -269,21 +257,12 @@ public class PluginClassLoader extends ClassLoader {
             classBytes = loadFromSubdirectory(path, name);
             if (classBytes == null) {
                 // Attempt to get the class data from the JAR files.
-                if (name.startsWith("java.")||name.startsWith("ij."))
-					return null;
                 for (int i=0; i<jarFiles.size(); i++) {
                     try {
                         File jf = (File)jarFiles.elementAt(i);
                         classBytes = loadClassFromJar(jf.getPath(), name);
- 						//IJ.log(i+"  "+name+"  "+classBytes);             
-                        if (classBytes!=null) {
-							if (i!=0) {
-                        		Object o = jarFiles.elementAt(0);
-                        		jarFiles.insertElementAt(jarFiles.elementAt(i), 0);
-                        		jarFiles.insertElementAt(o, i);
-                        	}
+                        if (classBytes != null)
                             return classBytes;
-                        }
                     }
                     catch (Exception e) {
                         //no problem, try the next one

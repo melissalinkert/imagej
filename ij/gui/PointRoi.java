@@ -8,40 +8,26 @@ import ij.measure.*;
 import ij.plugin.filter.Analyzer;
 import java.awt.event.KeyEvent;
 
-/** This class represents a collection of points. */
+/** This class represents selection consisting of one or more points. */
 public class PointRoi extends PolygonRoi {
 
-	static Font font;
+	/** Creates a new PointRoi using the specified offscreen coordinates. */
+	public PointRoi(int ox, int oy, ImagePlus imp) {
+		super(makeArray(ox), makeArray(oy), 1, POINT);
+		setImage(imp);
+		width=1; height=1;
+		imp.draw(x-5, y-5, width+10, height+10);
+	}
 	
-	/** Creates a new PointRoi using the specified arrays of offscreen coordinates. */
+	/** Creates a new PointRoi using the specified offscreen coordinates. */
 	public PointRoi(int[] ox, int[] oy, int points) {
 		super(ox, oy, points, POINT);
 		width+=1; height+=1;
 	}
 
-	/** Creates a new PointRoi using the specified offscreen coordinates. */
-	public PointRoi(int ox, int oy) {
-		super(makeXArray(ox, null), makeYArray(oy, null), 1, POINT);
-		width=1; height=1;
-	}
-
-	/** Creates a new PointRoi using the specified screen coordinates. */
-	public PointRoi(int sx, int sy, ImagePlus imp) {
-		super(makeXArray(sx, imp), makeYArray(sy, imp), 1, POINT);
-		setImage(imp);
-		width=1; height=1;
-		if (imp!=null) imp.draw(x-5, y-5, width+10, height+10);
-	}
-
-	static int[] makeXArray(int value, ImagePlus imp) {
+	static int[] makeArray(int value) {
 		int[] array = new int[1];
-		array[0] = imp!=null?imp.getCanvas().offScreenX(value):value;
-		return array;
-	}
-				
-	static int[] makeYArray(int value, ImagePlus imp) {
-		int[] array = new int[1];
-		array[0] = imp!=null?imp.getCanvas().offScreenY(value):value;
+		array[0] = value;
 		return array;
 	}
 				
@@ -60,25 +46,18 @@ public class PointRoi extends PolygonRoi {
 		updatePolygon();
 		if (ic!=null) mag = ic.getMagnification();
 		int size2 = HANDLE_SIZE/2;
-		if (!Prefs.noPointLabels) {
-			if (font==null) font = new Font("SansSerif", Font.PLAIN, 9);
-			g.setFont(font);
-		}
 		for (int i=0; i<nPoints; i++)
-			drawPoint(g, xp2[i]-size2, yp2[i]-size2, i+1);
+			drawPoint(g, xp2[i]-size2, yp2[i]-size2);
 		//showStatus();
 		if (updateFullWindow)
 			{updateFullWindow = false; imp.draw();}
 	}
 
-	void drawPoint(Graphics g, int x, int y, int n) {
-		g.setColor(Color.white);
-		g.drawLine(x-4, y+2, x+8, y+2);
-		g.drawLine(x+2, y-4, x+2, y+8);
-		g.setColor(instanceColor!=null?instanceColor:ROIColor);
+	void drawPoint(Graphics g, int x, int y) {
+		g.setColor(ROIColor);
 		g.fillRect(x+1,y+1,3,3);
-		if (!Prefs.noPointLabels && nPoints>1)
-			g.drawString(""+n, x+6, y+13); 
+		//g.drawLine(x-3, y+2, x+7, y+2);
+		//g.drawLine(x+2, y-3, x+2, y+7);
 		g.setColor(Color.black);
 		g.drawRect(x, y, 4, 4);
 	}
@@ -125,14 +104,6 @@ public class PointRoi extends PolygonRoi {
 		}
 		cachedMask = mask;
 		return mask;
-	}
-
-	/** Returns true if (x,y) is one of the points in this collection. */
-	public boolean contains(int x, int y) {
-		for (int i=0; i<nPoints; i++) {
-			if (x==this.x+xp[i] && y==this.y+yp[i]) return true;
-		}
-		return false;
 	}
 
 }

@@ -22,7 +22,7 @@ public class Java2 {
 
 	public static void setAntialiasedText(Graphics g, boolean antialiasedText) {
 			Graphics2D g2d = (Graphics2D)g;
-			if (antialiasedText)
+			if (antialiasedText && Prefs.antialiasedText)
 				g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 			else
 				g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
@@ -35,7 +35,7 @@ public class Java2 {
 
 	public static void setBilinearInterpolation(Graphics g, boolean bilinearInterpolation) {
 			Graphics2D g2d = (Graphics2D)g;
-			if (bilinearInterpolation)
+			if (bilinearInterpolation && Prefs.interpolateScaledImages)
 				g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 			else
 				g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -43,13 +43,25 @@ public class Java2 {
 	
 	/** Sets the Swing look and feel to the system look and feel. */
 	public static void setSystemLookAndFeel() {
-		if (lookAndFeelSet) return;
+		if (lookAndFeelSet)
+			return;
 		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch(Throwable t) {}
+			if(IJ.isWindows())
+				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			else if(!IJ.isMacintosh()) {
+				String s = System.getProperty("java.version");
+				int dot_ver = Integer.parseInt(s.substring(s.lastIndexOf('.')+1, s.length()));
+				if(dot_ver >= 2)
+					UIManager.setLookAndFeel("com.sun.java.swing.plaf.gtk.GTKLookAndFeel");
+				else
+					UIManager.setLookAndFeel("com.sun.java.swing.plaf.motif.MotifLookAndFeel");
+			}
+		}
+		catch(Throwable t){}
 		lookAndFeelSet = true;
 		IJ.register(Java2.class);
 	}
+
 
 }
 

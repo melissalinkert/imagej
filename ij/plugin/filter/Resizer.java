@@ -40,18 +40,6 @@ public class Resizer implements PlugInFilter, TextListener, ItemListener  {
 		origWidth = r.width;;
 		origHeight = r.height;
 		sizeToHeight=false;
-	    boolean restoreRoi = crop && roi!=null && roi.getType()!=Roi.RECTANGLE;
-		if (roi!=null) {
-			Rectangle b = roi.getBounds();
-			int w = ip.getWidth();
-			int h = ip.getHeight();
-			if (b.x<0 || b.y<0 || b.x+b.width>w || b.y+b.height>h) {
-				ShapeRoi shape1 = new ShapeRoi(roi);
-				ShapeRoi shape2 = new ShapeRoi(new Roi(0, 0, w, h));
-				roi = shape2.and(shape1);
-				if (restoreRoi) imp.setRoi(roi);
-			}
-		}
 		if (crop) {
 			Rectangle bounds = roi.getBounds();
 			newWidth = bounds.width;
@@ -97,10 +85,7 @@ public class Resizer implements PlugInFilter, TextListener, ItemListener  {
 			else
 				newHeight = (int)(newWidth*(origHeight/origWidth));
 		}
-		if (ip.getWidth()==1 || ip.getHeight()==1)
-			ip.setInterpolate(false);
-		else
-			ip.setInterpolate(interpolate);
+		ip.setInterpolate(interpolate);
     	
 		int nSlices = imp.getStackSize();
 		try {
@@ -108,9 +93,10 @@ public class Resizer implements PlugInFilter, TextListener, ItemListener  {
 	    	ImageStack s2 = sp.resize(newWidth, newHeight);
 	    	int newSize = s2.getSize();
 	    	if (s2.getWidth()>0 && newSize>0) {
+	    		boolean restoreRoi = crop && roi!=null && roi.getType()!=Roi.RECTANGLE;
 	    		if (restoreRoi)
 	    			imp.killRoi();
-	    		//imp.hide();
+	    		imp.hide();
 	    		Calibration cal = imp.getCalibration();
 	    		if (cal.scaled()) {
     				cal.pixelWidth *= origWidth/newWidth;
@@ -118,15 +104,9 @@ public class Resizer implements PlugInFilter, TextListener, ItemListener  {
     				imp.setCalibration(cal);
     			}
 	    		imp.setStack(null, s2);
-	    		//imp.show();
-	    		if (restoreRoi) {
+	    		imp.show();
+	    		if (restoreRoi)
 	    			imp.restoreRoi();
-	    			roi = imp.getRoi();
-	    			if (roi!=null) {
-	    				roi.setLocation(0, 0);
-	    				imp.draw();
-	    			}
-	    		}
 	    	}
 	    	if (nSlices>1 && newSize<nSlices)
 	    		IJ.error("ImageJ ran out of memory causing \nthe last "+(nSlices-newSize)+" slices to be lost.");

@@ -8,74 +8,33 @@ import ij.gui.*;
 public class RGBStackConverter implements PlugIn {
 	
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
-		CompositeImage cimg = imp.isComposite()?(CompositeImage)imp:null;
+		ImagePlus imp = WindowManager.getCurrentImage();
+		if (imp==null)
+			{IJ.noImage(); return;}
 		int size = imp.getStackSize();
-		if ((size<2||size>3) && cimg==null) {
-			IJ.error("A 2 or 3 image stack, or a HyperStack, required");
+		if (size<2||size>3) {
+			IJ.error("2 or 3 slice stack required");
 			return;
 		}
 		int type = imp.getType();
-		if (cimg==null && !(type==ImagePlus.GRAY8 || type==ImagePlus.GRAY16)) {
+		if (!(type==ImagePlus.GRAY8 || type==ImagePlus.GRAY16)) {
 			IJ.error("8-bit or 16-bit grayscale stack required");
 			return;
 		}
 		if (!imp.lock())
 			return;
 		Undo.reset();
-		String title = imp.getTitle()+" (RGB)";
-		if (cimg!=null)
-			compositeToRGB(cimg, title);
-		else if (type==ImagePlus.GRAY16) {
+		if (type==ImagePlus.GRAY16)
 			sixteenBitsToRGB(imp);
-		} else {
+		else {
 			ImagePlus imp2 = imp.createImagePlus();
-			imp2.setStack(title, imp.getStack());
+			imp2.setStack(imp.getTitle()+" (RGB)", imp.getStack());
 	 		ImageConverter ic = new ImageConverter(imp2);
 			ic.convertRGBStackToRGB();
-			imp2.show();
+			if (imp.getWindow()!=null)
+				new ImageWindow(imp2); // replace StackWindow with ImageWindow
 		}
 		imp.unlock();
-	}
-	
-	void compositeToRGB(CompositeImage imp, String title) {
-		int channels = imp.getNChannels();
-		int slices = imp.getNSlices();
-		int frames = imp.getNFrames();
-		int images = channels*slices*frames;
-		if (channels==images) {
-			compositeImageToRGB(imp, title);
-			return;
-		}
-		YesNoCancelDialog d = new YesNoCancelDialog(IJ.getInstance(), "Convert to RGB", "Convert entire HyperStack?");
-		if (d.cancelPressed())
-			return;
-		else if (!d.yesPressed()) {
-			compositeImageToRGB(imp, title);
-			return;
-		}
-		if (!imp.isHyperStack()) return;
-		int n = frames;
-		if (n==1) n = slices;
-		ImageStack stack = new ImageStack(imp.getWidth(), imp.getHeight());
-		for (int i=1; i<=n; i++) {
-			if (frames==1)
-				imp.setPosition(imp.getChannel(), i, imp.getFrame());
-			else
-				imp.setPosition(imp.getChannel(), imp.getSlice(), i);
-			IJ.wait(250);
-			stack.addSlice(null, new ColorProcessor(imp.getImage()));
-		}
-		ImagePlus imp2 = imp.createImagePlus();
-		imp2.setStack(title, stack);
-		imp2.show();
-	}
-
-	void compositeImageToRGB(CompositeImage imp, String title) {
-		ImagePlus imp2 = imp.createImagePlus();
-		imp.updateImage();
-		imp2.setProcessor(title, new ColorProcessor(imp.getImage()));
-		imp2.show();
 	}
 
 	void sixteenBitsToRGB(ImagePlus imp) {
@@ -95,11 +54,13 @@ public class RGBStackConverter implements PlugIn {
 			ip = stack1.getProcessor(i);
 			ip.setRoi(r);
 			ImageProcessor ip2 = ip.crop();
-			ip2 = ip2.convertToByte(true);
 			stack2.addSlice(null, ip2);
 		}
 		ImagePlus imp2 = imp.createImagePlus();
 		imp2.setStack(imp.getTitle()+" (RGB)", stack2);
+		ImageProcessor ip2 = imp2.getProcessor();
+		StackConverter sc = new StackConverter(imp2);
+		sc.convertToGray8();
 	 	ImageConverter ic = new ImageConverter(imp2);
 		ic.convertRGBStackToRGB();
 		imp2.show();

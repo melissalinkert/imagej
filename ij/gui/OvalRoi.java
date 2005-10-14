@@ -27,10 +27,9 @@ public class OvalRoi extends Roi {
 		setImage(imp);
 	}
 
-	protected void moveHandle(int sx, int sy) {
-		if (clipboard!=null) return;
-		int ox = ic.offScreenX(sx);
-		int oy = ic.offScreenY(sy);
+	protected void moveHandle(int ox, int oy) {
+		if (clipboard!=null)
+			return;
 		//IJ.log("moveHandle: "+activeHandle+" "+ox+" "+oy);
 		int x1=x, y1=y, x2=x1+width, y2=y+height;
 		int w2 = (int)(0.14645*width);
@@ -45,7 +44,7 @@ public class OvalRoi extends Roi {
 			case 6: x=ox-w2; y2=oy+h2; break;
 			case 7: x=ox; break;
 		}
-		//if (x<0) x=0; if (y<0) y=0;
+		if (x<0) x=0; if (y<0) y=0;
 		if (x<x2)
 		   width=x2-x;
 		else
@@ -56,6 +55,8 @@ public class OvalRoi extends Roi {
 		   {height=1; y=y2;}
 		if (constrain)
 			height = width;
+		if ((x+width)>xMax) width=xMax-x;
+		if ((y+height)>yMax) height=yMax-y;
 		updateClipRect();
 		imp.draw(clipX, clipY, clipWidth, clipHeight);
 		oldX=x; oldY=y;
@@ -65,8 +66,8 @@ public class OvalRoi extends Roi {
 
 	public void draw(Graphics g) {
 		if (ic==null) return;
-		g.setColor(instanceColor!=null?instanceColor:ROIColor);
-		mag = ic.getMagnification();
+		g.setColor(ROIColor);
+		mag = ic!=null?ic.getMagnification():1.0;
 		int sw = (int)(width*mag);
 		int sh = (int)(height*mag);
 		int sw2 = (int)(0.14645*width*mag);
@@ -98,7 +99,7 @@ public class OvalRoi extends Roi {
 	/** Draws an outline of this OvalRoi on the image. */
 	public void drawPixels(ImageProcessor ip) {
 		Polygon p = getPolygon();
-		if (p.npoints>0) ip.drawPolygon(p);
+		ip.drawPolygon(p);
 		if (Line.getWidth()>1)
 			updateFullWindow = true;
 	}		
@@ -115,20 +116,16 @@ public class OvalRoi extends Roi {
 		return new Polygon(wand.xpoints, wand.ypoints, wand.npoints);
 	}		
 
-	/** Tests if the specified point is inside the boundary of this OvalRoi.
-	@author Michael Schmid
-	*/
 	public boolean contains(int x, int y) {
-		// equation for an ellipse is x^2/a^2 + y^2/b^2 = 1
+	// equation for an ellipse is x^2/a^2 + y^2/b^2 = 1
 		if (!super.contains(x, y))
 			return false;
 		else {
-			int twoDx = 2*x - (2*this.x+width-1);
-			int twoDy = 2*y - (2*this.y+height-1);
-			int twoRx = width;
-			int twoRy = height;
-			return (twoDx*twoDx/(double)(twoRx*twoRx)
-				+ twoDy*twoDy/(double)(twoRy*twoRy)) < 1;
+			x = Math.abs(x - (this.x + width/2));
+			y = Math.abs(y - (this.y + height/2));
+			double a = width/2;
+			double b = height/2;
+			return (x*x/(a*a) + y*y/(b*b)) <= 1;
 		}
 	}
 		

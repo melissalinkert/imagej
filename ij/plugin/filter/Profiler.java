@@ -5,7 +5,7 @@ import ij.gui.*;
 import java.awt.*;
 import java.awt.event.*;
 
-/** Implements the Process/Plot Profile and Edit/Options/Profile Plot Options commands. */
+/** Implements the "Plot Profile" command. */
 public class Profiler implements PlugInFilter {
 
 	ImagePlus imp;
@@ -39,17 +39,15 @@ public class Profiler implements PlugInFilter {
 		gd.addCheckbox("Auto-close", PlotWindow.autoClose);
 		gd.addCheckbox("Vertical Profile", verticalProfile);
 		gd.addCheckbox("List Values", PlotWindow.listValues);
-		gd.addCheckbox("Interpolate Line Profiles", PlotWindow.interpolate);
-		gd.addCheckbox("Draw Grid Lines", !PlotWindow.noGridLines);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
-		Dimension screen = IJ.getScreenSize();
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 		int w = (int)gd.getNextNumber();
 		int h = (int)gd.getNextNumber();
-		if (w<100) w = 100;
+		if (w<300) w = 300;
 		if (w>screen.width-140) w = screen.width-140;
-		if (h<50) h = 50;
+		if (h<100) h = 100;
 		if (h>screen.height-300) h = screen.height-300;
 		PlotWindow.plotWidth = w;
 		PlotWindow.plotHeight = h;
@@ -60,8 +58,6 @@ public class Profiler implements PlugInFilter {
 		PlotWindow.autoClose = gd.getNextBoolean();
 		verticalProfile = gd.getNextBoolean();
 		PlotWindow.listValues = gd.getNextBoolean();
-		PlotWindow.interpolate = gd.getNextBoolean();
-		PlotWindow.noGridLines = !gd.getNextBoolean();
 		if (!fixedScale && !wasFixedScale && (ymin!=0.0 || ymax!=0.0))
 			fixedScale = true;
 		if (!fixedScale) {

@@ -1,7 +1,5 @@
 package ij.process;
 import ij.*;
-import ij.plugin.FFT;
-import ij.plugin.ContrastEnhancer;
 import java.awt.image.ColorModel; 
 
 /**
@@ -110,8 +108,8 @@ public class FHT extends FloatProcessor {
 			bitrev[i] = bitRevX(i, nLog2);
 	}
 
-	/** Performs a 2D FHT (Fast Hartley Transform). */
-	public void rc2DFHT(float[] x, boolean inverse, int maxN) {
+	/** Row-column Fast Hartley Transform */
+	void rc2DFHT(float[] x, boolean inverse, int maxN) {
 		//IJ.write("FFT: rc2DFHT (row-column Fast Hartley Transform)");
 		for (int row=0; row<maxN; row++)
 			dfht3(x, row*maxN, inverse, maxN);		
@@ -149,8 +147,8 @@ public class FHT extends FloatProcessor {
 			IJ.showProgress(percent);
 	}
 	
-	/** Performs an optimized 1D FHT. */
-	public void dfht3 (float[] x, int base, boolean inverse, int maxN) {
+	/* An optimized real FHT */
+	void dfht3 (float[] x, int base, boolean inverse, int maxN) {
 		int i, stage, gpNum, gpIndex, gpSize, numGps, Nlog2;
 		int bfNum, numBfs;
 		int Ad0, Ad1, Ad2, Ad3, Ad4, CSAd;
@@ -315,25 +313,6 @@ public class FHT extends FloatProcessor {
 		}
 		ImageProcessor ip = new ByteProcessor(maxN, maxN, ps, null);
 		swapQuadrants(ip);
-		if (FFT.displayRawPS) {
-			ImageProcessor ip2 = new FloatProcessor(maxN, maxN, fps, null);
-			swapQuadrants(ip2);
-			new ImagePlus("PS of "+FFT.fileName, ip2).show();
-		}
-		if (FFT.displayFHT) {
-			ImageProcessor ip3 = new FloatProcessor(maxN, maxN, fht, null);
-			ImagePlus imp2 = new ImagePlus("FHT of "+FFT.fileName, ip3.duplicate());
-			(new ContrastEnhancer()).stretchHistogram(imp2, 0.1);
-			imp2.show();
-		}
-		if (FFT.displayComplex) {
-			ImageStack ct = getComplexTransform();
-			ImagePlus imp2 = new ImagePlus("Complex of "+FFT.fileName, ct);
-			(new ContrastEnhancer()).stretchHistogram(imp2, 0.1);
-			imp2.setProperty("FFT width", ""+originalWidth);
-			imp2.setProperty("FFT height", ""+originalHeight);
-			imp2.show();
-		}
 		return ip;
 	}
 
@@ -346,50 +325,6 @@ public class FHT extends FloatProcessor {
 			ps[base+c] = (sqr(fht[base+c]) + sqr(fht[l]))/2f;
  		}
 	}
-
-	/** Converts this FHT to a complex Fourier transform and returns it as a two slice stack.
-	*	@author Joachim Wesner
-	*/
-	public ImageStack getComplexTransform() {
-		if (!isFrequencyDomain)
-			throw new  IllegalArgumentException("Frequency domain image required");
-		float[] fht = (float[])getPixels();
-		float[] re = new float[maxN*maxN];
-		float[] im = new float[maxN*maxN];
-		for (int i=0; i<maxN; i++) {
-			FHTreal(i, maxN, fht, re);
-			FHTimag(i, maxN, fht, im);
-		}
-		swapQuadrants(new FloatProcessor(maxN, maxN, re, null));
-		swapQuadrants(new FloatProcessor(maxN, maxN, im, null));
-		ImageStack stack = new ImageStack(maxN, maxN);
-		stack.addSlice("Real", re);
-		stack.addSlice("Imaginary", im);
-		return stack;
-	}
-
-	/**	 FFT real value of one row from 2D Hartley Transform.
-	*	@author Joachim Wesner
-	*/
-      void FHTreal(int row, int maxN, float[] fht, float[] real) {
-            int base = row*maxN;
-            int offs = ((maxN-row)%maxN) * maxN;
-            for (int c=0; c<maxN; c++) {
-                  real[base+c] = (fht[base+c] + fht[offs+((maxN-c)%maxN)])*0.5f;
-            }
-      }
-
-
-	/** FFT imag value of one row from 2D Hartley Transform.
-	*	@author Joachim Wesner
-	*/
-      void FHTimag(int row, int maxN, float[] fht, float[] imag) {
-            int base = row*maxN;
-            int offs = ((maxN-row)%maxN) * maxN;
-            for (int c=0; c<maxN; c++) {
-                  imag[base+c] = (-fht[base+c] + fht[offs+((maxN-c)%maxN)])*0.5f;
-            }
-      }
 
 	ImageProcessor calculateAmplitude(float[] fht, int maxN) {
    		float[] amp = new float[maxN*maxN];
@@ -480,7 +415,7 @@ public class FHT extends FloatProcessor {
 		float[] h1 = (float[])getPixels();
 		float[] h2 = (float[])fht.getPixels();
 		float[] tmp = new float[maxN*maxN];
-		for (int r =0; r<maxN; r++) {
+		for ( int r =0; r<maxN; r++) {
 			rowMod = (maxN - r) % maxN;
 			for (int c=0; c<maxN; c++) {
 				colMod = (maxN - c) % maxN;

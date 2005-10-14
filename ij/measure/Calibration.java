@@ -1,14 +1,13 @@
 package ij.measure;
 import ij.*;
-import ij.plugin.filter.Analyzer;
 
 /** Calibration objects contain an image's spatial and density calibration data. */
    
-public class Calibration implements Cloneable {
+public class Calibration {
 
 	public static final int STRAIGHT_LINE=0,POLY2=1,POLY3=2,POLY4=3,
-		EXPONENTIAL=4,POWER=5,LOG=6,RODBARD=7,GAMMA_VARIATE=8, LOG2=9, RODBARD2=10;
-	public static final int NONE=20, UNCALIBRATED_OD=21, CUSTOM=22;
+		EXPONENTIAL=4,POWER=5,LOG=6,RODBARD=7,GAMMA_VARIATE=8, LOG2=9;
+	public static final int NONE=20, UNCALIBRATED_OD=21;
 
 	/** Pixel width in 'unit's */
 	public double pixelWidth = 1.0;
@@ -19,22 +18,16 @@ public class Calibration implements Cloneable {
 	/** Pixel depth in 'unit's */
 	public double pixelDepth = 1.0;
 	
-	/** Frame interval in 'timeUnit's */
+	/** Frame interval in seconds */
 	public double frameInterval;
 
-	/** Frame rate in frames per second */
-	public double fps;
-
-	/** Loop back and forth when animating stack */
-	public boolean loop;
-
-	/** X origin in pixels. */
+	/** X origin in pixels (not currently used by ImageJ). */
 	public double xOrigin;
 
-	/** Y origin in pixels. */
+	/** Y origin in pixels (not currently used by ImageJ). */
 	public double yOrigin;
 
-	/** Z origin in pixels. */
+	/** Z origin in pixels (not currently used by ImageJ). */
 	public double zOrigin;
 
 	/** Plugin writers can use this string to store information about the
@@ -45,23 +38,14 @@ public class Calibration implements Cloneable {
 	/** Calibration function coefficients */
 	private double[] coefficients;
 		
-	/* Default distance unit (e.g. 'cm', 'inch') */
+	/* Distance unit (e.g. 'cm', 'inch') */
 	private String unit = "pixel";
 	
-	/* Y distance unit */
-	private String yunit;
-
-	/* Z distance unit */
-	private String zunit;
-
 	/* Distance units (e.g. 'microns', 'inches') */
 	private String units;
 
 	/* Pixel value unit (e.g. 'gray level', 'OD') */
 	private String valueUnit = "Gray Value";
-
-	/* Unit of time (e.g. 'sec', 'msec') */
-	private String timeUnit = "sec";
 
 	/* Calibration function ID */
 	private int function = NONE;
@@ -72,7 +56,6 @@ public class Calibration implements Cloneable {
 	private boolean invertedLut;
 	private int bitDepth = 8;
 	private boolean zeroClip;
-	private boolean invertY;
 
 	/** Constructs a new Calibration object using the default values. */ 
 	public Calibration(ImagePlus imp) {
@@ -92,7 +75,7 @@ public class Calibration implements Cloneable {
 		return pixelWidth!=1.0 || pixelHeight!=1.0 || pixelDepth!=1.0;
 	}
 	
-   	/** Sets the default length unit (e.g. "mm", "inch"). */
+   	/** Sets the distance unit (e.g. "mm", "inch"). */
  	public void setUnit(String unit) {
  		if (unit==null || unit.equals(""))
  			this.unit = "pixel";
@@ -101,42 +84,12 @@ public class Calibration implements Cloneable {
  		units = null;
  	}
  	
-   	/** Sets the X length unit. */
- 	public void setXUnit(String unit) {
-		setUnit(unit);
-	}
-
-   	/** Sets the Y length unit. */
- 	public void setYUnit(String unit) {
- 		yunit = unit;
-	}
-
-   	/** Sets the Z length unit. */
- 	public void setZUnit(String unit) {
- 		zunit = unit;
-	}
-
- 	/** Returns the default length unit (e.g. "micron", "inch"). */
+ 	/** Returns the distance unit (e.g. "micron", "inch"). */
  	public String getUnit() {
  		return unit;
  	}
  	
- 	/** Returns the X length unit. */
- 	public String getXUnit() {
- 		return unit;
- 	}
-
- 	/** Returns the Y length unit, or the default unit if 'yunit' is null. */
- 	public String getYUnit() {
- 		return yunit!=null?yunit:unit;
- 	}
-
- 	/** Returns the Z length unit, or the default unit if 'zunit' is null. */
- 	public String getZUnit() {
- 		return zunit!=null?zunit:unit;
- 	}
-
-	/** Returns the plural form of the length unit (e.g. "microns", "inches"). */
+	/** Returns the plural form of the distance unit (e.g. "microns", "inches"). */
  	public String getUnits() {
  		if (units==null) {
   			if (unit.equals("pixel"))
@@ -151,49 +104,20 @@ public class Calibration implements Cloneable {
  		return units;
  	}
  	
-   	/** Sets the time unit (e.g. "sec", "msec"). */
- 	public void setTimeUnit(String unit) {
- 		if (unit==null || unit.equals(""))
- 			timeUnit = "sec";
- 		else
- 			timeUnit = unit;
- 	}
-
- 	/** Returns the distance unit (e.g. "sec", "msec"). */
- 	public String getTimeUnit() {
- 		return timeUnit;
- 	}
-
  	/** Converts a x-coodinate in pixels to physical units (e.g. mm). */
- 	public double getX(double x) {
+ 	public double getX(int x) {
  		return (x-xOrigin)*pixelWidth;
  	}
  	
   	/** Converts a y-coodinate in pixels to physical units (e.g. mm). */
- 	public double getY(double y) {
+ 	public double getY(int y) {
  		return (y-yOrigin)*pixelHeight;
  	}
  	
- 	/** Converts a y-coodinate in pixels to physical units (e.g. mm),
- 		taking into account the invertY and global "Invert Y Coordinates" flags. */
- 	public double getY(double y, int imageHeight) {
- 		if (invertY || (Analyzer.getMeasurements()&Measurements.INVERT_Y)!=0) {
-			if (yOrigin!=0.0)
-				return (yOrigin-y)*pixelHeight;
-			else
-				return (imageHeight-y-1)*pixelHeight;
-		} else
-   			return (y-yOrigin)*pixelHeight;
-	}
-
   	/** Converts a z-coodinate in pixels to physical units (e.g. mm). */
- 	public double getZ(double z) {
+ 	public double getZ(int z) {
  		return (z-zOrigin)*pixelDepth;
  	}
- 	
- 	//public double getX(int x) {return getX((double)x);}
- 	//public double getY(int y) {return getY((double)y);}
- 	//public double getZ(int z) {return getZ((double)z);}
  	
   	/** Sets the calibration function,  coefficient table and unit (e.g. "OD"). */
  	public void setFunction(int function, double[] coefficients, String unit) {
@@ -203,7 +127,7 @@ public class Calibration implements Cloneable {
  	public void setFunction(int function, double[] coefficients, String unit, boolean zeroClip) {
  		if (function==NONE)
  			{disableDensityCalibration(); return;}
- 		if (coefficients==null && function>=STRAIGHT_LINE && function<=RODBARD2)
+ 		if (coefficients==null && function>=STRAIGHT_LINE && function<=LOG2)
  			return;
  		this.function = function;
  		this.coefficients = coefficients;
@@ -219,14 +143,8 @@ public class Calibration implements Cloneable {
  			return;
  		int type = imp.getType();
  		int newBitDepth = imp.getBitDepth();
- 		if (newBitDepth==16 && imp.getLocalCalibration().isSigned16Bit()) {
-			double[] coeff = new double[2]; coeff[0] = -32768.0; coeff[1] = 1.0;
- 			setFunction(Calibration.STRAIGHT_LINE, coeff, "gray value");
-		} else if (newBitDepth!=bitDepth || type==ImagePlus.GRAY32 || type==ImagePlus.COLOR_RGB) {
-			String saveUnit = valueUnit;
+		if (newBitDepth!=bitDepth || type==ImagePlus.GRAY32 || type==ImagePlus.COLOR_RGB)
 			disableDensityCalibration();
-			if (type==ImagePlus.GRAY32) valueUnit = saveUnit;
-		}
  		bitDepth = newBitDepth;
  	}
  	
@@ -263,8 +181,8 @@ public class Calibration implements Cloneable {
  		return function;
  	}
  	
-	/** Returns the calibration table. With 8-bit images,
-		the table has a length of 256. With 16-bit images,
+	/** Returns the calibration table. For 8-bit images,
+		the table has a length of 256, for 16-bit images,
 		the length is 65536. */
  	public float[] getCTable() {
  		if (cTable==null)
@@ -272,20 +190,6 @@ public class Calibration implements Cloneable {
  		return cTable;
  	}
  	
-	/** Sets the calibration table. With 8-bit images, the table must 
-		have a length of 256. With 16-bit images, it must be 65536. */
- 	public void setCTable(float[] table, String unit) {
- 		if (table==null)
- 			{disableDensityCalibration(); return;}
- 		if (bitDepth==16 && table.length!=65536)
- 			throw new IllegalArgumentException("Table.length!=65536");
- 		cTable = table;
- 		function = CUSTOM;
- 		coefficients = null;
- 		zeroClip = false;
- 		if (unit!=null) valueUnit = unit;
- 	}
-
  	void makeCTable() {
  		if (bitDepth==16)
  			{make16BitCTable(); return;}
@@ -295,7 +199,7 @@ public class Calibration implements Cloneable {
  			cTable = new float[256];
 			for (int i=0; i<256; i++)
 				cTable[i] = (float)od(i);
-		} else if (function>=STRAIGHT_LINE && function<=RODBARD2 && coefficients!=null) {
+		} else if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
  			cTable = new float[256];
  			double value;
  			for (int i=0; i<256; i++) {
@@ -310,7 +214,7 @@ public class Calibration implements Cloneable {
   	}
 
  	void make16BitCTable() {
-		if (function>=STRAIGHT_LINE && function<=RODBARD2 && coefficients!=null) {
+		if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
  			cTable = new float[65536];
  			for (int i=0; i<65536; i++)
 				cTable[i] = (float)CurveFitter.f(function, coefficients, i);
@@ -332,14 +236,13 @@ public class Calibration implements Cloneable {
  	public double getCValue(int value) {
 		if (function==NONE)
 			return value;
-		if (function>=STRAIGHT_LINE && function<=RODBARD2 && coefficients!=null) {
+		if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
 			double v = CurveFitter.f(function, coefficients, value);
 			if (zeroClip && v<0.0)
 				return 0.0;
 			else
 				return v;
-		}
-		if (cTable==null)
+		} if (cTable==null)
 			makeCTable();
  		if (cTable!=null && value>=0 && value<cTable.length)
  			return cTable[value];
@@ -352,8 +255,8 @@ public class Calibration implements Cloneable {
 		if (function==NONE)
 			return value;
 		else {
-			if (function>=STRAIGHT_LINE && function<=RODBARD2 && coefficients!=null) {
-				double 	v = CurveFitter.f(function, coefficients, value);
+			if (function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null) {
+				double v = CurveFitter.f(function, coefficients, value);
 				if (zeroClip && v<0.0)
 					return 0.0;
 				else
@@ -362,13 +265,11 @@ public class Calibration implements Cloneable {
 				return getCValue((int)value);
 		}
  	}
- 	
+
   	/** Converts a density calibrated value into a raw pixel value. */
  	public double getRawValue(double value) {
 		if (function==NONE)
 			return value;
-		if (function==STRAIGHT_LINE && coefficients!=null && coefficients.length==2 && coefficients[1]!=0.0)
-			return (value-coefficients[0])/coefficients[1];
 		if (cTable==null)
 			makeCTable();
 		float fvalue = (float)value;
@@ -388,14 +289,27 @@ public class Calibration implements Cloneable {
  	 	
 	/** Returns a clone of this object. */
 	public Calibration copy() {
-		return (Calibration)clone();
+		Calibration copy = new Calibration();
+		copy.pixelWidth = pixelWidth;
+		copy.pixelHeight = pixelHeight;
+		copy.pixelDepth = pixelDepth;
+		copy.frameInterval = frameInterval;
+		copy.xOrigin = xOrigin;
+		copy.yOrigin = yOrigin;
+		copy.zOrigin = zOrigin;
+		copy.info = info;
+		copy.unit = unit;
+		copy.units = units;
+		copy.valueUnit = valueUnit;
+		copy.function = function;
+		copy.coefficients = coefficients;
+		copy.cTable = cTable;
+		copy.invertedLut = invertedLut;
+		copy.bitDepth = bitDepth;
+		copy.zeroClip = zeroClip;
+		return copy;
 	}
 	
-	public synchronized Object clone() {
-		try {return super.clone();}
-		catch (CloneNotSupportedException e) {return null;}
-	}
-
 	/** Compares two Calibration objects for equality. */
  	public boolean equals(Calibration cal) {
  		if (cal==null)
@@ -410,20 +324,15 @@ public class Calibration implements Cloneable {
  		return equal;
  	}
  	
-  	/** Returns true if this is a signed 16-bit image. */
+ 	/** Returns true if this is a signed 16-bit image. */
  	public boolean isSigned16Bit() {
-		return (bitDepth==16 && function>=STRAIGHT_LINE && function<=RODBARD2 && coefficients!=null
+		return (bitDepth==16 && function>=STRAIGHT_LINE && function<=LOG2 && coefficients!=null
 			&& coefficients[0]==-32768.0 && coefficients[1]==1.0);
  	}
 
  	/** Returns true if zero clipping is enabled. */
  	public boolean zeroClip() {
  		return zeroClip;
- 	}
- 	
- 	/** Sets the 'invertY' flag. */
- 	public void setInvertY(boolean invertYCoordinates) {
- 		invertY = invertYCoordinates;
  	}
  	
     public String toString() {

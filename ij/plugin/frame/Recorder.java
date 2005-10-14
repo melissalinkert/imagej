@@ -30,7 +30,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 	private static String commandName;
 	private static String commandOptions;
 	private static String defaultName = "Macro";
-	private static boolean recordPath = true;
 
 	public Recorder() {
 		super("Recorder");
@@ -41,7 +40,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		WindowManager.addWindow(this);
 		instance = this;
 		record = true;
-		recordInMacros = false;
 		Panel panel = new Panel(new FlowLayout(FlowLayout.CENTER, 2, 0));
 		panel.add(new Label("Name:"));
 		macroName = new TextField(defaultName,15);
@@ -57,7 +55,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		add("North", panel);
 		textArea = new TextArea("",15,60,TextArea.SCROLLBARS_VERTICAL_ONLY);
 		textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-		if (IJ.isLinux()) textArea.setBackground(Color.white);
+		//textArea.setBackground(Color.white);
 		add("Center", textArea);
 		pack();
 		GUI.center(this);
@@ -75,18 +73,11 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		not open or the command being recorded has called IJ.run(). 
 	*/
 	public static void setCommand(String command) {
-		boolean isMacro = Thread.currentThread().getName().startsWith("Run$_");
-		if (textArea==null || (isMacro&&!recordInMacros))
+		if (textArea==null || (Thread.currentThread().getName().startsWith("Run$_")&&!recordInMacros))
 			return;
 		commandName = command;
 		commandOptions = null;
-		recordPath = true;
 		//IJ.log("setCommand: "+command+" "+Thread.currentThread().getName());
-	}
-
-	/** Returns the name of the command currently being recorded, or null. */
-	public static String getCommand() {
-		return commandName;
 	}
 
 	static String fixPath (String path) {
@@ -107,8 +98,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 
 	public static void record(String method, String arg1, String arg2) {
 		if (textArea==null) return;
-		if (arg1.equals("Open")||arg1.equals("Save")||method.equals("saveAs"))
-			arg2 = fixPath(arg2);
+		if (arg1.equals("Open")||arg1.equals("Save")) arg2 = fixPath(arg2);
 		textArea.append(method+"(\""+arg1+"\", \""+arg2+"\");\n");
 	}
 
@@ -119,8 +109,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 
 	public static void record(String method, int a1) {
 		if (textArea==null) return;
-		if (method.equals("setTool"))
-			method = "//"+method;
 		textArea.append(method+"("+a1+");\n");
 	}
 
@@ -131,17 +119,12 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 
 	public static void record(String method, double a1, double a2) {
 		if (textArea==null) return;
-		int places = Math.abs(a1)<0.0001||Math.abs(a2)<0.0001?9:4;
-		textArea.append(method+"("+IJ.d2s(a1,places)+", "+IJ.d2s(a2,places)+");\n");
+		textArea.append(method+"("+a1+", "+a2+");\n");
 	}
 
 	public static void record(String method, int a1, int a2, int a3) {
 		if (textArea==null) return;
 		textArea.append(method+"("+a1+", "+a2+", "+a3+");\n");
-	}
-
-	public static void record(String method, String a1, int a2) {
-		textArea.append(method+"(\""+a1+"\", "+a2+");\n");
 	}
 
 	public static void record(String method, String args, int a1, int a2) {
@@ -162,11 +145,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		textArea.append(method+"(\""+path+"\", "+"\""+args+"\", "+a1+", "+a2+", "+a3+", "+a4+", "+a5+");\n");
 	}
 	
-	public static void recordString (String str) {
-		if (textArea==null) return;
-		textArea.append(str);
-	}
-
 	public static void recordRoi(Polygon p, int type) {
 		if (textArea==null) return;
 		String method = type==Roi.POLYGON?"makePolygon":"makeLine";
@@ -188,11 +166,11 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 			commandOptions = key+"="+value;
 		else
 			commandOptions += " "+key+"="+value;
+		//IJ.write("  "+key+"="+value);
 	}
 
 	public static void recordPath(String key, String path) {
-		if (key==null || !recordPath)
-			{recordPath=true; return;}
+		if (key==null) return;
 		key = trimKey(key);
 		path = fixPath(path);
 		path = addQuotes(path);
@@ -201,7 +179,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 			commandOptions = key+"="+path;
 		else
 			commandOptions += " "+key+"="+path;
-		//IJ.log("recordPath: "+key+"="+path);
+		//IJ.write("  "+key+"="+value);
 	}
 
 	public static void recordOption(String key) {
@@ -221,12 +199,10 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 	static void checkForDuplicate(String key, String value) {
 		if (commandOptions!=null && commandName!=null && commandOptions.indexOf(key)!=-1 && (value.equals("") || commandOptions.indexOf(value)==-1)) {
 			if (key.endsWith("=")) key = key.substring(0, key.length()-1);
-			IJ.showMessage("Recorder", "Duplicate keyword:\n \n" 
-				+ "    Command: " + "\"" + commandName +"\"\n"
-				+ "    Keyword: " + "\"" + key +"\"\n"
-				+ "    Value: " + value+"\n \n"
-				+ "Add an underscore to the corresponding label\n"
-				+ "in the dialog to make the first word unique.");
+			IJ.showMessage("Recorder", "Duplicate keyword\n \n" 
+				+"  Command: " + "\"" + commandName +"\"\n"
+				+"  Keyword: " + "\"" + key +"\"\n"
+				+"  Value: " + value);
 		}
 	}
 	
@@ -243,43 +219,30 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 
 	/** Writes the current command and options to the Recorder window. */
 	public static void saveCommand() {
-		String name = commandName;
-		if (name!=null) {
+		if (commandName!=null) {
 			if (commandOptions!=null) {
-				if (name.equals("Open..."))
+				if (commandName.equals("Open..."))
 					textArea.append("open(\""+strip(commandOptions)+"\");\n");
 				else if (isSaveAs()) {
-							if (name.endsWith("..."))
-									name= name.substring(0, name.length()-3);
+							if (commandName.endsWith("..."))
+									commandName= commandName.substring(0, commandName.length()-3);
 							String path = strip(commandOptions);
-							textArea.append("saveAs(\""+name+"\", \""+path+"\");\n");
-				} else if (name.equals("Image..."))
+							textArea.append("saveAs(\""+commandName+"\", \""+path+"\");\n");
+				} else if (commandName.equals("New..."))
 					appendNewImage();
-				else if (name.equals("Set Slice..."))
+				else if (commandName.equals("Set Slice..."))
 					textArea.append("setSlice("+strip(commandOptions)+");\n");
-				else if (name.equals("Rename..."))
+				else if (commandName.equals("Rename..."))
 					textArea.append("rename(\""+strip(commandOptions)+"\");\n");
-				else if (name.equals("Image Calculator..."))
-					textArea.append("//run(\""+name+"\", \""+commandOptions+"\");\n");
+				else if (commandName.equals("Image Calculator..."))
+					textArea.append("//run(\""+commandName+"\", \""+commandOptions+"\");\n");
 				else 
-					textArea.append("run(\""+name+"\", \""+commandOptions+"\");\n");
+					textArea.append("run(\""+commandName+"\", \""+commandOptions+"\");\n");
 			} else {
-				if (name.equals("Threshold...") || name.equals("Fonts..."))
-					textArea.append("//run(\""+name+"\");\n");
-				else if (name.equals("Start Animation [\\]"))
-					textArea.append("doCommand(\"Start Animation [\\\\]\");\n");
-				else if (name.equals("Draw")) {
-					ImagePlus imp = WindowManager.getCurrentImage();
-					Roi roi = imp.getRoi();
-					if (roi!=null && (roi instanceof TextRoi))
-						textArea.append(((TextRoi)roi).getMacroCode(imp.getProcessor()));
-					else
-						textArea.append("run(\""+name+"\");\n");
-				} else {
-					if (IJ.altKeyDown() && (name.equals("Open Next")||name.equals("Plot Profile")))
-						textArea.append("setKeyDown(\"alt\"); ");
-					textArea.append("run(\""+name+"\");\n");
-				}
+				if (commandName.equals("Threshold..."))
+					textArea.append("//run(\""+commandName+"\");\n");
+				else
+					textArea.append("run(\""+commandName+"\");\n");
 			}
 		}
 		commandName = null;
@@ -293,10 +256,8 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 			|| commandName.equals("Text Image...")
 			|| commandName.equals("ZIP...")
 			|| commandName.equals("Raw Data...")
+			|| commandName.equals("AVI... ")
 			|| commandName.equals("BMP...")
-			|| commandName.equals("PNG...")
-			|| commandName.equals("PGM...")
-			|| commandName.equals("FITS...")
 			|| commandName.equals("LUT...")
 			|| commandName.equals("Selection...")
 			|| commandName.equals("XY Coordinates...")
@@ -320,15 +281,8 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		int index = value.indexOf('=');
 		if (index>=0)
 			value = value.substring(index+1);
-		if (value.startsWith("[")) {
-			int index2 = value.indexOf(']');
-			if (index2==-1) index2 = value.length();
-			value = value.substring(1, index2);
-		} else {
-			index = value.indexOf(' ');
-			if (index!=-1)
-				value = value.substring(0, index);
-		}
+		if (value.startsWith("["))
+			value = value.substring(1, value.length()-1);
 		return value;
 	}
 
@@ -339,7 +293,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		return value;
 	}
 	
-	/** Used by GenericDialog to determine if any options have been recorded. */
+	/** Use by GenericDialog to determine if any options have been recorded. */
 	static public String getCommandOptions() {
 		return commandOptions;
 	}
@@ -360,11 +314,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		ed.createMacro(name, text);
 	}
 	
-	/** Temporarily disables path recording. */
-	public static void disablePathRecording() {
-		recordPath = false;
-	}
-	
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource()==makeMacro)
 			createMacro();
@@ -379,7 +328,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 			+" \n" 
 			+"In the editor:\n" 
 			+" \n"
-			+"    Type ctrl+R (Macros>Run Macro) to\n" 
+			+"    Type ctrl+R (File>Run Macro) to\n" 
 			+"    run the macro.\n"     
 			+" \n"    
 			+"    Use File>Save As to save it and\n" 
@@ -404,13 +353,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		textArea = null;
 		commandName = null;
 		instance = null;	
-	}
-
-	public String getText() {
-		if (textArea==null)
-			return "";
-		else
-			return textArea.getText();
 	}
 
 }

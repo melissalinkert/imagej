@@ -4,7 +4,6 @@ import ij.io.*;
 import ij.macro.*;
 import ij.text.*;
 import ij.util.*;
-import ij.plugin.frame.Editor;
 import java.io.*;
 
 /** Opens and runs a macro file. */
@@ -29,11 +28,8 @@ public class Macro_Runner implements PlugIn {
 				runMacroFile(directory+name, null);
 		} else if (name.startsWith("JAR:"))
 			runMacroFromJar(name);
-		else if (name.startsWith("ij.jar:"))
-			runMacroFromIJJar(name, null);
 		else {
-			if (!name.startsWith("ij.jar:"))
-				path = Menus.getPlugInsPath() + name;
+			path = Menus.getPlugInsPath() + name;
 			runMacroFile(path, null);
 		}
 	}
@@ -79,41 +75,25 @@ public class Macro_Runner implements PlugIn {
 	public String runMacroFile(String name, String arg) {
 		if (name.startsWith("ij.jar:"))
 			return runMacroFromIJJar(name, arg);
-        if (name.indexOf(".")==-1) name = name + ".txt";
-		String name2 = name;
-        boolean fullPath = name.startsWith("/") || name.startsWith("\\") || name.indexOf(":\\")==1;
+        boolean fullPath = name.startsWith("/") || name.indexOf(":\\")==1;
         if (!fullPath) {
         	String macrosDir = Menus.getMacrosPath();
         	if (macrosDir!=null)
-        		name2 = Menus.getMacrosPath() + name;
+        		name = Menus.getMacrosPath() + name;
         }
-		File file = new File(name2);
+        if (name.indexOf(".")==-1) name = name + ".txt";
+		File file = new File(name);
 		int size = (int)file.length();
-		if (size<=0 && !fullPath && name2.endsWith(".txt")) {
-			String name3 = name2.substring(0, name2.length()-4)+".ijm";
-			file = new File(name3);
-			size = (int)file.length();
-			if (size>0) name2 = name3;
-		}
-		if (size<=0 && !fullPath) {
-			file = new File(System.getProperty("user.dir") + File.separator + name);
-			size = (int)file.length();
-			//IJ.log("runMacroFile: "+file.getAbsolutePath()+"  "+name+"  "+size);
-		}
 		if (size<=0) {
-            IJ.error("RunMacro", "Macro file not found:\n \n"+name2);
+            IJ.error("RunMacro", "Macro file not found:\n \n"+name);
 			return null;
-		}
-		try {
+		} try {
 			byte[] buffer = new byte[size];
 			FileInputStream in = new FileInputStream(file);
 			in.read(buffer, 0, size);
 			String macro = new String(buffer, 0, size, "ISO8859_1");
 			in.close();
-			if (name.endsWith(".js"))
-				return runJavaScript(macro);
-			else
-				return runMacro(macro, arg);
+			return runMacro(macro, arg);
 		}
 		catch (Exception e) {
 			IJ.error(e.getMessage());
@@ -126,11 +106,11 @@ public class Macro_Runner implements PlugIn {
     	Returns the String value returned by the macro or null if the macro does not
     	return a value. */
 	public String runMacro(String macro, String arg) {
-		Interpreter interp = new Interpreter();
 		try {
+			Interpreter interp = new Interpreter();
 			return interp.run(macro, arg);
 		} catch(Throwable e) {
-			Interpreter.abort(interp);
+			Interpreter.abort();
 			IJ.showStatus("");
 			IJ.showProgress(1.0);
 			ImagePlus imp = WindowManager.getCurrentImage();
@@ -145,12 +125,8 @@ public class Macro_Runner implements PlugIn {
 			if (IJ.isMacintosh())
 				s = Tools.fixNewLines(s);
 			//Don't show exceptions resulting from window being closed
-			if (!(s.indexOf("NullPointerException")>=0 && s.indexOf("ij.process")>=0)) {
-				if (IJ.getInstance()!=null)
-					new ij.text.TextWindow("Exception", s, 350, 250);
-				else
-					IJ.log(s);
-			}
+			if (!(s.indexOf("NullPointerException")>=0 && s.indexOf("ij.process")>=0))
+				new TextWindow("Exception", s, 350, 250);
 		}
 		return null;
 	}
@@ -183,17 +159,6 @@ public class Macro_Runner implements PlugIn {
 			return runMacro(macro, arg);
 		else
 			return null;
-	}
-	
-	String runJavaScript(String text) {
-		if (IJ.isJava16() && !IJ.isMacOSX())
-			IJ.runPlugIn("JavaScriptEvaluator", text);
-		else {
-			Object js = IJ.runPlugIn("JavaScript", Editor.JavaScriptIncludes+text);
-			if (js==null)
-				IJ.error(Editor.JS_NOT_FOUND);
-		}
-		return null;
 	}
 
 }

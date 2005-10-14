@@ -67,6 +67,8 @@ public class ControlPanel implements PlugIn
 
 	//private static boolean running = true;
 
+	TreePanel panel;
+
 	Vector menus = new Vector();
 	Vector allMenus = new Vector();
 	String[] installableMenuLabels = {"About Plugins","Filters","Import","Plugins","Save As","Shortcuts","Tools","Utilities"};
@@ -83,7 +85,12 @@ public class ControlPanel implements PlugIn
 
 	//private static String pcpDir=null;
 
-	public ControlPanel() {
+	public ControlPanel()
+	{
+		if (!IJ.isJava2()) { //wsr
+			IJ.error("This command requires Java 1.2 or later");
+			return;
+		}
 		requireDoubleClick = !(IJ.isWindows() || IJ.isMacintosh());
 		Java2.setSystemLookAndFeel();
 	}
@@ -109,9 +116,14 @@ public class ControlPanel implements PlugIn
 	 *
 	 */
 	public void run(String arg) {
+		//IJ.write("***** MARK *****");
+		if (!IJ.isJava2()) //wsr
+			return;
 		currentArg = (arg.length()==0) ? defaultArg : arg;
 		argLength = currentArg.length();
+// 		IJ.getInstance().setControlPanel(this);
 		load();
+		//IJ.write("thread: "+Thread.currentThread().getName());
 	}
 
 
@@ -124,7 +136,7 @@ public class ControlPanel implements PlugIn
 		commands = Menus.getCommands();
 		pluginsArray = Menus.getPlugins();
 		root=buildTree(currentArg);
-		if(root==null || root.getChildCount()==0 ) return; // do nothing if there's no tree or a root w/o children
+		if(root==null | root.getChildCount()==0 ) return; // do nothing if there's no tree or a root w/o children
 		loadProperties();
 		restoreVisiblePanels();
 		if(panels.isEmpty())
@@ -1018,12 +1030,8 @@ class TreePanel implements
 			pFrame.setLocation((int)defaultLocation.getX(),(int)defaultLocation.getY());
 		else pcp.restoreGeometry(this);
 		//restoreExpandedNodes();
-		GUI.center(pFrame);
 		setVisible();
-		ImageJ ij = IJ.getInstance();
-		ij.addWindowListener(this);
-		pFrame.addKeyListener(ij);
-		pTree.addKeyListener(ij);
+		IJ.getInstance().addWindowListener(this);
 	}
 
 	void addMenu()
@@ -1147,8 +1155,6 @@ class TreePanel implements
 	void restoreExpandedNodes()
 	{
 		//IJ.write("restore exp nodes");
-		if (pTree==null || root==null)
-			return;
 		pTree.removeTreeExpansionListener(this);
 		TreeNode[] rootPath = root.getPath();
 		for(Enumeration e = root.breadthFirstEnumeration(); e.hasMoreElements();)
@@ -1386,7 +1392,7 @@ class TreePanel implements
 	void setVisible()
 	{
 		//IJ.write("setVisible at "+defaultLocation.getX()+" "+defaultLocation.getY());
-		if (pFrame!=null && !pFrame.isVisible())
+		if(!(pFrame.isVisible()))
 		{
 			restoreExpandedNodes();
 			if(defaultLocation!=null) pFrame.setLocation(defaultLocation);
@@ -1413,7 +1419,7 @@ class TreePanel implements
 				}
 			}
 		}
-		if (pcp!=null) pcp.setPanelShowingProperty(getRootPath().toString());
+		pcp.setPanelShowingProperty(getRootPath().toString());
 	}
 
 	void setLocation(Point p)
