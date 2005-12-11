@@ -1,6 +1,5 @@
 package ij;
 import ij.*;
-import ij.io.*;
 import java.io.*;
 import java.net.*;
 
@@ -35,7 +34,7 @@ public class SocketListener implements Runnable {
 					String cmd = is.readLine();
 					if (IJ. debugMode) IJ.log("SocketServer: command: \""+ cmd+"\"");
 					if (cmd.startsWith("open "))
-						(new Opener()).openAndAddToRecent(cmd.substring(5));
+						IJ.open(cmd.substring(5)); 
 					else if (cmd.startsWith("macro ")) {
 						String name = cmd.substring(6);
 						String name2 = name;
@@ -50,12 +49,10 @@ public class SocketListener implements Runnable {
 						IJ.runMacroFile(name, arg);
 					} else if (cmd.startsWith("run "))
 						IJ.run(cmd.substring(4));
-					else if (cmd.startsWith("eval ")) {
-						String rtn = IJ.runMacro(cmd.substring(5));
-						if (rtn!=null)
-							System.out.print(rtn);
-					} else if (cmd.startsWith("user.dir "))
-						OpenDialog.setDefaultDirectory(cmd.substring(9));
+					else if (cmd.startsWith("eval "))
+						IJ.runMacro(cmd.substring(5));
+					else if (cmd.startsWith("user.dir "))
+						System.setProperty("user.dir", cmd.substring(9));
 				} catch (Throwable e) {}
 				clientSocket.close();
 				if (IJ. debugMode) IJ.log("SocketServer: connection closed");
