@@ -11,8 +11,8 @@ This code was modified from Image_Browser by Albert Cardona
 
 package ij.plugin;
 import ij.*;
-import ij.io.*;
-import ij.gui.*;
+import ij.io.Opener;
+import ij.gui.ImageWindow;
 import java.io.File;
 
 public class NextImageOpener implements PlugIn {
@@ -43,54 +43,26 @@ public class NextImageOpener implements PlugIn {
 			return;
 		}
 		// get the next name (full path)
-		//long start = System.currentTimeMillis();
-		String nextPath = getNext(currentPath, getName(imp0), forward);
-		//IJ.log("time: "+(System.currentTimeMillis()-start));
+		String nextPath = getNext(currentPath, imp0.getTitle(), forward);
 		if (IJ.debugMode) IJ.log("OpenNext.nextPath:" + nextPath);
 		// open
 		if (nextPath != null) {
-			String rtn = open(nextPath);
-			if (rtn==null)
-				open(getNext(currentPath, (new File(nextPath)).getName(), forward));
+			String newTitle = open(nextPath);
+			if (newTitle!=null)
+				open(getNext(currentPath, newTitle, forward));
 		}
-	}
-	
-	String getName(ImagePlus imp) {
-		String name = imp.getTitle();
-		FileInfo fi = imp.getOriginalFileInfo();
-		if (fi!=null && fi.fileName!=null)
-			name = fi.fileName;
-		return name;
 	}
 	
 	String open(String nextPath) {
-		ImagePlus imp2 = IJ.openImage(nextPath);
-		if (imp2==null) return null;
+		Opener o = new Opener();
+		ImagePlus imp2 = o.openImage(nextPath);
+		if (imp2==null) return (new File(nextPath)).getName();
 		String newTitle = imp2.getTitle();
-		if (imp0.changes) {
-			String msg;
-			String name = imp0.getTitle();
-			if (name.length()>22)
-				msg = "Save changes to\n" + "\"" + name + "\"?";
-			else
-				msg = "Save changes to \"" + name + "\"?";
-			YesNoCancelDialog d = new YesNoCancelDialog(imp0.getWindow(), "ImageJ", msg);
-			if (d.cancelPressed())
-				return "Canceled";
-			else if (d.yesPressed()) {
-				FileSaver fs = new FileSaver(imp0);
-				if (!fs.save())
-					return "Canceled";
-			}
-			imp0.changes = false;
-		}
 		imp0.setStack(newTitle, imp2.getStack());
 		imp0.setCalibration(imp2.getCalibration());
-		imp0.setFileInfo(imp2.getOriginalFileInfo());
-		imp0.setProperty ("Info", imp2.getProperty ("Info"));
 		ImageWindow win = imp0.getWindow();
 		if (win!=null) win.repaint();
-		return "ok";
+		return null;
 	}
 
 	/** gets the next image name in a directory list */
