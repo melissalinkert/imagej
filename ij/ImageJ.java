@@ -98,7 +98,7 @@ public class ImageJ extends Frame implements ActionListener,
 	/** Creates a new ImageJ frame running as an applet
 		if the 'applet' argument is not null. */
 	public ImageJ(java.applet.Applet applet) {
-		super("ImageJ");
+		super("ImageJA");
 		this.applet = applet;
 		String err1 = Prefs.load(this, applet);
 		Menus m = new Menus(this, applet);
@@ -142,7 +142,8 @@ public class ImageJ extends Frame implements ActionListener,
 		setLocation(loc.x, loc.y);
 		pack();
 		setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
-		show();
+		if(!IJ.noGUI)
+			show();
 		if (err1!=null)
 			IJ.error(err1);
 		if (err2!=null)
@@ -158,14 +159,15 @@ public class ImageJ extends Frame implements ActionListener,
 			IJ.runPlugIn("ij.plugin.DragAndDrop", "");
 		}
 		m.installStartupMacroSet();
-		String str = m.nMacros==1?" macro)":" macros)";
+		String str = (m.nMacros==1?" macro)":" macros)");
 		IJ.showStatus("Version "+VERSION + " ("+ m.nPlugins + " commands, " + m.nMacros + str);
+		// Toolbar.getInstance().addTool("Spare tool [Cf0fG22ccCf00E22cc]"); 
 		if (applet==null)
 			new SocketListener();
 	}
     	
 	void setIcon() {
-		URL url = this.getClass().getResource("/microscope.gif"); 
+		URL url = this.getClass().getResource("/icon.gif"); 
 		if (url==null)
 			return;
 		Image img = null;
@@ -197,7 +199,7 @@ public class ImageJ extends Frame implements ActionListener,
 	}
 	
 	void showStatus(String s) {
-        statusLine.setText(s);
+	        statusLine.setText(s);
 	}
 
 	public ProgressBar getProgressBar() {
@@ -394,7 +396,17 @@ public class ImageJ extends Frame implements ActionListener,
 	public void keyTyped(KeyEvent e) {}
 
 	public void windowClosing(WindowEvent e) {
-		doCommand("Quit");
+		boolean quit = true;
+		ImagePlus imp = WindowManager.getCurrentImage();
+		boolean imageWithChanges = imp!=null && imp.changes;
+		if (!imageWithChanges && Menus.window.getItemCount()>Menus.WINDOW_MENU_ITEMS) {
+			GenericDialog gd = new GenericDialog("ImageJA", this);
+			gd.addMessage("Are you sure you want to quit ImageJA?");
+			gd.showDialog();
+			quit = !gd.wasCanceled();
+		}
+		if (quit)
+			doCommand("Quit");
 	}
 
 	public void windowActivated(WindowEvent e) {
@@ -534,7 +546,7 @@ public class ImageJ extends Frame implements ActionListener,
 		}
 		return true;
 	}
-	
+
 	static void sendArgument(String arg) throws IOException {
 		Socket socket = new Socket("localhost", port);
 		PrintWriter out = new PrintWriter (new OutputStreamWriter(socket.getOutputStream()));

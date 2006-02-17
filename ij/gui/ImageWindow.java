@@ -90,7 +90,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener 
 				GUI.center(this);
 				centerOnScreen = false;
 			}
-			if (Interpreter.isBatchMode()) {
+			if (Interpreter.isBatchMode() || IJ.noGUI) {
 				WindowManager.setTempCurrentImage(imp);
 				Interpreter.addBatchModeImage(imp);
 			} else
@@ -313,7 +313,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener 
 		ImageJ ij = IJ.getInstance();
 		boolean quitting = ij!=null && ij.quitting();
 		imp.setActivated(); // notify ImagePlus that image has been activated
-		if (!closed && !quitting && !Interpreter.isBatchMode())
+		if (!closed && !quitting && !Interpreter.isBatchMode() && !IJ.noGUI)
 			WindowManager.setCurrentWindow(this);
 	}
 	
