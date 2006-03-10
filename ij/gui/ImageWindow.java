@@ -90,7 +90,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener 
 				GUI.center(this);
 				centerOnScreen = false;
 			}
-			if (Interpreter.isBatchMode() || IJ.noGUI) {
+			if (Interpreter.isBatchMode()) {
 				WindowManager.setTempCurrentImage(imp);
 				Interpreter.addBatchModeImage(imp);
 			} else
@@ -242,6 +242,8 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener 
 		if (ij==null || IJ.getApplet()!=null || Interpreter.isBatchMode() || IJ.macroRunning())
 			imp.changes = false;
 		if (imp.changes) {
+			if (IJ.isWindows() && IJ.isJava14())
+				IJ.wait(250); // this is an attemp to avoid thread deadlocks
 			SaveChangesDialog d = new SaveChangesDialog(this, imp.getTitle());
 			if (d.cancelPressed())
 				return false;
@@ -313,7 +315,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener 
 		ImageJ ij = IJ.getInstance();
 		boolean quitting = ij!=null && ij.quitting();
 		imp.setActivated(); // notify ImagePlus that image has been activated
-		if (!closed && !quitting && !Interpreter.isBatchMode() && !IJ.noGUI)
+		if (!closed && !quitting && !Interpreter.isBatchMode())
 			WindowManager.setCurrentWindow(this);
 	}
 	

@@ -85,7 +85,6 @@ public class Executer implements Runnable {
 				else
 					IJ.log(s);
 			}
-			IJ.abort();
 		}
 	}
 	
@@ -120,7 +119,7 @@ public class Executer implements Runnable {
 			copy(imp, true);
 		else if (cmd.equals("Copy"))
 			copy(imp, false);
-		else if (cmd.equals("ImageJA [enter]"))
+		else if (cmd.equals("ImageJ [enter]"))
 			ij.toFront();
 		else if (cmd.equals("Put Behind [tab]"))
 			WindowManager.putBehind();
@@ -186,7 +185,7 @@ public class Executer implements Runnable {
 	
 	void close(ImagePlus imp) {
 		Frame frame = WindowManager.getFrontWindow();
-		if (frame==null || ((Interpreter.isBatchMode() || IJ.noGUI) && frame instanceof ImageWindow))
+		if (frame==null || (Interpreter.isBatchMode() && frame instanceof ImageWindow))
 			closeImage(imp);
 		else if (frame instanceof PlugInFrame)
 			((PlugInFrame)frame).close();

@@ -21,7 +21,6 @@ import java.lang.reflect.*;
 public class IJ {
 	public static boolean debugMode;
 	public static boolean hideProcessStackDialog;
-	public static boolean noGUI = false;
 	    
     public static final char micronSymbol = (char)181;
     public static final char angstromSymbol = (char)197;
@@ -248,17 +247,6 @@ public class IJ {
 		imp.unlock();
 	}
         
-	public static ClassLoader getClassLoader() {
-		if (classLoader==null) {
-			String pluginsDir = Menus.getPlugInsPath();
-			if (pluginsDir==null)
-				return ClassLoader.getSystemClassLoader();
-			else
-				classLoader = new PluginClassLoader(pluginsDir);
-		}
-		return classLoader;
-	}
-
 	static Object runUserPlugIn(String commandName, String className, String arg, boolean createNewLoader) {
 		if (applet!=null)
 			return null;
@@ -495,9 +483,7 @@ public class IJ {
 			redirectErrorMessages = false;
 			return;
 		}
-		if(noGUI) {
-			System.out.println(title+": "+msg);
-		} else if (ij!=null) {
+		if (ij!=null) {
 			if (msg.startsWith("<html>") && isJava2())
 				new HTMLDialog(title, msg);
 			else
@@ -510,7 +496,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -763,7 +749,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -902,7 +888,7 @@ public class IJ {
 		if (imp==null)
 			error("Macro Error", "Image "+id+" not found or no images are open.");
 		String title = imp.getTitle();
-		if (Interpreter.isBatchMode() || IJ.noGUI) {
+		if (Interpreter.isBatchMode()) {
 			ImagePlus imp2 = WindowManager.getCurrentImage();
 			if (imp2!=null && imp2!=imp) imp2.saveRoi();
             WindowManager.setTempCurrentImage(imp);
@@ -1063,9 +1049,9 @@ public class IJ {
 		return ImageJ.VERSION;
 	}
 	
-	/** Returns the path to the home ("user.home"), startup ("user.dir"), plugins, macros, 
-		temp or image directory if <code>title</code> is "home", "startup", 
-		"plugins", "macros", "temp" or "image", otherwise, displays a dialog 
+	/** Returns the path to the home ("user.home"), startup (ImageJ directory), plugins, macros, 
+		temp, current or image directory if <code>title</code> is "home", "startup", 
+		"plugins", "macros", "temp", "current" or "image", otherwise, displays a dialog 
 		and returns the path to the directory selected by the user. 
 		Returns null if the specified directory is not found or the user
 		cancels the dialog box. Also aborts the macro if the user cancels
@@ -1078,7 +1064,9 @@ public class IJ {
 		else if (title.equals("home"))
 			return System.getProperty("user.home") + File.separator;
 		else if (title.equals("startup"))
-			return System.getProperty("user.dir") + File.separator;
+			return Prefs.getHomeDir() + File.separator;
+		else if (title.equals("current"))
+			return OpenDialog.getDefaultDirectory();
 		else if (title.equals("temp")) {
 			String dir = System.getProperty("java.io.tmpdir");
 			if (dir!=null && !dir.endsWith(File.separator)) dir += File.separator;
@@ -1130,7 +1118,7 @@ public class IJ {
 	}
 
 	/** Saves an image, lookup table, selection or text window to the specified file path. 
-		The path must end in ".tif", ".jpg", ".gif", ".zip", ".raw", ".avi", ".bmp", ".lut", ".roi" or ".txt".  */
+		The path must end in ".tif", ".jpg", ".gif", ".zip", ".raw", ".avi", ".bmp", "pgm", ".lut", ".roi" or ".txt".  */
 	public static void save(String path) {
 		int dotLoc = path.lastIndexOf('.');
 		if (dotLoc!=-1)
@@ -1141,7 +1129,7 @@ public class IJ {
 
 	/* Saves the active image, lookup table, selection, measurement results, selection XY 
 		coordinates or text window to the specified file path. The format argument must be "tiff", 
-		"jpeg", "gif", "zip", "raw", "avi", "bmp", "text image", "lut", "selection", "measurements", 
+		"jpeg", "gif", "zip", "raw", "avi", "bmp", "pgm", "text image", "lut", "selection", "measurements", 
 		"xy Coordinates" or "text".  If <code>path</code> is null or an emply string, a file
 		save dialog is displayed. */
  	public static void saveAs(String format, String path) {
@@ -1175,6 +1163,9 @@ public class IJ {
 		} else if (format.indexOf("bmp")!=-1) {
 			path = updateExtension(path, ".bmp");
 			format = "BMP...";
+		} else if (format.indexOf("pgm")!=-1) {
+			path = updateExtension(path, ".pgm");
+			format = "PGM...";
 		} else if (format.indexOf("lut")!=-1) {
 			path = updateExtension(path, ".lut");
 			format = "LUT...";
@@ -1267,6 +1258,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }

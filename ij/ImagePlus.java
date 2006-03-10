@@ -293,7 +293,8 @@ public class ImagePlus implements ImageObserver, Measurements {
 	public void close() {
 		ImageWindow win = getWindow();
 		if (win!=null) {
-			changes = false; // avoid 'save changes?' dialog and potential deadlocks
+			//if (IJ.isWindows() && IJ.isJava14())
+			//	changes = false; // avoid 'save changes?' dialog and potential Java 1.5 deadlocks
 			win.close();
 		} else {
             if (WindowManager.getCurrentImage()==this)
@@ -313,7 +314,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 	public void show(String statusMessage) {
 		if (win!=null)
 			return;
-		if ((IJ.macroRunning() && ij==null) || Interpreter.isBatchMode() || IJ.noGUI) {
+		if ((IJ.macroRunning() && ij==null) || Interpreter.isBatchMode()) {
 			WindowManager.setTempCurrentImage(this);
 			Interpreter.addBatchModeImage(this);
 			return;
@@ -950,7 +951,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 				ip.resetMinAndMax();
 				IJ.showStatus(index+": min="+ip.getMin()+", max="+ip.getMax());
 			}
-			if (!Interpreter.isBatchMode() && !IJ.noGUI)
+			if (!Interpreter.isBatchMode())
 				updateAndRepaintWindow();
 		}
 	}
@@ -1085,11 +1086,18 @@ public class ImagePlus implements ImageObserver, Measurements {
 	void revert() {
 		if (getStackSize()>1) // can't revert stacks
 			return;
+		FileInfo fi = getOriginalFileInfo();
+		boolean isFileInfo = fi!=null && fi.fileFormat!=FileInfo.UNKNOWN;
+		if (!(isFileInfo || url!=null))
+			return;
+		if (ij!=null && changes && isFileInfo && !Interpreter.isBatchMode() && !IJ.macroRunning() && !IJ.altKeyDown()) {
+			if (!IJ.showMessageWithCancel("Revert?", "Revert to saved version of\n\""+getTitle()+"\"?"))
+				return;
+		}
 		if (roi!=null)
 			roi.endPaste();
 		trimProcessor();
-		FileInfo fi = getOriginalFileInfo();
-		if (fi!=null && fi.fileFormat!=FileInfo.UNKNOWN)
+		if (isFileInfo)
 			new FileOpener(fi).revertToSaved(this);
 		else if (url!=null) {
 			IJ.showStatus("Loading: " + url);
@@ -1111,6 +1119,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 		}
 		repaintWindow();
 		IJ.showStatus("");
+		changes = false;
     }
     
     /** Returns a FileInfo object containing information, including the
