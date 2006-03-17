@@ -35,6 +35,7 @@ public class Functions implements MacroConstants, Measurements {
     Font font;
     GenericDialog gd;
     PrintWriter writer;
+    boolean altKeyDown, shiftKeyDown;
     
     boolean saveSettingsCalled;
 	boolean usePointerCursor, hideProcessStackDialog;
@@ -215,7 +216,6 @@ public class Functions implements MacroConstants, Measurements {
 			case SELECTION_NAME: str = selectionName(); break;
 			case GET_VERSION: interp.getParens();  str = IJ.getVersion(); break;
 			case GET_RESULT_LABEL: str = getResultLabel(); break;
-			case RUN_JAVA: str = runJava(); break;
 			default:
 				str="";
 				interp.error("String function expected");
@@ -591,12 +591,16 @@ public class Functions implements MacroConstants, Measurements {
 
 	void makeOval() {
 		IJ.makeOval((int)getFirstArg(), (int)getNextArg(), (int)getNextArg(), (int)getLastArg());
-		resetImage(); 
+		Roi roi = getImage().getRoi();
+		if (roi!=null) roi.update(shiftKeyDown, altKeyDown);
+		resetImage();
 	}
-
+	
 	void makeRectangle() {
 		IJ.makeRectangle((int)getFirstArg(), (int)getNextArg(), (int)getNextArg(), (int)getLastArg());
-		resetImage(); 
+		Roi roi = getImage().getRoi();
+		if (roi!=null) roi.update(shiftKeyDown, altKeyDown);
+		resetImage();
 	}
 	
 	ImagePlus getImage() {
@@ -1490,8 +1494,7 @@ public class Functions implements MacroConstants, Measurements {
 		imp.setRoi(roi);
 		if (roiType==Roi.POLYGON || roiType==Roi.FREEROI) {
 			roi = imp.getRoi();
-			if (roi!=null && (IJ.shiftKeyDown()||IJ.altKeyDown()))
-				roi.addOrSubtract(); 
+			if (roi!=null) roi.update(shiftKeyDown, altKeyDown); 
 		}
 		updateNeeded = false;
 	}
@@ -1811,17 +1814,19 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	void setKeyDown() {
-		String key = getStringArg();
-		key = key.toLowerCase(Locale.US);
-		if (key.indexOf("alt")!=-1)
+		String keys = getStringArg();
+		keys = keys.toLowerCase(Locale.US);
+		altKeyDown = keys.indexOf("alt")!=-1;
+		if (altKeyDown)
 			IJ.setKeyDown(KeyEvent.VK_ALT);
-		else 
+		else
 			IJ.setKeyUp(KeyEvent.VK_ALT);
-		if (key.indexOf("shift")!=-1)
+		shiftKeyDown = keys.indexOf("shift")!=-1;
+		if (shiftKeyDown)
 			IJ.setKeyDown(KeyEvent.VK_SHIFT);
 		else
 			IJ.setKeyUp(KeyEvent.VK_SHIFT);		
-		if (key.equals("space"))
+		if (keys.equals("space"))
 			IJ.setKeyDown(KeyEvent.VK_SPACE);
 		else
 			IJ.setKeyUp(KeyEvent.VK_SPACE);
@@ -1921,7 +1926,7 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	void selectImage(String title) {
-		if (Interpreter.isBatchMode() || IJ.noGUI) {
+		if (Interpreter.isBatchMode()) {
 			if (Interpreter.imageTable!=null) {
 				for (Enumeration en=Interpreter.imageTable.elements(); en.hasMoreElements();) {
 					ImagePlus imp = (ImagePlus)en.nextElement();
@@ -2390,84 +2395,6 @@ public class Functions implements MacroConstants, Measurements {
 		}
 		return null;
 	}
-
-	String runJava() {
-		interp.getLeftParen();
-
-		// get method name
-		String fullName = getString();
-		int dot = fullName.lastIndexOf('.');
-		if(dot<0) {
-			interp.error("Expected full class.method()");
-			return null;
-		}
-		String className = fullName.substring(0,dot);
-		String methodName = fullName.substring(dot+1);
-
-		// get arguments (all strings)
-		Object[] args = null;
-		if (interp.nextNonEolToken()!=')') {
-			interp.getComma();
-			Vector vargs = new Vector();
-			while(true) {
-				// TODO: support arrays, too
-				vargs.add(getString());
-				int nextToken = interp.nextNonEolToken();
-				if (nextToken==')')
-					break;
-				if (nextToken==',')
-					interp.getComma();
-				else {
-					interp.error("Syntax error: expected comma or closing paren after arg "+
-						     (String)vargs.get(vargs.size()-1));
-					return null;
-				}
-			}
-			args = vargs.toArray();
-		}
-		interp.getRightParen();
-
-		// get the class
-		Class c;
-		try {
-			c = IJ.getClassLoader().loadClass(className);
-		} catch(Exception ex) {
-			interp.error("Could not get class "+className);
-			return null;
-		}
-
-		// get method
-		Method m;
-		try {
-			Class[] argClasses = null;
-			if(args!=null) {
-				argClasses = new Class[args.length];
-				for(int i=0;i<args.length;i++)
-					argClasses[i] = args[i].getClass();
-			}
-			m = c.getMethod(methodName,argClasses);
-		} catch(Exception ex) {
-			// TODO: do exhaustive search using getMethods() and Class.isAssignableFrom()
-			interp.error("Could not find the method "+methodName+" with "+
-				     args.length+" parameter(s) in class "+className);
-			return null;
-		}
-
-		if (m.getReturnType()!=String.class) {
-			interp.error("The method "+methodName+" returns "+m.getReturnType().getName()
-				     +" instead of String");
-			return null;
-		}
-
-		try {
-			return (String)m.invoke(null,args);
-		} catch(Exception ex) {
-			interp.error("Could not invoke the method "+methodName+" with "+
-				     args.length+" parameter(s) in class "+className);
-			return null;
-		}
-			
-	}
 	
 	void getDateAndTime() {
 		Variable year = getFirstVariable();
@@ -2501,7 +2428,7 @@ public class Functions implements MacroConstants, Measurements {
 			imp.setProperty("Info", metadata);
 		else {
 			imp.getStack().setSliceLabel(metadata, imp.getCurrentSlice());
-			if (!Interpreter.isBatchMode() && !IJ.noGUI)
+			if (!Interpreter.isBatchMode())
 				imp.repaintWindow();
 		}
 	}
@@ -2570,7 +2497,11 @@ public class Functions implements MacroConstants, Measurements {
 			interp.error("Fewer than 3 points");
 		if (n==max && interp.token!=')')
 			interp.error("More than "+max+" points");
-		getImage().setRoi(new PolygonRoi(x, y, n, Roi.POLYGON));
+		ImagePlus imp = getImage();
+		imp.setRoi(new PolygonRoi(x, y, n, Roi.POLYGON));
+		Roi roi = imp.getRoi();
+		if (roi!=null)
+			roi.update(shiftKeyDown, altKeyDown); 
 		resetImage(); 
 	}
 	
