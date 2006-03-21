@@ -58,7 +58,7 @@ public class Menus {
 	private static Hashtable pluginsTable;
 	
 	static Menu window, openRecentMenu;
-	int nPlugins, nMacros;
+	static int nPlugins, nMacros;
 	private static Hashtable shortcuts = new Hashtable();
 	private static Hashtable macroShortcuts;
 	private static Vector pluginsPrefs = new Vector(); // commands saved in IJ_Prefs
@@ -88,7 +88,7 @@ public class Menus {
 		addItem(file, "New...", KeyEvent.VK_N, false);
 		addItem(file, "Open...", KeyEvent.VK_O, false);
 		addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
-		addSubMenu(file, "Open Samples");
+		//addSubMenu(file, "Open Samples");
 		addOpenRecentSubMenu(file);
 		importMenu = addSubMenu(file, "Import");
 		file.addSeparator();
@@ -135,7 +135,6 @@ public class Menus {
 		addSubMenu(image, "Adjust");
 		addPlugInItem(image, "Show Info...", "ij.plugin.filter.Info", KeyEvent.VK_I, false);
 		addPlugInItem(image, "Properties...", "ij.plugin.filter.ImageProperties", KeyEvent.VK_P, true);
-		//addSubMenu(image, "Benchmarks");
 		addSubMenu(image, "Color");
 		addSubMenu(image, "Stacks");
 		image.addSeparator();
@@ -145,8 +144,8 @@ public class Menus {
 		addPlugInItem(image, "Scale...", "ij.plugin.Scaler", KeyEvent.VK_E, false);
 		addSubMenu(image, "Rotate");
 		addSubMenu(image, "Zoom");
-		image.addSeparator();
-		addSubMenu(image, "Lookup Tables");
+		//image.addSeparator();
+		//addSubMenu(image, "Lookup Tables");
 		
 		Menu process = new Menu("Process");
 		addPlugInItem(process, "Smooth", "ij.plugin.filter.Filters(\"smooth\")", KeyEvent.VK_S, true);
@@ -182,7 +181,7 @@ public class Menus {
 		toolsMenu = addSubMenu(analyze, "Tools");
 
 		window = new Menu("Window");
-		addItem(window, "ImageJ [enter]", 0, false);
+		addItem(window, "ImageJA [enter]", 0, false);
 		addItem(window, "Put Behind [tab]", 0, false);
 		addPlugInItem(window, "Cascade", "ij.plugin.WindowOrganizer(\"cascade\")", 0, false);
 		addPlugInItem(window, "Tile", "ij.plugin.WindowOrganizer(\"tile\")", 0, false);
@@ -191,9 +190,9 @@ public class Menus {
 		Menu help = new Menu("Help");
 		aboutMenu = addSubMenu(help, "About Plugins");
 		help.addSeparator();
-		addPlugInItem(help, "ImageJ Web Site...", "ij.plugin.BrowserLauncher", 0, false);
+		addPlugInItem(help, "ImageJA Web Site...", "ij.plugin.BrowserLauncher", 0, false);
 		addPlugInItem(help, "Online Docs...", "ij.plugin.BrowserLauncher(\"online\")", 0, false);
-		addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
+		addPlugInItem(help, "About ImageJA...", "ij.plugin.AboutBoxJA", 0, false);
 				
 		addPluginsMenu();
 		if (applet==null)
@@ -207,7 +206,7 @@ public class Menus {
 		mbar.add(process);
 		mbar.add(analyze);
 		mbar.add(pluginsMenu);
-		mbar.add(window);
+		//mbar.add(window);
 		mbar.setHelpMenu(help);
 		if (ij!=null)
 			ij.setMenuBar(mbar);
@@ -586,7 +585,7 @@ public class Menus {
 		return name;
     }
 
-	void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
+	static void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
 		String itemLabel = item.getLabel();
 		int count = menu.getItemCount();
 		boolean inserted = false;
@@ -752,6 +751,10 @@ public class Menus {
 	/** Installs a plugin in the Plugins menu using the class name,
 		with underscores replaced by spaces, as the command. */
 	void installUserPlugin(String className) {
+		installUserPlugin(className, false);
+	}
+
+	public static void installUserPlugin(String className, boolean force) {
 		Menu menu = pluginsMenu;
 		int slashIndex = className.indexOf('/');
 		if (slashIndex>0) {
@@ -770,12 +773,20 @@ public class Menus {
 		}
 		String command = className.replace('_',' ');
 		command.trim();
-		if (pluginsTable.get(command)!=null)  // duplicate command?
+
+		boolean itemExists = (pluginsTable.get(command)!=null);
+		pluginsTable.put(command, className);
+		if(force && itemExists)
+			return;
+
+		if (!force && itemExists)  // duplicate command?
 			command = command + " Plugin";
 		MenuItem item = new MenuItem(command);
-		menu.add(item);
+		if(force)
+			addItemSorted(menu,item,0);
+		else
+			menu.add(item);
 		item.addActionListener(ij);
-		pluginsTable.put(command, className);
 		nPlugins++;
 	}
 	
@@ -1029,6 +1040,10 @@ public class Menus {
 		return popup;
 	}
 	
+	public static Menu getSaveAsMenu() {
+		return saveAsMenu;
+	}
+	
 	/** Adds a plugin based command to the end of a specified menu.
 	* @param plugin			the plugin (e.g. "Inverter_", "Inverter_("arg")")
 	* @param menuCode		PLUGINS_MENU, IMPORT_MENU, SAVE_AS_MENU or HOT_KEYS
@@ -1217,6 +1232,7 @@ public class Menus {
 			key = "recent"+key;
 			prefs.put(key, Prefs.escapeBackSlashes(openRecentMenu.getItem(i).getLabel()));
 		}
+	    
 	}
 
 }
