@@ -52,8 +52,7 @@ public class Opener {
 			String path = directory+name;
 			error = false;
 			open(path);
-			if (!error)
-				record(path);
+			if (!error) Menus.addOpenRecentItem(path);
 		}
 	}
 
@@ -163,8 +162,6 @@ public class Opener {
 					break;
 			}
 		}
-		if(!error)
-			record(path);
 	}
 
 	/** Attempts to open the specified file as a tiff, bmp, dicom, fits,
@@ -609,7 +606,7 @@ public class Opener {
 			return LUT;
 		
 		// BMP ("BM")
-		if (b0==66 && b1==77 && name.endsWith(".bmp"))
+		if (b0==66 && b1==77 && (name.endsWith(".bmp")||name.endsWith(".dib")))
 			return BMP;
 				
 		// PNG
@@ -696,9 +693,4 @@ public class Opener {
 		silentMode = mode;
 	}
 
-	public void record(String path) {
-		Menus.addOpenRecentItem(path);
-		if(Recorder.record)
-			Recorder.record("open",path);
-	}
 }

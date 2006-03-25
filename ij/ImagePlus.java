@@ -92,7 +92,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 	private static ImagePlus clipboard;
 	private static Vector listeners;
 	private static boolean inListener;
-	private static final int OPENED=0, CLOSED=1, UPDATED=2;
+	protected static final int OPENED=0, CLOSED=1, UPDATED=2;
 
     /** Constructs an uninitialized ImagePlus. */
     public ImagePlus() {
@@ -289,7 +289,8 @@ public class ImagePlus implements ImageObserver, Measurements {
 			unlock();
 	}
 
-	/** Closes this image and sets the pixel arrays to null. */
+	/** Closes this image and sets the pixel arrays to null. To avoid the
+		"Save changes?" dialog, first set the public 'changes' variable to false. */
 	public void close() {
 		ImageWindow win = getWindow();
 		if (win!=null) {
@@ -314,7 +315,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 	public void show(String statusMessage) {
 		if (win!=null)
 			return;
-		if ((IJ.macroRunning() && ij==null) || Interpreter.isBatchMode() || IJ.noGUI) {
+		if ((IJ.macroRunning() && ij==null) || Interpreter.isBatchMode()) {
 			WindowManager.setTempCurrentImage(this);
 			Interpreter.addBatchModeImage(this);
 			return;
@@ -951,7 +952,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 				ip.resetMinAndMax();
 				IJ.showStatus(index+": min="+ip.getMin()+", max="+ip.getMax());
 			}
-			if (!Interpreter.isBatchMode() && !IJ.noGUI)
+			if (!Interpreter.isBatchMode())
 				updateAndRepaintWindow();
 		}
 	}
@@ -1083,7 +1084,8 @@ public class ImagePlus implements ImageObserver, Measurements {
 		}
 	}
 	
-	void revert() {
+	/** Implements the File/Revert command. */
+	public void revert() {
 		if (getStackSize()>1) // can't revert stacks
 			return;
 		FileInfo fi = getOriginalFileInfo();
@@ -1508,7 +1510,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 		return clipboard;
 	}
 	
-	synchronized void notifyListeners(int id) {
+	protected synchronized void notifyListeners(int id) {
 		if (listeners==null) return;
 		for (int i=0; i<listeners.size(); i++) {
 			ImageListener listener = (ImageListener)listeners.elementAt(i);
