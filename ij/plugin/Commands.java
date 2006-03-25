@@ -7,8 +7,6 @@ import ij.plugin.frame.*;
 import ij.text.TextWindow;
 import ij.macro.Interpreter;
 import java.awt.Frame;
-import java.io.File;
-import java.applet.Applet;
 	
 /**	Runs File and Window menu commands. */
 public class Commands implements PlugIn {
@@ -37,8 +35,6 @@ public class Commands implements PlugIn {
 			revert();
 		else if (cmd.equals("undo"))
 			undo();
-		else if (cmd.equals("startup"))
-			openStartupMacros();
     }
     
     void revert() {
@@ -87,21 +83,6 @@ public class Commands implements PlugIn {
 		if (Recorder.record) {
 			Recorder.record("close");
 			Recorder.setCommand(null); // don't record run("Close")
-		}
-	}
-	
-	// Plugins>Macros>Open Startup Macros command
-	void openStartupMacros() {
-		Applet applet = IJ.getApplet();
-		if (applet!=null) {
-			IJ.run("URL...", "url=http://rsb.info.nih.gov/ij/applet/StartupMacros.txt");
-		} else {
-			String path = IJ.getDirectory("macros")+"/StartupMacros.txt";
-			File f = new File(path);
-			if (!f.exists())
-				IJ.error("\"StartupMacros.txt\" not found in ImageJ/macros/");
-			else
-				IJ.open(path);
 		}
 	}
 	
