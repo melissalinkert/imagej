@@ -2,10 +2,12 @@ package ij.gui;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.io.*;
 import ij.*;
 import ij.plugin.frame.Recorder;
 import ij.plugin.ScreenGrabber;
 import ij.util.Tools;
+import ij.macro.Interpreter;
 
 /**
  * This class is a customizable modal dialog box. Here is an example
@@ -816,17 +818,17 @@ TextListener, FocusListener, ItemListener, KeyListener, AdjustmentListener {
 			((TextField)c).select(0,0);
 	}
 
-	public void keyPressed(KeyEvent e) { 
-		int keyCode = e.getKeyCode(); 
-		IJ.setKeyDown(keyCode); 
-		if (keyCode==KeyEvent.VK_ENTER && textArea1==null) 
-			closeDialog(); 
-		else if (keyCode==KeyEvent.VK_ESCAPE) { 
-			wasCanceled = true; 
-			closeDialog(); 
+ 	public void keyPressed(KeyEvent e) {
+		int keyCode = e.getKeyCode();
+		IJ.setKeyDown(keyCode);
+		if (keyCode==KeyEvent.VK_ENTER && textArea1==null)
+			closeDialog();
+		else if (keyCode==KeyEvent.VK_ESCAPE) {
+			wasCanceled = true;
+			closeDialog();
 			IJ.resetEscape();
-		} 
-	} 
+		}
+	}
 
 	public void keyReleased(KeyEvent e) {
 		int keyCode = e.getKeyCode();
