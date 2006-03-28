@@ -21,7 +21,6 @@ import java.lang.reflect.*;
 public class IJ {
 	public static boolean debugMode;
 	public static boolean hideProcessStackDialog;
-	public static boolean noGUI = false;
 	    
     public static final char micronSymbol = (char)181;
     public static final char angstromSymbol = (char)197;
@@ -248,17 +247,6 @@ public class IJ {
 		imp.unlock();
 	}
         
-	public static ClassLoader getClassLoader() {
-		if (classLoader==null) {
-			String pluginsDir = Menus.getPlugInsPath();
-			if (pluginsDir==null)
-				return ClassLoader.getSystemClassLoader();
-			else
-				classLoader = new PluginClassLoader(pluginsDir);
-		}
-		return classLoader;
-	}
-
 	static Object runUserPlugIn(String commandName, String className, String arg, boolean createNewLoader) {
 		if (applet!=null)
 			return null;
@@ -495,9 +483,7 @@ public class IJ {
 			redirectErrorMessages = false;
 			return;
 		}
-		if(noGUI) {
-			System.out.println(title+": "+msg);
-		} else if (ij!=null) {
+		if (ij!=null) {
 			if (msg.startsWith("<html>") && isJava2())
 				new HTMLDialog(title, msg);
 			else
@@ -510,7 +496,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -763,7 +749,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -898,7 +884,7 @@ public class IJ {
 		if (imp==null)
 			error("Macro Error", "Image "+id+" not found or no images are open.");
 		String title = imp.getTitle();
-		if (Interpreter.isBatchMode() || IJ.noGUI) {
+		if (Interpreter.isBatchMode()) {
 			ImagePlus imp2 = WindowManager.getCurrentImage();
 			if (imp2!=null && imp2!=imp) imp2.saveRoi();
             WindowManager.setTempCurrentImage(imp);
@@ -1276,10 +1262,21 @@ public class IJ {
 		return brokenNewPixels;
 	}
 
+	/** Returns an instance of the class loader ImageJ uses to run plugins. */
+	public static ClassLoader getClassLoader() {
+		if (classLoader==null) {
+			String pluginsDir = Menus.getPlugInsPath();
+			if (pluginsDir==null)
+				return ClassLoader.getSystemClassLoader();
+			else
+				classLoader = new PluginClassLoader(pluginsDir);
+		}
+		return classLoader;
+	}
+
 	static void abort() {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
