@@ -1927,7 +1927,7 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	void selectImage(String title) {
-		if (Interpreter.isBatchMode()) {
+		if (Interpreter.isBatchMode() || IJ.noGUI) {
 			if (Interpreter.imageTable!=null) {
 				for (Enumeration en=Interpreter.imageTable.elements(); en.hasMoreElements();) {
 					ImagePlus imp = (ImagePlus)en.nextElement();
@@ -2396,7 +2396,7 @@ public class Functions implements MacroConstants, Measurements {
 		}
 		return null;
 	}
-	
+
 	void getDateAndTime() {
 		Variable year = getFirstVariable();
 		Variable month = getNextVariable();
@@ -2429,7 +2429,7 @@ public class Functions implements MacroConstants, Measurements {
 			imp.setProperty("Info", metadata);
 		else {
 			imp.getStack().setSliceLabel(metadata, imp.getCurrentSlice());
-			if (!Interpreter.isBatchMode())
+			if (!Interpreter.isBatchMode() && !IJ.noGUI)
 				imp.repaintWindow();
 		}
 	}

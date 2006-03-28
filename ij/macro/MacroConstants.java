@@ -1,16 +1,12 @@
 package ij.macro;
-
 public interface MacroConstants {
-
 	static final int PLUS_PLUS=1, MINUS_MINUS=2, EQ=3, NEQ=4, GT=5, GTE=6, LT=7, LTE=8,
 		PLUS_EQUAL=9, MINUS_EQUAL=10, MUL_EQUAL=11, DIV_EQUAL=12, LOGICAL_AND=13, LOGICAL_OR=14,
 		SHIFT_RIGHT=15, SHIFT_LEFT=16;
-
 	// Token types
 	public static final int EOF=128, WORD=129, NUMBER=130, NOP=131, EOL=132, STRING_CONSTANT=133, 
 		PREDEFINED_FUNCTION=134, NUMERIC_FUNCTION=135, STRING_FUNCTION=136, ARRAY_FUNCTION=137, 
 		USER_FUNCTION=138, ARRAY=139;
-
 	// Keywords
 	static final String[] keywords = {"macro", "var", "if", "else", "while", "do", "for", "function",
 		"return", "true", "false", "PI", "NaN"};
@@ -18,7 +14,6 @@ public interface MacroConstants {
 		RETURN=208, TRUE=209, FALSE=210, PI=211, NaN=212;;
 	static final int[] keywordIDs = {MACRO, VAR, IF, ELSE, WHILE, DO, FOR, FUNCTION,
 		RETURN, TRUE, FALSE, PI, NaN};
-
 	// Functions that don't return a value
 	static final int RUN=300, INVERT=301, SELECT=302, WAIT=303, BEEP=304, RESET_MIN_MAX=305, RESET_THRESHOLD=306,
 		PRINT=307, WRITE=308, DO_WAND=309, SET_MIN_MAX=310, SET_THRESHOLD=311, SET_TOOL=312,
@@ -106,9 +101,8 @@ public interface MacroConstants {
 		DIALOG, GET_METADATA, FILE, SELECTION_NAME, GET_VERSION, GET_RESULT_LABEL,
 		CALL};
 
-	// Array functions
+        // Array functions
 	static final int GET_PROFILE=3000, NEW_ARRAY=3001, SPLIT=3002, GET_FILE_LIST=3003;
 	static final String[] arrayFunctions = {"getProfile", "newArray", "split", "getFileList"};
 	static final int[] arrayFunctionIDs = {GET_PROFILE, NEW_ARRAY, SPLIT, GET_FILE_LIST};
-
 }  // interface MacroConstants
