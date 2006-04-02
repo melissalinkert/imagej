@@ -73,8 +73,6 @@ public class ImageJ extends Frame implements ActionListener,
 	public static final int DEFAULT_PORT = 57294;
 
 	private static final String IJ_X="ij.x",IJ_Y="ij.y";
-	private static final String RESULTS_X="results.x",RESULTS_Y="results.y",
-		RESULTS_WIDTH="results.width",RESULTS_HEIGHT="results.height";
 	private static int port = DEFAULT_PORT;
 	
 	private Toolbar toolbar;
@@ -98,7 +96,7 @@ public class ImageJ extends Frame implements ActionListener,
 	/** Creates a new ImageJ frame running as an applet
 		if the 'applet' argument is not null. */
 	public ImageJ(java.applet.Applet applet) {
-		super("ImageJA");
+		super("ImageJ");
 		this.applet = applet;
 		String err1 = Prefs.load(this, applet);
 		Menus m = new Menus(this, applet);
@@ -121,7 +119,7 @@ public class ImageJ extends Frame implements ActionListener,
 		statusLine.addKeyListener(this);
 		statusLine.addMouseListener(this);
 		statusBar.add("Center", statusLine);
-		progressBar = new ProgressBar(100, 18);
+		progressBar = new ProgressBar(120, 20);
 		progressBar.addKeyListener(this);
 		progressBar.addMouseListener(this);
 		statusBar.add("East", progressBar);
@@ -160,13 +158,12 @@ public class ImageJ extends Frame implements ActionListener,
 		m.installStartupMacroSet();
 		String str = m.nMacros==1?" macro)":" macros)";
 		IJ.showStatus("Version "+VERSION + " ("+ m.nPlugins + " commands, " + m.nMacros + str);
-		// Toolbar.getInstance().addTool("Spare tool [Cf0fG22ccCf00E22cc]"); 
 		if (applet==null)
 			new SocketListener();
-	}
+ 	}
     	
 	void setIcon() {
-		URL url = this.getClass().getResource("/icon.gif"); 
+		URL url = this.getClass().getResource("/microscope.gif"); 
 		if (url==null)
 			return;
 		Image img = null;
@@ -456,8 +453,7 @@ public class ImageJ extends Frame implements ActionListener,
 					int delta = (int)Tools.parseDouble(args[i].substring(5, args[i].length()), 0.0);
 					if (delta>0 && DEFAULT_PORT+delta<65536)
 						port = DEFAULT_PORT+delta;
-				} else if (args[i].startsWith("-debug"))
-					IJ.debugMode = true;
+				}
 			} 
 		}
   		// If ImageJ is already running then isRunning()
