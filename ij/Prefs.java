@@ -38,7 +38,7 @@ public class Prefs {
  
 	private static final int USE_POINTER=1, ANTIALIASING=2, INTERPOLATE=4, ONE_HUNDRED_PERCENT=8,
 		BLACK_BACKGROUND=16, JFILE_CHOOSER=32, UNUSED=64, BLACK_CANVAS=128, WEIGHTED=256, 
-		AUTO_MEASURE=512, REQUIRE_CONTROL=1024, USE_INVERTING_LUT=2048;  
+		AUTO_MEASURE=512, REQUIRE_CONTROL=1024, USE_INVERTING_LUT=2048, ANTIALIASED_TOOLS=4096;  
     public static final String OPTIONS = "prefs.options";
 
 	/** file.separator system property */
@@ -67,6 +67,8 @@ public class Prefs {
 	public static boolean requireControlKey;
 	/** Open 8-bit images with inverting LUT so 0 is white and 255 is black. */
 	public static boolean useInvertingLut;
+	/** Draw tool icons using antialiasing. */
+	public static boolean antialiasedTools;
 
 	static Properties ijPrefs = new Properties();
 	static Properties props = new Properties(ijPrefs);
@@ -106,6 +108,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -281,6 +295,7 @@ public class Prefs {
 		pointAutoMeasure = (options&AUTO_MEASURE)!=0;
 		requireControlKey = (options&REQUIRE_CONTROL)!=0;
 		useInvertingLut = (options&USE_INVERTING_LUT)!=0;
+		antialiasedTools = (options&ANTIALIASED_TOOLS)!=0;
 	}
 
 	static void saveOptions(Properties prefs) {
@@ -289,7 +304,7 @@ public class Prefs {
 			+ (blackBackground?BLACK_BACKGROUND:0) + (useJFileChooser?JFILE_CHOOSER:0)
 			+ (blackCanvas?BLACK_CANVAS:0) + (weightedColor?WEIGHTED:0) 
 			+ (pointAutoMeasure?AUTO_MEASURE:0) + (requireControlKey?REQUIRE_CONTROL:0)
-			+ (useInvertingLut?USE_INVERTING_LUT:0);
+			+ (useInvertingLut?USE_INVERTING_LUT:0) + (antialiasedTools?ANTIALIASED_TOOLS:0);
 		prefs.put(OPTIONS, Integer.toString(options));
 	}
 
@@ -374,7 +389,7 @@ public class Prefs {
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 		PrintWriter pw = new PrintWriter(bos);
-		pw.println("# ImageJA "+ImageJ.VERSION+" Preferences");
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
 		pw.println("# "+new Date());
 		pw.println("");
 		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {
