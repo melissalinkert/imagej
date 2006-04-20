@@ -127,8 +127,8 @@ public class Interpreter implements MacroConstants {
 			getToken();
 			switch (token) {
 				case VAR: doVar(); break;
-				case MACRO: done=true;; break;
-				case FUNCTION: done=true; break;
+				case MACRO: skipMacro(); break;
+				case FUNCTION: skipFunction(); break;
 				default:
 			}
 		}
@@ -564,7 +564,7 @@ public class Interpreter implements MacroConstants {
 			}
 		} while (count>0);
 	}
-
+	
 	final void skipParens() {
 		int count = 0;
 		do {
@@ -1530,7 +1530,7 @@ public class Interpreter implements MacroConstants {
 	}
 	
 	public static void addBatchModeImage(ImagePlus imp) {
-		if ((!batchMode) || imp==null) return;
+		if (!batchMode || imp==null) return;
 		if (imageTable==null)
 			imageTable = new Vector();
 		//IJ.log("add: "+imp+"  "+imageTable.size());
@@ -1583,23 +1583,7 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
-	public void setLocalVariable(String key,String value) {
-	    Symbol sym=pgm.lookupWord(key);
-	    int symTabAddress;
-	    if(sym==null) {
-		sym=new Symbol(MacroConstants.WORD,key);
-		pgm.addSymbol(sym);
-		symTabAddress=pgm.stLoc-1;
-	    } else
-		symTabAddress=pgm.symTabLoc;
-	    Variable var=lookupLocalVariable(symTabAddress);
-	    if(var==null) {
-		push(symTabAddress, 0.0, value, this);
-	    } else
-		var.setString(value);
-	}
-
-} // class Interpreter
+ } // class Interpreter
 
 
 

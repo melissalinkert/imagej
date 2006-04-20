@@ -495,7 +495,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -625,6 +625,8 @@ public class IJ {
 		The 'decimalPlaces' argument specifies the number of
 		digits to the right of the decimal point (0-9). */
 	public static String d2s(double n, int decimalPlaces) {
+		if (Double.isNaN(n))
+			return "NaN";
 		if (n==Float.MAX_VALUE) // divide by 0 in FloatProcessor
 			return "3.4e38";
 		double np = n;
@@ -753,7 +755,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1000,7 +1002,8 @@ public class IJ {
 			Roi roi = new PolygonRoi(w.xpoints, w.ypoints, w.npoints, Roi.TRACED_ROI);
 			img.setRoi(roi);
 			// add/subtract this ROI to the previous one if the shift/alt key is down
-			roi.update(shiftKeyDown(), altKeyDown());
+			if (previousRoi!=null)
+				roi.update(shiftKeyDown(), altKeyDown());
 		}
 		return w.npoints;
 	}
@@ -1279,6 +1282,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }

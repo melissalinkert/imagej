@@ -303,10 +303,12 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		repaint();
 	}
 	
-	boolean canEnlarge(int newWidth, int newHeight) {
+	protected boolean canEnlarge(int newWidth, int newHeight) {
 		if ((flags&Event.SHIFT_MASK)!=0 || IJ.shiftKeyDown())
 			return false;
-		Rectangle r1 = imp.getWindow().getBounds();
+		ImageWindow win = imp.getWindow();
+		if (win==null) return false;
+		Rectangle r1 = win.getBounds();
 		r1.width = newWidth + 20;
 		r1.height = newHeight + 50;
 		if (imp.getStackSize()>1)
@@ -511,8 +513,8 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 				if (Recorder.record && npoints>0)
 					Recorder.record("doWand", ox, oy);
 				break;
-			//case Toolbar.SPARE1: case Toolbar.SPARE2:
-			//case Toolbar.SPARE4: case Toolbar.SPARE5: case Toolbar.SPARE6:
+			case Toolbar.SPARE1: case Toolbar.SPARE2: case Toolbar.SPARE3: 
+			case Toolbar.SPARE4: case Toolbar.SPARE5: case Toolbar.SPARE6:
 			case Toolbar.SPARE7:
 				Toolbar.getInstance().runMacroTool(toolID);
 				break;

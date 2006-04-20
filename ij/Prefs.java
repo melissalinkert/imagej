@@ -45,7 +45,7 @@ public class Prefs {
 	public static String separator = System.getProperty("file.separator");
 	/** Use pointer cursor instead of cross */
 	public static boolean usePointerCursor;
-	/** Display antialiased text */
+	/** No longer used */
 	public static boolean antialiasedText;
 	/** Display images scaled <100% using bilinear interpolation */
 	public static boolean interpolateScaledImages;
@@ -108,6 +108,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -270,7 +282,8 @@ public class Prefs {
 	static void loadOptions() {
 		int options = getInt(OPTIONS, ANTIALIASING);
 		usePointerCursor = (options&USE_POINTER)!=0;
-		antialiasedText = (options&ANTIALIASING)!=0;
+		//antialiasedText = (options&ANTIALIASING)!=0;
+		antialiasedText = false;
 		interpolateScaledImages = (options&INTERPOLATE)!=0;
 		open100Percent = (options&ONE_HUNDRED_PERCENT)!=0;
 		open100Percent = (options&ONE_HUNDRED_PERCENT)!=0;
@@ -377,7 +390,7 @@ public class Prefs {
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 		PrintWriter pw = new PrintWriter(bos);
-		pw.println("# ImageJA "+ImageJ.VERSION+" Preferences");
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
 		pw.println("# "+new Date());
 		pw.println("");
 		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {
