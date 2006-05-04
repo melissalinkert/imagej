@@ -8,7 +8,6 @@ import ij.macro.Interpreter;
 
 /** Implements the AddSlice, DeleteSlice and "Convert Windows to Stack" commands. */
 public class StackEditor implements PlugIn {
-	String arg;
 	ImagePlus imp;
 	int nSlices, width, height;
 
@@ -110,11 +109,7 @@ public class StackEditor implements PlugIn {
             if (info!=null) label += "\n" + info;
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			ImageWindow win = image[i].getWindow();
-			if (win!=null)
-				win.close();
-			else if (Interpreter.isBatchMode())
-				Interpreter.removeBatchModeImage(image[i]);
+			image[i].close();
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
