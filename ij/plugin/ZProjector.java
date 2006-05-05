@@ -456,6 +456,7 @@ public class ZProjector implements PlugIn {
 
      /** Compute max intensity projection. */
     class MaxIntensity extends RayFunction {
+ 		private FloatProcessor fp;
     	private float[] fpixels;
  		private int len; 
 
@@ -492,6 +493,7 @@ public class ZProjector implements PlugIn {
 
      /** Compute min intensity projection. */
     class MinIntensity extends RayFunction {
+ 		private FloatProcessor fp;
     	private float[] fpixels;
  		private int len; 
 

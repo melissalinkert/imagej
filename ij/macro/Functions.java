@@ -129,6 +129,7 @@ public class Functions implements MacroConstants, Measurements {
 			case SAVE_AS: saveAs(); break;
 			case SET_AUTO_THRESHOLD: setAutoThreshold(); break;
 			case RENAME: IJ.run("Rename...", "title=["+getStringArg()+"]"); break;
+			case FILL_RECT: fillRect(); break;
 			case GET_STATISTICS: getStatistics(true); break;
 			case GET_RAW_STATISTICS: getStatistics(false); break;
 			case FLOOD_FILL: floodFill(); break;
@@ -141,7 +142,6 @@ public class Functions implements MacroConstants, Measurements {
 			case SET_RGB_WEIGHTS: setRGBWeights(); break;
 			case MAKE_POLYGON: makePolygon(); break;
 			case SET_SELECTION_NAME: setSelectionName(); break;
-			case DRAW_RECT: case FILL_RECT: case DRAW_OVAL: case FILL_OVAL: drawOrFill(type); break;
 		}
 	}
 	
@@ -549,8 +549,6 @@ public class Functions implements MacroConstants, Measurements {
 				ip.setValue(value);
 				break;
 			case 16:
-				if (imp.getLocalCalibration().isSigned16Bit())
-					value += 32768;
 				if (value<0 || value>65535)
 					interp.error("Argument out of 16-bit range (0-65535)");
 				ip.setValue(value);
@@ -1261,8 +1259,9 @@ public class Functions implements MacroConstants, Measurements {
 		Variable z = getNextVariable();
 		Variable flags = getLastVariable();
 		ImagePlus imp = getImage();
-		ImageCanvas ic = imp.getCanvas();
-		if (ic==null) return;
+		ImageWindow win = imp.getWindow();
+		if (win==null) return;
+		ImageCanvas ic = win.getCanvas();
 		Point p = ic.getCursorLoc();
 		x.setValue(p.x);
 		y.setValue(p.y);
@@ -2060,8 +2059,8 @@ public class Functions implements MacroConstants, Measurements {
 	double getZoom() {
 		interp.getParens();
 		ImagePlus imp = getImage();
-		ImageCanvas ic = imp.getCanvas();
-		return ic!=null?ic.getMagnification():1.0;
+		ImageWindow win = imp.getWindow();
+		return win!=null?win.getCanvas().getMagnification():1.0;
 	}
 	
 	void setAutoThreshold() {
@@ -2193,19 +2192,15 @@ public class Functions implements MacroConstants, Measurements {
 		resetImage();
 	}
 
-	void drawOrFill(int type) {
+	void fillRect() {
 		int x = (int)getFirstArg();
 		int y = (int)getNextArg();
 		int width = (int)getNextArg();
 		int height = (int)getLastArg();
 		ImageProcessor ip = getProcessor();
 		if (!colorSet) setForegroundColor(ip);
-		switch (type) {
-			case DRAW_RECT: ip.drawRect(x, y, width, height); break;
-			case FILL_RECT: ip.setRoi(x, y, width, height); ip.fill(); break;
-			case DRAW_OVAL: ip.drawOval(x, y, width, height); break;
-			case FILL_OVAL: ip.fillOval(x, y, width, height); break;
-		}
+		ip.setRoi(x, y, width, height);
+		ip.fill();
 		updateAndDraw(defaultImp);
 	}
 
@@ -2420,7 +2415,7 @@ public class Functions implements MacroConstants, Measurements {
 		}
 		return null;
 	}
-	
+
 	void getDateAndTime() {
 		Variable year = getFirstVariable();
 		Variable month = getNextVariable();

@@ -133,7 +133,7 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 		GenericDialog gd = new GenericDialog("Scale");
 		gd.addStringField("X Scale (0.05-25):", xstr);
 		gd.addStringField("Y Scale (0.05-25):", ystr);
-		gd.setInsets(5, 0, 5);
+        gd.addMessage("");
 		gd.addStringField("Width (pixels):", ""+width);
 		gd.addStringField("Height (pixels):", ""+height);
 		fields = gd.getStringFields();
@@ -153,7 +153,6 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 			gd.addCheckbox("Process Entire Stack", processStack);
 		gd.addCheckbox("Create New Window", newWindow);
 		title = WindowManager.getUniqueName(imp.getTitle());
-		gd.setInsets(10, 0, 0);
 		gd.addStringField("Title:", title, 12);
 		gd.showDialog();
 		if (gd.wasCanceled())

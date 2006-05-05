@@ -15,12 +15,14 @@ public class Interpreter implements MacroConstants {
 	static final int STACK_SIZE=1000;
 	static final int MAX_ARGS=20;
 
+	Tokenizer tok;
 	int pc;
 	int token;
 	int tokenAddress;
 	double tokenValue;
 	String tokenString;
 	boolean looseSyntax = true;
+	double darg1,darg2,darg3,darg4;
 	int lineNumber;
 	boolean ignoreEOL = true;
 	boolean statusUpdated;
@@ -1528,7 +1530,7 @@ public class Interpreter implements MacroConstants {
 	}
 	
 	public static void addBatchModeImage(ImagePlus imp) {
-		if (!batchMode || imp==null) return;
+		if ((!batchMode) || imp==null) return;
 		if (imageTable==null)
 			imageTable = new Vector();
 		//IJ.log("add: "+imp+"  "+imageTable.size());
@@ -1581,7 +1583,23 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
- } // class Interpreter
+	public void setLocalVariable(String key,String value) {
+	    Symbol sym=pgm.lookupWord(key);
+	    int symTabAddress;
+	    if(sym==null) {
+		sym=new Symbol(MacroConstants.WORD,key);
+		pgm.addSymbol(sym);
+		symTabAddress=pgm.stLoc-1;
+	    } else
+		symTabAddress=pgm.symTabLoc;
+	    Variable var=lookupLocalVariable(symTabAddress);
+	    if(var==null) {
+		push(symTabAddress, 0.0, value, this);
+	    } else
+		var.setString(value);
+	}
+
+} // class Interpreter
 
 
 
