@@ -485,7 +485,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -677,6 +677,7 @@ public class IJ {
 				break;
 			case KeyEvent.VK_SHIFT:
 				shiftDown=true;
+				if (debugMode) beep();
 				break;
 			case KeyEvent.VK_SPACE: {
 				spaceDown=true;
@@ -695,7 +696,7 @@ public class IJ {
 	public static void setKeyUp(int key) {
 		switch (key) {
 			case KeyEvent.VK_ALT: altDown=false; break;
-			case KeyEvent.VK_SHIFT: shiftDown=false; break;
+			case KeyEvent.VK_SHIFT: shiftDown=false; if (debugMode) beep(); break;
 			case KeyEvent.VK_SPACE: {
 				spaceDown=false;
 				ImageWindow win = WindowManager.getCurrentWindow();
@@ -745,7 +746,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1272,6 +1273,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
