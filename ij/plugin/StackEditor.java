@@ -109,7 +109,11 @@ public class StackEditor implements PlugIn {
             if (info!=null) label += "\n" + info;
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			image[i].close();
+			ImageWindow win = image[i].getWindow();
+			if (win!=null)
+				win.close();
+			else if (Interpreter.isBatchMode())
+				Interpreter.removeBatchModeImage(image[i]);
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
