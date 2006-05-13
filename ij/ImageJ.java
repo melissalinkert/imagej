@@ -65,7 +65,7 @@ The following command line options are recognized by ImageJ:
 public class ImageJ extends Frame implements ActionListener, 
 	MouseListener, KeyListener, WindowListener, ItemListener, Runnable {
 
-	public static final String VERSION = "1.37f";
+	public static final String VERSION = "1.37g";
 	public static Color backgroundColor = new Color(220,220,220); //224,226,235
 	/** SansSerif, 12-point, plain font. */
 	public static final Font SansSerif12 = new Font("SansSerif", Font.PLAIN, 12);
@@ -96,7 +96,7 @@ public class ImageJ extends Frame implements ActionListener,
 	/** Creates a new ImageJ frame running as an applet
 		if the 'applet' argument is not null. */
 	public ImageJ(java.applet.Applet applet) {
-		super("ImageJA");
+		super("ImageJ");
 		this.applet = applet;
 		String err1 = Prefs.load(this, applet);
 		Menus m = new Menus(this, applet);
@@ -158,13 +158,12 @@ public class ImageJ extends Frame implements ActionListener,
 		m.installStartupMacroSet();
 		String str = m.nMacros==1?" macro)":" macros)";
 		IJ.showStatus("Version "+VERSION + " ("+ m.nPlugins + " commands, " + m.nMacros + str);
-		// Toolbar.getInstance().addTool("Spare tool [Cf0fG22ccCf00E22cc]"); 
 		if (applet==null)
 			new SocketListener();
  	}
     	
 	void setIcon() {
-		URL url = this.getClass().getResource("/icon.gif"); 
+		URL url = this.getClass().getResource("/microscope.gif"); 
 		if (url==null)
 			return;
 		Image img = null;
@@ -454,8 +453,7 @@ public class ImageJ extends Frame implements ActionListener,
 					int delta = (int)Tools.parseDouble(args[i].substring(5, args[i].length()), 0.0);
 					if (delta>0 && DEFAULT_PORT+delta<65536)
 						port = DEFAULT_PORT+delta;
-				} else if (args[i].startsWith("-debug"))
-					IJ.debugMode = true;
+				}
 			} 
 		}
   		// If ImageJ is already running then isRunning()
@@ -568,8 +566,8 @@ public class ImageJ extends Frame implements ActionListener,
 			}
 		}
 		if (!changes && Menus.window.getItemCount()>Menus.WINDOW_MENU_ITEMS) {
-			GenericDialog gd = new GenericDialog("ImageJA", this);
-			gd.addMessage("Are you sure you want to quit ImageJA?");
+			GenericDialog gd = new GenericDialog("ImageJ", this);
+			gd.addMessage("Are you sure you want to quit ImageJ?");
 			gd.showDialog();
 			quitting = !gd.wasCanceled();
 		}

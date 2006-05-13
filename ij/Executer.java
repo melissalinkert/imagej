@@ -23,9 +23,10 @@ public class Executer implements Runnable {
 	/** Create an Executer that runs the specified menu command
 		in a separate thread using the active image image. */
 	public Executer(String cmd, ImagePlus ignored) {
-		if (cmd.startsWith("Repeat"))
+		if (cmd.startsWith("Repeat")) {
 			command = previousCommand;
-		else {
+			IJ.setKeyUp(KeyEvent.VK_SHIFT);		
+		} else {
 			command = cmd;
 			if (!(cmd.equals("Undo")||cmd.equals("Close")))
 				previousCommand = cmd;
@@ -70,7 +71,6 @@ public class Executer implements Runnable {
 				else
 					IJ.log(s);
 			}
-			IJ.abort();
 		}
 	}
 	

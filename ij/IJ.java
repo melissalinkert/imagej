@@ -378,6 +378,7 @@ public class IJ {
 		if (logPanel==null && ij!=null) {
 			TextWindow logWindow = new TextWindow("Log", "", 350, 250);
 			logPanel = logWindow.getTextPanel();
+			logPanel.setFont(new Font("SansSerif", Font.PLAIN, 16));
 		}
 		if (logPanel!=null) {
 				if (s.equals("$Closed"))
@@ -485,7 +486,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -746,7 +747,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1273,6 +1274,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
