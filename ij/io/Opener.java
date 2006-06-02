@@ -52,7 +52,8 @@ public class Opener {
 			String path = directory+name;
 			error = false;
 			open(path);
-			if (!error) Menus.addOpenRecentItem(path);
+			if (!error)
+				record(path);
 		}
 	}
 
@@ -106,7 +107,7 @@ public class Opener {
 		is not in one of the supported formats. */
 	public void open(String path) {
         boolean fullPath = path.startsWith("/") || path.startsWith("\\") || path.indexOf(":\\")==1;
-        if (!fullPath) {
+        if (!fullPath && IJ.getInstance()!=null) {
             String workingDir = OpenDialog.getDefaultDirectory();
             if (workingDir!=null)
                 path = workingDir + path;
@@ -162,6 +163,8 @@ public class Opener {
 					break;
 			}
 		}
+		if(!error)
+			record(path);
 	}
 
 	/** Attempts to open the specified file as a tiff, bmp, dicom, fits,
@@ -693,4 +696,9 @@ public class Opener {
 		silentMode = mode;
 	}
 
+	public void record(String path) {
+		Menus.addOpenRecentItem(path);
+		if(Recorder.record)
+			Recorder.record("open",path);
+	}
 }
