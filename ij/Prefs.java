@@ -112,6 +112,18 @@ public class Prefs {
 		return null;
 	}
 
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
+
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
 			return PROPS_NAME+" not found in ij.jar";
@@ -260,7 +272,7 @@ public class Prefs {
 			NewImage.savePreferences(prefs);
 			String path = prefsDir+separator+PREFS_NAME;
 			savePrefs(prefs, path);
-		} catch (Exception e) {
+		} catch (Throwable t) {
 			//CharArrayWriter caw = new CharArrayWriter();
 			//PrintWriter pw = new PrintWriter(caw);
 			//e.printStackTrace(pw);
@@ -383,7 +395,7 @@ public class Prefs {
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 		PrintWriter pw = new PrintWriter(bos);
-		pw.println("# ImageJA "+ImageJ.VERSION+" Preferences");
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
 		pw.println("# "+new Date());
 		pw.println("");
 		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {

@@ -37,7 +37,11 @@ public class StackEditor implements PlugIn {
 		if (!imp.lock())
 			return;
 		ImageStack stack = imp.getStack();
-		if (stack.getSize()==1) stack.setSliceLabel(null, 1);
+		if (stack.getSize()==1) {
+			String label = stack.getSliceLabel(1);
+			if (label!=null && label.indexOf("\n")!=-1)
+				stack.setSliceLabel(null, 1);
+		}
 		ImageProcessor ip = imp.getProcessor();
 		int n = imp.getCurrentSlice();
 		if (IJ.altKeyDown())
@@ -109,11 +113,7 @@ public class StackEditor implements PlugIn {
             if (info!=null) label += "\n" + info;
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			ImageWindow win = image[i].getWindow();
-			if (win!=null)
-				win.close();
-			else if (Interpreter.isBatchMode())
-				Interpreter.removeBatchModeImage(image[i]);
+			image[i].close();
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
