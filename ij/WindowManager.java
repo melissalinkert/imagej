@@ -23,6 +23,11 @@ public class WindowManager {
 
 	/** Makes the specified image active. */
 	public synchronized static void setCurrentWindow(ImageWindow win) {
+		setCurrentWindow(win,false);
+	}
+
+	/** Makes the specified image active. */
+	public synchronized static void setCurrentWindow(ImageWindow win,boolean suppressRecording) {
 		if (win==null || win.isClosed() || win.getImagePlus()==null) // deadlock-"wait to lock"
 			return;
 		setWindow(win);
@@ -44,6 +49,8 @@ public class WindowManager {
 		}
 		Undo.reset();
 		currentWindow = win;
+		if (!suppressRecording && Recorder.record)
+			Recorder.record("selectWindow", win.getTitle());
 		Menus.updateMenus();
 	}
 	
@@ -191,9 +198,9 @@ public class WindowManager {
 		if (imp==null) return;
 		checkForDuplicateName(imp);
 		imageList.addElement(win);
-        Menus.addWindowMenuItem(imp);
-        setCurrentWindow(win);
-    }
+		Menus.addWindowMenuItem(imp);
+		setCurrentWindow(win,true);
+	}
 
 	static void checkForDuplicateName(ImagePlus imp) {
 		if (checkForDuplicateName) {
@@ -202,7 +209,7 @@ public class WindowManager {
 				imp.setTitle(getUniqueName(name));
 		} 
 		checkForDuplicateName = false;
-    }
+	}
 
 	static boolean isDuplicateName(String name) {
 		int n = imageList.size();
@@ -386,8 +393,6 @@ public class WindowManager {
 					MenuItem mi = Menus.window.getItem(j);
 					((CheckboxMenuItem)mi).setState((j-start)==index);						
 				}
-				if (Recorder.record)
-					Recorder.record("selectWindow", title);
 				break;
 			}
 		}
