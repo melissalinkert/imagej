@@ -1,5 +1,5 @@
 /*
- * This plugin implements the Edit/Selection/Create Mask command.
+ * This plugin implements the Edit/Selection/From Mask command.
  * It is based on a proposal by Tom Larkworthy.
  * Written and public domained in June 2006 by Johannes E. Schindelin
  */
@@ -19,20 +19,24 @@ import java.util.ArrayList;
 public class ThresholdToSelection implements PlugInFilter {
 	ImagePlus image;
 	ImageProcessor ip;
-	float min, max;
+	double min, max;
 	int w, h;
+    boolean isFloat;
 
 	public void run(ImageProcessor ip) {
 		this.ip = ip;
-		min = (float)ip.getMinThreshold();
-		max = (float)ip.getMaxThreshold();
+		min = ip.getMinThreshold();
+		max = ip.getMaxThreshold();
+
 		w = ip.getWidth();
 		h = ip.getHeight();
-		image.setRoi(getRoi());
+        isFloat = ip instanceof FloatProcessor;
+
+		image.setRoi(getShapeRoi());
 	}
 
 	final boolean selected(int x, int y) {
-		float v = ip.getf(x,y);
+		double v = isFloat?ip.getPixelValue(x,y):ip.getPixel(x,y);
 		return v>=min && v<=max;
 	}
 
@@ -104,41 +108,13 @@ public class ThresholdToSelection implements PlugInFilter {
 		}
 
 		public Polygon getPolygon() {
-			// optimize out long straight lines
-			int i, j=first+1;
-			for (i=first+1; i+1<last; j++) {
-				int x1 = x[j] - x[j - 1];
-				int y1 = y[j] - y[j - 1];
-				int x2 = x[j + 1] - x[j];
-				int y2 = y[j + 1] - y[j];
-				if (x1 * y2 == x2 * y1) {
-					// merge i + 1 into i
-					last--;
-					continue;
-				}
-				if (i != j) {
-					x[i] = x[j];
-					y[i] = y[j];
-				}
-				i++;
-			}
-			// wraparound
-			int x1 = x[j] - x[j-1];
-			int y1 = y[j] - y[j-1];
-			int x2 = x[first] - x[j];
-			int y2 = y[first] - y[j];
-			if (x1*y2==x2*y1)
-				last--;
-			else {
-				x[i] = x[j];
-				y[i] = y[j];
-			}
+			// TODO: optimize out long straight lines
 			int count = last - first;
-			int[] xNew = new int[count];
-			int[] yNew = new int[count];
-			System.arraycopy(x, first, xNew, 0, count);
-			System.arraycopy(y, first, yNew, 0, count);
-			return new Polygon(xNew, yNew, count);
+			int[] x1 = new int[count];
+			int[] y1 = new int[count];
+			System.arraycopy(x, first, x1, 0, count);
+			System.arraycopy(y, first, y1, 0, count);
+			return new Polygon(x1, y1, count);
 		}
 
 		public String toString() {
@@ -160,13 +136,11 @@ public class ThresholdToSelection implements PlugInFilter {
 	 * outline[x] is the outline which is currently unclosed at the
 	 * lower right corner of the previous row.
 	 */
-	Roi getRoi() {
-		IJ.showStatus("Converting threshold to selection");
+	ShapeRoi getShapeRoi() {
 		boolean[] prevRow, thisRow;
 		ArrayList polygons = new ArrayList();
 		Outline[] outline;
-		int progressInc = Math.max(h/50, 1);
-		
+
 		prevRow = new boolean[w + 2];
 		thisRow = new boolean[w + 2];
 		outline = new Outline[w + 1];
@@ -270,21 +244,16 @@ public class ThresholdToSelection implements PlugInFilter {
 					}
 				}
 			}
-			if ((y&progressInc)==0) IJ.showProgress(y + 1, h + 1);
+			IJ.showProgress(y + 1, h + 1);
 		}
 
-		//IJ.showStatus("Creating GeneralPath");
+		IJ.showStatus("Turning into path");
+
 		GeneralPath path = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
 		for (int i = 0; i < polygons.size(); i++)
 			path.append((Polygon)polygons.get(i), false);
 
-		ShapeRoi shape = new ShapeRoi(path);
-		Roi roi = shape!=null?shape.shapeToRoi():null; // try to convert to non-composite ROI
-		IJ.showProgress(1,1);
-		if (roi!=null)
-			return roi;
-		else
-			return shape;
+		return new ShapeRoi(path);
 	}
 
 	public int setup(String arg, ImagePlus imp) {
