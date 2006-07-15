@@ -39,7 +39,7 @@ public class Prefs {
 	private static final int USE_POINTER=1, ANTIALIASING=2, INTERPOLATE=4, ONE_HUNDRED_PERCENT=8,
 		BLACK_BACKGROUND=16, JFILE_CHOOSER=32, UNUSED=64, BLACK_CANVAS=128, WEIGHTED=256, 
 		AUTO_MEASURE=512, REQUIRE_CONTROL=1024, USE_INVERTING_LUT=2048, ANTIALIASED_TOOLS=4096,
-		INTEL_BYTE_ORDER=8192;  
+		INTEL_BYTE_ORDER=8192, DOUBLE_BUFFER=16384;  
     public static final String OPTIONS = "prefs.options";
 
 	/** file.separator system property */
@@ -72,6 +72,8 @@ public class Prefs {
 	public static boolean antialiasedTools;
 	/** Export Raw using little-endian byte order. */
 	public static boolean intelByteOrder;
+	/** Double buffer display of selections. */
+	public static boolean doubleBuffer;
 
 	static Properties ijPrefs = new Properties();
 	static Properties props = new Properties(ijPrefs);
@@ -111,6 +113,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -289,6 +303,7 @@ public class Prefs {
 		useInvertingLut = (options&USE_INVERTING_LUT)!=0;
 		antialiasedTools = (options&ANTIALIASED_TOOLS)!=0;
 		intelByteOrder = (options&INTEL_BYTE_ORDER)!=0;
+		doubleBuffer = (options&DOUBLE_BUFFER)!=0;
 	}
 
 	static void saveOptions(Properties prefs) {
@@ -298,7 +313,7 @@ public class Prefs {
 			+ (blackCanvas?BLACK_CANVAS:0) + (weightedColor?WEIGHTED:0) 
 			+ (pointAutoMeasure?AUTO_MEASURE:0) + (requireControlKey?REQUIRE_CONTROL:0)
 			+ (useInvertingLut?USE_INVERTING_LUT:0) + (antialiasedTools?ANTIALIASED_TOOLS:0)
-			+ (intelByteOrder?INTEL_BYTE_ORDER:0);
+			+ (intelByteOrder?INTEL_BYTE_ORDER:0) + (doubleBuffer?DOUBLE_BUFFER:0);
 		prefs.put(OPTIONS, Integer.toString(options));
 	}
 
@@ -383,7 +398,7 @@ public class Prefs {
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 		PrintWriter pw = new PrintWriter(bos);
-		pw.println("# ImageJA "+ImageJ.VERSION+" Preferences");
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
 		pw.println("# "+new Date());
 		pw.println("");
 		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {
