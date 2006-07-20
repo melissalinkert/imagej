@@ -91,15 +91,6 @@ public class Compiler implements PlugIn, FilenameFilter {
 		return compiled;
 	 }
 
-       public static boolean compileFile(String path) {
-	       Compiler compiler = new Compiler();
-               if(!compiler.isJavac())
-                       return false;
-               return compiler.compile(path);
-         
-       }
-
-
 	boolean areErrors(String s) {
 		boolean errors = s!=null && s.length()>0;
 		if (errors && s.startsWith("Note: sun.tools.javac") && s.indexOf("error")==-1)
@@ -135,7 +126,7 @@ public class Compiler implements PlugIn, FilenameFilter {
 						IJ.error("File name must end with \".java\" or \".class\".");
 						okay = false;
 					}
-				} else if (!(lcName.endsWith(".java")||lcName.endsWith("txt"))) {
+				} else if (!(lcName.endsWith(".java")||lcName.endsWith(".txt")||lcName.endsWith(".ijm"))) {
 					IJ.error("File name must end with \".java\" or \".txt\".");
 					okay = false;
 				}
