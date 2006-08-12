@@ -520,7 +520,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -788,7 +788,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1306,6 +1306,14 @@ public class IJ {
 	public static ClassLoader getClassLoader() {
 		if (classLoader==null) {
 			String pluginsDir = Menus.getPlugInsPath();
+			if (pluginsDir==null) {
+				String home = System.getProperty("plugins.dir");
+				if (home!=null) {
+					if (!home.endsWith(Prefs.separator)) home+=Prefs.separator;
+					pluginsDir = home+"plugins"+Prefs.separator;
+					if (!(new File(pluginsDir)).isDirectory()) pluginsDir = home;
+				}
+			}
 			if (pluginsDir==null)
 				return ClassLoader.getSystemClassLoader();
 			else
@@ -1318,6 +1326,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
