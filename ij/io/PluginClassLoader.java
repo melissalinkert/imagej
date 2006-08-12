@@ -30,6 +30,7 @@ public class PluginClassLoader extends ClassLoader {
      * @param path the path to the plugins directory.
      */
 	public PluginClassLoader(String path) {
+		super(Thread.currentThread().getContextClassLoader());
 		this.path = path;
 		jarFiles = new Vector();
 		//find all JAR files on the path and subdirectories
@@ -205,12 +206,29 @@ public class PluginClassLoader extends ClassLoader {
      *        resolveIt a boolean (should almost always be true)
      */
     public synchronized Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
+		return loadClass(className, resolveIt, false);
+    }
+
+    /**
+     * Returns a Class from the path or JAR files. Classes are resolved if resolveIt is true. The cache is ignored if forceLoad is true.
+     * @param className a String class name without the .class extension.
+     * @param resolveIt a boolean (should almost always be true)
+     * @param forceLoad a boolean (should almost always be false)
+     */
+    public synchronized Class loadClass(String className, boolean resolveIt, boolean forceLoad) throws ClassNotFoundException {
 
         Class   result;
         byte[]  classBytes;
 
         // try the local cache of classes
         result = (Class)cache.get(className);
+	if(forceLoad && result!=null) {
+		PluginClassLoader loader = new PluginClassLoader(path);
+		result = loader.loadClass(className, resolveIt);
+		cache.put(className,result);
+		return result;
+	}
+
         if (result != null) {
             return result;
         }
@@ -225,6 +243,13 @@ public class PluginClassLoader extends ClassLoader {
         // Try to load it from plugins directory
         classBytes = loadClassBytes(className);
 		//IJ.log("loadClass: "+ className + "  "+ (classBytes!=null?""+classBytes.length:"null"));
+		if (classBytes==null) {
+			result = getParent().loadClass(className);
+			if (result != null) {
+				//cache.put(className, result);
+				return result;
+			}
+		}
 		if (classBytes==null) {
 			//IJ.log("ClassNotFoundException");
 			throw new ClassNotFoundException(className);
