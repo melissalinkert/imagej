@@ -5,49 +5,36 @@
   contents = true;
   ignore = false;
   macros = false;
-  source = false;
   arg = getArgument;
   if (arg!="") {
       args = split(arg, "|");
-      if (args.length==5) {
+      if (args.length==4) {
           str = args[0];
           contents = parseInt(args[1]);
           ignore = parseInt(args[2]);
           macros = parseInt(args[3]);
-          source = parseInt(args[4]);
-       }
+      }
   }
   extensions = newArray(".java", ".txt", ".ijm", ".html");
-  IJdir = getDirectory("startup");
-  sourceExists = File.exists(IJdir+"source");
   Dialog.create("Search");
   Dialog.addString("", str, 20);
   Dialog.addCheckbox("Search Contents", contents);
   Dialog.addCheckbox("Ignore Case", ignore);
   Dialog.addCheckbox("Search Macros Folder", macros);
-  if (sourceExists)
-     Dialog.addCheckbox("Search Source Folder", source);
   Dialog.show();
   str = Dialog.getString();
   contents = Dialog.getCheckbox();
   ignore = Dialog.getCheckbox();
   macros = Dialog.getCheckbox();
-  dir1=""; dir2="";
-  if (sourceExists)
-     source = Dialog.getCheckbox();
   if (macros)
-      dir1 = getDirectory("macros");
-  else if (!source)
-      dir1 = getDirectory("Choose a Directory ");
-  if (source)
-      dir2 = IJdir+"source"+"/";
+    dir = getDirectory("macros");
+  else
+      dir = getDirectory("Choose a Directory ");
   if (ignore)
       str = toLowerCase(str);
-  count = 0;
-  if (dir1!="") find(dir1);
-  if (dir2!="") find(dir2);
+  find(dir);
   if (indexOf(str, "|")==-1)
-      return ""+str+"|"+contents+"|"+ignore+"|"+macros+"|"+source;
+      return ""+str+"|"+contents+"|"+ignore+"|"+macros;
   exit; 
 
   function find(dir) {
@@ -62,7 +49,6 @@
               if (ignore)
                   s2 = toLowerCase(s);
               if (indexOf(s2,str)!=-1) {
-                  count++;
                   print("");
                   print(dir+list[i]);
                   lines = split(s, "\n");
@@ -87,10 +73,6 @@
               }
           }
       }
-      if (count==1)
-          showStatus("1 match");
-      else
-          showStatus(count+" matches");
   }
 
   function valid(name) {
