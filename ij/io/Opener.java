@@ -52,8 +52,7 @@ public class Opener {
 			String path = directory+name;
 			error = false;
 			open(path);
-			if (!error)
-				record(path);
+			if (!error) Menus.addOpenRecentItem(path);
 		}
 	}
 
@@ -163,8 +162,6 @@ public class Opener {
 					break;
 			}
 		}
-		if(!error)
-			record(path);
 	}
 
 	/** Attempts to open the specified file as a tiff, bmp, dicom, fits,
@@ -210,6 +207,10 @@ public class Opener {
 				if (imp.getWidth()!=0) return imp; else return null;
 			case UNKNOWN: case TEXT:
 				// Call HandleExtraFileTypes plugin to see if it can handle unknown format
+				if (path.endsWith("Thumbs.db")) {
+					fileType = CUSTOM;
+					return null;
+				}
 				imp = (ImagePlus)IJ.runPlugIn("HandleExtraFileTypes", path);
 				if (imp==null) return null;
 				if (imp.getWidth()>0 && imp.getHeight()>0) {
@@ -698,9 +699,4 @@ public class Opener {
 		silentMode = mode;
 	}
 
-	public void record(String path) {
-		Menus.addOpenRecentItem(path);
-		if(Recorder.record)
-			Recorder.record("open",path);
-	}
 }
