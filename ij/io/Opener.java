@@ -52,8 +52,7 @@ public class Opener {
 			String path = directory+name;
 			error = false;
 			open(path);
-			if (!error)
-				record(path);
+			if (!error) Menus.addOpenRecentItem(path);
 		}
 	}
 
@@ -154,8 +153,9 @@ public class Opener {
 					break;
 				case UNKNOWN:
 					String msg =
-						"File is not in TIFF, JPEG, GIF, BMP, DICOM, FITS, PGM, \n"
-						+"ZIP, LUT, ROI or text format, or it was not found.";
+						"File is not in TIFF, JPEG, GIF, BMP, DICOM, FITS, PGM, \n"+
+						"ZIP, LUT, ROI or text format, a reader plugin for this\n"+
+						"format is not installed, or it was not found.";
 					if (path!=null && path.length()<=64)
 						msg += " \n  \n   "+path;
 					IJ.error("Opener", msg);
@@ -163,8 +163,6 @@ public class Opener {
 					break;
 			}
 		}
-		if(!error)
-			record(path);
 	}
 
 	/** Attempts to open the specified file as a tiff, bmp, dicom, fits,
@@ -702,9 +700,4 @@ public class Opener {
 		silentMode = mode;
 	}
 
-	public void record(String path) {
-		Menus.addOpenRecentItem(path);
-		if(Recorder.record)
-			Recorder.record("open",path);
-	}
 }
