@@ -906,7 +906,7 @@ public class Interpreter implements MacroConstants {
 		if (v==null) return false;
 		if (pgm.code[pc+2]=='[') {
 			Variable[] array = v.getArray();
-			if (array!=null)
+			if (array!=null && array.length>0)
 				return array[0].getType()==Variable.STRING;
 		}
 		return v.getType()==Variable.STRING;
@@ -1544,8 +1544,8 @@ public class Interpreter implements MacroConstants {
 
 	public static void removeBatchModeImage(ImagePlus imp) {
 		if (imageTable!=null && imp!=null) {
-			//IJ.log("remove: "+imp+"  "+imageTable.size());
 			int index = imageTable.indexOf(imp);
+			//IJ.log("remove: "+imp+"  "+imageTable.size());
 			if (index!=-1)
 				imageTable.removeElementAt(index);
 		}
@@ -1588,23 +1588,7 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
-	public void setLocalVariable(String key,String value) {
-	    Symbol sym=pgm.lookupWord(key);
-	    int symTabAddress;
-	    if(sym==null) {
-		sym=new Symbol(MacroConstants.WORD,key);
-		pgm.addSymbol(sym);
-		symTabAddress=pgm.stLoc-1;
-	    } else
-		symTabAddress=pgm.symTabLoc;
-	    Variable var=lookupLocalVariable(symTabAddress);
-	    if(var==null) {
-		push(symTabAddress, 0.0, value, this);
-	    } else
-		var.setString(value);
-	}
-
-} // class Interpreter
+ } // class Interpreter
 
 
 

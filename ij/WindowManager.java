@@ -23,11 +23,6 @@ public class WindowManager {
 
 	/** Makes the image contained in the specified window the active image. */
 	public synchronized static void setCurrentWindow(ImageWindow win) {
-		setCurrentWindow(win,false);
-	}
-
-	/** Makes the specified image active. */
-	public synchronized static void setCurrentWindow(ImageWindow win,boolean suppressRecording) {
 		if (win==null || win.isClosed() || win.getImagePlus()==null) // deadlock-"wait to lock"
 			return;
 		setWindow(win);
@@ -49,8 +44,6 @@ public class WindowManager {
 		}
 		Undo.reset();
 		currentWindow = win;
-		if (!suppressRecording && Recorder.record)
-			Recorder.record("selectWindow", win.getTitle());
 		Menus.updateMenus();
 	}
 	
@@ -134,32 +127,17 @@ public class WindowManager {
 		the ID is zero. */
 	public synchronized static ImagePlus getImage(int imageID) {
 		//if (IJ.debugMode) IJ.write("ImageWindow.getImage");
+		if (imageID>0)
+			imageID = getNthImageID(imageID);
 		if (imageID==0 || getImageCount()==0)
 			return null;
-		if (imageID<0) {
-			ImagePlus imp2 = Interpreter.getBatchModeImage(imageID);
-			if (imp2!=null) return imp2;
-		}
-		if (imageID>0) {
-            if (Interpreter.isBatchMode()) {
-                int[] list = getIDList();
-                if (imageID>list.length)
-                	return null;
-                else
-                	return getImage(list[imageID-1]);
-            } else {
-            	if (imageID>imageList.size()) return null;
-                ImageWindow win = (ImageWindow)imageList.elementAt(imageID-1);
-                if (win!=null)
-                    return win.getImagePlus();
-                else
-                    return null;
-            }
-		}
+		ImagePlus imp2 = Interpreter.getBatchModeImage(imageID);
+		if (imp2!=null)
+			return imp2;
 		ImagePlus imp = null;
 		for (int i=0; i<imageList.size(); i++) {
 			ImageWindow win = (ImageWindow)imageList.elementAt(i);
-			ImagePlus imp2 = win.getImagePlus();
+			imp2 = win.getImagePlus();
 			if (imageID==imp2.getID()) {
 				imp = imp2;
 				break;
@@ -167,6 +145,27 @@ public class WindowManager {
 		}
 		return imp;
 	}
+	
+	/** Returns the ID of the Nth open image. Returns zero if n<=0 
+		or n greater than the number of open image windows. */
+	public synchronized static int getNthImageID(int n) {
+			if (n<=0) return 0;
+            if (Interpreter.isBatchMode()) {
+                int[] list = getIDList();
+                if (n>list.length)
+                	return 0;
+                else
+                	return list[n-1];
+            } else {
+            	if (n>imageList.size()) return 0;
+                ImageWindow win = (ImageWindow)imageList.elementAt(n-1);
+                if (win!=null)
+                    return win.getImagePlus().getID();
+                else
+                    return 0;
+            }
+	}
+
 	
 	/** Returns the first image that has the specified title or null if it is not found. */
 	public synchronized static ImagePlus getImage(String title) {
@@ -198,9 +197,9 @@ public class WindowManager {
 		if (imp==null) return;
 		checkForDuplicateName(imp);
 		imageList.addElement(win);
-		Menus.addWindowMenuItem(imp);
-		setCurrentWindow(win,true);
-	}
+        Menus.addWindowMenuItem(imp);
+        setCurrentWindow(win);
+    }
 
 	static void checkForDuplicateName(ImagePlus imp) {
 		if (checkForDuplicateName) {
@@ -209,7 +208,7 @@ public class WindowManager {
 				imp.setTitle(getUniqueName(name));
 		} 
 		checkForDuplicateName = false;
-	}
+    }
 
 	static boolean isDuplicateName(String name) {
 		int n = imageList.size();
@@ -243,6 +242,11 @@ public class WindowManager {
         }
         return name;
 	}
+
+	/** If 'name' is not unique, adds -1, -2, etc. as needed to make it unique. */
+	public static String makeUniqueName(String name) {
+    	return isDuplicateName(name)?getUniqueName(name):name;
+    }
 
 	/** Removes the specified window from the Window menu. */
 	public synchronized static void removeWindow(Frame win) {
@@ -395,6 +399,8 @@ public class WindowManager {
 					MenuItem mi = Menus.window.getItem(j);
 					((CheckboxMenuItem)mi).setState((j-start)==index);						
 				}
+				if (Recorder.record)
+					Recorder.record("selectWindow", title);
 				break;
 			}
 		}
