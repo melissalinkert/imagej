@@ -113,11 +113,7 @@ public class StackEditor implements PlugIn {
             if (info!=null) label += "\n" + info;
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			ImageWindow win = image[i].getWindow();
-			if (win!=null)
-				win.close();
-			else if (Interpreter.isBatchMode())
-				Interpreter.removeBatchModeImage(image[i]);
+			image[i].close();
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
@@ -142,7 +138,7 @@ public class StackEditor implements PlugIn {
 		Calibration cal = imp.getCalibration();
 		for (int i=1; i<=size; i++) {
 			String label = stack.getShortSliceLabel(i);
-			String title = label!=null&&!label.equals("")?label:getDigits(i);
+			String title = label!=null&&!label.equals("")?label:getTitle(imp, i);
 			ImagePlus imp2 = new ImagePlus(title, stack.getProcessor(i));
 			imp2.setCalibration(cal);
 			imp2.show();
@@ -156,9 +152,9 @@ public class StackEditor implements PlugIn {
 		imp.unlock();
 	}
 
-	String getDigits(int n) {
+	String getTitle(ImagePlus imp, int n) {
 		String digits = "00000000"+n;
-		return digits.substring(digits.length()-4,digits.length());
+		return imp.getShortTitle()+"-"+digits.substring(digits.length()-4,digits.length());
 	}
 
 }

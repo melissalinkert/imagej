@@ -60,9 +60,9 @@ public class Compiler implements PlugIn, FilenameFilter {
 				javac = new sun.tools.javac.Main(output, "javac");
 			}
 		} catch (NoClassDefFoundError e) {
-			IJ.error("This JVM does not include the javac compiler. Javac is\n"
-					+"included with the Windows, OS X and Linux versions of\n"
- 					+"ImageJ.");
+			IJ.error("This JVM does not include the javac compiler.\n"
+					+"Javac is included with the Windows and Linux\n"
+ 					+"versions of ImageJ that are bundled with Java.");
  			return false;
 		}
 		return true;
@@ -90,15 +90,6 @@ public class Compiler implements PlugIn, FilenameFilter {
 			IJ.showStatus("done");
 		return compiled;
 	 }
-
-       public static boolean compileFile(String path) {
-	       Compiler compiler = new Compiler();
-               if(!compiler.isJavac())
-                       return false;
-               return compiler.compile(path);
-         
-       }
-
 
 	boolean areErrors(String s) {
 		boolean errors = s!=null && s.length()>0;
