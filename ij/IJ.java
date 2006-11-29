@@ -59,8 +59,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -177,6 +175,7 @@ public class IJ {
 					{wrongType(capabilities, cmd); return;}
 				break;
 		}
+		boolean changes = (capabilities&PlugInFilter.NO_CHANGES)==0;
 		if (roi!=null) roi.endPaste();
 		int slices = imp.getStackSize();
 		boolean doesStacks = (capabilities&PlugInFilter.DOES_STACKS)!=0;
@@ -202,6 +201,7 @@ public class IJ {
 			((PlugInFilter)theFilter).run(ip);
 			if ((capabilities&PlugInFilter.SUPPORTS_MASKING)!=0)
 				ip.reset(ip.getMask());  //restore image outside irregular roi
+			if (changes) ip.resetBinaryThreshold();
 			IJ.showTime(imp, imp.getStartTime(), cmd + ": ", 1);
 		} else {
        		Undo.reset(); // can't undo stack operations
@@ -233,15 +233,12 @@ public class IJ {
 				IJ.showProgress(i, n);
 				if (IJ.escapePressed()) {IJ.beep(); break;}
 			}
-			if (roi!=null)
-				imp.setRoi(roi);
+			if (roi!=null) imp.setRoi(roi);
 			IJ.showProgress(1.0);
 			IJ.showTime(imp, imp.getStartTime(), cmd + ": ", n);
 		}
-		if ((capabilities&PlugInFilter.NO_CHANGES)==0) {
+		if (changes) {
 			imp.changes = true;
-			//if (slices>1 && (type==ImagePlus.GRAY16||type==ImagePlus.GRAY32))
-			//	imp.getProcessor().resetMinAndMax();
 	 		imp.updateAndDraw();
 	 	}
 		ImageWindow win = imp.getWindow();
@@ -274,9 +271,6 @@ public class IJ {
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
 		}
 		catch (NoClassDefFoundError e) {
-			int dotIndex = className.indexOf('.');
-			if (dotIndex >= 0)
-				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
 		}
@@ -531,7 +525,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -799,7 +793,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1348,6 +1342,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
