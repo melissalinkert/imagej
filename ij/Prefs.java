@@ -114,6 +114,18 @@ public class Prefs {
 		return null;
 	}
 
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
+
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
 			return PROPS_NAME+" not found in ij.jar";
@@ -130,9 +142,14 @@ public class Prefs {
 		return null;
 	}
 
-	/** Returns the URL for the ImageJ sample images. */
+	/** Returns the URL of the directory that contains the ImageJ sample images. */
 	public static String getImagesURL() {
 		return imagesURL;
+	}
+
+	/** Sets the URL of the directory that contains the ImageJ sample images. */
+	public static void setImagesURL(String url) {
+		imagesURL = url;
 	}
 
 	/** Returns the path to the ImageJ directory. */
@@ -386,7 +403,7 @@ public class Prefs {
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 		PrintWriter pw = new PrintWriter(bos);
-		pw.println("# ImageJA "+ImageJ.VERSION+" Preferences");
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
 		pw.println("# "+new Date());
 		pw.println("");
 		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {

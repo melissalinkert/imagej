@@ -6,7 +6,7 @@
 
 # Note that commands must be unique.
 
-# Version 1.37
+# Version 1.38
 
 # Popup Menu
 popup01=Undo
@@ -22,13 +22,11 @@ popup10=-
 popup11=Rename...
 popup12=Duplicate...
 
-
 # Plugins installed in the File/New submenu
 new01="Image...[n]",ij.plugin.Commands("new")
 new02="Text Window[N]",ij.plugin.NewPlugin("text")
 new03="Internal Clipboard",ij.plugin.Clipboard("show")
 new04="System Clipboard[V]",ij.plugin.Clipboard("showsys")
-
 # Plugins installed in the File/Import submenu
 import01="Image Sequence...",ij.plugin.FolderOpener
 import02="Raw...",ij.plugin.Raw
@@ -59,7 +57,6 @@ save14="XY Coordinates...",ij.plugin.filter.XYWriter
 save15="Measurements...",ij.plugin.MeasurementsWriter
 save16="Text...",ij.plugin.TextWriter
 #save17="QuickTime Movie... ",QT_Movie_Writer
-
 # Plugins installed in the Edit/Selection submenu
 selection01="Select All[a]",ij.plugin.Selection("all")
 selection02="Select None[A]",ij.plugin.Selection("none")
@@ -104,7 +101,6 @@ color03="RGB Merge...",ij.plugin.RGBStackMerge
 color04="Show LUT",ij.plugin.filter.LutViewer
 color05="Edit LUT...",ij.plugin.LUT_Editor
 color06="Color Picker...[K]",ij.plugin.ColorPicker
-
 # Plugins installed in the Image/Stacks submenu
 stacks01="Add Slice",ij.plugin.StackEditor("add")
 stacks02="Delete Slice",ij.plugin.StackEditor("delete")
@@ -138,7 +134,6 @@ zoom03="View 100%",ij.plugin.Zoom("100%")
 zoom04="Original Scale",ij.plugin.Zoom("orig")
 zoom05="To Selection",ij.plugin.Zoom("to")
 #zoom06="Maximize",ij.plugin.Zoom("max")
-
 # Plugins installed in the Image/Lookup Tables submenu
 lookup01="Invert LUT",ij.plugin.LutLoader("invert")
 lookup02="Apply LUT",ij.plugin.filter.LutApplier
@@ -177,7 +172,7 @@ shadows10="Shadows Demo",ij.plugin.filter.Shadows("demo")
 # Plugins installed in the Process/Binary submenu
 binary01="Make Binary",ij.plugin.Thresholder
 binary02="Convert to Mask",ij.plugin.Thresholder("mask")
-binary03="Find Maxima...",ij.plugin.filter.MaximaFinder
+binary03="Find Maxima...",ij.plugin.filter.MaximumFinder
 binary04=-
 binary05="Erode",ij.plugin.filter.Binary("erode")
 binary06="Dilate",ij.plugin.filter.Binary("dilate")
@@ -212,7 +207,6 @@ math14="Square Root",ij.plugin.filter.ImageMath("sqrt")
 math15="Reciprocal",ij.plugin.filter.ImageMath("reciprocal")
 math16="NaN Background",ij.plugin.filter.ImageMath("nan")
 math17="Abs",ij.plugin.filter.ImageMath("abs")
-
 
 # Plugins installed in the Process/FFT submenu
 fft01="FFT",ij.plugin.FFT("fft")
@@ -255,7 +249,6 @@ tools04="Curve Fitting...",ij.plugin.frame.Fitter
 tools05="ROI Manager...",ij.plugin.frame.RoiManager
 tools06="Scale Bar...",ij.plugin.ScaleBar
 tools07="Calibration Bar...",ij.plugin.filter.CalibrationBar
-tools08="Find Maxima...",ij.plugin.filter.MaximaFinder
 
 # Plugins installed in the Plugins menu
 plug-in01=>"Macros"
@@ -264,8 +257,7 @@ plug-in03=>"Utilities"
 plug-in04="New... ",ij.plugin.NewPlugin
 plug-in05="Edit...",ij.plugin.Compiler("edit")
 plug-in06="Compile and Run...",ij.plugin.Compiler
-plug-in07="Install PlugIn...",ij.plugin.PlugInInstaller
-plug-in08=-
+plug-in07=-
 #plug-in08=>"User_Plugins"
 
 # Install user plugins located in ij.jar
@@ -289,7 +281,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Commands...",ij.plugin.CommandLister
 utilities04="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities05="Threads...",ij.plugin.ThreadLister
@@ -304,11 +296,39 @@ about01="Inverter...",Inverter_("about")
 about02="MemoryMonitor...",ij.plugin.MemoryMonitor("about")
 
 # URL of directory containing the sample images
-# Used when Image/J is running as an application,
+# Used when ImageJ is running as an application,
 # otherwise applet.getDocumentBase()+"/images" is used.
-images.location=http://imageja.sf.net/demoImages/
+images.location=http://rsb.info.nih.gov/ij/images/
 
 # Images installed in the Open Samples submenu
 # RawReader expects a string with "name width height nImages bitsPerPixel offset [white]"
-open01="Steve",ij.plugin.URLOpener("steve.jpg")
+open01="2D Gel (38K)",ij.plugin.URLOpener("2D_Gel.jpg")
+open02="AuPbSn 40 (56K)",ij.plugin.URLOpener("AuPbSn40.jpg")
+open03="Bat Cochlea Volume (19K)",ij.plugin.URLOpener("bat-cochlea-volume.zip")
+open04="Blobs (25K)[B]",ij.plugin.URLOpener("blobs.gif")
+open05="Boats (356K)",ij.plugin.URLOpener("boats.gif")
+open06="Bridge (174K)",ij.plugin.URLOpener("bridge.gif")
+open07="Cell Colony (31K)",ij.plugin.URLOpener("Cell_Colony.jpg")
+open08="Ceretec Sagittals (12K)",ij.plugin.URLOpener("cer-sag.gif")
+open09="Clown (14K)",ij.plugin.URLOpener("clown.jpg")
+open10="CT (420K, signed 16-bits)",ij.plugin.URLOpener("ct.zip")
+open11="Diatoms (60K)",ij.plugin.URLOpener("Diatoms.jpg")
+open12="Dot Blot (7K)",ij.plugin.URLOpener("Dot_Blot.jpg")
+open13="Embryos (42K)",ij.plugin.URLOpener("embryos.jpg")
+open14="Enhance Me (25K)",ij.plugin.URLOpener("enhance-me.gif")
+open15="Fibroblast Cell Nucleus (17K)",ij.plugin.URLOpener("Fibroblast_Cell_Nucleus.jpg")
+open16="Fluorescent Cells (58K)",ij.plugin.URLOpener("FluorescentCells.jpg")
+open17="Gel (105K)",ij.plugin.URLOpener("gel.gif")
+open18="Leaf (36K)",ij.plugin.URLOpener("leaf.jpg")
+open19="Lena (68K)",ij.plugin.URLOpener("lena.jpg")
+open20="Line Graph (21K)",ij.plugin.URLOpener("LineGraph.jpg")
+open21="Mandrill (70K)",ij.plugin.URLOpener("baboon.jpg")
+open22="MRI Stack (528K)",ij.plugin.URLOpener("mri-stack.zip")
+open23="M51 Galaxy (177K, 16-bits)",ij.plugin.URLOpener("m51.zip")
+open24="M51 Galaxy  (116K, RGB)",ij.plugin.URLOpener("m51.jpg")
+open25="Particles (75K)",ij.plugin.URLOpener("particles.gif")
+open26="PET Scan (11K)",ij.plugin.URLOpener("PET_Scan.gif")
+open27="Scala Media Stack (48K)",ij.plugin.URLOpener("scala-media.zip")
+open28="TEM Filter (112K)",ij.plugin.URLOpener("TEM_filter_sample.jpg")
+open29="Tree Rings (48K)",ij.plugin.URLOpener("Tree_Rings.jpg")
 
