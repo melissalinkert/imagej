@@ -1,7 +1,6 @@
 package ij.plugin;
 import java.awt.*;
 import java.io.*;
-import java.util.zip.GZIPInputStream;
 import ij.*;
 import ij.io.*;
 import ij.process.*;
@@ -70,34 +69,38 @@ class FitsDecoder {
         fi.height = 0;
         fi.offset = 0;
 
-        InputStream is = new FileInputStream(directory + fileName);
-        if (fileName.toLowerCase().endsWith(".gz")) is = new GZIPInputStream(is);
-        f = new DataInputStream(is);
+        f = new DataInputStream(new FileInputStream(directory + fileName));
         String line = getString(80);
         info.append(line+"\n");
         if (!line.startsWith("SIMPLE"))
             {f.close(); return null;}
         int count = 1;
-        while ( true ) {
+        while ( true )
+        {
             count++;
             line = getString(80);
 			info.append(line+"\n");
-  
+
             // Cut the key/value pair
 			int index = line.indexOf ( "=" );
 
 			// Strip out comments
 			int commentIndex = line.indexOf ( "/", index );
 			if ( commentIndex < 0 )
+			{
 				commentIndex = line.length ();
+			}
 			
 			// Split that values
 			String key;
 			String value;
-			if ( index >= 0 ) {
+			if ( index >= 0 )
+			{
 				key = line.substring ( 0, index ).trim ();
 				value = line.substring ( index + 1, commentIndex ).trim ();
-			} else {
+			}
+			else
+			{
 				key = line.trim ();
 				value = "";
 			}
@@ -145,7 +148,7 @@ class FitsDecoder {
 
     String getString(int length) throws IOException {
         byte[] b = new byte[length];
-        f.readFully(b);
+        f.read(b);
         return new String(b);
     }
 

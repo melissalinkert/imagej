@@ -59,8 +59,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -273,9 +271,6 @@ public class IJ {
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
 		}
 		catch (NoClassDefFoundError e) {
-			int dotIndex = className.indexOf('.');
-			if (dotIndex >= 0)
-				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
 		}
@@ -530,7 +525,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -798,7 +793,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1169,8 +1164,7 @@ public class IJ {
 			o.open(path);
 		macroRunning = false;
 	}
-	
-	
+		
 	/** Open the specified file as a tiff, bmp, dicom, fits, pgm, gif 
 		or jpeg image and returns an ImagePlus object if successful.
 		Calls HandleExtraFileTypes plugin if the file type is not recognised.
@@ -1180,7 +1174,7 @@ public class IJ {
 	}
 
 	/** Saves an image, lookup table, selection or text window to the specified file path. 
-		The path must end in ".tif", ".jpg", ".gif", ".zip", ".raw", ".avi", ".bmp", "png", "pgm", ".lut", ".roi" or ".txt".  */
+		The path must end in ".tif", ".jpg", ".gif", ".zip", ".raw", ".avi", ".bmp", ".fits", ".pgm", ".png", ".lut", ".roi" or ".txt".  */
 	public static void save(String path) {
 		int dotLoc = path.lastIndexOf('.');
 		if (dotLoc!=-1)
@@ -1191,7 +1185,7 @@ public class IJ {
 
 	/* Saves the active image, lookup table, selection, measurement results, selection XY 
 		coordinates or text window to the specified file path. The format argument must be "tiff", 
-		"jpeg", "gif", "zip", "raw", "avi", "bmp", "png", "pgm", "text image", "lut", "selection", "measurements", 
+		"jpeg", "gif", "zip", "raw", "avi", "bmp", "fits", "pgm", "png", "text image", "lut", "selection", "measurements", 
 		"xy Coordinates" or "text".  If <code>path</code> is null or an emply string, a file
 		save dialog is displayed. */
  	public static void saveAs(String format, String path) {
@@ -1225,6 +1219,9 @@ public class IJ {
 		} else if (format.indexOf("bmp")!=-1) {
 			path = updateExtension(path, ".bmp");
 			format = "BMP...";
+		} else if (format.indexOf("fits")!=-1) {
+			path = updateExtension(path, ".fits");
+			format = "FITS...";
 		} else if (format.indexOf("png")!=-1) {
 			path = updateExtension(path, ".png");
 			format = "PNG...";
@@ -1347,6 +1344,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
