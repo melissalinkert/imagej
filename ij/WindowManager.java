@@ -23,18 +23,13 @@ public class WindowManager {
 
 	/** Makes the image contained in the specified window the active image. */
 	public synchronized static void setCurrentWindow(ImageWindow win) {
-		setCurrentWindow(win,false);
-	}
-
-	/** Makes the specified image active. */
-	public synchronized static void setCurrentWindow(ImageWindow win,boolean suppressRecording) {
 		if (win==null || win.isClosed() || win.getImagePlus()==null) // deadlock-"wait to lock"
 			return;
+		//IJ.log("setCurrentWindow: "+win.getImagePlus().getTitle()+" ("+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
 		setWindow(win);
 		tempCurrentImage = null;
 		if (win==currentWindow || imageList.size()==0)
 			return;
-		//IJ.log(win.getImagePlus().getTitle()+", previous="+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
 		if (currentWindow!=null) {
 			// free up pixel buffers AWT Image resources used by current window
 			ImagePlus imp = currentWindow.getImagePlus();
@@ -49,8 +44,6 @@ public class WindowManager {
 		}
 		Undo.reset();
 		currentWindow = win;
-		if (!suppressRecording && Recorder.record)
-			Recorder.record("selectWindow", win.getTitle());
 		Menus.updateMenus();
 	}
 	
@@ -206,9 +199,9 @@ public class WindowManager {
 		if (imp==null) return;
 		checkForDuplicateName(imp);
 		imageList.addElement(win);
-		Menus.addWindowMenuItem(imp);
-		setCurrentWindow(win,true);
-	}
+        Menus.addWindowMenuItem(imp);
+        setCurrentWindow(win);
+    }
 
 	static void checkForDuplicateName(ImagePlus imp) {
 		if (checkForDuplicateName) {
@@ -217,7 +210,7 @@ public class WindowManager {
 				imp.setTitle(getUniqueName(name));
 		} 
 		checkForDuplicateName = false;
-	}
+    }
 
 	static boolean isDuplicateName(String name) {
 		int n = imageList.size();
@@ -408,6 +401,8 @@ public class WindowManager {
 					MenuItem mi = Menus.window.getItem(j);
 					((CheckboxMenuItem)mi).setState((j-start)==index);						
 				}
+				if (Recorder.record)
+					Recorder.record("selectWindow", title);
 				break;
 			}
 		}

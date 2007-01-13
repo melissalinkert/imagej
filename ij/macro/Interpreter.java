@@ -47,9 +47,16 @@ public class Interpreter implements MacroConstants {
 	boolean calledMacro; // macros envoked by eval() or runMacro()
 	double[] rgbWeights;
 	boolean inPrint;
+	static String additionalFunctions;
 
 	/** Interprets the specified string. */
 	public void run(String macro) {
+		if (additionalFunctions!=null) {
+			if (!(macro.endsWith("\n")|| additionalFunctions.startsWith("\n")))
+				macro = macro + "\n" + additionalFunctions;
+			else
+				macro = macro + additionalFunctions;
+		}
 		Tokenizer tok = new Tokenizer();
 		Program pgm = tok.tokenize(macro);
 		if (pgm.hasVars)
@@ -1029,7 +1036,7 @@ public class Interpreter implements MacroConstants {
 		token = EOF;
 		tokenString = "";
 		IJ.showStatus("");
-		if (showingProgress) IJ.showProgress(0, 0);
+		IJ.showProgress(0, 0);
 		batchMode = false;
 		imageTable = null;
 		WindowManager.setTempCurrentImage(null);
@@ -1492,12 +1499,11 @@ public class Interpreter implements MacroConstants {
 		if (func.plot!=null) func.plot.show();
 		instance = null;
 		if (!calledMacro) {
+			if (batchMode) showingProgress = true;
 			batchMode = false;
 			imageTable = null;
 			WindowManager.setTempCurrentImage(null);
 		}
-		//if (!statusUpdated)
-		//	IJ.showStatus("");
 		if (showingProgress)
 			IJ.showProgress(0, 0);
 		if (keysSet) {
@@ -1602,21 +1608,14 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
-	public void setLocalVariable(String key,String value) {
-	    Symbol sym=pgm.lookupWord(key);
-	    int symTabAddress;
-	    if(sym==null) {
-		sym=new Symbol(MacroConstants.WORD,key);
-		pgm.addSymbol(sym);
-		symTabAddress=pgm.stLoc-1;
-	    } else
-		symTabAddress=pgm.symTabLoc;
-	    Variable var=lookupLocalVariable(symTabAddress);
-	    if(var==null) {
-		push(symTabAddress, 0.0, value, this);
-	    } else
-		var.setString(value);
-	}
+ 	/** The specified string, if not null, is added to strings passed to the run() method. */
+ 	public static void setAdditionalFunctions(String functions) {
+ 		additionalFunctions = functions;
+	} 
+
+ 	public static String getAdditionalFunctions() {
+ 		return additionalFunctions;
+	} 
 
 } // class Interpreter
 
