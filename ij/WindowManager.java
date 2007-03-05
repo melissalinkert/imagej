@@ -23,11 +23,6 @@ public class WindowManager {
 
 	/** Makes the image contained in the specified window the active image. */
 	public synchronized static void setCurrentWindow(ImageWindow win) {
-		setCurrentWindow(win,false);
-	}
-
-	/** Makes the specified image active. */
-	public synchronized static void setCurrentWindow(ImageWindow win,boolean suppressRecording) {
 		if (win==null || win.isClosed() || win.getImagePlus()==null) // deadlock-"wait to lock"
 			return;
 		//IJ.log("setCurrentWindow: "+win.getImagePlus().getTitle()+" ("+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
@@ -45,8 +40,6 @@ public class WindowManager {
 		}
 		Undo.reset();
 		currentWindow = win;
-		if (!suppressRecording && Recorder.record)
-			Recorder.record("selectWindow", win.getTitle());
 		Menus.updateMenus();
 	}
 	
@@ -202,9 +195,9 @@ public class WindowManager {
 		if (imp==null) return;
 		checkForDuplicateName(imp);
 		imageList.addElement(win);
-		Menus.addWindowMenuItem(imp);
-		setCurrentWindow(win,true);
-	}
+        Menus.addWindowMenuItem(imp);
+        setCurrentWindow(win);
+    }
 
 	static void checkForDuplicateName(ImagePlus imp) {
 		if (checkForDuplicateName) {
@@ -213,7 +206,7 @@ public class WindowManager {
 				imp.setTitle(getUniqueName(name));
 		} 
 		checkForDuplicateName = false;
-	}
+    }
 
 	static boolean isDuplicateName(String name) {
 		int n = imageList.size();
@@ -327,16 +320,20 @@ public class WindowManager {
 		return true;
     }
     
-	/** Activates the next window on the window list. */
+	/** Activates the next image window on the window list. */
 	public static void putBehind() {
 		if (IJ.debugMode) IJ.log("putBehind");
 		if(imageList.size()<1 || currentWindow==null)
 			return;
 		int index = imageList.indexOf(currentWindow);
-		index--;
-		if (index<0)
-			index = imageList.size()-1;
-		ImageWindow win = (ImageWindow)imageList.elementAt(index);
+		ImageWindow win;
+		int count = 0;
+		do {
+			index--;
+			if (index<0) index = imageList.size()-1;
+			win = (ImageWindow)imageList.elementAt(index);
+			if (++count==imageList.size()) return;
+		} while (win instanceof HistogramWindow || win instanceof PlotWindow);
 		setCurrentWindow(win);
 		win.toFront();
 		Menus.updateMenus();
@@ -405,6 +402,8 @@ public class WindowManager {
 					MenuItem mi = Menus.window.getItem(j);
 					((CheckboxMenuItem)mi).setState((j-start)==index);						
 				}
+				if (Recorder.record)
+					Recorder.record("selectWindow", title);
 				break;
 			}
 		}
