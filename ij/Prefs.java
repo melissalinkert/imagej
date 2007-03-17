@@ -96,9 +96,11 @@ public class Prefs {
 			homeDir = System.getProperty("user.dir");
 		String userHome = System.getProperty("user.home");
 		String osName = System.getProperty("os.name");
-		if (osName.indexOf("Windows",0)>-1)
+		if (osName.indexOf("Windows",0)>-1) {
 			prefsDir = homeDir; //ImageJ folder on Windows
-		else {
+			if (prefsDir.endsWith("Desktop"))
+				prefsDir = userHome;
+		} else {
 			prefsDir = userHome; // Mac Preferences folder or Unix home dir
 			if (IJ.isMacOSX())
 				prefsDir += "/Library/Preferences";
@@ -117,6 +119,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -147,6 +161,12 @@ public class Prefs {
 	/** Returns the path to the ImageJ directory. */
 	public static String getHomeDir() {
 		return homeDir;
+	}
+
+	/** Gets the path to the directory where the 
+		preferences file (IJPrefs.txt) is saved. */
+	public static String getPrefsDir() {
+		return prefsDir;
 	}
 
 	/** Sets the path to the ImageJ directory. */
@@ -424,7 +444,7 @@ public class Prefs {
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 		PrintWriter pw = new PrintWriter(bos);
-		pw.println("# ImageJA "+ImageJ.VERSION+" Preferences");
+		pw.println("# ImageJ "+ImageJ.VERSION+" Preferences");
 		pw.println("# "+new Date());
 		pw.println("");
 		for (Enumeration e=prefs.keys(); e.hasMoreElements();) {
