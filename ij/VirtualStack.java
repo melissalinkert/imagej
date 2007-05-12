@@ -10,9 +10,6 @@ public class VirtualStack extends ImageStack {
 	int nSlices;
 	String[] names;
 	
-	/** Default constructor. */
-	public VirtualStack() { }
-
 	/** Creates a new, empty virtual stack. */
 	public VirtualStack(int width, int height, ColorModel cm, String path) {
 		super(width, height, cm);
@@ -95,11 +92,6 @@ public class VirtualStack extends ImageStack {
 		return imp.getProcessor();
 	 }
  
-	/** Currently not implemented */
-	public int saveChanges(int n) {
-		return -1;
-	}
-
 	 /** Returns the number of slices in this stack. */
 	public int getSize() {
 		return nSlices;
