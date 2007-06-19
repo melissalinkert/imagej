@@ -230,7 +230,14 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 	}
 	
 	static String trimKey(String key) {
-		return Macro.trimKey(key);
+		int index = key.indexOf(" ");
+		if (index>-1)
+			key = key.substring(0,index);
+		index = key.indexOf(":");
+		if (index>-1)
+			key = key.substring(0,index);
+		key = key.toLowerCase(Locale.US);
+		return key;
 	}
 
 	/** Writes the current command and options to the Recorder window. */
@@ -272,11 +279,22 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 	}
 	
 	static boolean isSaveAs() {
-		Menu saveAsMenu = Menus.getSaveAsMenu();
-		for(int i=0;i<saveAsMenu.getItemCount();i++)
-			if(commandName.equals(saveAsMenu.getItem(i).getLabel()))
-				return true;
-		return false;
+		return commandName.equals("Tiff...")
+			|| commandName.equals("Gif...")
+			|| commandName.equals("Jpeg...")
+			|| commandName.equals("Text Image...")
+			|| commandName.equals("ZIP...")
+			|| commandName.equals("Raw Data...")
+			|| commandName.equals("AVI... ")
+			|| commandName.equals("BMP...")
+			|| commandName.equals("PNG...")
+			|| commandName.equals("PGM...")
+			|| commandName.equals("FITS...")
+			|| commandName.equals("LUT...")
+			|| commandName.equals("Selection...")
+			|| commandName.equals("XY Coordinates...")
+			|| commandName.equals("Measurements...")
+			|| commandName.equals("Text... ");
 	}
 
 	static void appendNewImage() {
@@ -364,7 +382,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
     
     public void windowClosing(WindowEvent e) {
     	close();
-    }
+	}
 
 	public void close() {
 		super.close();
@@ -373,5 +391,5 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 		commandName = null;
 		instance = null;	
 	}
-   
+
 }
