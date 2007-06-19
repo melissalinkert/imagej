@@ -53,7 +53,7 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
             roi = imp.getRoi();
             if (roi!=null) roi.endPaste();              // prepare the image: finish previous paste operation (if any)
             if (!imp.lock()) return;                    // exit if image is in use
-			nPasses = ((flags&PlugInFilter.CONVERT_TO_FLOAT)!=0) ? imp.getProcessor().getNChannels():1;
+            nPasses = imp.getProcessor().getNChannels();
         }
         if (theFilter instanceof ExtendedPlugInFilter) { // calling showDialog required?
             flags = ((ExtendedPlugInFilter)theFilter).showDialog(imp, command, this);  // D I A L O G (may include preview)
@@ -107,8 +107,8 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
                         Undo.reset();
                 }
                 if ((flags&PlugInFilter.NO_CHANGES)==0) ip.resetBinaryThreshold();
-            } else {  //  S T A C K
-                Undo.reset();    // no undo for processing a complete stack
+            } else {                                        //  S T A C K
+                Undo.reset();                               // no undo for processing a complete stack
                 IJ.resetEscape();
                 int slicesToDo = processedAsPreview!=0 ? slices-1 : slices;
                 nPasses *= slicesToDo;
@@ -193,15 +193,15 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
             ip.setRoi(roi);
         else
             ip.setRoi((Roi)null);
-        if (imp.getStackSize()>1) {
+        if (imp.getNSlices()>1) {
             ImageProcessor ip2 = imp.getProcessor();
-            double minThreshold = ip2.getMinThreshold();
-			double maxThreshold = ip2.getMaxThreshold();
+            double minThreshold = ip.getMinThreshold();
+			double maxThreshold = ip.getMaxThreshold();
             if (minThreshold!=ImageProcessor.NO_THRESHOLD)
 				ip.setThreshold(minThreshold, maxThreshold, ImageProcessor.NO_LUT_UPDATE);
         }
-        //float[] cTable = imp.getCalibration().getCTable();
-        //ip.setCalibrationTable(cTable);
+        float[] cTable = imp.getCalibration().getCTable();
+        ip.setCalibrationTable(cTable);
     }
 
     /**
