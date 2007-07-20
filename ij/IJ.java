@@ -24,9 +24,9 @@ public class IJ {
 	public static boolean debugMode;
 	public static boolean hideProcessStackDialog;
 	    
-    public static final char micronSymbol = (char)181;
-    public static final char angstromSymbol = (char)197;
-    public static final char degreeSymbol = (char)176;
+    public static final char micronSymbol = '\u00B5';
+    public static final char angstromSymbol = '\u00C5';
+    public static final char degreeSymbol = '\u00B0';
 
 	private static ImageJ ij;
 	private static java.applet.Applet applet;
@@ -63,8 +63,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -430,7 +428,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -709,7 +707,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1291,6 +1289,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
