@@ -26,8 +26,6 @@ public class StackEditor implements PlugIn {
     	if (arg.equals("add"))
     		{addSlice(); return;}
     		
-		if (nSlices<2)
-			{IJ.error("Stack requred"); return;}
     	if (arg.equals("delete"))
     		deleteSlice();
     	else if (arg.equals("toimages"))
@@ -55,6 +53,8 @@ public class StackEditor implements PlugIn {
 	}
 	
 	void deleteSlice() {
+		if (nSlices<2)
+			{IJ.error("\"Delete Slice\" requires a stack"); return;}
 		if (!imp.lock())
 			return;
 		ImageStack stack = imp.getStack();
@@ -122,11 +122,7 @@ public class StackEditor implements PlugIn {
             }
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			ImageWindow win = image[i].getWindow();
-			if (win!=null)
-				win.close();
-			else if (Interpreter.isBatchMode())
-				Interpreter.removeBatchModeImage(image[i]);
+			image[i].close();
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
@@ -142,6 +138,8 @@ public class StackEditor implements PlugIn {
 	}
 
 	public void convertStackToImages(ImagePlus imp) {
+		if (nSlices<2)
+			{IJ.error("\"Convert Stack to Images\" requires a stack"); return;}
 		if (!imp.lock())
 			return;
 		ImageStack stack = imp.getStack();
