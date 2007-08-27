@@ -63,8 +63,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -430,7 +428,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -709,7 +707,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -771,9 +769,13 @@ public class IJ {
 	/** Creates a straight line selection. */
 	public static void makeLine(int x1, int y1, int x2, int y2) {
 		getImage().setRoi(new Line(x1, y1, x2, y2));
-		//wait(100);
 	}
 	
+	/** Creates a straight line selection using double coordinates. */
+	public static void makeLine(double x1, double y1, double x2, double y2) {
+		getImage().setRoi(new Line(x1, y1, x2, y2));
+	}
+
 	/** Sets the minimum and maximum displayed pixel values. */
 	public static void setMinAndMax(double min, double max) {
 		ImagePlus img = getImage();
@@ -1291,6 +1293,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
