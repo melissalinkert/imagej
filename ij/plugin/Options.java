@@ -210,4 +210,4 @@ public class Options implements PlugIn {
 		}
 	}
 
-} // class Options
+}
