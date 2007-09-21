@@ -101,8 +101,6 @@ public class Options implements PlugIn {
 		Prefs.set("options.ext", extension);
 		Prefs.useJFileChooser = gd.getNextBoolean();
 		Prefs.intelByteOrder = gd.getNextBoolean();
-		if (!IJ.isJava2())
-			Prefs.useJFileChooser = false;
 		return;
 	}
 
@@ -212,4 +210,4 @@ public class Options implements PlugIn {
 		}
 	}
 
-}
+} // class Options
