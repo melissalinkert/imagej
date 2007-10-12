@@ -17,7 +17,7 @@ public class MacAdapter implements PlugIn, ApplicationListener, Runnable {
 	}
     
 	public void handleAbout(ApplicationEvent event) {
-		IJ.run("About ImageJ...");
+		IJ.run("About ImageJA...");
 		event.setHandled(true);
 	}
 

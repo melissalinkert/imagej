@@ -84,7 +84,7 @@ public class ImageJ extends Frame implements ActionListener,
 	private ProgressBar progressBar;
 	private Label statusLine;
 	private boolean firstTime = true;
-	private java.applet.Applet applet; // null if not running as an applet
+	private ImageJApplet applet; // null if not running as an applet
 	private Vector classes = new Vector();
 	private boolean exitWhenQuitting;
 	private boolean quitting;
@@ -100,15 +100,15 @@ public class ImageJ extends Frame implements ActionListener,
 	}
 	
 	/** Creates a new ImageJ frame that runs as an applet. */
-	public ImageJ(java.applet.Applet applet) {
+	public ImageJ(ImageJApplet applet) {
 		this(applet, 0);
 	}
 
 	/** If 'applet' is not null, creates a new ImageJ frame that runs as an applet.
 		If  'mode' is ImageJ.EMBEDDED and 'applet is null, creates an embedded 
 		version of ImageJ which does not start the SocketListener. */
-	public ImageJ(java.applet.Applet applet, int mode) {
-		super("ImageJ");
+	public ImageJ(ImageJApplet applet, int mode) {
+		super("ImageJA");
 		embedded = applet==null && mode==EMBEDDED;
 		this.applet = applet;
 		String err1 = Prefs.load(this, applet);
@@ -158,7 +158,8 @@ public class ImageJ extends Frame implements ActionListener,
 		setLocation(loc.x, loc.y);
 		pack();
 		setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
-		show();
+		if (applet == null)
+			show();
 		if (err1!=null)
 			IJ.error(err1);
 		if (err2!=null)
@@ -178,7 +179,13 @@ public class ImageJ extends Frame implements ActionListener,
 		if (applet==null && !embedded)
 			new SocketListener();
  	}
-    	
+
+	public Component add(Component c) {
+		if (applet != null)
+			return applet.add(c);
+		return super.add(c);
+	}
+
 	void setIcon() throws Exception {
 		URL url = this.getClass().getResource("/microscope.gif");
 		if (url==null) return;
@@ -208,6 +215,10 @@ public class ImageJ extends Frame implements ActionListener,
 
 	public ProgressBar getProgressBar() {
         return progressBar;
+	}
+
+	public ImageJApplet getApplet() {
+		return applet;
 	}
 
     /** Starts executing a menu command in a separate thread. */
@@ -483,7 +494,8 @@ public class ImageJ extends Frame implements ActionListener,
 					int delta = (int)Tools.parseDouble(args[i].substring(5, args[i].length()), 0.0);
 					if (delta>0 && DEFAULT_PORT+delta<65536)
 						port = DEFAULT_PORT+delta;
-				}
+				} else if (args[i].startsWith("-debug"))
+					IJ.debugMode = true;
 			} 
 		}
   		// If ImageJ is already running then isRunning()
@@ -606,8 +618,8 @@ public class ImageJ extends Frame implements ActionListener,
 			}
 		}
 		if (!changes && Menus.window.getItemCount()>Menus.WINDOW_MENU_ITEMS) {
-			GenericDialog gd = new GenericDialog("ImageJ", this);
-			gd.addMessage("Are you sure you want to quit ImageJ?");
+			GenericDialog gd = new GenericDialog("ImageJA", this);
+			gd.addMessage("Are you sure you want to quit ImageJA?");
 			gd.showDialog();
 			quitting = !gd.wasCanceled();
 		}
