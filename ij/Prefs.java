@@ -100,12 +100,11 @@ public class Prefs {
 	public static String load(Object ij, Applet applet) {
 		InputStream f = ij.getClass().getResourceAsStream("/"+PROPS_NAME);
 		if (applet!=null)
-			return loadAppletProps(f,applet);
+			return loadAppletProps(f, applet);
 		if (homeDir==null)
 			homeDir = System.getProperty("user.dir");
 		String userHome = System.getProperty("user.home");
-		String osName = System.getProperty("os.name");
-		if (osName.indexOf("Windows",0)>-1) {
+		if (IJ.isWindows()) {
 			prefsDir = homeDir; //ImageJ folder on Windows
 			if (prefsDir.endsWith("Desktop"))
 				prefsDir = userHome;
@@ -113,6 +112,8 @@ public class Prefs {
 			prefsDir = userHome; // Mac Preferences folder or Unix home dir
 			if (IJ.isMacOSX())
 				prefsDir += "/Library/Preferences";
+			else
+				prefsDir += "/.imagej";
 		} 
 		if (f==null) {
 			try {f = new FileInputStream(homeDir+"/"+PROPS_NAME);}
@@ -128,6 +129,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -244,11 +257,10 @@ public class Prefs {
 	static void loadPreferences() {
 		String path = prefsDir+separator+PREFS_NAME;
 		boolean ok =  loadPrefs(path);
-		if (!ok && IJ.isMacOSX()) {
+		if (!ok && !IJ.isWindows()) {
 			path = System.getProperty("user.home")+separator+PREFS_NAME;
 			ok = loadPrefs(path); // look in home dir
-			if (ok)
-				new File(path).delete();
+			if (ok) new File(path).delete();
 		}
 
 	}
@@ -292,6 +304,10 @@ public class Prefs {
 			GelAnalyzer.savePreferences(prefs);
 			NewImage.savePreferences(prefs);
 			String path = prefsDir+separator+PREFS_NAME;
+			if (prefsDir.endsWith(".imagej")) {
+				File f = new File(prefsDir);
+				if (!f.exists()) f.mkdir(); // create .imagej directory
+			}
 			savePrefs(prefs, path);
 		} catch (Throwable t) {
 			CharArrayWriter caw = new CharArrayWriter();
@@ -447,7 +463,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
 		bos.close();
 	}
 	

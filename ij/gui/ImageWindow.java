@@ -24,7 +24,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 	private int newWidth, newHeight;
 	protected boolean closed;
 	private boolean newCanvas;
-	private static Rectangle maxWindow;
 	private boolean unzoomWhenMinimizing = true;
 	Rectangle maxBounds;
 
@@ -85,14 +84,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = ij.getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -129,35 +121,11 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	public void pack() {
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
 		int height = imp.getHeight();
-		if (maxWindow==null)
-			maxWindow = getMaxWindow();
+		Rectangle maxWindow = getMaxWindow();
 		if (WindowManager.getWindowCount()<=1)
 			xbase = -1;
 		if (width>maxWindow.width/2 && xbase>maxWindow.x+5+XINC*6)
@@ -375,17 +343,21 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 	}
 	
 	public Rectangle getMaximumBounds() {
-		int width = imp.getWidth();
-		int height = imp.getHeight();
-		maxWindow = getMaxWindow();
+		double width = imp.getWidth();
+		double height = imp.getHeight();
+		double iAspectRatio = width/height;
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		Rectangle maxWindow = ge.getMaximumWindowBounds();
+		if (iAspectRatio/((double)maxWindow.width/maxWindow.height)>0.75) {
+			maxWindow.y += 22;  // uncover ImageJ menu bar
+			maxWindow.height -= 22;
+		}
 		Insets insets = getInsets();
 		int extraHeight = insets.top+insets.bottom;
 		if (this instanceof StackWindow) extraHeight += 25;
-		//if (IJ.isWindows()) extraHeight += 20;
 		double maxHeight = maxWindow.height-extraHeight;
 		double maxWidth = maxWindow.width;
 		double mAspectRatio = maxWidth/maxHeight;
-		double iAspectRatio = (double)width/height;
 		int wWidth, wHeight;
 		if (iAspectRatio>=mAspectRatio) {
 			wWidth = (int)maxWidth;

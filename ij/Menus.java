@@ -8,6 +8,7 @@ import java.awt.image.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.*;
+import java.applet.Applet;
 import java.awt.event.*;
 import java.util.zip.*;
 
@@ -49,7 +50,7 @@ public class Menus {
 	private static PopupMenu popup;
 
 	private static ImageJ ij;
-	private static ImageJApplet applet;
+	private static Applet applet;
 	private static Hashtable demoImagesTable = new Hashtable();
 	private static String pluginsPath, macrosPath;
 	private static Menu pluginsMenu, importMenu, saveAsMenu, shortcutsMenu, 
@@ -57,7 +58,7 @@ public class Menus {
 	private static Hashtable pluginsTable;
 	
 	static Menu window, openRecentMenu;
-	static int nPlugins, nMacros;
+	int nPlugins, nMacros;
 	private static Hashtable shortcuts = new Hashtable();
 	private static Hashtable macroShortcuts;
 	private static Vector pluginsPrefs = new Vector(); // commands saved in IJ_Prefs
@@ -73,11 +74,12 @@ public class Menus {
 	private static Hashtable menusTable; // Submenus of Plugins menu
 	private int userPluginsIndex; // First user plugin or submenu in Plugins menu
 	private boolean addSorted;
-	private  static int fontSize = Prefs.getInt(Prefs.MENU_SIZE, 14);
+	private static int defaultFontSize = IJ.isWindows()?14:0;
+	private static int fontSize = Prefs.getInt(Prefs.MENU_SIZE, defaultFontSize);
 	private static Font menuFont;
 	static boolean jnlp; // true when using Java WebStart
 		
-	Menus(ImageJ ijInstance, ImageJApplet appletInstance) {
+	Menus(ImageJ ijInstance, Applet appletInstance) {
 		ij = ijInstance;
 		applet = appletInstance;
 	}
@@ -86,12 +88,11 @@ public class Menus {
 		error = null;
 		pluginsTable = new Hashtable();
 		
-		Menu file = new PopupMenu("File");
+		Menu file = new Menu("File");
 		addSubMenu(file, "New");
 		addPlugInItem(file, "Open...", "ij.plugin.Commands(\"open\")", KeyEvent.VK_O, false);
 		addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
-		if (applet == null)
-			addSubMenu(file, "Open Samples");
+		addSubMenu(file, "Open Samples");
 		addOpenRecentSubMenu(file);
 		importMenu = addSubMenu(file, "Import");
 		file.addSeparator();
@@ -105,7 +106,7 @@ public class Menus {
 		file.addSeparator();
 		addPlugInItem(file, "Quit", "ij.plugin.Commands(\"quit\")", 0, false);
 		
-		Menu edit = new PopupMenu("Edit");
+		Menu edit = new Menu("Edit");
 		addPlugInItem(edit, "Undo", "ij.plugin.Commands(\"undo\")", KeyEvent.VK_Z, false);
 		edit.addSeparator();
 		addPlugInItem(edit, "Cut", "ij.plugin.Clipboard(\"cut\")", KeyEvent.VK_X, false);
@@ -123,7 +124,7 @@ public class Menus {
 		addSubMenu(edit, "Selection");
 		optionsMenu = addSubMenu(edit, "Options");
 		
-		Menu image = new PopupMenu("Image");
+		Menu image = new Menu("Image");
 		Menu imageType = new Menu("Type");
 			gray8Item = addCheckboxItem(imageType, "8-bit", "ij.plugin.Converter(\"8-bit\")");
 			gray16Item = addCheckboxItem(imageType, "16-bit", "ij.plugin.Converter(\"16-bit\")");
@@ -139,6 +140,7 @@ public class Menus {
 		addSubMenu(image, "Adjust");
 		addPlugInItem(image, "Show Info...", "ij.plugin.filter.Info", KeyEvent.VK_I, false);
 		addPlugInItem(image, "Properties...", "ij.plugin.filter.ImageProperties", KeyEvent.VK_P, true);
+		//addSubMenu(image, "Benchmarks");
 		addSubMenu(image, "Color");
 		addSubMenu(image, "Stacks");
 		image.addSeparator();
@@ -151,7 +153,7 @@ public class Menus {
 		image.addSeparator();
 		addSubMenu(image, "Lookup Tables");
 		
-		Menu process = new PopupMenu("Process");
+		Menu process = new Menu("Process");
 		addPlugInItem(process, "Smooth", "ij.plugin.filter.Filters(\"smooth\")", KeyEvent.VK_S, true);
 		addPlugInItem(process, "Sharpen", "ij.plugin.filter.Filters(\"sharpen\")", 0, false);
 		addPlugInItem(process, "Find Edges", "ij.plugin.filter.Filters(\"edge\")", 0, false);
@@ -167,7 +169,7 @@ public class Menus {
 		addPlugInItem(process, "Subtract Background...", "ij.plugin.filter.BackgroundSubtracter", 0, false);
 		addItem(process, "Repeat Command", KeyEvent.VK_R, true);
 		
-		Menu analyze = new PopupMenu("Analyze");
+		Menu analyze = new Menu("Analyze");
 		addPlugInItem(analyze, "Measure", "ij.plugin.filter.Analyzer", KeyEvent.VK_M, false);
 		addPlugInItem(analyze, "Analyze Particles...", "ij.plugin.filter.ParticleAnalyzer", 0, false);
 		addPlugInItem(analyze, "Summarize", "ij.plugin.filter.Analyzer(\"sum\")", 0, false);
@@ -184,14 +186,14 @@ public class Menus {
 		addSubMenu(analyze, "Gels");
 		toolsMenu = addSubMenu(analyze, "Tools");
 
-		window = new PopupMenu("Window");
+		window = new Menu("Window");
 		addPlugInItem(window, "Show All", "ij.plugin.WindowOrganizer(\"show\")", KeyEvent.VK_F, true);
 		addPlugInItem(window, "Put Behind [tab]", "ij.plugin.Commands(\"tab\")", 0, false);
 		addPlugInItem(window, "Cascade", "ij.plugin.WindowOrganizer(\"cascade\")", 0, false);
 		addPlugInItem(window, "Tile", "ij.plugin.WindowOrganizer(\"tile\")", 0, false);
 		window.addSeparator();
 
-		Menu help = new PopupMenu("Help");
+		Menu help = new Menu("Help");
 		addPlugInItem(help, "ImageJ Website...", "ij.plugin.BrowserLauncher", 0, false);
 		addPlugInItem(help, "ImageJ News...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/notes.html\")", 0, false);
 		addPlugInItem(help, "Documentation...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/docs\")", 0, false);
@@ -206,19 +208,15 @@ public class Menus {
 		addPlugInItem(help, "Macro Functions...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/developer/macro/functions.html\")", 0, false);
 		help.addSeparator();
 		aboutMenu = addSubMenu(help, "About Plugins");
-		help.addSeparator();
-		addPlugInItem(help, "ImageJA Web Site...", "ij.plugin.BrowserLauncher", 0, false);
-		addPlugInItem(help, "Online Docs...", "ij.plugin.BrowserLauncher(\"online\")", 0, false);
-		addPlugInItem(help, "About ImageJA...", "ij.plugin.AboutBoxJA", 0, false);
+		addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
 				
 		addPluginsMenu();
-		if (applet==null) {
+		if (applet==null)
 			installPlugins();
-			mbar = new MenuBar();
-			if (fontSize!=0)
-				mbar.setFont(getFont());
-		} else
-			mbar = applet.menu.getMenuBar();
+		
+		mbar = new MenuBar();
+		if (fontSize!=0)
+			mbar.setFont(getFont());
 		mbar.add(file);
 		mbar.add(edit);
 		mbar.add(image);
@@ -227,7 +225,7 @@ public class Menus {
 		mbar.add(pluginsMenu);
 		mbar.add(window);
 		mbar.setHelpMenu(help);
-		if (ij!=null && applet == null)
+		if (ij!=null)
 			ij.setMenuBar(mbar);
 		
 		if (pluginError!=null)
@@ -384,7 +382,7 @@ public class Menus {
 	void addPluginsMenu() {
 		String value,label,className;
 		int index;
-		pluginsMenu = new PopupMenu("Plugins");
+		pluginsMenu = new Menu("Plugins");
 		for (int count=1; count<100; count++) {
 			value = Prefs.getString("plug-in" + (count/10)%10 + count%10);
 			if (value==null)
@@ -643,7 +641,7 @@ public class Menus {
 		return name;
     }
 
-	static void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
+	void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
 		String itemLabel = item.getLabel();
 		int count = menu.getItemCount();
 		boolean inserted = false;
@@ -827,10 +825,6 @@ public class Menus {
 	/** Installs a plugin in the Plugins menu using the class name,
 		with underscores replaced by spaces, as the command. */
 	void installUserPlugin(String className) {
-		installUserPlugin(className, false);
-	}
-
-	public static void installUserPlugin(String className, boolean force) {
 		Menu menu = pluginsMenu;
 		int slashIndex = className.indexOf('/');
 		String command = className;
@@ -849,19 +843,11 @@ public class Menus {
 		//IJ.write(dir + "  " + className);
 		}
 		command = command.replace('_',' ');
-
 		command.trim();
-		boolean itemExists = (pluginsTable.get(command)!=null);
-		if(force && itemExists)
-			return;
-
-		if (!force && itemExists)  // duplicate command?
+		if (pluginsTable.get(command)!=null)  // duplicate command?
 			command = command + " Plugin";
 		MenuItem item = new MenuItem(command);
-		if(force)
-			addItemSorted(menu,item,0);
-		else
-			menu.add(item);
+		menu.add(item);
 		item.addActionListener(ij);
 		pluginsTable.put(command, className.replace('/', '.'));
 		nPlugins++;
@@ -1117,10 +1103,6 @@ public class Menus {
 
 	public static PopupMenu getPopupMenu() {
 		return popup;
-	}
-	
-	public static Menu getSaveAsMenu() {
-		return saveAsMenu;
 	}
 	
 	/** Adds a plugin based command to the end of a specified menu.

@@ -33,8 +33,7 @@ public class MacAdapter implements PlugIn, ApplicationListener, Runnable {
 	}
 
 	public void handleQuit(ApplicationEvent event) {
-		new Executer("Quit", null); // works with the CommandListener
-		//IJ.getInstance().quit();
+		IJ.getInstance().quit();
 	}
   
     public void run() {
