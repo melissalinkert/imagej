@@ -5,8 +5,6 @@ import ij.process.*;
 import ij.measure.Calibration;
 import ij.macro.Interpreter;
 import ij.io.FileInfo;
-import java.awt.image.ColorModel;
-
 
 
 /** Implements the "Stack to HyperStack", "RGB to HyperStack" 
@@ -14,7 +12,7 @@ import java.awt.image.ColorModel;
 public class HyperStackConverter implements PlugIn {
 	static final int C=0, Z=1, T=2;
 	static final int CZT=0, CTZ=1, ZCT=2, ZTC=3, TCZ=4, TZC=5;
-    static final String[] orders = {"xyczt(default)", "xyctz", "xyzct", "xyztc", "xytcz", "xytzc"};
+    static final String[] orders = {"xyczt (default)", "xyctz", "xyzct", "xyztc", "xytcz", "xytzc"};
     static int order = CZT;
 
 	public void run(String arg) {
@@ -33,29 +31,26 @@ public class HyperStackConverter implements PlugIn {
         int nChannels = imp.getNChannels();
         int nSlices = imp.getNSlices();
         int nFrames = imp.getNFrames();
-		int stackSize = imp.getImageStackSize();
+		int stackSize = imp.getStackSize();
 		if (stackSize==1) {
 			IJ.error("Stack to HyperStack", "Stack required");
 			return;
 		}
 		if (imp.getBitDepth()==24) {
-			new CompositeConverter().run("color");
+			run("Make Composite");
 			return;
 		}
-		String[] modes = {"Composite", "Color", "Grayscale"};
 		GenericDialog gd = new GenericDialog("Convert to HyperStack");
 		gd.addChoice("Order:", orders, orders[order]);
 		gd.addNumericField("Channels (c):", nChannels, 0);
 		gd.addNumericField("Slices (z):", nSlices, 0);
-		gd.addNumericField("Frames (t):", nFrames, 0);
-		gd.addChoice("Display Mode:", modes, modes[1]);
+		gd.addNumericField("Frame (t):", nFrames, 0);
 		gd.showDialog();
 		if (gd.wasCanceled()) return;
 		order = gd.getNextChoiceIndex();
 		nChannels = (int) gd.getNextNumber();
 		nSlices = (int) gd.getNextNumber();
 		nFrames = (int) gd.getNextNumber();
-		int mode = gd.getNextChoiceIndex();
 		if (nChannels*nSlices*nFrames!=stackSize) {
 			IJ.error("HyperStack Converter", "channels x slices x frames <> stack size");
 			return;
@@ -66,16 +61,14 @@ public class HyperStackConverter implements PlugIn {
 		else {
 			shuffle(imp, order);
 			ImagePlus imp2 = imp;
-			if (nChannels>1 && imp.getBitDepth()!=24) {
-				imp2 = new CompositeImage(imp, mode+1);
-			}
-			imp2.setOpenAsHyperStack(true);
+			if (nChannels>1 && imp.getBitDepth()!=24)
+				imp2 = new CompositeImage(imp);
 			new StackWindow(imp2);
-			if (imp!=imp2) imp.hide();
+			imp.hide();
 		}
 	}
 
-	/** Changes the dimension order of a 4D or 5D stack from 
+	/** Changes the dimension order of a 3D or 4D stack from 
 		the specified order (CTZ, ZCT, ZTC, TCZ or TZC) to 
 		the XYCZT order used by ImageJ. */
 	public void shuffle(ImagePlus imp, int order) {
@@ -102,7 +95,7 @@ public class HyperStackConverter implements PlugIn {
 				break;
 		}
 		if (order!=CZT) {
-			Object[] images1 = imp.getImageStack().getImageArray();
+			Object[] images1 = imp.getStack().getImageArray();
 			Object[] images2 = new Object[images1.length];
 			System.arraycopy(images1, 0, images2, 0, images1.length);
 			int[] index = new int[3];
@@ -127,12 +120,10 @@ public class HyperStackConverter implements PlugIn {
 			imp2.setStack(imp.getTitle(), stack);
 			int[] dim = imp.getDimensions();
 			imp2.setDimensions(dim[2], dim[3], dim[4]);
-			ImageProcessor ip2 = imp2.getProcessor();
-			ip2.setColorModel(ip2.getDefaultColorModel());
 		}
 		imp2.setOpenAsHyperStack(false);
 		new StackWindow(imp2);
-		if (imp!=imp2) imp.hide();
+		imp.hide();
 	}
 	
 	void newHyperStack() {

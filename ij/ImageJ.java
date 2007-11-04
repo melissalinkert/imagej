@@ -6,6 +6,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.awt.image.*;
+import java.lang.reflect.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.io.*;
@@ -40,8 +41,9 @@ The following command line options are recognized by ImageJ:
 
   -port<n>
      Specifies the port ImageJ uses to determine if another instance is running
-     Example 1: -port1
-     Example 2: -port2
+     Example 1: -port1 (use default port address + 1)
+     Example 2: -port2 (use default port address + 2)
+     Example 3: -port0 (do not check for another instance)
 
   -macro path [arg]
      Runs a macro, passing it an optional argument
@@ -67,7 +69,7 @@ public class ImageJ extends Frame implements ActionListener,
 	MouseListener, KeyListener, WindowListener, ItemListener, Runnable {
 
 	/** Plugins should call IJ.getVersion() to get the version string. */
-	public static final String VERSION = "1.39f";
+	public static final String VERSION = "1.39g";
 	public static Color backgroundColor = new Color(220,220,220); //224,226,235
 	/** SansSerif, 12-point, plain font. */
 	public static final Font SansSerif12 = new Font("SansSerif", Font.PLAIN, 12);
@@ -84,7 +86,7 @@ public class ImageJ extends Frame implements ActionListener,
 	private ProgressBar progressBar;
 	private Label statusLine;
 	private boolean firstTime = true;
-	private ImageJApplet applet; // null if not running as an applet
+	private java.applet.Applet applet; // null if not running as an applet
 	private Vector classes = new Vector();
 	private boolean exitWhenQuitting;
 	private boolean quitting;
@@ -100,15 +102,15 @@ public class ImageJ extends Frame implements ActionListener,
 	}
 	
 	/** Creates a new ImageJ frame that runs as an applet. */
-	public ImageJ(ImageJApplet applet) {
+	public ImageJ(java.applet.Applet applet) {
 		this(applet, 0);
 	}
 
 	/** If 'applet' is not null, creates a new ImageJ frame that runs as an applet.
 		If  'mode' is ImageJ.EMBEDDED and 'applet is null, creates an embedded 
 		version of ImageJ which does not start the SocketListener. */
-	public ImageJ(ImageJApplet applet, int mode) {
-		super("ImageJA");
+	public ImageJ(java.applet.Applet applet, int mode) {
+		super("ImageJ");
 		embedded = applet==null && mode==EMBEDDED;
 		this.applet = applet;
 		String err1 = Prefs.load(this, applet);
@@ -158,8 +160,13 @@ public class ImageJ extends Frame implements ActionListener,
 		setLocation(loc.x, loc.y);
 		pack();
 		setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
-		if (applet == null)
-			show();
+		//if (IJ.isJava15()) {
+		//	try {
+		//		Method method = Frame.class.getMethod("setAlwaysOnTop", new Class[] {boolean.class});
+		//		method.invoke(this, new Object[]{Boolean.TRUE});
+		//	} catch(Exception e) {}
+		//}
+		show();
 		if (err1!=null)
 			IJ.error(err1);
 		if (err2!=null)
@@ -179,14 +186,8 @@ public class ImageJ extends Frame implements ActionListener,
 		if (applet==null && !embedded)
 			new SocketListener();
  	}
-
-	public Component add(Component c) {
-		if (applet != null)
-			return applet.add(c);
-		return super.add(c);
-	}
-
-	void setIcon() throws Exception {
+    	
+    void setIcon() throws Exception {
 		URL url = this.getClass().getResource("/microscope.gif");
 		if (url==null) return;
 		Image img = createImage((ImageProducer)url.getContent());
@@ -215,10 +216,6 @@ public class ImageJ extends Frame implements ActionListener,
 
 	public ProgressBar getProgressBar() {
         return progressBar;
-	}
-
-	public ImageJApplet getApplet() {
-		return applet;
 	}
 
     /** Starts executing a menu command in a separate thread. */
@@ -478,6 +475,7 @@ public class ImageJ extends Frame implements ActionListener,
 			System.exit(0);
 		}
 		boolean noGUI = false;
+		int mode = STANDALONE;
 		arguments = args;
 		int nArgs = args!=null?args.length:0;
 		for (int i=0; i<nArgs; i++) {
@@ -492,19 +490,20 @@ public class ImageJ extends Frame implements ActionListener,
 					args[i+1] = null;
 				} else if (args[i].startsWith("-port")) {
 					int delta = (int)Tools.parseDouble(args[i].substring(5, args[i].length()), 0.0);
-					if (delta>0 && DEFAULT_PORT+delta<65536)
+					if (delta==0)
+						mode = EMBEDDED;
+					else if (delta>0 && DEFAULT_PORT+delta<65536)
 						port = DEFAULT_PORT+delta;
-				} else if (args[i].startsWith("-debug"))
-					IJ.debugMode = true;
+				}
 			} 
 		}
   		// If ImageJ is already running then isRunning()
   		// will pass the arguments to it using sockets.
-		if (nArgs>0 && !noGUI && isRunning(args))
+		if (nArgs>0 && !noGUI && (mode==STANDALONE) && isRunning(args))
   				return;
  		ImageJ ij = IJ.getInstance();    	
 		if (!noGUI && (ij==null || (ij!=null && !ij.isShowing()))) {
-			ij = new ImageJ(null);
+			ij = new ImageJ(null, mode);
 			ij.exitWhenQuitting = true;
 		}
 		int macros = 0;
@@ -618,8 +617,8 @@ public class ImageJ extends Frame implements ActionListener,
 			}
 		}
 		if (!changes && Menus.window.getItemCount()>Menus.WINDOW_MENU_ITEMS) {
-			GenericDialog gd = new GenericDialog("ImageJA", this);
-			gd.addMessage("Are you sure you want to quit ImageJA?");
+			GenericDialog gd = new GenericDialog("ImageJ", this);
+			gd.addMessage("Are you sure you want to quit ImageJ?");
 			gd.showDialog();
 			quitting = !gd.wasCanceled();
 		}

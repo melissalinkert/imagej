@@ -63,8 +63,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -226,10 +224,16 @@ public class IJ {
 			command = "Appearance...";
 		else if (command.equals("Start Animation"))
 			command = "Start Animation [\\]";
-		else if (command.equals("Convert Images to Stack"))
-			command = "Images to Stack";
-		else if (command.equals("Convert Stack to Images"))
-			command = "Stack to Images";
+		else if (command.startsWith("Convert")) {
+			if (command.equals("Convert Images to Stack"))
+				command = "Images to Stack";
+			else if (command.equals("Convert Stack to Images"))
+				command = "Stack to Images";
+			else if (command.equals("Convert Stack to RGB"))
+				command = "Stack to RGB";
+			else if (command.equals("Convert to Composite"))
+				command = "Make Composite";
+		}
 		previousThread = thread;
 		macroRunning = true;
 		Executer e = new Executer(command);
@@ -440,7 +444,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -719,7 +723,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -987,7 +991,7 @@ public class IJ {
 			m = Blitter.AVERAGE;
 		else if (mode.startsWith("diff"))
 			m = Blitter.DIFFERENCE;
-		else if (mode.startsWith("transparent2"))
+		else if (mode.startsWith("transparent zero"))
 			m = Blitter.COPY_ZERO_TRANSPARENT;
 		else if (mode.startsWith("tran"))
 			m = Blitter.COPY_TRANSPARENT;
@@ -1307,6 +1311,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }

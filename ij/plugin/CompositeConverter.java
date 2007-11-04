@@ -10,7 +10,6 @@ import ij.plugin.frame.ContrastAdjuster;
 public class CompositeConverter implements PlugIn {
 
 	public void run(String arg) {
-		String[] modes = {"Composite", "Color", "Grayscale"};
 		ImagePlus imp = IJ.getImage();
 		if (imp.isComposite()) {
 			CompositeImage ci = (CompositeImage)imp;
@@ -18,48 +17,27 @@ public class CompositeConverter implements PlugIn {
 				ci.setMode(CompositeImage.COMPOSITE);
 				ci.updateAndDraw();
 			}
-			if (!IJ.isMacro()) IJ.run("Channels Tool...");
 			return;
 		}
-		String mode = modes[0];
 		int z = imp.getStackSize();
 		int c = imp.getNChannels();
-		if (c==1) {
-			c = z;
-			imp.setDimensions(c, 1, 1);
-			if (c>7) mode = modes[2];
-		}
+		if (c==1) c = z;
 		if (imp.getBitDepth()==24) {
 			if (z>1)
-				convertRGBToCompositeStack(imp, arg);
-			else
-				convertRGBToCompositeImage(imp);
-			if (!IJ.isMacro()) IJ.run("Channels Tool...");
-		} else if (c>=2) {
-			GenericDialog gd = new GenericDialog("Make Composite");
-			gd.addChoice("Display Mode:", modes, mode);
-			gd.showDialog();
-			if (gd.wasCanceled()) return;
-			int index = gd.getNextChoiceIndex();
-			CompositeImage ci = new CompositeImage(imp, index+1);
-			ci.show();
+				convertRGBToCompositeStack(imp);
+			else {
+				imp.hide();
+				new CompositeImage(imp, CompositeImage.COMPOSITE).show();
+			}
+		} else if (c>=2 && c<=7) {
+			CompositeImage ci = new CompositeImage(imp, CompositeImage.COLORS);
+			new StackWindow(ci);
 			imp.hide();
-			if (!IJ.isMacro()) IJ.run("Channels Tool...");
 		} else
-			IJ.error("To create a composite, the current image must be\n a stack with at least 2 channels or be in RGB format.");
+			IJ.error("To create a composite, the current image must be\n a stack with fewer than 8 slices or be in RGB format.");
 	}
 	
-	void convertRGBToCompositeImage(ImagePlus imp) {
-			ImageWindow win = imp.getWindow();
-			Point loc = win!=null?win.getLocation():null;
-			ImagePlus imp2 = new CompositeImage(imp, CompositeImage.COMPOSITE);
-			imp.hide();
-			imp2.show();
-			ImageWindow win2 = imp2.getWindow();
-			if (loc!=null&&win2!=null) win2.setLocation(loc);
-	}
-
-	void convertRGBToCompositeStack(ImagePlus imp, String arg) {
+	void convertRGBToCompositeStack(ImagePlus imp) {
 		int width = imp.getWidth();
 		int height = imp.getHeight();
 		ImageStack stack1 = imp.getStack();
@@ -82,9 +60,8 @@ public class CompositeConverter implements PlugIn {
 		Point loc = win!=null?win.getLocation():null;
 		ImagePlus imp2 = new ImagePlus(imp.getTitle(), stack2);
 		imp2.setDimensions(3, n/3, 1);
-		int mode = arg!=null && arg.equals("color")?CompositeImage.COLOR:CompositeImage.COMPOSITE;
- 		imp2 = new CompositeImage(imp2, mode);
-		imp2.show();
+ 		imp2 = new CompositeImage(imp2, CompositeImage.COMPOSITE);
+		new StackWindow(imp2);
 		imp.changes = false;
 		imp.close();
 	}
