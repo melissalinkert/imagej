@@ -81,8 +81,11 @@ public class Compiler implements PlugIn, FilenameFilter {
 			v.addElement("-g");
 		if (IJ.isJava16()) {
 			// needed so plugin will run on Java 1.5
-			v.addElement("-source 1.5");
-			v.addElement("-target 1.5");
+			v.addElement("-source");
+			v.addElement("1.5");
+			v.addElement("-target");
+			v.addElement("1.5");
+			v.addElement("-Xlint:unchecked");
 		}
 		v.addElement("-deprecation");
 		v.addElement("-classpath");
@@ -99,15 +102,6 @@ public class Compiler implements PlugIn, FilenameFilter {
 			IJ.showStatus("done");
 		return compiled;
 	 }
-
-       public static boolean compileFile(String path) {
-	       Compiler compiler = new Compiler();
-               if(!compiler.isJavac())
-                       return false;
-               return compiler.compile(path);
-         
-       }
-
 
 	boolean areErrors(String s) {
 		boolean errors = s!=null && s.length()>0;
