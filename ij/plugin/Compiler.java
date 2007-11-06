@@ -103,6 +103,15 @@ public class Compiler implements PlugIn, FilenameFilter {
 		return compiled;
 	 }
 
+       public static boolean compileFile(String path) {
+	       Compiler compiler = new Compiler();
+               if(!compiler.isJavac())
+                       return false;
+               return compiler.compile(path);
+         
+       }
+
+
 	boolean areErrors(String s) {
 		boolean errors = s!=null && s.length()>0;
 		//if(errors&&s.startsWith("Note:com.sun.tools.javac")&&s.indexOf("error")==-1)
