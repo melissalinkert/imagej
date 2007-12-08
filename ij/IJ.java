@@ -63,8 +63,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -446,7 +444,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		Macro.abort();
 	}
 	
@@ -725,7 +723,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -959,6 +957,12 @@ public class IJ {
 		Toolbar.getInstance().setTool(id);
 	}
 
+	/** Switches to the specified tool, where 'name' is "rect", "elliptical", 
+		"brush", etc. Returns 'false' if the name is not recognized. */
+	public static boolean setTool(String name) {
+		return Toolbar.getInstance().setTool(name);
+	}
+
 	/** Equivalent to clicking on the current image at (x,y) with the
 		wand tool. Returns the number of points in the resulting ROI. */
 	public static int doWand(int x, int y) {
@@ -993,7 +997,7 @@ public class IJ {
 			m = Blitter.AVERAGE;
 		else if (mode.startsWith("diff"))
 			m = Blitter.DIFFERENCE;
-		else if (mode.startsWith("transparent zero"))
+		else if (mode.indexOf("zero")!=-1)
 			m = Blitter.COPY_ZERO_TRANSPARENT;
 		else if (mode.startsWith("tran"))
 			m = Blitter.COPY_TRANSPARENT;
@@ -1313,6 +1317,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }

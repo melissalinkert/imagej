@@ -62,10 +62,8 @@ public class BrowserLauncher implements PlugIn {
 	public void run(String theURL) {
 		if (error) return;
 		if (theURL==null || theURL.equals(""))
-			theURL = "http://imageja.sf.net";
-		else if (theURL.equals("online"))
-			theURL = "http://imageja.sf.net";
-		Applet applet = ij.IJ.getApplet();
+			theURL = "http://rsb.info.nih.gov/ij/";
+		Applet applet = IJ.getApplet();
 		if (applet!=null) {
 			try {
 				applet.getAppletContext().showDocument(new URL(theURL), "_blank" );
@@ -84,12 +82,18 @@ public class BrowserLauncher implements PlugIn {
 	public static void openURL(String url) throws IOException {
 		String errorMessage = "";
 		if (IJ.isMacOSX()) {
-			try {
-				Method aMethod = mrjFileUtilsClass.getDeclaredMethod("sharedWorkspace", new Class[] {});
-				Object aTarget = aMethod.invoke( mrjFileUtilsClass, new Object[] {});
-				openURL.invoke(aTarget, new Object[] { new java.net.URL( url )}); 
-			} catch (Exception e) {
-				errorMessage = ""+e;
+			String vmName = System.getProperty("java.vm.name");
+			boolean sixtyFourBit = vmName!=null && vmName.indexOf("64")!=-1;
+			if (sixtyFourBit)
+				IJ.runMacro("exec('open', '"+url+"')");
+			else {
+				try {
+					Method aMethod = mrjFileUtilsClass.getDeclaredMethod("sharedWorkspace", new Class[] {});
+					Object aTarget = aMethod.invoke( mrjFileUtilsClass, new Object[] {});
+					openURL.invoke(aTarget, new Object[] { new java.net.URL( url )}); 
+				} catch (Exception e) {
+					errorMessage = ""+e;
+				}
 			}
 		} else if (IJ.isWindows()) {
 			String cmd = "rundll32 url.dll,FileProtocolHandler " + url;
