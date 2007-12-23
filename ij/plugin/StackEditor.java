@@ -119,11 +119,7 @@ public class StackEditor implements PlugIn {
             }
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			ImageWindow win = image[i].getWindow();
-			if (win!=null)
-				win.close();
-			else if (Interpreter.isBatchMode())
-				Interpreter.removeBatchModeImage(image[i]);
+			image[i].close();
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
@@ -160,10 +156,10 @@ public class StackEditor implements PlugIn {
 			String title = label!=null&&!label.equals("")?label:getTitle(imp, i);
 			ImageProcessor ip = stack.getProcessor(i);
 			if (cimg!=null) {
-				ExtendedColorModel cm = cimg.getChannelColorModel(i);
-				if (cm!=null) {
-					ip.setColorModel(cm);
-					ip.setMinAndMax(cm.min, cm.max);
+				LUT lut = cimg.getChannelLut(i);
+				if (lut!=null) {
+					ip.setColorModel(lut);
+					ip.setMinAndMax(lut.min, lut.max);
 				}
 			}
 			ImagePlus imp2 = new ImagePlus(title, ip);
