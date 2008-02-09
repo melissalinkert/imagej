@@ -13,7 +13,6 @@ import java.lang.reflect.*;
 public class WaitForUserDialog extends Dialog implements ActionListener, KeyListener {
 	protected Button button;
 	protected MultiLineLabel label;
-	static protected int xloc=-1, yloc=-1;
 	
 	public WaitForUserDialog(String title, String text) {
 		super(getFrame(), title, false);
@@ -33,17 +32,14 @@ public class WaitForUserDialog extends Dialog implements ActionListener, KeyList
         add(button, c);
 		setResizable(false);
 		pack();
-		if (xloc==-1)
-			GUI.center(this);
-		else
-			setLocation(xloc, yloc);
+		center();
 		if (IJ.isJava15()) try {
 			// Call setAlwaysOnTop() using reflection so this class can be compiled with Java 1.4
 			Class windowClass = Class.forName("java.awt.Window");
 			Method setAlwaysOnTop = windowClass.getDeclaredMethod("setAlwaysOnTop", new Class[] {Boolean.TYPE});
 			Object[] arglist = new Object[1]; arglist[0]=new Boolean(true);
 			setAlwaysOnTop.invoke(this, arglist);
-		} catch (Exception e) { }
+		} catch (Exception e) {IJ.log(""+e);}
 	}
 	
 	public WaitForUserDialog(String text) {
@@ -52,7 +48,6 @@ public class WaitForUserDialog extends Dialog implements ActionListener, KeyList
 
 	public void show() {
 		super.show();
-		IJ.beep();
 		synchronized(this) {  //wait for OK
 			try {wait();}
 			catch(InterruptedException e) {return;}
@@ -61,14 +56,22 @@ public class WaitForUserDialog extends Dialog implements ActionListener, KeyList
 	
 	static Frame getFrame() {
 		Frame win = WindowManager.getCurrentWindow();
-		if (win==null) win = IJ.getInstance();
+		if (win==null || !IJ.isJava15()) win = IJ.getInstance();
 		return win;
 	}
 
+	void center() {
+		ImageJ ij = IJ.getInstance();
+		if (ij==null) return;
+		Rectangle bounds = ij.getBounds();
+		Dimension size = getSize();
+		int x = bounds.x + bounds.width/2-size.width/2;
+		int y = bounds.y + bounds.height/2-size.height/2;
+		setLocation(x, y);
+	}
+	
     public void close() {
         synchronized(this) { notify(); }
-        xloc = getLocation().x;
-        yloc = getLocation().y;
 		setVisible(false);
 		dispose();
     }

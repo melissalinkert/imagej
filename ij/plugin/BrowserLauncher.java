@@ -62,10 +62,8 @@ public class BrowserLauncher implements PlugIn {
 	public void run(String theURL) {
 		if (error) return;
 		if (theURL==null || theURL.equals(""))
-			theURL = "http://imageja.sf.net";
-		else if (theURL.equals("online"))
-			theURL = "http://imageja.sf.net";
-		Applet applet = ij.IJ.getApplet();
+			theURL = "http://rsb.info.nih.gov/ij/";
+		Applet applet = IJ.getApplet();
 		if (applet!=null) {
 			try {
 				applet.getAppletContext().showDocument(new URL(theURL), "_blank" );
@@ -134,7 +132,7 @@ public class BrowserLauncher implements PlugIn {
 	 * required at runtime to locate the user's web browser.
 	 */
 	private static void loadClasses() {
-		if (IJ.isMacOSX() && !IJ.is64Bit()) {
+		if (IJ.isMacOSX() && !IJ.is64Bit() && IJ.getApplet()==null) {
 			try {
 				if (new File("/System/Library/Java/com/apple/cocoa/application/NSWorkspace.class").exists()) {
 					ClassLoader classLoader = new URLClassLoader(new URL[]{new File("/System/Library/Java").toURL()});
