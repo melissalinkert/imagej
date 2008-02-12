@@ -63,6 +63,8 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
+		if (theApplet == null)
+			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -444,7 +446,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJ", msg);
+		showMessage("ImageJA", msg);
 		Macro.abort();
 	}
 	
@@ -730,7 +732,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJ "+version+" or later.");
+			error("This plugin or macro requires ImageJA "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1324,5 +1326,6 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
+    
 	
 }
