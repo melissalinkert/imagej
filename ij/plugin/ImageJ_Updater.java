@@ -17,22 +17,21 @@ public class ImageJ_Updater implements PlugIn {
 		if (isMac() && !file.exists())
 			file = new File(Prefs.getHomeDir() + File.separator + "ImageJ.app/Contents/Resources/Java/ij.jar");
 		if (!file.exists()) {
-			error("File not found: "+file.getPath());
+			IJ.error("ImageJ Updater", "File not found: "+file.getPath());
 			return;
 		}
 		if (!file.canWrite()) {
-			error("No write access: "+file.getPath());
+			IJ.error("ImageJ Updater", "No write access: "+file.getPath());
 			return;
 		}
 		String[] list = openUrlAsList("http://rsb.info.nih.gov/ij/download/jars/list.txt");
 		int count = list.length + 2;
 		String[] versions = new String[count];
 		String[] urls = new String[count];
-		String uv = getUpgradeVersion();
-		if (uv==null) return;
-		versions[0] = "v"+uv+" (latest version)";
+		String upgradeVersion = getUpgradeVersion();
+		if (upgradeVersion==null) return;
+		versions[0] = "v"+upgradeVersion+" (latest version)";
 		urls[0] = "http://rsb.info.nih.gov/ij/upgrade/ij.jar";
-		if (versions[0]==null) return;
 		for (int i=1; i<count-1; i++) {
 			versions[i] = list[i-1];
 			urls[i] = "http://rsb.info.nih.gov/ij/download/jars/ij"
@@ -51,10 +50,10 @@ public class ImageJ_Updater implements PlugIn {
 				return;
 		}
 		byte[] jar = getJar(urls[choice]);
+		if (jar==null) return;
 		//file.renameTo(new File(file.getParent()+File.separator+"ij.bak"));
 		if (version().compareTo("1.37v")>=0)
 			Prefs.savePreferences();
-		// if (!renameJar(file)) return; // doesn't work on Vista
 		saveJar(file, jar);
 		System.exit(0);
 	}
@@ -80,12 +79,12 @@ public class ImageJ_Updater implements PlugIn {
 		String url = "http://rsb.info.nih.gov/ij/notes.html";
 		String notes = openUrlAsString(url, 20);
 		if (notes==null) {
-			error("Unable to open release notes at "+url);
+			IJ.error("Updater", "Unable to open release notes at "+url);
 			return null;
 		}
 		int index = notes.indexOf("Version ");
 		if (index==-1) {
-			error("Release notes are not in the expected format");
+			IJ.error("Updater", "Release notes are not in the expected format");
 			return null;
 		}
 		String version = notes.substring(index+8, index+13);
@@ -120,7 +119,7 @@ public class ImageJ_Updater implements PlugIn {
 			InputStream in = uc.getInputStream();
 			data = new byte[len];
 			int n = 0;
-			while (n < len) {
+			while (n<len) {
 				int count = in.read(data, n, len - n);
 				if (count<0)
 					throw new EOFException();
@@ -129,27 +128,12 @@ public class ImageJ_Updater implements PlugIn {
 			}
 			in.close();
 		} catch (IOException e) {
+			if (gte133) IJ.showProgress(1.0);
+			IJ.error("ImageJ Updater", ""+e.getMessage());
 			return null;
 		}
 		return data;
 	}
-
-	/*Changes the name of ij.jar to ij-old.jar
-	boolean renameJar(File f) {
-		File backup = new File(Prefs.getHomeDir() + File.separator + "ij-old.jar");
-		if (backup.exists()) {
-			if (!backup.delete()) {
-				error("Unable to delete backup: "+backup.getPath());
-				return false;
-			}
-		}
-		if (!f.renameTo(backup)) {
-			error("Unable to rename to ij-old.jar: "+f.getPath());
-			return false;
-		}
-		return true;
-	}
-	*/
 
 	void saveJar(File f, byte[] data) {
 		try {
@@ -194,10 +178,6 @@ public class ImageJ_Updater implements PlugIn {
 	boolean isMac() {
 		String osname = System.getProperty("os.name");
 		return osname.startsWith("Mac");
-	}
-	
-	void error(String msg) {
-		IJ.error("ImageJ Updater", msg);
 	}
 
 }
