@@ -273,8 +273,7 @@ plug-in03=>"Utilities"
 plug-in04="New... ",ij.plugin.NewPlugin
 plug-in05="Edit...",ij.plugin.Compiler("edit")
 plug-in06="Compile and Run...",ij.plugin.Compiler
-plug-in07="Install PlugIn...",ij.plugin.PlugInInstaller
-plug-in08=-
+plug-in07=-
 #plug-in08=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
@@ -298,7 +297,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Commands...",ij.plugin.CommandLister
 utilities04="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities05="Threads...",ij.plugin.ThreadLister
@@ -307,7 +306,7 @@ utilities07="Reset...",ij.plugin.SimpleCommands("reset")
 utilities08="Monitor Memory...",ij.plugin.MemoryMonitor
 utilities09="Search...",ij.plugin.SimpleCommands("search")
 utilities10="Capture Screen [G]",ij.plugin.ScreenGrabber
-utilities11="Upgrade ImageJ...",ij.plugin.ImageJ_Updater
+utilities11="Update ImageJ...",ij.plugin.ImageJ_Updater
 
 # Plugins installed in the Help/About submenu
 about01="About This Submenu...",ij.plugin.SimpleCommands("about")
