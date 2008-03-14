@@ -86,14 +86,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = ij.getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -130,29 +123,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	public void pack() {
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
@@ -258,8 +228,10 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
     		int currentSlice = imp.getCurrentSlice();
     		s += currentSlice+"/"+nSlices;
     		String label = stack.getShortSliceLabel(currentSlice);
-    		if (label!=null && label.length()>0 && !imp.isHyperStack())
+    		if (label!=null && label.length()>0) {
+    			if (imp.isHyperStack()) label = label.replace(';', ' ');
     			s += " (" + label + ")";
+    		}
 			if ((this instanceof StackWindow) && running2) {
 				return s;
 			}
