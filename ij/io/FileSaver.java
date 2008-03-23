@@ -240,7 +240,7 @@ public class FileSaver {
 		@see ij.plugin.JpegWriter#getQuality
 	*/
 	public boolean saveAsJpeg(String path) {
-		JpegWriter.save(imp,path,JpegWriter.getQuality());
+		JpegWriter.write(imp,path,JpegWriter.getQuality());
 		if (!(imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32))
 			updateImp(fi, fi.GIF_OR_JPG);
 		return true;
@@ -545,8 +545,14 @@ public class FileSaver {
 			sb.append("frames="+frames+"\n");
 		if (imp.isHyperStack()) sb.append("hyperstack=true\n");
 		if (imp.isComposite()) {
-			String mode = ((CompositeImage)imp).getModeAsString();
-			sb.append("mode="+mode+"\n");
+			int mode = ((CompositeImage)imp).getMode();
+			String s = null;
+			switch (mode) {
+				case CompositeImage.COMPOSITE: s="composite"; break;
+				case CompositeImage.COLOR: s="color"; break;
+				case CompositeImage.GRAYSCALE: s="gray"; break;
+			}
+			sb.append("mode="+s+"\n");
 		}
 		if (fi.unit!=null)
 			sb.append("unit="+fi.unit+"\n");
