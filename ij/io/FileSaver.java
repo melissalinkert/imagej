@@ -78,6 +78,12 @@ public class FileSaver {
 		if (info!=null && (info instanceof String))
 			fi.info = (String)info;
 		fi.description = getDescriptionString();
+		Object label = imp.getProperty("Label");
+		if (label!=null && (label instanceof String)) {
+			fi.sliceLabels = new String[1];
+			fi.sliceLabels[0] = (String)label;
+		}
+		fi.description = getDescriptionString();
 		try {
 			TiffEncoder file = new TiffEncoder(fi);
 			DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(path)));
@@ -240,7 +246,11 @@ public class FileSaver {
 		@see ij.plugin.JpegWriter#getQuality
 	*/
 	public boolean saveAsJpeg(String path) {
-		JpegWriter.write(imp,path,JpegWriter.getQuality());
+		Object jpegWriter = null;
+		ImagePlus tempImage = WindowManager.getTempCurrentImage();
+		WindowManager.setTempCurrentImage(imp);
+		IJ.runPlugIn("ij.plugin.JpegWriter", path);
+		WindowManager.setTempCurrentImage(tempImage);
 		if (!(imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32))
 			updateImp(fi, fi.GIF_OR_JPG);
 		return true;

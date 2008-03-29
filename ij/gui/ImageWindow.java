@@ -86,14 +86,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = ij.getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -130,29 +123,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	public void pack() {
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = IJ.getInstance().getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
@@ -266,6 +236,19 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				return s;
 			}
     		s += "; ";
+		} else {
+			String label = (String)imp.getProperty("Label");
+			if (label!=null) {
+			int newline = label.indexOf('\n');
+			if (newline>0)
+				label = label.substring(0, newline);
+			int len = label.length();
+			if (len>4 && label.charAt(len-4)=='.' && !Character.isDigit(label.charAt(len-1)))
+				label = label.substring(0,len-4);
+			if (label.length()>60)
+				label = label.substring(0, 60);
+				s = label + "; ";
+			}
 		}
     	int type = imp.getType();
     	Calibration cal = imp.getCalibration();

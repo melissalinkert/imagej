@@ -131,7 +131,7 @@ stacks17="Animation Options...",ij.plugin.Animator("options")
 hyperstacks01="New HyperStack...",ij.plugin.HyperStackConverter("new")
 hyperstacks02="Stack to HyperStack...",ij.plugin.HyperStackConverter("stacktohs")
 hyperstacks03="HyperStack to Stack",ij.plugin.HyperStackConverter("hstostack")
-hyperstacks04="Split Channels...",ij.plugin.HyperStackConverter("split")
+hyperstacks04="Reduce Dimensionality...",ij.plugin.HyperStackReducer
 hyperstacks05="Channels...[Z]",ij.plugin.frame.Channels
 
 # Plugins installed in the Image/Rotate submenu
@@ -273,8 +273,7 @@ plug-in03=>"Utilities"
 plug-in04="New... ",ij.plugin.NewPlugin
 plug-in05="Edit...",ij.plugin.Compiler("edit")
 plug-in06="Compile and Run...",ij.plugin.Compiler
-plug-in07="Install PlugIn...",ij.plugin.PlugInInstaller
-plug-in08=-
+plug-in07=-
 #plug-in08=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
@@ -298,7 +297,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Commands...",ij.plugin.CommandLister
 utilities04="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities05="Threads...",ij.plugin.ThreadLister

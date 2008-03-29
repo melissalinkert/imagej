@@ -37,6 +37,9 @@ public class StackEditor implements PlugIn {
 			String label = stack.getSliceLabel(1);
 			if (label!=null && label.indexOf("\n")!=-1)
 				stack.setSliceLabel(null, 1);
+			Object obj = imp.getProperty("Label");
+			if (obj!=null && (obj instanceof String))
+				stack.setSliceLabel((String)obj, 1);
 			id = imp.getID();
 		}
 		ImageProcessor ip = imp.getProcessor();
@@ -56,7 +59,10 @@ public class StackEditor implements PlugIn {
 		if (!imp.lock()) return;
 		ImageStack stack = imp.getStack();
 		int n = imp.getCurrentSlice();
+		String label = stack.getSliceLabel(n);
  		stack.deleteSlice(n);
+ 		if (stack.getSize()==1 && label!=null)
+ 			imp.setProperty("Label", label);
 		imp.setStack(null, stack);
  		if (n--<1) n = 1;
 		imp.setSlice(n);
@@ -119,11 +125,7 @@ public class StackEditor implements PlugIn {
             }
             stack.addSlice(label, ip);
 			image[i].changes = false;
-			ImageWindow win = image[i].getWindow();
-			if (win!=null)
-				win.close();
-			else if (Interpreter.isBatchMode())
-				Interpreter.removeBatchModeImage(image[i]);
+			image[i].close();
 		}
 		ImagePlus imp = new ImagePlus("Stack", stack);
 		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
