@@ -4,6 +4,7 @@ import ij.process.*;
 import ij.gui.*;
 import ij.plugin.Macro_Runner;
 import ij.plugin.frame.Recorder;
+import ij.plugin.frame.RoiManager;
 import ij.util.Tools;
 import java.awt.*;
 import java.util.*;
@@ -1609,22 +1610,6 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
-	public void setLocalVariable(String key,String value) {
-	    Symbol sym=pgm.lookupWord(key);
-	    int symTabAddress;
-	    if(sym==null) {
-		sym=new Symbol(MacroConstants.WORD,key);
-		pgm.addSymbol(sym);
-		symTabAddress=pgm.stLoc-1;
-	    } else
-		symTabAddress=pgm.symTabLoc;
-	    Variable var=lookupLocalVariable(symTabAddress);
-	    if(var==null) {
-		push(symTabAddress, 0.0, value, this);
-	    } else
-		var.setString(value);
-	}
-
  	/** The specified string, if not null, is added to strings passed to the run() method. */
  	public static void setAdditionalFunctions(String functions) {
  		additionalFunctions = functions;
@@ -1633,6 +1618,18 @@ public class Interpreter implements MacroConstants {
  	public static String getAdditionalFunctions() {
  		return additionalFunctions;
 	} 
+	
+	/** Returns the batch mode RoiManager instance. */
+	public static RoiManager getBatchModeRoiManager() {
+		Interpreter interp = getInstance();
+		if (interp!=null && isBatchMode() && RoiManager.getInstance()==null) {
+			if (interp.func.roiManager==null)
+				interp.func.roiManager = new RoiManager(true);
+			return interp.func.roiManager;
+		} else
+			return null;
+	}
+	
 
 } // class Interpreter
 

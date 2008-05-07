@@ -8,13 +8,11 @@ import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.util.*;
-import com.sun.image.codec.jpeg.*;
-import javax.imageio.ImageIO;
 
 /** ImageJ Plugin for reading an AVI file into an image stack
  *  (one slice per video frame)
  *
- *  Version 2008-07-03 by Michael Schmid, based on a plugin by
+ *  Version 2008-04-29 by Michael Schmid, based on a plugin by
  *  Daniel Marsh and Wayne Rasband
  *
  * Restrictions and Notes:
@@ -24,8 +22,6 @@ import javax.imageio.ImageIO;
  *          - uncompressed 24 & 32 bit RGB (alpha channel ignored)
  *          - uncompressed 32 bit AYUV (alpha channel ignored)
  *          - various YUV 4:2:2 compressed formats
- *          - png or jpeg-encoded individual frames.
- *            Note that most MJPG (motion-JPEG) formats are not read correctly.
  *      - Does not read avi formats with more than one frame per chunk
  *      - Palette changes during the video not supported
  *      - Out-of-sequence frames (sequence given by index) not supported
@@ -35,14 +31,7 @@ import javax.imageio.ImageIO;
  *        range of data from a frame grabber is preserved).
  *        For standard behavior, use "Brightness&Contrast", Press "Set",
  *        enter "Min." 16, "Max." 235, and press "Apply".
- * Version History:
- *   2008-07-03
- *      - Support for 16bit AVIs coded by MIL (Matrox Imaging Library)
- *   2008-06-08
- *      - Support for png and jpeg/mjpg encoded files added
- *      - Retrieves animation speed from image frame rate
- *      - Exception handling without multiple error messages
- *   2008-04-29
+ * Enhancements with respect to the previous version:
  *      - Support for several other formats added, especially some YUV
  *        (also named YCbCr) formats
  *      - Uneven chunk sizes fixed
@@ -101,7 +90,6 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private final static int   NO_COMPRESSION_Y8 = 0x20203859; //'Y8  ' -another name for Y800
     private final static int   NO_COMPRESSION_GREY=0x59455247;//'GREY' -another name for Y800
     private final static int   NO_COMPRESSION_Y16= 0x20363159; //'Y16 ' -a name for 16-bit uncompressed grayscale
-    private final static int   NO_COMPRESSION_MIL= 0x204c494d; //'MIL ' - Matrox Imaging Library
     private final static int   AYUV_COMPRESSION  = 0x56555941; //'AYUV' -uncompressed, but alpha, Y, U, V bytes
     private final static int   UYVY_COMPRESSION  = 0x59565955; //'UYVY' - 4:2:2 with byte order u y0 v y1
     private final static int   Y422_COMPRESSION  = 0x564E5955; //'Y422' -another name for of UYVY
@@ -112,14 +100,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private final static int   YUNV_COMPRESSION  = 0x564E5559; //'YUNV' -another name for YUY2
     private final static int   YUYV_COMPRESSION  = 0x56595559; //'YUYV' -another name for YUY2
     private final static int   YVYU_COMPRESSION  = 0x55595659; //'YVYU' - 4:2:2 with byte order y0 u y1 v
-    private final static int   JPEG_COMPRESSION  = 0x6765706a; //'jpeg' JPEG compression of individual frames
-    private final static int   JPEG_COMPRESSION2 = 0x4745504a; //'JPEG' JPEG compression of individual frames
-    private final static int   JPEG_COMPRESSION3 = 0x04;       //BI_JPEG: JPEG compression of individual frames
-    private final static int   MJPG_COMPRESSION  = 0x47504a4d; //'MJPG' Motion JPEG, also reads compression of individual frames
-    private final static int   PNG_COMPRESSION   = 0x20676e70; //'png ' PNG compression of individual frames
-    private final static int   PNG_COMPRESSION2  = 0x20474e50; //'PNG ' PNG compression of individual frames
-    private final static int   PNG_COMPRESSION3  = 0x05;       //BI_PNG PNG compression of individual frames
-
+    
     private final static int   BITMASK24 = 0x10000;     //for 24-bit (in contrast to 8, 16,... not a bitmask)
     private final static long  SIZE_MASK = 0xffffffffL; //for conversion of sizes from unsigned int to long
 
@@ -142,11 +123,9 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private  int               scanLineSize;
     private  boolean           dataTopDown;         //whether data start at top of image
     private  ColorModel        cm;
-    private  boolean           variableLength;      //compressed (PNG, JPEG) frames have variable length
     //for conversion to ImageJ stack
     private  Vector            frameInfos;  //for virtual stack: long[] with frame pos&size in file, time(usec)
     private  ImageStack        stack;
-	private  ImagePlus	       imp;
     //for debug messages
     private  boolean           verbose = IJ.debugMode;
     private  long              startTime;
@@ -163,11 +142,15 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private  int               dwSuggestedBufferSize;
     private  int               dwWidth;
     private  int               dwHeight;
+    private  int               dwScale;
+    private  int               dwRate;
+    private  int               dwStart;
+    private  int               dwLength;
 
     //From Stream Header Chunk
     private  int               fccStreamHandler;
     private  int               dwStreamFlags;
-    private  int               dwPriorityLanguage;  //actually 2 16-bit words: wPriority and wLanguage
+    private  int               dwStreamReserved1;
     private  int               dwStreamInitialFrames;
     private  int               dwStreamScale;
     private  int               dwStreamRate;
@@ -181,7 +164,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private  int               biSize;              // size of this header in bytes (40)
     private  int               biWidth;
     private  int               biHeight;
-    private  short             biPlanes;            // no. of color planes: for the formats decoded; here always 1
+    private  short             biPlanes;            // no. of color planes: for the formats decoded, always 1
     private  short             biBitCount;          // Bits per Pixel
     private  int               biCompression;
     private  int               biSizeImage;         // size of image in bytes (may be 0: if so, calculate)
@@ -189,6 +172,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private  int               biYPelsPerMeter;     // vertical resolution, pixels/meter (may be 0)
     private  int               biClrUsed;           // no. of colors in palette (if 0, calculate)
     private  int               biClrImportant;      // no. of important colors (appear first in palette) (0 means all are important)
+	private ImagePlus	imp;
 
 
 
@@ -204,17 +188,12 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         try {
             openAndReadHeader(path);                                //open and read header
         } catch (Exception e) {
-            IJ.showMessage("AVI Reader", exceptionMessage(e));
+            showExceptionMessage(e);
             return;
         }
         if (!showDialog(fileName)) return;                          //ask for parameters
-        try {
-            ImageStack stack = makeStack (path, firstFrameNumber, lastFrameNumber,
-                    isVirtual, convertToGray, flipVertical);        //read data
-        } catch (Exception e) {
-            IJ.showMessage("AVI Reader", exceptionMessage(e));
-            return;
-        }
+        ImageStack stack = makeStack (path, firstFrameNumber, lastFrameNumber,
+                isVirtual, convertToGray, flipVertical);            //read data
         if (stack == null) return;
         if (stack.getSize() == 0) {
             String rangeText = "";
@@ -225,14 +204,11 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             return;
         }
         imp = new ImagePlus(fileName, stack);
-        if (imp.getBitDepth()==16)
-        	imp.getProcessor().resetMinAndMax();
-        setFramesPerSecond(imp);
         if (arg.equals(""))
         	imp.show();
         IJ.showTime(imp, startTime, "Read AVI in ", stack.getSize());
     }
-
+    
     /** Returns the ImagePlus opened by run(). */
 	public ImagePlus getImagePlus() {
 		return imp;
@@ -254,7 +230,6 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         this.isVirtual = isVirtual;
         this.convertToGray = convertToGray;
         this.flipVertical = flipVertical;
-        String exceptionMessage = null;
         IJ.showProgress(.001);
         try {
             readAVI(path);
@@ -262,7 +237,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             stack.trim();
             IJ.showMessage("AVI Reader", "Out of memory.  " + stack.getSize() + " of " + dwTotalFrames + " frames will be opened.");
         } catch (Exception e) {
-            exceptionMessage = exceptionMessage(e);
+            showExceptionMessage(e);
         } finally {
             try {
                 raFile.close();
@@ -271,10 +246,9 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             } catch (Exception e) {}
             IJ.showProgress(1.0);
         }
-        if (exceptionMessage != null) throw new RuntimeException(exceptionMessage);
         if (isVirtual && frameInfos != null)
             stack = this;
-        if (stack!=null && cm!=null)
+        if (stack != null)
             stack.setColorModel(cm);
         return stack;
     }
@@ -289,34 +263,30 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             throw new IllegalArgumentException("Argument out of range: "+n);
         Object pixels = null;
         RandomAccessFile rFile = null;
-        String exceptionMessage = null;
         try {
             rFile = new RandomAccessFile(new File(raFilePath), "r");
             long[] frameInfo = (long[])(frameInfos.get(n-1));
             pixels = readFrame(rFile, frameInfo[0], (int)frameInfo[1]);
         } catch (Exception e) {
-            exceptionMessage = exceptionMessage(e);
+            showExceptionMessage(e);
         } finally {
             try {
                 rFile.close();
             } catch (Exception e) {}
         }
-        if (exceptionMessage != null) throw new RuntimeException(exceptionMessage);
         if (pixels == null) return null; //failed
-        if (pixels instanceof byte[])
+        if (biBitCount <= 8 || convertToGray)
             return new ByteProcessor(dwWidth, biHeight, (byte[])pixels, cm);
-        else if (pixels instanceof short[])
-            return new ShortProcessor(dwWidth, biHeight, (short[])pixels, cm);
         else
             return new ColorProcessor(dwWidth, biHeight, (int[])pixels);
     }
  
-    /** Returns the image width of the virtual stack */
+    /** Returns the image width */
     public int getWidth() {
         return dwWidth;
     }
 
-    /** Returns the image height of the virtual stack */
+    /** Returns the image height */
     public int getHeight() {
         return biHeight;
     }
@@ -425,7 +395,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             if (type==fourcc) {
                 contentOk = readContents(fourcc, nextPos);
             } else if (verbose)
-                IJ.log("Discarded '"+fourccString(type)+"': Contents does not fit");
+                IJ.log("Discarded '"+fourccString(fourcc)+"': Contents does not fit");
             raFile.seek(nextPos);
             if (contentOk)
                 return nextPos;     //found and read, breaks the loop
@@ -479,27 +449,34 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         dwSuggestedBufferSize = readInt();
         dwWidth = readInt();
         dwHeight = readInt();
-        // dwReserved[4] follows, ignored
+        dwScale = readInt();
+        dwRate = readInt();
+        dwStart = readInt();
+        dwLength = readInt();
 
         if (verbose) {
             IJ.log("AVI HEADER (avih):"+timeString());
-            IJ.log("   dwMicroSecPerFrame=" + dwMicroSecPerFrame);
-            IJ.log("   dwMaxBytesPerSec=" + dwMaxBytesPerSec);
-            IJ.log("   dwReserved1=" + dwReserved1);
-            IJ.log("   dwFlags=" + dwFlags);
-            IJ.log("   dwTotalFrames=" + dwTotalFrames);
-            IJ.log("   dwInitialFrames=" + dwInitialFrames);
-            IJ.log("   dwStreams=" + dwStreams);
-            IJ.log("   dwSuggestedBufferSize=" + dwSuggestedBufferSize);
-            IJ.log("   dwWidth=" + dwWidth);
-            IJ.log("   dwHeight=" + dwHeight);
+            IJ.log("      dwMicroSecPerFrame=" + dwMicroSecPerFrame);
+            IJ.log("      dwMaxBytesPerSec=" + dwMaxBytesPerSec);
+            IJ.log("      dwReserved1=" + dwReserved1);
+            IJ.log("      dwFlags=" + dwFlags);
+            IJ.log("      dwTotalFrames=" + dwTotalFrames);
+            IJ.log("      dwInitialFrames=" + dwInitialFrames);
+            IJ.log("      dwStreams=" + dwStreams);
+            IJ.log("      dwSuggestedBufferSize=" + dwSuggestedBufferSize);
+            IJ.log("      dwWidth=" + dwWidth);
+            IJ.log("      dwHeight=" + dwHeight);
+            IJ.log("      dwScale=" + dwScale);
+            IJ.log("      dwRate=" + dwRate);
+            IJ.log("      dwStart=" + dwStart);
+            IJ.log("      dwLength=" + dwLength);
         }
     }
 
     void readStreamHeader() throws Exception, IOException {
         fccStreamHandler = readInt();
         dwStreamFlags = readInt();
-        dwPriorityLanguage = readInt();
+        dwStreamReserved1 = readInt();
         dwStreamInitialFrames = readInt();
         dwStreamScale = readInt();
         dwStreamRate = readInt();
@@ -508,26 +485,26 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         dwStreamSuggestedBufferSize = readInt();
         dwStreamQuality = readInt();
         dwStreamSampleSize = readInt();
-        //rcFrame rectangle follows, ignored
+        //rcFrame rectangle ignored
         if (verbose) {
             IJ.log("VIDEO STREAM HEADER (strh):");
-            IJ.log("   fccStreamHandler='" + fourccString(fccStreamHandler)+"'");
-            IJ.log("   dwStreamFlags=" + dwStreamFlags);
-            IJ.log("   wPriority,wLanguage=" + dwPriorityLanguage);
-            IJ.log("   dwStreamInitialFrames=" + dwStreamInitialFrames);
-            IJ.log("   dwStreamScale=" + dwStreamScale);
-            IJ.log("   dwStreamRate=" + dwStreamRate);
-            IJ.log("   dwStreamStart=" + dwStreamStart);
-            IJ.log("   dwStreamLength=" + dwStreamLength);
-            IJ.log("   dwStreamSuggestedBufferSize=" + dwStreamSuggestedBufferSize);
-            IJ.log("   dwStreamQuality=" + dwStreamQuality);
-            IJ.log("   dwStreamSampleSize=" + dwStreamSampleSize);
+            IJ.log("      fccStreamHandler='" + fourccString(fccStreamHandler)+"'");
+            IJ.log("      dwStreamFlags=" + dwStreamFlags);
+            IJ.log("      dwStreamReserved1=" + dwStreamReserved1);
+            IJ.log("      dwStreamInitialFrames=" + dwStreamInitialFrames);
+            IJ.log("      dwStreamScale=" + dwStreamScale);
+            IJ.log("      dwStreamRate=" + dwStreamRate);
+            IJ.log("      dwStreamStart=" + dwStreamStart);
+            IJ.log("      dwStreamLength=" + dwStreamLength);
+            IJ.log("      dwStreamSuggestedBufferSize=" + dwStreamSuggestedBufferSize);
+            IJ.log("      dwStreamQuality=" + dwStreamQuality);
+            IJ.log("      dwStreamSampleSize=" + dwStreamSampleSize);
         }
         if (dwStreamSampleSize > 1)
             throw new Exception("Video stream with "+dwStreamSampleSize+" (more than 1) frames/chunk not supported");
     }
 
-    /**Read stream format chunk: starts with BitMapInfo, may contain palette
+    /**Read BitMapInfoHeader: starts with BitMapInfo, may contain palette
     */
     void readBitMapInfo(long endPosition) throws Exception, IOException {
         biSize = readInt();
@@ -542,17 +519,17 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         biClrUsed = readInt();
         biClrImportant = readInt();
         if (verbose) {
-            IJ.log("   biSize=" + biSize);
-            IJ.log("   biWidth=" + biWidth);
-            IJ.log("   biHeight=" + biHeight);
-            IJ.log("   biPlanes=" + biPlanes);
-            IJ.log("   biBitCount=" + biBitCount);
-            IJ.log("   biCompression=0x" + Integer.toHexString(biCompression)+" '"+fourccString(biCompression)+"'");
-            IJ.log("   biSizeImage=" + biSizeImage);
-            IJ.log("   biXPelsPerMeter=" + biXPelsPerMeter);
-            IJ.log("   biYPelsPerMeter=" + biYPelsPerMeter);
-            IJ.log("   biClrUsed=" + biClrUsed);
-            IJ.log("   biClrImportant=" + biClrImportant);
+            IJ.log("      biSize=" + biSize);
+            IJ.log("      biWidth=" + biWidth);
+            IJ.log("      biHeight=" + biHeight);
+            IJ.log("      biPlanes=" + biPlanes);
+            IJ.log("      biBitCount=" + biBitCount);
+            IJ.log("      biCompression=0x" + Integer.toHexString(biCompression)+" '"+fourccString(biCompression)+"'");
+            IJ.log("      biSizeImage=" + biSizeImage);
+            IJ.log("      biXPelsPerMeter=" + biXPelsPerMeter);
+            IJ.log("      biYPelsPerMeter=" + biYPelsPerMeter);
+            IJ.log("      biClrUsed=" + biClrUsed);
+            IJ.log("      biClrImportant=" + biClrImportant);
         }
 
         int allowedBitCount = 0;
@@ -574,7 +551,6 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
                 allowedBitCount = 8;
                 break;
             case NO_COMPRESSION_Y16:
-            case NO_COMPRESSION_MIL:
                 dataCompression = NO_COMPRESSION;
                 allowedBitCount = 16;
                 break;
@@ -602,26 +578,13 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
                 dataCompression = YVYU_COMPRESSION;
                 allowedBitCount = 16;
                 break;
-            case JPEG_COMPRESSION:
-            case JPEG_COMPRESSION2:
-            case JPEG_COMPRESSION3:
-            case MJPG_COMPRESSION:
-                dataCompression = JPEG_COMPRESSION;
-                variableLength = true;
-                break;
-            case PNG_COMPRESSION:
-            case PNG_COMPRESSION2:
-            case PNG_COMPRESSION3:
-                variableLength = true;
-                dataCompression = PNG_COMPRESSION;
-                break;
             default:
-                throw new Exception("Unsupported compression: "+Integer.toHexString(biCompression)+
-                        (biCompression>=0x20202020 ? " '" + fourccString(biCompression)+"'" : ""));
+                throw new Exception("Unsupported compression: '"+fourccString(biCompression)+"' ("
+                        + Integer.toHexString(biCompression) +")");
         }
 
         int bitCountTest = biBitCount==24 ? BITMASK24 : biBitCount;  //convert "24" to a flag
-        if (allowedBitCount!=0 && (bitCountTest & allowedBitCount)==0)
+        if ((bitCountTest & allowedBitCount) == 0)
             throw new Exception("Unsupported: "+biBitCount+" bits/pixel for compression '"+
                     fourccString(biCompression)+"'");
 
@@ -636,17 +599,17 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             biClrUsed = 1 << biBitCount;
 
         if (verbose) {
-            IJ.log("   > data compression=0x" + Integer.toHexString(dataCompression)+" '"+fourccString(dataCompression)+"'");
-            IJ.log("   > palette colors=" + biClrUsed);
-            IJ.log("   > scan line size=" + scanLineSize);
-            IJ.log("   > data top down=" + dataTopDown);
+            IJ.log("      > data compression=0x" + Integer.toHexString(dataCompression)+" '"+fourccString(dataCompression)+"'");
+            IJ.log("      > palette colors=" + biClrUsed);
+            IJ.log("      > scan line size=" + scanLineSize);
+            IJ.log("      > data top down=" + dataTopDown);
         }
 
         //read color palette
         if (readPalette) {
             long spaceForPalette  = endPosition-raFile.getFilePointer();
             if (verbose)
-                IJ.log("   Reading "+biClrUsed+" Palette colors: " + posSizeString(spaceForPalette));
+                IJ.log("      Reading "+biClrUsed+" Palette colors: " + posSizeString(spaceForPalette));
             if (spaceForPalette < biClrUsed*4)
                 throw new Exception("Not enough data ("+spaceForPalette+") for palette of size "+(biClrUsed*4));
             byte[]  pr    = new byte[biClrUsed];
@@ -671,7 +634,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         int type0xdc = FOURCC_00dc + (streamNumber<<8);  //'01dc' for stream 1, etc.
         if (verbose)
             IJ.log("Searching for stream "+streamNumber+": '"+
-                    fourccString(type0xdb)+"' or '"+fourccString(type0xdc)+"' chunks");
+                    fourccString(type0xdb)+"' or '"+fourccString(type0xdb)+"' chunks");
         int lastFrameToRead = Integer.MAX_VALUE;
         if (lastFrameNumber > 0)            //last frame number to read: from Dialog
             lastFrameToRead = lastFrameNumber;
@@ -681,6 +644,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             frameInfos = new Vector(100);    //holds frame positions in file (for non-constant frame sizes, should hold long[] with pos and size)
         else
             stack = new ImageStack(dwWidth, biHeight);
+        int framesFound = 0;
         int frameNumber = 1;
         while (true) {                          //loop over all chunks
             int type = readType(endPosition);
@@ -710,49 +674,11 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         }
     }
 
-    /** Reads a frame at a given position in the file, returns pixels array */
+    /** read a frame at a given position in the file, returns pixels array */
     private Object readFrame (RandomAccessFile rFile, long filePos, int size)
             throws Exception, IOException {
         rFile.seek(filePos);
-        if (variableLength)                 //JPEG or PNG-compressed frames
-            return readCompressedFrame(rFile, size);
-        else
-            return readFixedLengthFrame(rFile, size);
-    }
-
-    /** Reads a JPEG or PNG-compressed frame from a RandomAccessFile and
-     *  returns the pixels array of the resulting image abd sets the
-     *  ColorModel cm (if appropriate) */
-    private Object readCompressedFrame (RandomAccessFile rFile, int size)
-            throws Exception, IOException {
-        InputStream inputStream = new raInputStream(rFile, size, biCompression==MJPG_COMPRESSION);
-        BufferedImage bi = null;
-        if (dataCompression == JPEG_COMPRESSION)
-            bi = JPEGCodec.createJPEGDecoder(inputStream).decodeAsBufferedImage();
-        else
-            bi = ImageIO.read(inputStream);
-        int type = bi.getType();
-        ImageProcessor ip = null;
-        //IJ.log("BufferedImage Type="+type);
-        if (type==BufferedImage.TYPE_BYTE_GRAY) {
-            ip = new ByteProcessor(bi);
-        } else if (type==bi.TYPE_BYTE_INDEXED) {
-            cm = bi.getColorModel();
-            ip = new ByteProcessor((Image)bi);
-        } else
-            ip =  new ColorProcessor(bi);
-        if (convertToGray)
-            ip = ip.convertToByte(false);
-        if (flipVertical)
-            ip.flipVertical();
-        return ip.getPixels();
-    }
-
-    /** Read a fixed-length frame (RandomAccessFile rFile, long filePos, int size)
-     *  return the pixels array of the resulting image
-     */
-    private Object readFixedLengthFrame (RandomAccessFile rFile, int size)  throws Exception, IOException{
-        if (size < scanLineSize*biHeight)   //check minimum size (fixed frame length format)
+        if (size < scanLineSize*biHeight)   //we have lines of equal length (very simple compression formats only)
             throw new Exception("Data chunk size "+size+" too short ("+(scanLineSize*biHeight)+" required)");
         byte[] rawData = new byte[size];
         int  n  = rFile.read(rawData, 0, size);
@@ -763,13 +689,9 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         Object pixels = null;
         byte[] bPixels = null;
         int[] cPixels = null;
-        short[] sPixels = null;
         if (biBitCount <=8 || convertToGray) {
             bPixels = new byte[dwWidth * biHeight];
             pixels = bPixels;
-        } else if (biBitCount == 16) {
-            sPixels = new short[dwWidth * biHeight];
-            pixels = sPixels;
         } else {
             cPixels = new int[dwWidth * biHeight];
             pixels = cPixels;
@@ -781,8 +703,6 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
                 unpack8bit(rawData, rawOffset, bPixels, offset, dwWidth);
             else if (convertToGray)
                 unpackGray(rawData, rawOffset, bPixels, offset, dwWidth);
-            else if (biBitCount==16)
-                unpackShort(rawData, rawOffset, sPixels, offset, dwWidth);
             else
                 unpack(rawData, rawOffset, cPixels, offset, dwWidth);
             rawOffset += scanLineSize;
@@ -817,15 +737,6 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
                 pixels[j++] = rawData[k];   //Non-standard: no scaling from 16-235 to 0-255 here
                 k+=step;
             }
-        }
-    }
-
-    /** For one line: Unpack 16bit grayscale data and convert to short array for ShortProcessor */
-    void unpackShort(byte[] rawData, int rawOffset, short[] pixels, int shortOffset, int w) {
-        int  j     = shortOffset;
-        int  k     = rawOffset;
-        for (int i = 0; i < w; i++) {
-            pixels[j++] = (short) ((int)(rawData[k++] & 0xFF)| (((int)(rawData[k++] & 0xFF))<<8));
         }
     }
 
@@ -885,7 +796,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
                 
         }
     }
-    
+
     /** Write an intData RGB value converted from YUV,
      *  The y range between 16 and 235 becomes 0...255
      *  u, v should be between -112 and +112
@@ -940,13 +851,6 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         }
     }
 
-    private void setFramesPerSecond (ImagePlus imp) {
-        if (dwMicroSecPerFrame<1000 && dwStreamRate>0)  //if no reasonable frame time, get it from rate
-            dwMicroSecPerFrame = (int)(dwStreamScale*1e6/dwStreamRate);
-        if (dwMicroSecPerFrame>=1000)
-            imp.getCalibration().fps = 1e6 / dwMicroSecPerFrame;
-    }
-
     private String frameLabel(long timeMicroSec) {
         return IJ.d2s(timeMicroSec/1.e6)+" s";
     }
@@ -974,82 +878,16 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         return s;
     }
 
-    private String exceptionMessage (Exception e) {
+    private void showExceptionMessage (Exception e) {
         String  msg;
         if (e.getClass() == Exception.class)    //for "home-built" exceptions: message only
             msg = e.getMessage();
         else
             msg = e + "\n" + e.getStackTrace()[0]+"\n"+e.getStackTrace()[1];
-        if (msg.indexOf("Huffman table")!=-1)
-            return "Cannot open M_JPEG AVIs that are missing Huffman tables";
-        else
-           return "An error occurred reading the file.\n \n" + msg;
+        IJ.showMessage("AVI Reader", "An error occurred reading the file.\n \n" + msg);
     }
 
     void updateProgress() throws IOException {
         IJ.showProgress((double) raFile.getFilePointer() / fileSize);
-    }
-
-    /** An input stream reading from a RandomAccessFile (starting at the current position)
-     *  This class contains a hack to convert a 'Define Huffman Table' (DHT) segments
-     *  from MJPG to JPEG.
-     *  The hack works only if the first bytes are read in a sufficiently large
-     *  array to include the start of the DHT segment.
-     */
-    class raInputStream extends InputStream {
-        RandomAccessFile rFile; //where to read the data from
-        int readableSize;       //number of bytes that one should expect to be readable
-        boolean fixMJPG;        //whether to use an ugly hack to convert MJPG frames to JPEG
-
-        /** Constructor */
-        raInputStream (RandomAccessFile rFile, int readableSize, boolean fixMJPG) {
-            this.rFile = rFile;
-            this.readableSize = readableSize;
-            this.fixMJPG = fixMJPG;
-        }
-        public int available () {
-            return readableSize;
-        }
-        // Read methods.
-        // Reading beyond start position + readableSize (i.e. beyond the frame in the avi file)
-        // is possible - no checks are done (as long as it is within the bounds of the file).
-        public int read () throws IOException {
-            fixMJPG = false;    //the fix won't work after reading single bytes
-            return rFile.read();
-        }
-        public int read (byte[] b) throws IOException {
-            return read(b, 0, b.length);
-        }
-        public int read (byte[] b, int off, int len) throws IOException {
-            int nBytes = rFile.read(b, off, len);
-            if (fixMJPG) {
-                doFixMJPG(b, nBytes);
-                fixMJPG = false;
-            }
-            return nBytes;
-        }
-        // A Hack: Replace 0xffb3 segment markers with 0xffc4, the JPEG code for
-        // 'Define Huffman Table' (DHT)
-        // This makes at least some MJPG files readable by the JPEG decoder
-        private void doFixMJPG (byte[] b, int len) {
-            //IJ.log("data code="+Integer.toHexString(readShort(b, 0)));
-            if (readShort(b, 0)!=0xffd8 || len<6) return;   //not a start of JPEG-like data
-            int offset = 2;
-            while (true) {
-                int code = readShort(b, offset);            //read segment type
-                if (code==0xffda || code==0xffd9) return;   //start of image data or end
-                if (code==0xffe2) {
-                    b[offset+1] = (byte)0xc4;
-                    return;                                 //fixed
-                }
-                offset += 2;
-                int segmentLength = readShort(b, offset);
-                offset += segmentLength;
-                if (offset>len-4 || segmentLength<0) return;//pointed out of file
-            }
-        }
-        private int readShort(byte[] b, int offset) {
-            return ((b[offset]&0xff)<<8) | (b[offset+1]&0xff);
-        }
     }
 }

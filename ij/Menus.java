@@ -8,14 +8,9 @@ import java.awt.image.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.*;
+import java.applet.Applet;
 import java.awt.event.*;
 import java.util.zip.*;
-
-import java.net.URL;
-import java.net.JarURLConnection;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarInputStream;
 
 /**
 This class installs and updates ImageJ's menus. Note that menu labels,
@@ -55,15 +50,15 @@ public class Menus {
 	private static PopupMenu popup;
 
 	private static ImageJ ij;
-	private static ImageJApplet applet;
+	private static Applet applet;
 	private static Hashtable demoImagesTable = new Hashtable();
 	private static String pluginsPath, macrosPath;
-	private static Properties menus = new Properties();
-	private static Properties menuSeparators;
-	static Menu window, openRecentMenu, pluginsMenu, shortcutsMenu, utilitiesMenu, macrosMenu;
+	private static Menu pluginsMenu, importMenu, saveAsMenu, shortcutsMenu, 
+		aboutMenu, filtersMenu, toolsMenu, utilitiesMenu, macrosMenu, optionsMenu;
 	private static Hashtable pluginsTable;
 	
-	static int nPlugins, nMacros;
+	static Menu window, openRecentMenu;
+	int nPlugins, nMacros;
 	private static Hashtable shortcuts = new Hashtable();
 	private static Hashtable macroShortcuts;
 	private static Vector pluginsPrefs = new Vector(); // commands saved in IJ_Prefs
@@ -72,17 +67,19 @@ public class Menus {
 	private String jarError;
 	private String pluginError;
     private boolean isJarErrorHeading;
-	private static boolean installingJars, duplicateCommand;
+	private boolean installingJars, duplicateCommand;
 	private static Vector jarFiles;  // JAR files in plugins folder with "_" in their name
 	private static Vector macroFiles;  // Macro files in plugins folder with "_" in their name
-	private static int userPluginsIndex; // First user plugin or submenu in Plugins menu
-	private static boolean addSorted;
+	private int importCount, saveAsCount, toolsCount, optionsCount;
+	private static Hashtable menusTable; // Submenus of Plugins menu
+	private int userPluginsIndex; // First user plugin or submenu in Plugins menu
+	private boolean addSorted;
 	private static int defaultFontSize = IJ.isWindows()?14:0;
 	private static int fontSize = Prefs.getInt(Prefs.MENU_SIZE, defaultFontSize);
 	private static Font menuFont;
 	static boolean jnlp; // true when using Java WebStart
 		
-	Menus(ImageJ ijInstance, ImageJApplet appletInstance) {
+	Menus(ImageJ ijInstance, Applet appletInstance) {
 		ij = ijInstance;
 		applet = appletInstance;
 	}
@@ -90,19 +87,18 @@ public class Menus {
 	String addMenuBar() {
 		error = null;
 		pluginsTable = new Hashtable();
-
-		Menu file = getMenu("File");
-		Menu newMenu = getMenu("File>New", true);
+		
+		Menu file = new Menu("File");
+		addSubMenu(file, "New");
 		addPlugInItem(file, "Open...", "ij.plugin.Commands(\"open\")", KeyEvent.VK_O, false);
 		addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
-		if (applet == null)
-			getMenu("File>Open Samples", true);
+		addSubMenu(file, "Open Samples");
 		addOpenRecentSubMenu(file);
-		Menu importMenu = getMenu("File>Import", true);
+		importMenu = addSubMenu(file, "Import");
 		file.addSeparator();
 		addPlugInItem(file, "Close", "ij.plugin.Commands(\"close\")", KeyEvent.VK_W, false);
 		addPlugInItem(file, "Save", "ij.plugin.Commands(\"save\")", KeyEvent.VK_S, false);
-		Menu saveAsMenu = getMenu("File>Save As", true);
+		saveAsMenu = addSubMenu(file, "Save As");
 		addPlugInItem(file, "Revert", "ij.plugin.Commands(\"revert\")", KeyEvent.VK_R,  false);
 		file.addSeparator();
 		addPlugInItem(file, "Page Setup...", "ij.plugin.filter.Printer(\"setup\")", 0, false);
@@ -110,7 +106,7 @@ public class Menus {
 		file.addSeparator();
 		addPlugInItem(file, "Quit", "ij.plugin.Commands(\"quit\")", 0, false);
 		
-		Menu edit = getMenu("Edit");
+		Menu edit = new Menu("Edit");
 		addPlugInItem(edit, "Undo", "ij.plugin.Commands(\"undo\")", KeyEvent.VK_Z, false);
 		edit.addSeparator();
 		addPlugInItem(edit, "Cut", "ij.plugin.Clipboard(\"cut\")", KeyEvent.VK_X, false);
@@ -125,11 +121,11 @@ public class Menus {
 		addPlugInItem(edit, "Draw", "ij.plugin.filter.Filler(\"draw\")", KeyEvent.VK_D, false);
 		addPlugInItem(edit, "Invert", "ij.plugin.filter.Filters(\"invert\")", KeyEvent.VK_I, true);
 		edit.addSeparator();
-		getMenu("Edit>Selection", true);
-		Menu optionsMenu = getMenu("Edit>Options", true);
+		addSubMenu(edit, "Selection");
+		optionsMenu = addSubMenu(edit, "Options");
 		
-		Menu image = getMenu("Image");
-		Menu imageType = getMenu("Image>Type");
+		Menu image = new Menu("Image");
+		Menu imageType = new Menu("Type");
 			gray8Item = addCheckboxItem(imageType, "8-bit", "ij.plugin.Converter(\"8-bit\")");
 			gray16Item = addCheckboxItem(imageType, "16-bit", "ij.plugin.Converter(\"16-bit\")");
 			gray32Item = addCheckboxItem(imageType, "32-bit", "ij.plugin.Converter(\"32-bit\")");
@@ -141,67 +137,65 @@ public class Menus {
 			image.add(imageType);
 			
 		image.addSeparator();
-		getMenu("Image>Adjust", true);
+		addSubMenu(image, "Adjust");
 		addPlugInItem(image, "Show Info...", "ij.plugin.filter.Info", KeyEvent.VK_I, false);
 		addPlugInItem(image, "Properties...", "ij.plugin.filter.ImageProperties", KeyEvent.VK_P, true);
-		getMenu("Image>Color", true);
-		getMenu("Image>Stacks", true);
-		Menu hyperstacksMenu = getMenu("Image>Hyperstacks", true);
+		//addSubMenu(image, "Benchmarks");
+		addSubMenu(image, "Color");
+		addSubMenu(image, "Stacks");
+		addSubMenu(image, "Hyperstacks");
 		image.addSeparator();
 		addPlugInItem(image, "Crop", "ij.plugin.filter.Resizer(\"crop\")", KeyEvent.VK_X, true);
 		addPlugInItem(image, "Duplicate...", "ij.plugin.filter.Duplicater", KeyEvent.VK_D, true);
 		addPlugInItem(image, "Rename...", "ij.plugin.SimpleCommands(\"rename\")", 0, false);
 		addPlugInItem(image, "Scale...", "ij.plugin.Scaler", KeyEvent.VK_E, false);
 		addPlugInItem(image, "Translate...", "ij.plugin.filter.Translator", 0, false);
-		getMenu("Image>Rotate", true);
-		getMenu("Image>Zoom", true);
+		addSubMenu(image, "Rotate");
+		addSubMenu(image, "Zoom");
 		image.addSeparator();
-		getMenu("Image>Lookup Tables", true);
+		addSubMenu(image, "Lookup Tables");
 		
-		Menu process = getMenu("Process");
+		Menu process = new Menu("Process");
 		addPlugInItem(process, "Smooth", "ij.plugin.filter.Filters(\"smooth\")", KeyEvent.VK_S, true);
 		addPlugInItem(process, "Sharpen", "ij.plugin.filter.Filters(\"sharpen\")", 0, false);
 		addPlugInItem(process, "Find Edges", "ij.plugin.filter.Filters(\"edge\")", 0, false);
 		addPlugInItem(process, "Enhance Contrast", "ij.plugin.ContrastEnhancer", 0, false);
-		getMenu("Process>Noise", true);
-		getMenu("Process>Shadows", true);
-		getMenu("Process>Binary", true);
-		getMenu("Process>Math", true);
-		getMenu("Process>FFT", true);
-		Menu filtersMenu = getMenu("Process>Filters", true);
+		addSubMenu(process, "Noise");
+		addSubMenu(process, "Shadows");
+		addSubMenu(process, "Binary");
+		addSubMenu(process, "Math");
+		addSubMenu(process, "FFT");
+		filtersMenu = addSubMenu(process, "Filters");
 		process.addSeparator();
 		addPlugInItem(process, "Image Calculator...", "ij.plugin.ImageCalculator", 0, false);
 		addPlugInItem(process, "Subtract Background...", "ij.plugin.filter.BackgroundSubtracter", 0, false);
 		addItem(process, "Repeat Command", KeyEvent.VK_R, true);
 		
-		Menu analyzeMenu = getMenu("Analyze");
-		addPlugInItem(analyzeMenu, "Measure", "ij.plugin.filter.Analyzer", KeyEvent.VK_M, false);
-		addPlugInItem(analyzeMenu, "Analyze Particles...", "ij.plugin.filter.ParticleAnalyzer", 0, false);
-		addPlugInItem(analyzeMenu, "Summarize", "ij.plugin.filter.Analyzer(\"sum\")", 0, false);
-		addPlugInItem(analyzeMenu, "Distribution...", "ij.plugin.Distribution", 0, false);
-		addPlugInItem(analyzeMenu, "Label", "ij.plugin.filter.Filler(\"label\")", 0, false);
-		addPlugInItem(analyzeMenu, "Clear Results", "ij.plugin.filter.Analyzer(\"clear\")", 0, false);
-		addPlugInItem(analyzeMenu, "Set Measurements...", "ij.plugin.filter.Analyzer(\"set\")", 0, false);
-		analyzeMenu.addSeparator();
-		addPlugInItem(analyzeMenu, "Set Scale...", "ij.plugin.filter.ScaleDialog", 0, false);
-		addPlugInItem(analyzeMenu, "Calibrate...", "ij.plugin.filter.Calibrator", 0, false);
-		addPlugInItem(analyzeMenu, "Histogram", "ij.plugin.Histogram", KeyEvent.VK_H, false);
-		addPlugInItem(analyzeMenu, "Plot Profile", "ij.plugin.filter.Profiler(\"plot\")", KeyEvent.VK_K, false);
-		addPlugInItem(analyzeMenu, "Surface Plot...", "ij.plugin.SurfacePlotter", 0, false);
-		getMenu("Analyze>Gels", true);
-		Menu toolsMenu = getMenu("Analyze>Tools", true);
+		Menu analyze = new Menu("Analyze");
+		addPlugInItem(analyze, "Measure", "ij.plugin.filter.Analyzer", KeyEvent.VK_M, false);
+		addPlugInItem(analyze, "Analyze Particles...", "ij.plugin.filter.ParticleAnalyzer", 0, false);
+		addPlugInItem(analyze, "Summarize", "ij.plugin.filter.Analyzer(\"sum\")", 0, false);
+		addPlugInItem(analyze, "Distribution...", "ij.plugin.Distribution", 0, false);
+		addPlugInItem(analyze, "Label", "ij.plugin.filter.Filler(\"label\")", 0, false);
+		addPlugInItem(analyze, "Clear Results", "ij.plugin.filter.Analyzer(\"clear\")", 0, false);
+		addPlugInItem(analyze, "Set Measurements...", "ij.plugin.filter.Analyzer(\"set\")", 0, false);
+		analyze.addSeparator();
+		addPlugInItem(analyze, "Set Scale...", "ij.plugin.filter.ScaleDialog", 0, false);
+		addPlugInItem(analyze, "Calibrate...", "ij.plugin.filter.Calibrator", 0, false);
+		addPlugInItem(analyze, "Histogram", "ij.plugin.Histogram", KeyEvent.VK_H, false);
+		addPlugInItem(analyze, "Plot Profile", "ij.plugin.filter.Profiler(\"plot\")", KeyEvent.VK_K, false);
+		addPlugInItem(analyze, "Surface Plot...", "ij.plugin.SurfacePlotter", 0, false);
+		addSubMenu(analyze, "Gels");
+		toolsMenu = addSubMenu(analyze, "Tools");
 
-		// the plugins will be added later, with a separator
-		addPluginsMenu();
-
-		Menu window = getMenu("Window");
+		window = new Menu("Window");
 		addPlugInItem(window, "Show All", "ij.plugin.WindowOrganizer(\"show\")", KeyEvent.VK_F, true);
 		addPlugInItem(window, "Put Behind [tab]", "ij.plugin.Commands(\"tab\")", 0, false);
 		addPlugInItem(window, "Cascade", "ij.plugin.WindowOrganizer(\"cascade\")", 0, false);
 		addPlugInItem(window, "Tile", "ij.plugin.WindowOrganizer(\"tile\")", 0, false);
 		window.addSeparator();
 
-		Menu help = getMenu("Help");
+		Menu help = new Menu("Help");
 		addPlugInItem(help, "ImageJ Website...", "ij.plugin.BrowserLauncher", 0, false);
 		addPlugInItem(help, "ImageJ News...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/notes.html\")", 0, false);
 		addPlugInItem(help, "Documentation...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/docs\")", 0, false);
@@ -215,20 +209,25 @@ public class Menus {
 		addPlugInItem(help, "Macro Language...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/developer/macro/macros.html\")", 0, false);
 		addPlugInItem(help, "Macro Functions...", "ij.plugin.BrowserLauncher(\"http://rsb.info.nih.gov/ij/developer/macro/functions.html\")", 0, false);
 		help.addSeparator();
-		Menu aboutMenu = getMenu("Help>About Plugins", true);
-		help.addSeparator();
-		addPlugInItem(help, "ImageJA Web Site...", "ij.plugin.BrowserLauncher", 0, false);
-		addPlugInItem(help, "Online Docs...", "ij.plugin.BrowserLauncher(\"online\")", 0, false);
-		addPlugInItem(help, "About ImageJA...", "ij.plugin.AboutBoxJA", 0, false);
+		aboutMenu = addSubMenu(help, "About Plugins");
+		addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
 				
-		if (applet==null) {
-			menuSeparators = new Properties();
+		addPluginsMenu();
+		if (applet==null)
 			installPlugins();
-			if (fontSize!=0)
-				mbar.setFont(getFont());
-		}
-
-		if (ij!=null && applet == null)
+		
+		mbar = new MenuBar();
+		if (fontSize!=0)
+			mbar.setFont(getFont());
+		mbar.add(file);
+		mbar.add(edit);
+		mbar.add(image);
+		mbar.add(process);
+		mbar.add(analyze);
+		mbar.add(pluginsMenu);
+		mbar.add(window);
+		mbar.setHelpMenu(help);
+		if (ij!=null)
 			ij.setMenuBar(mbar);
 		
 		if (pluginError!=null)
@@ -239,7 +238,7 @@ public class Menus {
 	}
 	
 	void addOpenRecentSubMenu(Menu menu) {
-		openRecentMenu = getMenu("File>Open Recent");
+		openRecentMenu = new Menu("Open Recent");
  		for (int i=0; i<MAX_OPEN_RECENT_ITEMS; i++) {
 			String path = Prefs.getString("recent" + (i/10)%10 + i%10);
 			if (path==null) break;
@@ -250,7 +249,7 @@ public class Menus {
 		menu.add(openRecentMenu);
 	}
 
-	static void addItem(Menu menu, String label, int shortcut, boolean shift) {
+	void addItem(Menu menu, String label, int shortcut, boolean shift) {
 		if (menu==null)
 			return;
 		MenuItem item;
@@ -273,8 +272,6 @@ public class Menus {
 		} else
 			menu.add(item);
 		item.addActionListener(ij);
-		if (menu == macrosMenu)
-			nMacros++;
 	}
 
 	void addPlugInItem(Menu menu, String label, String className, int shortcut, boolean shift) {
@@ -293,7 +290,7 @@ public class Menus {
 		return item;
 	}
 
-	static Menu addSubMenu(Menu menu, String name) {
+	Menu addSubMenu(Menu menu, String name) {
 		String value;
 		String key = name.toLowerCase(Locale.US);
 		int index;
@@ -317,7 +314,7 @@ public class Menus {
 		return submenu;
 	}
 	
-	static void addLuts(Menu submenu) {
+	void addLuts(Menu submenu) {
 		String path = Prefs.getHomeDir()+File.separator;
 		File f = new File(path+"luts");
 		String[] list = null;
@@ -338,7 +335,7 @@ public class Menus {
 		}
 	}
 
-	static void addPluginItem(Menu submenu, String s) {
+	void addPluginItem(Menu submenu, String s) {
 		if (s.startsWith("\"-\"")) {
 			// add menu separator if command="-"
 			addSeparator(submenu);
@@ -387,7 +384,7 @@ public class Menus {
 	void addPluginsMenu() {
 		String value,label,className;
 		int index;
-		Menu pluginsMenu = getMenu("Plugins");
+		pluginsMenu = new Menu("Plugins");
 		for (int count=1; count<100; count++) {
 			value = Prefs.getString("plug-in" + (count/10)%10 + count%10);
 			if (value==null)
@@ -397,7 +394,7 @@ public class Menus {
 				pluginsMenu.addSeparator();
 			else if (firstChar=='>') {
 				String submenu = value.substring(2,value.length()-1);
-				Menu menu = getMenu("Plugins>" + submenu, true);
+				Menu menu = addSubMenu(pluginsMenu, submenu);
 				if (submenu.equals("Shortcuts"))
 					shortcutsMenu = menu;
 				else if (submenu.equals("Utilities"))
@@ -428,12 +425,12 @@ public class Menus {
 			menuCode = value.charAt(0);
 			switch (menuCode) {
 				case PLUGINS_MENU: default: menu = pluginsMenu; break;
-				case IMPORT_MENU: menu = getMenu("File>Import"); break;
-				case SAVE_AS_MENU: menu = getMenu("File>Save As"); break;
+				case IMPORT_MENU: menu = importMenu; break;
+				case SAVE_AS_MENU: menu = saveAsMenu; break;
 				case SHORTCUTS_MENU: menu = shortcutsMenu; break;
-				case ABOUT_MENU: menu = getMenu("Help>About"); break;
-				case FILTERS_MENU: menu = getMenu("Process>Filters"); break;
-				case TOOLS_MENU: menu = getMenu("Analyze>Tools"); break;
+				case ABOUT_MENU: menu = aboutMenu; break;
+				case FILTERS_MENU: menu = filtersMenu; break;
+				case TOOLS_MENU: menu = toolsMenu; break;
 				case UTILITIES_MENU: menu = utilitiesMenu; break;
 			}
 			String prefsValue = value;
@@ -505,26 +502,12 @@ public class Menus {
 		nMacros++;
 	}
 
-	static int addPluginSeparatorIfNeeded(Menu menu) {
-		if (menuSeparators == null)
-			return 0;
-		Integer i = (Integer)menuSeparators.get(menu);
-		if (i == null) {
-			if (menu.getItemCount() > 0)
-				addSeparator(menu);
-			i = new Integer(menu.getItemCount());
-			menuSeparators.put(menu, i);
-		}
-		return i.intValue();
-	}
-
 	/** Inserts 'item' into 'menu' in alphanumeric order. */
-	static void addOrdered(Menu menu, MenuItem item) {
+	void addOrdered(Menu menu, MenuItem item) {
 		if (menu==pluginsMenu)
 			{menu.add(item); return;}
 		String label = item.getLabel();
-		int start = addPluginSeparatorIfNeeded(menu);
-		for (int i=start; i<menu.getItemCount(); i++) {
+		for (int i=0; i<menu.getItemCount(); i++) {
 			if (label.compareTo(menu.getItem(i).getLabel())<0) {
 				menu.insert(item, i);
 				return;
@@ -543,28 +526,49 @@ public class Menus {
 			String jar = (String)jarFiles.elementAt(i);
 			InputStream is = getConfigurationFile(jar);
             if (is==null) continue;
+            int maxEntries = 100;
+            String[] entries = new String[maxEntries];
+            int nEntries=0, nEntries2=0;
             LineNumberReader lnr = new LineNumberReader(new InputStreamReader(is));
             try {
                 while(true) {
                     String s = lnr.readLine();
-                    if (s==null) break;
-                    installJarPlugin(jar, s);
-                }
+                    if (s==null || nEntries==maxEntries-1) break;
+					if (s.length()>=3 && !s.startsWith("#")) {
+						entries[nEntries++] = s;
+						if (s.startsWith("Plugins>")) nEntries2++;
+					}
+	            }
             }
             catch (IOException e) {}
 			finally {
 				try {if (lnr!=null) lnr.close();}
 				catch (IOException e) {}
 			}
+			for (int j=0; j<nEntries; j++) {
+				String s = entries[j];
+				if (nEntries2<=3) {
+					if (s.startsWith("Plugins>")) {
+						int firstComma = s.indexOf(',');
+						int firstQuote = s.indexOf('"');
+						boolean pluginsDir = (new File(jar)).getParent().endsWith("plugins");
+						if (firstComma>8 && firstQuote>firstComma && !pluginsDir) {
+							String submenuName = s.substring(8, firstComma);
+							String prefix = "";
+							if (submenuName.startsWith("Extend")||submenuName.startsWith("Particle"))
+								prefix = submenuName+": ";
+							//IJ.log(nEntries+" "+nEntries2+" "+jar+" "+s+"  "+submenuName);
+							s = "Plugins, \""+prefix+s.substring(firstQuote+1, s.length());
+						}
+					}
+				}
+				installJarPlugin(jar, s);
+			}
 		}		
 	}
     
     /** Install a plugin located in a JAR file. */
     void installJarPlugin(String jar, String s) {
-		//IJ.log(s);
-		if (s.length()<3) return;
-		char firstChar = s.charAt(0);
-		if (firstChar=='#') return;
 		addSorted = false;
 		Menu menu;
         if (s.startsWith("Plugins>")) {
@@ -575,29 +579,42 @@ public class Menus {
         		String name = s.substring(8, firstComma);
 				menu = getPluginsSubmenu(name);
 			}
-        } else if (firstChar=='"' || s.startsWith("Plugins")) {
+        } else if (s.startsWith("\"") || s.startsWith("Plugins")) {
         	String name = getSubmenuName(jar);
-		if (name!=null)
+        	if (name!=null)
         		menu = getPluginsSubmenu(name);
         	else
 				menu = pluginsMenu;
 			addSorted = true;
+		} else if (s.startsWith("File>Import")) {
+			menu = importMenu;
+			if (importCount==0) addSeparator(menu);
+			importCount++;
+		} else if (s.startsWith("File>Save")) {
+			menu = saveAsMenu;
+			if (saveAsCount==0) addSeparator(menu);
+			saveAsCount++;
+		} else if (s.startsWith("Analyze>Tools")) {
+			menu = toolsMenu;
+			if (toolsCount==0) addSeparator(menu);
+			toolsCount++;
+		} else if (s.startsWith("Help>About")) {
+			menu = aboutMenu;
+		} else if (s.startsWith("Edit>Options")) {
+			menu = optionsMenu;
+			if (optionsCount==0) addSeparator(menu);
+			optionsCount++;
 		} else {
-			int firstQuote = s.indexOf('"');
-			String name = firstQuote < 0 ? s
-				: s.substring(0, firstQuote).trim();
-			int comma = name.indexOf(',');
-			if (comma >= 0)
-				name = name.substring(0, comma);
-
-			menu = getMenu(name);
+			if (jarError==null) jarError = "";
+            addJarErrorHeading(jar);
+			jarError += "    Invalid menu: " + s + "\n";
+			return;
 		}
 		int firstQuote = s.indexOf('"');
 		if (firstQuote==-1)
 			return;
 		s = s.substring(firstQuote, s.length()); // remove menu
 		if (menu!=null) {
-			addPluginSeparatorIfNeeded(menu);
             addPluginItem(menu, s);
             addSorted = false;
         }
@@ -618,67 +635,23 @@ public class Menus {
             }
     }
 
-	private static Menu getMenu(String menuName) {
-		return getMenu(menuName, false);
-	}
-
-	private static Menu getMenu(String menuName, boolean readFromProps) {
-		if (menuName.endsWith(">"))
-			menuName = menuName.substring(0, menuName.length() - 1);
-		Menu result = (Menu)menus.get(menuName);
-		if (result == null) {
-			int offset = menuName.lastIndexOf('>');
-			if (offset < 0) {
-				result = new PopupMenu(menuName);
-				if (mbar == null) {
-					if (applet == null)
-						mbar = new MenuBar();
-					else
-						mbar = applet.menu.getMenuBar();
-				}
-				if (menuName.equals("Help"))
-					mbar.setHelpMenu(result);
-				else
-					mbar.add(result);
-				if (menuName.equals("Window"))
-					window = result;
-				else if (menuName.equals("Plugins"))
-					pluginsMenu = result;
-			}
-			else {
-				String parentName =
-					menuName.substring(0, offset);
-				String menuItemName =
-					menuName.substring(offset + 1);
-				Menu parentMenu = getMenu(parentName);
-				result = new Menu(menuItemName);
-				addPluginSeparatorIfNeeded(parentMenu);
-				if (readFromProps)
-					result = addSubMenu(parentMenu,
-							menuItemName);
-				else if (parentName.startsWith("Plugins") &&
-						menuSeparators != null)
-					addItemSorted(parentMenu, result,
-						parentName.equals("Plugins") ?
-							userPluginsIndex : 0);
-				else
-					parentMenu.add(result);
-				if (menuName.equals("File>Open Recent"))
-					openRecentMenu = result;
-			}
-			menus.put(menuName, result);
-		}
-		return result;
-	}
-
 	Menu getPluginsSubmenu(String submenuName) {
-		return getMenu("Plugins>" + submenuName);
+        if (menusTable!=null) {
+            Menu menu = (Menu)menusTable.get(submenuName);
+            if (menu!=null)
+                return menu;
+        }
+        Menu menu = new Menu(submenuName);
+        //pluginsMenu.add(menu);
+        addItemSorted(pluginsMenu, menu, userPluginsIndex);
+        if (menusTable==null) menusTable = new Hashtable();
+        menusTable.put(submenuName, menu);
+        //IJ.log("getPluginsSubmenu: "+submenuName);        
+        return menu;
     }
     
 	String getSubmenuName(String jarPath) {
 		//IJ.log("getSubmenuName: \n"+jarPath+"\n"+pluginsPath);
-		if(pluginsPath == null)
-			return null;
 		if (jarPath.startsWith(pluginsPath))
 			jarPath = jarPath.substring(pluginsPath.length() - 1);
 		int index = jarPath.lastIndexOf(File.separatorChar);
@@ -691,7 +664,7 @@ public class Menus {
 		return name;
     }
 
-	static void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
+	void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
 		String itemLabel = item.getLabel();
 		int count = menu.getItemCount();
 		boolean inserted = false;
@@ -708,29 +681,22 @@ public class Menus {
 		if (!inserted) menu.add(item);
 	}
 
-    static void addSeparator(Menu menu) {
+    void addSeparator(Menu menu) {
     	menu.addSeparator();
     }
 
     /** Opens the configuration file ("plugins.txt") from a JAR file and returns it as an InputStream. */
 	InputStream getConfigurationFile(String jar) {
 		try {
-			// in case its a regular file
-			if(!jar.startsWith("http"))
-				jar = "file:" + jar;
-			URL url = new URL("jar:" + jar + "!/");
-			JarURLConnection jarcon =
-				(JarURLConnection)url.openConnection();
-			JarFile jf = jarcon.getJarFile();
-			Enumeration entries = jf.entries();
+			ZipFile jarFile = new ZipFile(jar);
+			Enumeration entries = jarFile.entries();
 			while (entries.hasMoreElements()) {
-				JarEntry entry=(JarEntry)entries.nextElement();
-			if (entry.getName().endsWith("plugins.config")) {
-					return jf.getInputStream(entry);
-				}
+				ZipEntry entry = (ZipEntry) entries.nextElement();
+        		if (entry.getName().endsWith("plugins.config"))
+					return jarFile.getInputStream(entry);
 			}
-		} catch (Exception e) {}
-
+		}
+    	catch (Exception e) {}
 		return autoGenerateConfigFile(jar);
 	}
 	
@@ -783,19 +749,6 @@ public class Menus {
 		
 	/** Returns a list of the plugins in the plugins menu. */
 	public static synchronized String[] getPlugins() {
-		/*
-		 * Handling java webstart:
-		 * If the jnlp property is set, initialize jarFiles
-		 * and return
-		 */
-		String jnlp_jars = System.getProperty("jnlp");
-		if(jnlp_jars != null) {
-			String[] jars = Tools.split(jnlp_jars);
-			jarFiles = new Vector();
-			for(int i = 0; i < jars.length; i++)
-				jarFiles.addElement(jars[i]);
-			return new String[] {};
-		}
 		String homeDir = Prefs.getHomeDir();
 		if (homeDir==null)
 			return null;
@@ -872,20 +825,30 @@ public class Menus {
 		if (list==null)
 			return;
 		dir += "/";
+		int classCount=0, otherCount=0;
+		String className = null;
 		for (int i=0; i<list.length; i++) {
 			String name = list[i];
 			boolean hasUnderscore = name.indexOf('_')>=0;
 			if (hasUnderscore && name.endsWith(".class") && name.indexOf('$')<0) {
 				name = name.substring(0, name.length()-6); // remove ".class"
 				v.addElement(dir+name);
+				classCount++;
+				className = name;
 				//IJ.write("File: "+f+"/"+name);
 			} else if (hasUnderscore && (name.endsWith(".jar") || name.endsWith(".zip"))) {
 				if (jarFiles==null) jarFiles = new Vector();
 				jarFiles.addElement(f.getPath() + File.separator + name);
+				otherCount++;
 			} else if (hasUnderscore && (name.endsWith(".txt")||name.endsWith(".ijm"))) {
 				if (macroFiles==null) macroFiles = new Vector();
 				macroFiles.addElement(dir + name);
+				otherCount++;
 			}
+		}
+		if (classCount==1 && otherCount==0) {
+			v.remove(dir+className);
+			v.addElement("Misc:"+dir+className);
 		}
 	}
 	
@@ -895,32 +858,34 @@ public class Menus {
 	/** Installs a plugin in the Plugins menu using the class name,
 		with underscores replaced by spaces, as the command. */
 	void installUserPlugin(String className) {
-		installUserPlugin(className, false);
-	}
-
-	public static void installUserPlugin(String className, boolean force) {
+		Menu menu = pluginsMenu;
 		int slashIndex = className.indexOf('/');
-		String menuName = slashIndex < 0 ? "Plugins" : "Plugins>" +
-			className.substring(0, slashIndex).replace('/', '>');
-		Menu menu = getMenu(menuName);
-	String command = className;
-	if (slashIndex>0) {
-		command = className.substring(slashIndex+1);
-	}
+		String command = className;
+		if (slashIndex>0) {
+			String dir = className.substring(0, slashIndex);
+			if (dir.startsWith("Misc:")) {
+				dir = "Miscellaneous";
+				className = className.substring(5, className.length());
+				slashIndex -= 5;
+			}
+			command = className.substring(slashIndex+1, className.length());
+			//className = className.replace('/', '.');
+			if (submenu==null || !submenuName.equals(dir)) {
+ 				submenuName = dir;
+ 				submenu = new Menu(submenuName);
+ 				pluginsMenu.add(submenu);
+ 				if (menusTable==null) menusTable = new Hashtable();
+ 				menusTable.put(submenuName, submenu);
+			}
+			menu = submenu;
+		//IJ.write(dir + "  " + className);
+		}
 		command = command.replace('_',' ');
-
 		command.trim();
-		boolean itemExists = (pluginsTable.get(command)!=null);
-		if(force && itemExists)
-			return;
-
-		if (!force && itemExists)  // duplicate command?
+		if (pluginsTable.get(command)!=null)  // duplicate command?
 			command = command + " Plugin";
 		MenuItem item = new MenuItem(command);
-		if(force)
-			addItemSorted(menu,item,0);
-		else
-			menu.add(item);
+		menu.add(item);
 		item.addActionListener(ij);
 		pluginsTable.put(command, className.replace('/', '.'));
 		nPlugins++;
@@ -1178,10 +1143,6 @@ public class Menus {
 		return popup;
 	}
 	
-	public static Menu getSaveAsMenu() {
-		return getMenu("File>Save As");
-	}
-	
 	/** Adds a plugin based command to the end of a specified menu.
 	* @param plugin			the plugin (e.g. "Inverter_", "Inverter_("arg")")
 	* @param menuCode		PLUGINS_MENU, IMPORT_MENU, SAVE_AS_MENU or HOT_KEYS
@@ -1210,12 +1171,12 @@ public class Menus {
 		Menu menu;
 		switch (menuCode) {
 			case PLUGINS_MENU: menu = pluginsMenu; break;
-			case IMPORT_MENU: menu = getMenu("File>Import"); break;
-			case SAVE_AS_MENU: menu = getMenu("File>Save As"); break;
+			case IMPORT_MENU: menu = importMenu; break;
+			case SAVE_AS_MENU: menu = saveAsMenu; break;
 			case SHORTCUTS_MENU: menu = shortcutsMenu; break;
-			case ABOUT_MENU: menu = getMenu("Help>About"); break;
-			case FILTERS_MENU: menu = getMenu("Process>Filters"); break;
-			case TOOLS_MENU: menu = getMenu("Analyze>Tools"); break;
+			case ABOUT_MENU: menu = aboutMenu; break;
+			case FILTERS_MENU: menu = filtersMenu; break;
+			case TOOLS_MENU: menu = toolsMenu; break;
 			case UTILITIES_MENU: menu = utilitiesMenu; break;
 			default: return 0;
 		}
@@ -1355,7 +1316,7 @@ public class Menus {
 			if (isLibrary) mi.installLibrary(libraryPath);
 			mi.installFile(path);
 			nMacros += mi.getMacroCount();
-		} catch (Exception e) { e.printStackTrace(); }
+		} catch (Exception e) {}
 	}
 	
 	static boolean validShortcut(String shortcut) {
@@ -1416,4 +1377,5 @@ public class Menus {
 		}
 		prefs.put(Prefs.MENU_SIZE, Integer.toString(fontSize));
 	}
+
 }
