@@ -37,6 +37,7 @@ import06="Results...",ij.plugin.SimpleCommands("import")
 import07="URL...",ij.plugin.URLOpener
 import08="Stack From List...",ij.plugin.ListVirtualStack
 import09="TIFF Virtual Stack...",ij.plugin.FileInfoVirtualStack
+import10="AVI...",ij.plugin.AVI_Reader
 #import08="TWAIN...",ij.plugin.twain.Twain
 #import09="Capture Video...",QT_Capture
 #import10="QuickTime Movie...",Movie_Opener
@@ -89,7 +90,8 @@ options06="Colors...",ij.plugin.Colors
 options07="Appearance...",ij.plugin.Options("display")
 options08="Conversions...",ij.plugin.Options("conv")
 options09="Memory & Threads...",ij.plugin.Memory
-options10="Misc...",ij.plugin.Options("misc")
+options10="Proxy Settings...",ij.plugin.ProxySettings
+options11="Misc...",ij.plugin.Options("misc")
 
 # Plugins installed in the Image/Adjust submenu
 adjust01="Brightness/Contrast...[C]",ij.plugin.frame.ContrastAdjuster
@@ -273,7 +275,7 @@ plug-in03=>"Utilities"
 plug-in04="New... ",ij.plugin.NewPlugin
 plug-in05="Edit...",ij.plugin.Compiler("edit")
 plug-in06="Compile and Run...",ij.plugin.Compiler
-plug-in07="Install PlugIn...",ij.plugin.PlugInInstaller
+plug-in07=-
 #plug-in08=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
@@ -297,7 +299,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Commands...",ij.plugin.CommandLister
 utilities04="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities05="Threads...",ij.plugin.ThreadLister
