@@ -87,6 +87,8 @@ public class IJ {
 		called macro using the getArgument() macro function. 
 		Returns any string value returned by the macro, or null. */
 	public static String runMacro(String macro, String arg) {
+		if (ij==null && Menus.getCommands()==null)
+			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -755,8 +757,6 @@ public class IJ {
 			return flags;
 		int stackSize = imp.getStackSize();
 		if (stackSize>1) {
-			if (imp.isComposite() && ((CompositeImage)imp).getMode()==CompositeImage.COMPOSITE)
-				return flags+PlugInFilter.DOES_STACKS;
 			String macroOptions = Macro.getOptions();
 			if (macroOptions!=null) {
 				if (macroOptions.indexOf("stack ")>=0)
@@ -770,10 +770,6 @@ public class IJ {
 			if (d.cancelPressed())
 				return PlugInFilter.DONE;
 			else if (d.yesPressed()) {
-		    	if (imp.getStack().isVirtual()) {
-		    		error("Custom code is required to process virtual stacks.");
-					return PlugInFilter.DONE;
-		    	}
 				if (Recorder.record)
 					Recorder.recordOption("stack");
 				return flags+PlugInFilter.DOES_STACKS;
