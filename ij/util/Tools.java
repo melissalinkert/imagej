@@ -105,7 +105,8 @@ import java.io.*;
 	public static double parseDouble(String s, double defaultValue) {
 		if (s==null) return defaultValue;
 		try {
-			defaultValue = Double.parseDouble(s);
+			Double d = new Double(s);
+			defaultValue = d.doubleValue();
 		} catch (NumberFormatException e) {}
 		return defaultValue;			
 	}
@@ -184,5 +185,13 @@ import java.io.*;
 		v.copyInto((String[])lines);
 		return lines;
 	}
-	
+
+	public static String[] splitPathList(String list) {
+		String[] result = split(list, File.pathSeparator);
+		for (int i = 0; i < result.length; i++)
+			if (!result[i].endsWith(File.separator))
+				result[i] += File.separator;
+for (int i = 0; i < result.length; i++) ij.IJ.write("" + i + ": " + result[i]);
+		return result;
+	}
 }
