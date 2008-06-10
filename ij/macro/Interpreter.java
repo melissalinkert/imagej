@@ -650,7 +650,7 @@ public class Interpreter implements MacroConstants {
 				int token2 = pgm.code[pc+4];
 				String name = pgm.table[token2>>TOK_SHIFT].str;
 				if (name.equals("exists")||name.equals("isDirectory")||name.equals("length")
-				||name.equals("getLength")||name.equals("rename"))
+				||name.equals("getLength")||name.equals("rename")||name.equals("delete"))
 					return STRING_FUNCTION;
 			}
 			return Variable.STRING;
@@ -1616,22 +1616,6 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
-	public void setLocalVariable(String key,String value) {
-	    Symbol sym=pgm.lookupWord(key);
-	    int symTabAddress;
-	    if(sym==null) {
-		sym=new Symbol(MacroConstants.WORD,key);
-		pgm.addSymbol(sym);
-		symTabAddress=pgm.stLoc-1;
-	    } else
-		symTabAddress=pgm.symTabLoc;
-	    Variable var=lookupLocalVariable(symTabAddress);
-	    if(var==null) {
-		push(symTabAddress, 0.0, value, this);
-	    } else
-		var.setString(value);
-	}
-
  	/** The specified string, if not null, is added to strings passed to the run() method. */
  	public static void setAdditionalFunctions(String functions) {
  		additionalFunctions = functions;
