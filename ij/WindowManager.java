@@ -11,28 +11,23 @@ import ij.gui.*;
 /** This class consists of static methods used to manage ImageJ's windows. */
 public class WindowManager {
 
+	public static boolean checkForDuplicateName;
 	private static Vector imageList = new Vector();		 // list of image windows
 	private static Vector nonImageList = new Vector();	 // list of non-image windows
 	private static ImageWindow currentWindow;			 // active image window
 	private static Frame frontWindow;
-	private static ImagePlus tempCurrentImage;
-	public static boolean checkForDuplicateName;
+	private static Hashtable tempImageTable = new Hashtable();
 	
 	private WindowManager() {
 	}
 
 	/** Makes the image contained in the specified window the active image. */
 	public static void setCurrentWindow(ImageWindow win) {
-		setCurrentWindow(win,false);
-	}
-
-	/** Makes the specified image active. */
-	public static void setCurrentWindow(ImageWindow win,boolean suppressRecording) {
 		if (win==null || win.isClosed() || win.getImagePlus()==null) // deadlock-"wait to lock"
 			return;
 		//IJ.log("setCurrentWindow: "+win.getImagePlus().getTitle()+" ("+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
 		setWindow(win);
-		tempCurrentImage = null;
+		tempImageTable.remove(Thread.currentThread());
 		if (win==currentWindow || imageList.size()==0)
 			return;
 		if (currentWindow!=null) {
@@ -45,8 +40,6 @@ public class WindowManager {
 		}
 		Undo.reset();
 		currentWindow = win;
-		if (!suppressRecording && Recorder.record)
-			Recorder.record("selectWindow", win.getTitle());
 		Menus.updateMenus();
 	}
 	
@@ -60,12 +53,40 @@ public class WindowManager {
 		return imageList.indexOf(currentWindow);
 	}
 
-	/** Returns the active ImagePlus. */
+	/** Returns a reference to the active image or null if there isn't one. */
 	public static ImagePlus getCurrentImage() {
-		//IJ.log("getCurrentImage: "+tempCurrentImage+"  "+currentWindow);
-		if (tempCurrentImage!=null)
-			return tempCurrentImage;
-		else if (currentWindow!=null)
+		ImagePlus img = (ImagePlus)tempImageTable.get(Thread.currentThread());
+		//String str = (img==null)?" null":"";
+		if (img==null)
+			img = getActiveImage();
+		//if (img!=null) IJ.log("getCurrentImage: "+img.getTitle()+" "+Thread.currentThread().hashCode()+str);
+		return img;
+	}
+
+	/** Makes the specified image temporarily the active 
+		image for this thread. Call again with a null
+		argument to revert to the previous active image. */
+	public static void setTempCurrentImage(ImagePlus img) {
+		//IJ.log("setTempImage: "+(img!=null?img.getTitle():"null ")+Thread.currentThread().hashCode());
+		if (img==null)
+			tempImageTable.remove(Thread.currentThread());
+		else
+			tempImageTable.put(Thread.currentThread(), img);
+	}
+	
+	/** Sets a temporary image for the specified thread. */
+	public static void setTempCurrentImage(Thread thread, ImagePlus img) {
+		if (thread==null)
+			throw new RuntimeException("thread==null");
+		if (img==null)
+			tempImageTable.remove(thread);
+		else
+			tempImageTable.put(thread, img);
+	}
+
+	/** Returns the active ImagePlus. */
+	private static ImagePlus getActiveImage() {
+		if (currentWindow!=null)
 			return currentWindow.getImagePlus();
 		else if (frontWindow!=null && (frontWindow instanceof ImageWindow))
 			return ((ImageWindow)frontWindow).getImagePlus();
@@ -79,8 +100,6 @@ public class WindowManager {
 	/** Returns the number of open image windows. */
 	public static int getWindowCount() {
 		int count = imageList.size();
-		if (count==0 && tempCurrentImage!=null)
-			count = 1;
 		return count;
 	}
 
@@ -88,7 +107,7 @@ public class WindowManager {
 	public static int getImageCount() {
 		int count = imageList.size();
 		count += Interpreter.getBatchModeImageCount();
-		if (count==0 && tempCurrentImage!=null)
+		if (count==0 && getCurrentImage()!=null)
 			count = 1;
 		return count;
 	}
@@ -146,8 +165,9 @@ public class WindowManager {
 				break;
 			}
 		}
-		if (imp==null && tempCurrentImage!=null && tempCurrentImage.getID()==imageID)
-			return tempCurrentImage;
+		imp2 = getCurrentImage();
+		if (imp==null &&imp2!=null && imp2.getID()==imageID)
+			return imp2;
 		return imp;
 	}
 	
@@ -202,9 +222,9 @@ public class WindowManager {
 		if (imp==null) return;
 		checkForDuplicateName(imp);
 		imageList.addElement(win);
-		Menus.addWindowMenuItem(imp);
-		setCurrentWindow(win,true);
-	}
+        Menus.addWindowMenuItem(imp);
+        setCurrentWindow(win);
+    }
 
 	static void checkForDuplicateName(ImagePlus imp) {
 		if (checkForDuplicateName) {
@@ -213,7 +233,7 @@ public class WindowManager {
 				imp.setTitle(getUniqueName(name));
 		} 
 		checkForDuplicateName = false;
-	}
+    }
 
 	static boolean isDuplicateName(String name) {
 		int n = imageList.size();
@@ -282,7 +302,7 @@ public class WindowManager {
 		} else
 			currentWindow = null;
 		imageList.removeElementAt(index);
-		tempCurrentImage = null;
+		setTempCurrentImage(null);  //???
 		int nonImageCount = nonImageList.size();
 		if (nonImageCount>0)
 			nonImageCount++;
@@ -303,13 +323,6 @@ public class WindowManager {
 		*/
 		frontWindow = win;
 		//IJ.log("Set window: "+(win!=null?win.getTitle():"null"));
-		if (IJ.getApplet() != null && win instanceof ImageWindow) {
-			currentWindow = (ImageWindow)win;
-			tempCurrentImage = null;
-			ImagePlus current = currentWindow.getImagePlus();
-			if (current != null)
-				current.setActivated();
-		}
     }
 
 	/** Closes all windows. Stops and returns false if any image "save changes" dialog is canceled. */
@@ -356,17 +369,9 @@ public class WindowManager {
 		Menus.updateMenus();
     }
 
-	/** Makes the specified image temporarily the active image.
-		Allows use of IJ.run() commands on images that
-		are not displayed in a window. Call again with a null
-		argument to revert to the previous active image. */
-	public static void setTempCurrentImage(ImagePlus imp) {
-		tempCurrentImage = imp;
-    }
-    
-	/** Returns <code>tempCurrentImage</code>, which may be null. */
+	/** Returns the temporary current image for this thread, or null. */
 	public static ImagePlus getTempCurrentImage() {
-		return tempCurrentImage;
+		return (ImagePlus)tempImageTable.get(Thread.currentThread()); 
 	}
 
     /** Returns the frame with the specified title or null if a frame with that 
@@ -419,6 +424,8 @@ public class WindowManager {
 					MenuItem mi = Menus.window.getItem(j);
 					((CheckboxMenuItem)mi).setState((j-start)==index);						
 				}
+				if (Recorder.record)
+					Recorder.record("selectWindow", title);
 				break;
 			}
 		}
