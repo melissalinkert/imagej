@@ -4,7 +4,6 @@ import java.net.*;
 import java.util.*;
 import java.util.zip.*;
 import ij.IJ;
-import ij.util.Tools;
 
 /** ImageJ uses this class loader to load plugins and resources from the
  * plugins directory and immediate subdirectories. This class loader will
@@ -19,7 +18,7 @@ import ij.util.Tools;
  * <p> The class loader does not recurse into subdirectories beyond the first level.
 */
 public class PluginClassLoader extends ClassLoader {
-    protected String[] paths;
+    protected String path;
     protected Hashtable cache = new Hashtable();
     protected Vector jarFiles;
 
@@ -33,10 +32,6 @@ public class PluginClassLoader extends ClassLoader {
 	public PluginClassLoader(String path) {
 		init(path);
 	}
-
-	public PluginClassLoader(String[] paths) {
-		init(paths);
-	}
 	
 	/** This version of the constructor is used when ImageJ is launched using Java WebStart. */
 	public PluginClassLoader(String path, boolean callSuper) {
@@ -45,18 +40,9 @@ public class PluginClassLoader extends ClassLoader {
 	}
 
 	void init(String path) {
-		init(Tools.splitPathList(path));
-	}
-
-	void init(String[] paths) {
-		this.paths = paths;
+		this.path = path;
 		jarFiles = new Vector();
 		//find all JAR files on the path and subdirectories
-		for (int i = 0; i < paths.length; i++)
-			addPath(paths[i]);
-	}
-
-	private void addPath(String path) {
 		File f = new File(path);
 		String[] list = f.list();
 		if (list==null)
@@ -91,10 +77,9 @@ public class PluginClassLoader extends ClassLoader {
 
         File resFile;
 
-	for (int j = 0; j < paths.length; j++) {
         //try plugins directory
         try {
-            resFile = new File(paths[j], name);
+            resFile = new File(path, name);
             if (resFile.exists()) {
               res = makeURL(resFile);
               return res; 
@@ -103,14 +88,14 @@ public class PluginClassLoader extends ClassLoader {
         catch (Exception e) {}
 
         //try subfolders
-        resFile = new File(paths[j]);
+        resFile = new File(path);
         String[] list = resFile.list();
         if (list!=null) {
             for (int i=0; i<list.length; i++) {
-                resFile = new File(paths[j], list[i]);
+                resFile = new File(path, list[i]);
                 if (resFile.isDirectory()) {
                     try {
-                        File f = new File(paths[j]+list[i], name);
+                        File f = new File(path+list[i], name);
                         if (f.exists()) {
                             res = makeURL(f);
                             return res;
@@ -121,7 +106,6 @@ public class PluginClassLoader extends ClassLoader {
                 }
             }
         }
-	}
 
         //otherwise look in JAR files
         byte [] resourceBytes;
@@ -174,9 +158,8 @@ public class PluginClassLoader extends ClassLoader {
 
         File resFile;
 
-	for (int j = 0; j < paths.length; j++) {
         //try plugins directory
-        resFile = new File(paths[j], name);
+        resFile = new File(path, name);
         try { // read the byte codes
             is = new FileInputStream(resFile);
         }
@@ -184,14 +167,14 @@ public class PluginClassLoader extends ClassLoader {
         if (is != null) return is;
 
         //try subdirectories
-        resFile = new File(paths[j]);
+        resFile = new File(path);
         String[] list = resFile.list();
         if (list!=null) {
             for (int i=0; i<list.length; i++) {
-                resFile = new File(paths[j], list[i]);
+                resFile = new File(path, list[i]);
                 if (resFile.isDirectory()) {
                     try {
-                        File f = new File(paths[j]+list[i], name);
+                        File f = new File(path+list[i], name);
                         is = new FileInputStream(f);
                     }
                     catch (Exception e) {}
@@ -199,7 +182,6 @@ public class PluginClassLoader extends ClassLoader {
                 }
             }
         }
-	}
 
         //look in JAR files
         byte [] resourceBytes;
@@ -233,29 +215,12 @@ public class PluginClassLoader extends ClassLoader {
      *        resolveIt a boolean (should almost always be true)
      */
     public synchronized Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
-		return loadClass(className, resolveIt, false);
-    }
-
-    /**
-     * Returns a Class from the path or JAR files. Classes are resolved if resolveIt is true. The cache is ignored if forceLoad is true.
-     * @param className a String class name without the .class extension.
-     * @param resolveIt a boolean (should almost always be true)
-     * @param forceLoad a boolean (should almost always be false)
-     */
-    public synchronized Class loadClass(String className, boolean resolveIt, boolean forceLoad) throws ClassNotFoundException {
 
         Class   result;
         byte[]  classBytes;
 
         // try the local cache of classes
         result = (Class)cache.get(className);
-	if(forceLoad && result!=null) {
-		PluginClassLoader loader = new PluginClassLoader(paths);
-		result = loader.loadClass(className, resolveIt);
-		cache.put(className,result);
-		return result;
-	}
-
         if (result != null) {
             return result;
         }
@@ -298,27 +263,27 @@ public class PluginClassLoader extends ClassLoader {
      */
 
     protected byte[] loadClassBytes(String name) {
-	for (int j = 0; j < paths.length; j++) {
-	    byte[] classBytes = loadClassBytes(paths[j], name);
-	    if (classBytes != null)
-		return classBytes;
-	}
-	return null;
-    }
-
-    protected byte[] loadClassBytes(String path, String name) {
         byte [] classBytes = null;
         classBytes = loadIt(path, name);
         if (classBytes == null) {
             classBytes = loadFromSubdirectory(path, name);
             if (classBytes == null) {
                 // Attempt to get the class data from the JAR files.
+                if (name.startsWith("java.")||name.startsWith("ij."))
+					return null;
                 for (int i=0; i<jarFiles.size(); i++) {
                     try {
                         File jf = (File)jarFiles.elementAt(i);
                         classBytes = loadClassFromJar(jf.getPath(), name);
-                        if (classBytes != null)
+ 						//IJ.log(i+"  "+name+"  "+classBytes);             
+                        if (classBytes!=null) {
+							if (i!=0) {
+                        		Object o = jarFiles.elementAt(0);
+                        		jarFiles.insertElementAt(jarFiles.elementAt(i), 0);
+                        		jarFiles.insertElementAt(o, i);
+                        	}
                             return classBytes;
+                        }
                     }
                     catch (Exception e) {
                         //no problem, try the next one
