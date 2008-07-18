@@ -1526,19 +1526,20 @@ public class Interpreter implements MacroConstants {
 	
 	/** Aborts currently running macro. */
 	public static void abort() {
-		abort2(instance);
+		abort(instance);
 	}
 	
 	/** Aborts the macro that was running when this one started. */
 	static void abortPrevious() {
 		if (previousInstance!=null) {
-			abort2(previousInstance);
+			abort(previousInstance);
 			IJ.beep();
 			previousInstance = null;
 		}
 	}
 
-	private static void abort2(Interpreter interpreter) {
+	/** Aborts the specified macro. */
+	public static void abort(Interpreter interpreter) {
 		if (interpreter!=null) {
 			if (!interpreter.calledMacro) {
 				batchMode = false;
@@ -1616,22 +1617,6 @@ public class Interpreter implements MacroConstants {
 		return (ImagePlus)imageTable.elementAt(size-1); 
 	} 
  
-	public void setLocalVariable(String key,String value) {
-	    Symbol sym=pgm.lookupWord(key);
-	    int symTabAddress;
-	    if(sym==null) {
-		sym=new Symbol(MacroConstants.WORD,key);
-		pgm.addSymbol(sym);
-		symTabAddress=pgm.stLoc-1;
-	    } else
-		symTabAddress=pgm.symTabLoc;
-	    Variable var=lookupLocalVariable(symTabAddress);
-	    if(var==null) {
-		push(symTabAddress, 0.0, value, this);
-	    } else
-		var.setString(value);
-	}
-
  	/** The specified string, if not null, is added to strings passed to the run() method. */
  	public static void setAdditionalFunctions(String functions) {
  		additionalFunctions = functions;
