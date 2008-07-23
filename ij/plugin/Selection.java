@@ -83,7 +83,7 @@ public class Selection implements PlugIn, Measurements {
 		if (options!=null && options.indexOf("straighten")!=-1)
 			p.fitSplineForStraightening();
 		else if (options!=null && options.indexOf("remove")!=-1)
-			p.removeSplneFit();
+			p.removeSplineFit();
 		else
 			p.fitSpline();
 		imp.draw();		
