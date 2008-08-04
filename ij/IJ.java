@@ -66,8 +66,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -115,10 +113,14 @@ public class IJ {
 
 	/** Runs the specified plugin using the specified image. */
 	public static Object runPlugIn(ImagePlus imp, String className, String arg) {
-		WindowManager.setTempCurrentImage(imp);
-		Object o = runPlugIn("", className, arg);
-		WindowManager.setTempCurrentImage(null);
-		return o;
+		if (imp!=null) {
+			ImagePlus temp = WindowManager.getTempCurrentImage();
+			WindowManager.setTempCurrentImage(imp);
+			Object o = runPlugIn("", className, arg);
+			WindowManager.setTempCurrentImage(temp);
+			return o;
+		} else
+			return runPlugIn(className, arg);
 	}
 
 	/** Runs the specified plugin and returns a reference to it. */
@@ -178,17 +180,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -278,11 +270,15 @@ public class IJ {
 			return command;
 	}
 
-    /** Runs an ImageJ command using the specified image and options. */
+	/** Runs an ImageJ command using the specified image and options. */
 	public static void run(ImagePlus imp, String command, String options) {
-		if (imp!=null) WindowManager.setTempCurrentImage(imp);
-		run(command, options);
-		if (imp!=null) WindowManager.setTempCurrentImage(null);
+		if (imp!=null) {
+			ImagePlus temp = WindowManager.getTempCurrentImage();
+			WindowManager.setTempCurrentImage(imp);
+			run(command, options);
+			WindowManager.setTempCurrentImage(temp);
+		} else
+			run(command, options);
 	}
 
 	static void init() {
@@ -486,7 +482,6 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
 		showMessage("ImageJ", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
@@ -768,7 +763,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1393,6 +1388,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
