@@ -5,10 +5,13 @@
 </head>
 <body>
 
-<li> <u>1.41j, 7 August 2008</u>
+<li> <u>1.41j, 8 August 2008</u>
 <ul>
-<li> File&gt;Save As&gt;Image Sequence exports 
+<li> Profile plots of segmented and freehand lines wider than 1 are averaged across the line.
+<li> <i>File&gt;Save As&gt;Image Sequence</i> exports 
 hyperstacks as C/Z/T labeled files (e.g., "name_t01_z01_c01").
+<li> Added the <i>Image&gt;Adjust&gt;Line Width</i> command (or double click the line tool).
+<li> Added a "Spline Fit" checkbox to the <i>Image&gt;Adjust&gt;Line Width</i> tool.
 <li> Added a "Background Value" field and "Invert Y Coordinates" and "Suppress Log Output" 
 options to the <i>Analyze&gt;Tools&gt;Save XY Coordinates</i> dialog box.
 <li> The ROI Manager "Deselect" option is recorded.
@@ -17,6 +20,8 @@ macro functions, and corresponding IJ.saveString() and IJ.append() methods.
 <li> Fixed a bug, introduced in v1.41f, that could cause batch mode
 macros using to fail.
 <li> Fixed a bug that could cause LZW-compressed TIFFs to be incorrectly decoded.
+<li> Fixed a bug in <i>Image&gt;Stacks&gt;Reslice</i> the caused the spatial calibration to
+not be correctly transformed if the voxel width and height were not the same. 
 <li> Fixed a bug that sometimes caused the wrong selection to be copied
 when duplicating stacks with non-rectangular selections.
 <li> Fixed a bug that caused a "Data chunk size too short" error when

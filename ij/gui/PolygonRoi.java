@@ -2,7 +2,7 @@ package ij.gui;
 import ij.*;
 import ij.process.*;
 import ij.measure.*;
-import ij.plugin.frame.Recorder;
+import ij.plugin.frame.*;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.geom.*;
@@ -330,8 +330,7 @@ public class PolygonRoi extends Roi {
 		if (Recorder.record && userCreated && (type==POLYGON||type==POLYLINE||type==ANGLE))
 			Recorder.recordRoi(getPolygon(), type);
 		if (type!=POINT) modifyRoi();
-		//if (type==POLYLINE && lineWidth>1)
-		//	fitSpline();
+		LineWidthAdjuster.update();
 	}
 	
     protected void moveHandle(int sx, int sy) {

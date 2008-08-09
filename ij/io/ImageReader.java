@@ -61,7 +61,6 @@ public class ImageReader {
 		byte[] pixels = new byte[nPixels];
 		int current = 0;
 		byte last = 0;
-		int stripSize = fi.width*fi.rowsPerStrip;
 		for (int i=0; i<fi.stripOffsets.length; i++) {
 			if (in instanceof RandomAccessStream)
 				((RandomAccessStream)in).seek(fi.stripOffsets[i]);
@@ -79,7 +78,7 @@ public class ImageReader {
 			}
 			byteArray = lzwUncompress(byteArray);
 			int length = byteArray.length;
-			if (length>stripSize && stripSize!=0) length = stripSize;
+			length = length - (length%fi.width);
 			if (fi.compression == FileInfo.LZW_WITH_DIFFERENCING) {
 				for (int b=0; b<length; b++) {
 					byteArray[b] += last;
@@ -149,7 +148,6 @@ public class ImageReader {
 		short[] pixels = new short[nPixels];
 		int base = 0;
 		short last = 0;
-		int stripSize = fi.width*fi.rowsPerStrip;
 		for (int k=0; k<fi.stripOffsets.length; k++) {
 			//IJ.log("seek: "+fi.stripOffsets[k]+" "+(in instanceof RandomAccessStream));
 			if (in instanceof RandomAccessStream)
@@ -168,7 +166,7 @@ public class ImageReader {
 			}
 			byteArray = lzwUncompress(byteArray);
 			int pixelsRead = byteArray.length/bytesPerPixel;
-			if (pixelsRead>stripSize) pixelsRead = stripSize;
+			pixelsRead = pixelsRead - (pixelsRead%fi.width);
 			int pmax = base+pixelsRead;
 			if (pmax > nPixels) pmax = nPixels;
 			if (fi.intelByteOrder) {
@@ -375,7 +373,6 @@ public class ImageReader {
 		int red=0, green=0, blue=0;
 		boolean bgr = fi.fileType==FileInfo.BGR;
 		boolean differencing = fi.compression == FileInfo.LZW_WITH_DIFFERENCING;
-		int stripSize = fi.width*fi.rowsPerStrip;
 		for (int i=0; i<fi.stripOffsets.length; i++) {
 			if (i > 0) {
 				int skip = fi.stripOffsets[i] - fi.stripOffsets[i-1] - fi.stripLengths[i-1];
@@ -398,7 +395,7 @@ public class ImageReader {
 			}
 			int k = 0;
 			int pixelsRead = byteArray.length/bytesPerPixel;
-			if (pixelsRead>stripSize) pixelsRead = stripSize;
+			pixelsRead = pixelsRead - (pixelsRead%fi.width);
 			int pmax = base+pixelsRead;
 			if (pmax > nPixels) pmax = nPixels;
 			for (int j=base; j<pmax; j++) {
@@ -463,7 +460,6 @@ public class ImageReader {
 		int[] pixels = new int[nPixels];
 		int r, g, b;
 		nPixels *= 3; // read all 3 planes
-		fi.rowsPerStrip = 0;
 		byte[] buffer = readCompressed8bitImage(in);
 		nPixels /= 3;
 		for (int i=0; i<nPixels; i++) {
