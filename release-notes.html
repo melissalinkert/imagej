@@ -5,7 +5,7 @@
 </head>
 <body>
 
-<li> <u>1.41k, 28 August 2008</u>
+<li> <u>1.41k, 2 September 2008</u>
 <ul>
 <li> The Line Adjuster, Fonts, Log
 and Roi Manager windows remember their locations.
@@ -13,7 +13,18 @@ and Roi Manager windows remember their locations.
 with lines selections and now uses a slider range of 1-300.
 <li> The <i>Measure</i> command and getStatistics() macro function calculate area statistics
 of line selections wider than one.
-<li> <i>Process&gt;FFT&gt;Inverse FFT</i> improvements (TODO).
+<li> <i>Process&gt;FFT&gt;Inverse FFT</i> improvements (courtesy of Michael Schmid):
+<ul>
+ <li> Areas marked as "pass" or "filter" in the power spectrum are
+  made symmetric.
+<li>The smoothing algorithm uses periodic boundary
+  conditions.
+<li> Running it on a cropped power spectrum does not cause an exception.
+<li> The filter created after symmetrizing and smoothing is shown
+  in debug mode or if the alt key is down.
+ </ul>
+<li> The particle analyzer assumes the size is in pixels if it is followed by a "p", for example
+<i>run("Analyze Particles...", "size=100p display clear")</i>.
 <li> Added a "Close when running" checkbox the the
 <i>Plugins&gt;Utilities&gt;Find Command</i> window and
 changed the "Cancel" button to "Close".
@@ -25,6 +36,8 @@ changed the "Cancel" button to "Close".
 <li> Fixed a bug, introduced in v1.41b, that caused the ImageJ applet
 to fail to load DICOM images on startup
 (<a href="http://rsb.info.nih.gov/ij/applet2/">example</a>).
+<li> Fixed a bug in <i>File&gt;Import&gt;AVI</i>, introduced in 1.41h, that caused some 
+color video formats to open as 16-bit grayscale.
 <li> Fixed a bug that caused the slider in the 
 <i>Image&gt;Adjust&gt;Line Width</i> window to blink
 on Windows.
@@ -32,6 +45,9 @@ on Windows.
 function to reset the line width.
 <li> Reduced the likelyhood of a bug that caused the <i>Image&gt;Adjust&gt;Threshold </i>"Set" option
 to sometimes enter incorrect values on Linux.
+<li> Fixed a bug that caused upper case shortcuts created using
+<i>Plugins&gt;Shortcuts&gt;Create Shotcut</i>
+to open macros instead of running them.
 </ul>
 
 </body>
