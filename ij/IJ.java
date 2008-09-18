@@ -90,8 +90,6 @@ public class IJ {
 		called macro using the getArgument() macro function. 
 		Returns any string value returned by the macro, or null. */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -117,10 +115,14 @@ public class IJ {
 
 	/** Runs the specified plugin using the specified image. */
 	public static Object runPlugIn(ImagePlus imp, String className, String arg) {
-		WindowManager.setTempCurrentImage(imp);
-		Object o = runPlugIn("", className, arg);
-		WindowManager.setTempCurrentImage(null);
-		return o;
+		if (imp!=null) {
+			ImagePlus temp = WindowManager.getTempCurrentImage();
+			WindowManager.setTempCurrentImage(imp);
+			Object o = runPlugIn("", className, arg);
+			WindowManager.setTempCurrentImage(temp);
+			return o;
+		} else
+			return runPlugIn(className, arg);
 	}
 
 	/** Runs the specified plugin and returns a reference to it. */
@@ -280,11 +282,15 @@ public class IJ {
 			return command;
 	}
 
-    /** Runs an ImageJ command using the specified image and options. */
+	/** Runs an ImageJ command using the specified image and options. */
 	public static void run(ImagePlus imp, String command, String options) {
-		if (imp!=null) WindowManager.setTempCurrentImage(imp);
-		run(command, options);
-		if (imp!=null) WindowManager.setTempCurrentImage(null);
+		if (imp!=null) {
+			ImagePlus temp = WindowManager.getTempCurrentImage();
+			WindowManager.setTempCurrentImage(imp);
+			run(command, options);
+			WindowManager.setTempCurrentImage(temp);
+		} else
+			run(command, options);
 	}
 
 	static void init() {
@@ -615,6 +621,7 @@ public class IJ {
 	}
 	
 	private static DecimalFormat[] df;
+	private static DecimalFormatSymbols dfs;
 
 	/** Converts a number to a rounded formatted string.
 		The 'decimalPlaces' argument specifies the number of
@@ -626,10 +633,8 @@ public class IJ {
 			return "3.4e38";
 		double np = n;
 		if (n<0.0) np = -n;
-		if ((np<0.001 && np!=0.0 && np<1.0/Math.pow(10,decimalPlaces)) || np>999999999999d)
-			return Float.toString((float)n); // use scientific notation
 		if (df==null) {
-			DecimalFormatSymbols dfs = new DecimalFormatSymbols(Locale.US);
+			dfs = new DecimalFormatSymbols(Locale.US);
 			df = new DecimalFormat[10];
 			df[0] = new DecimalFormat("0", dfs);
 			df[1] = new DecimalFormat("0.0", dfs);
@@ -642,6 +647,8 @@ public class IJ {
 			df[8] = new DecimalFormat("0.00000000", dfs);
 			df[9] = new DecimalFormat("0.000000000", dfs);
 		}
+		if ((np<0.001 && np!=0.0 && np<1.0/Math.pow(10,decimalPlaces)) || np>999999999999d)
+			return (new DecimalFormat("0.###E0",dfs)).format(n); // use scientific notation
 		if (decimalPlaces<0) decimalPlaces = 0;
 		if (decimalPlaces>9) decimalPlaces = 9;
 		return df[decimalPlaces].format(n);
@@ -839,6 +846,18 @@ public class IJ {
 		getImage().setRoi(new Line(x1, y1, x2, y2));
 	}
 	
+	/** Creates a point selection. */
+	public static void makePoint(int x, int y) {
+		ImagePlus img = getImage();
+		Roi roi = img.getRoi();
+		if (shiftKeyDown() && roi!=null && roi.getType()==Roi.POINT) {
+			Polygon p = roi.getPolygon();
+			p.addPoint(x, y);
+			img.setRoi(new PointRoi(p.xpoints, p.ypoints, p.npoints));
+		} else
+			img.setRoi(new PointRoi(x, y));
+	}
+
 	/** Creates a straight line selection using double coordinates. */
 	public static void makeLine(double x1, double y1, double x2, double y2) {
 		getImage().setRoi(new Line(x1, y1, x2, y2));
@@ -1147,7 +1166,9 @@ public class IJ {
 
 	/** Opens and displays a tiff, dicom, fits, pgm, jpeg, bmp, gif, lut, 
 		roi, or text file. Displays an error message if the specified file
-		is not in one of the supported formats, or if it is not found. */
+		is not in one of the supported formats, or if it is not found.
+		With 1.41k or later, opens images specified by a URL.
+		*/
 	public static void open(String path) {
 		if (ij==null && Menus.getCommands()==null) init();
 		Opener o = new Opener();
@@ -1263,6 +1284,30 @@ public class IJ {
 		else
 			path += extension;
 		return path;
+	}
+
+	/** Saves a string as a file. Returns an error message 
+		if there is  an exception, otherwise returns null. */
+	public static String saveString(String string, String path) {
+		return write(string, path, false);
+	}
+
+	/** Appends a string to the end of a file. A newline character ("\n") 
+		is added to the end of the string before it is written. Returns an  
+		error message if there is an exception, otherwise returns null. */
+	public static String append(String string, String path) {
+		return write(string+"\n", path, true);
+	}
+
+	private static String write(String string, String path, boolean append) {
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(path, append));
+			out.write(string);
+			out.close();
+		} catch (IOException e) {
+			return ""+e;
+		}
+		return null;
 	}
 
 	 /** Creates a new imagePlus. <code>Type</code> should contain "8-bit", "16-bit", "32-bit" or "RGB". 
