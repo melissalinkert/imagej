@@ -66,8 +66,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -134,6 +132,7 @@ public class IJ {
 	static Object runPlugIn(String commandName, String className, String arg) {
 		if (IJ.debugMode)
 			IJ.log("runPlugin: "+className+" "+arg);
+		if (arg==null) arg = "";
 		// Use custom classloader if this is a user plugin
 		// and we are not running as an applet
 		if (!className.startsWith("ij") && applet==null) {
@@ -182,17 +181,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -494,7 +483,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -647,8 +636,12 @@ public class IJ {
 			df[8] = new DecimalFormat("0.00000000", dfs);
 			df[9] = new DecimalFormat("0.000000000", dfs);
 		}
-		if ((np<0.001 && np!=0.0 && np<1.0/Math.pow(10,decimalPlaces)) || np>999999999999d)
-			return (new DecimalFormat("0.###E0",dfs)).format(n); // use scientific notation
+		if ((np<0.001 && np!=0.0 && np<1.0/Math.pow(10,decimalPlaces)) || np>999999999999d) {
+			if (Double.isInfinite(n))
+				return ""+n;
+			else
+				return (new DecimalFormat("0.###E0",dfs)).format(n); // use scientific notation
+		}
 		if (decimalPlaces<0) decimalPlaces = 0;
 		if (decimalPlaces>9) decimalPlaces = 9;
 		return df[decimalPlaces].format(n);
@@ -776,7 +769,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -806,7 +799,13 @@ public class IJ {
 				return PlugInFilter.DONE;
 			else if (d.yesPressed()) {
 		    	if (imp.getStack().isVirtual()) {
-		    		error("Custom code is required to process virtual stacks.");
+		    		int size = (stackSize*imp.getWidth()*imp.getHeight()*imp.getBytesPerPixel()+524288)/1048576;
+		    		String msg =
+						"Custom code is required to process this virtual stack\n"+
+						"(e.g., \"Process Virtual Stack\" macro) or it must be\n"+
+						"converted to a normal stack using Image>Duplicate,\n"+
+						"which will require "+size+"MB of additional memory.";
+		    		error(msg);
 					return PlugInFilter.DONE;
 		    	}
 				if (Recorder.record)
@@ -818,7 +817,7 @@ public class IJ {
 		}
 		return flags;
 	}
-	
+		
 	/** Creates a rectangular selection. Removes any existing 
 		selection if width or height are less than 1. */
 	public static void makeRectangle(int x, int y, int width, int height) {
@@ -1427,6 +1426,5 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-    
 	
 }
