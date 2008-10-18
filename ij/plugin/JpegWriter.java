@@ -21,15 +21,22 @@ public class JpegWriter implements PlugIn {
         ImagePlus imp = WindowManager.getCurrentImage();
         if (imp==null) return;
         imp.startTiming();
-        saveAsJpeg(imp,arg);
+        saveAsJpeg(imp,arg,FileSaver.getJpegQuality());
         IJ.showTime(imp, imp.getStartTime(), "JpegWriter: ");
-    } 
+    }
 
-    void saveAsJpeg(ImagePlus imp, String path) {
+    /** Thread-safe method. */
+    static public void save(ImagePlus imp, String path, int quality) {
+	if (imp==null) return;
+	imp.startTiming();
+	new JpegWriter().saveAsJpeg(imp,path,quality);
+        IJ.showTime(imp, imp.getStartTime(), "JpegWriter: ");
+    }
+
+    void saveAsJpeg(ImagePlus imp, String path, int quality) {
         //IJ.log("saveAsJpeg: "+path);
         int width = imp.getWidth();
         int height = imp.getHeight();
-        int quality = FileSaver.getJpegQuality();
         BufferedImage   bi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         try {
             FileOutputStream  f  = new FileOutputStream(path);                
