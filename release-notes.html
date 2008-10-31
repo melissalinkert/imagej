@@ -12,8 +12,10 @@
 <li> Fixed a bug that caused the "Propagate to all n channels" option in the
 <li> Fixed bugs that caused <i>Image&gt;Adjust&gt;Color Balance</i> to not
 work correctly with composite color images.
-<i>Adjust&gt;Brightness/Contrast</i> and <i>Adjust&gt;Window/Levek</i> "Set"
-dialog to not work as expected with composite color images.
+<li> The IJ.openImage(path) method displays a file open dialog if the 'path' argument
+is omitted or it is an empty string.
+<li>Fixed bugs that caused the <i>Adjust&gt;Brightness/Contrast</i> and <i>Adjust&gt;Window/Level</i> "Set"
+option to not work as expected with composite color images.
 <li> Fixed a bug that caused the first slice and frame to always be displayed after
 using <i>Image&gt;Hyperstack&gt;Channels Tool</i> to switch a hyperstack
 to "Composite" mode.
