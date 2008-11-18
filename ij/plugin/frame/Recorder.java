@@ -102,7 +102,10 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 
 	public static void record(String method, String arg) {
 		if (textArea==null) return;
-		textArea.append(method+"(\""+arg+"\");\n");
+		if (commandName!=null && method.equals("selectWindow"))
+			return;
+		else
+			textArea.append(method+"(\""+arg+"\");\n");
 	}
 
 	public static void record(String method, String arg1, String arg2) {
@@ -242,7 +245,14 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 	}
 	
 	static String trimKey(String key) {
-		return Macro.trimKey(key);
+		int index = key.indexOf(" ");
+		if (index>-1)
+			key = key.substring(0,index);
+		index = key.indexOf(":");
+		if (index>-1)
+			key = key.substring(0,index);
+		key = key.toLowerCase(Locale.US);
+		return key;
 	}
 
 	/** Writes the current command and options to the Recorder window. */
