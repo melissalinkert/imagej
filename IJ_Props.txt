@@ -281,9 +281,8 @@ plug-in02=>"Shortcuts"
 plug-in03=>"Utilities"
 plug-in04=>"New_"
 plug-in05="Compile and Run...",ij.plugin.Compiler
-plug-in06="Install PlugIn...",ij.plugin.PlugInInstaller
-plug-in07=-
-#plug-in08=>"User_Plugins"
+plug-in06=-
+#plug-in07=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
 #user_plugins01="Red And Blue",RedAndBlue_
@@ -307,7 +306,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities04="Threads...",ij.plugin.ThreadLister
 utilities05="Benchmark",ij.plugin.filter.Benchmark
@@ -358,7 +357,7 @@ open15="Fluorescent Cells (400K)",ij.plugin.URLOpener("FluorescentCells.zip")
 open16="Gel (105K)",ij.plugin.URLOpener("gel.gif")
 open17="HeLa Cells (1.3M, 48-bit RGB)",ij.plugin.URLOpener("hela-cells.zip")
 open18="Leaf (36K)",ij.plugin.URLOpener("leaf.jpg")
-open19="Lena (720K)",ij.plugin.URLOpener("lena-std.tif")
+open19="Lena (68K)",ij.plugin.URLOpener("lena-std.tif")
 open20="Line Graph (21K)",ij.plugin.URLOpener("LineGraph.jpg")
 open21="MRI Stack (528K)",ij.plugin.URLOpener("mri-stack.zip")
 open22="M51 Galaxy (177K, 16-bits)",ij.plugin.URLOpener("m51.zip")
