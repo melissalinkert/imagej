@@ -68,6 +68,8 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
+		if (theApplet == null)
+			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -90,6 +92,8 @@ public class IJ {
 		called macro using the getArgument() macro function. 
 		Returns any string value returned by the macro, or null. */
 	public static String runMacro(String macro, String arg) {
+		if (ij==null && Menus.getCommands()==null)
+			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -183,7 +187,17 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			if (dotIndex >= 0)
+			String cause = e.getMessage();
+			int parenIndex = cause.indexOf('(');
+			if (parenIndex >= 1)
+				cause = cause.substring(0, parenIndex - 1);
+			boolean correctClass = cause.endsWith(dotIndex < 0 ?
+				className : className.substring(dotIndex + 1));
+			if (!correctClass && !suppressPluginNotFoundError)
+				error("Plugin " + className +
+					" did not find required class: " +
+					e.getMessage());
+			if (correctClass && dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -485,7 +499,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJ", msg);
+		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -555,6 +569,7 @@ public class IJ {
 		the  available memory is in use. This is the string
 		displayed when the user clicks in the status bar. */
 	public static String freeMemory() {
+		System.gc();
 		long inUse = currentMemory();
 		String inUseStr = inUse<10000*1024?inUse/1024L+"K":inUse/1048576L+"MB";
 		String maxStr="";
@@ -793,7 +808,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJ "+version+" or later.");
+			error("This plugin or macro requires ImageJA "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -890,17 +905,11 @@ public class IJ {
 
 	/** Sets the minimum and maximum displayed pixel values. */
 	public static void setMinAndMax(double min, double max) {
-		setMinAndMax(min, max, 7);
-	}
-
-	/** Sets the minimum and maximum displayed pixel values on the specified RGB
-	channels, where 4=red, 2=green and 1=blue. */
-	public static void setMinAndMax(double min, double max, int channels) {
 		ImagePlus img = getImage();
 		Calibration cal = img.getCalibration();
 		min = cal.getRawValue(min); 
 		max = cal.getRawValue(max); 
-		img.setDisplayRange(min, max, channels);
+		img.setDisplayRange(min, max);
 		img.updateAndDraw();
 	}
 
@@ -1210,15 +1219,9 @@ public class IJ {
 	/** Open the specified file as a tiff, bmp, dicom, fits, pgm, gif 
 		or jpeg image and returns an ImagePlus object if successful.
 		Calls HandleExtraFileTypes plugin if the file type is not recognised.
-		Displays a file open dialog if 'path' is null or an empty string.
 		Note that 'path' can also be a URL. */
 	public static ImagePlus openImage(String path) {
 		return (new Opener()).openImage(path);
-	}
-
-	/** Opens an image using a file open dialog and returns it as an ImagePlus object. */
-	public static ImagePlus openImage() {
-		return openImage(null);
 	}
 
 	/** Saves the current image, lookup table, selection or text window to the specified file path. 
@@ -1460,7 +1463,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-	
+
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
