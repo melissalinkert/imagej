@@ -688,7 +688,7 @@ public class Editor extends PlugInFrame implements ActionListener, ItemListener,
 		}
 	}
 
-	void saveAs() {
+	public void saveAs() {
 		String name1 = getTitle();
 		if (name1.indexOf(".")==-1) name1 += ".txt";
 		if (defaultDir==null) {
@@ -707,6 +707,8 @@ public class Editor extends PlugInFrame implements ActionListener, ItemListener,
 			save();
 			changes = false;
 			setWindowTitle(name2);
+			if (Recorder.record)
+				Recorder.record("saveAs", "Text", path);
 		}
 	}
 	
