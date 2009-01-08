@@ -412,15 +412,15 @@ public class Opener {
 	
 	ImagePlus openUsingImageIO(String path) {
 		ImagePlus imp = null;
-		BufferedImage img = null;
 		File f = new File(path);
 		try {
-			img = ImageIO.read(f);
+			Image img = ImageIO.read(f);
+			if (img==null) return null;
+			imp = new ImagePlus(f.getName(), img);
 		} catch (Exception e) {
-			IJ.error("Open Using ImageIO", ""+e);
+			IJ.log(""+e);
+			return null; // error loading image				
 		} 
-		if (img==null) return null;
-		imp = new ImagePlus(f.getName(), img);
 		FileInfo fi = new FileInfo();
 		fi.fileFormat = fi.IMAGEIO;
 		fi.fileName = f.getName();

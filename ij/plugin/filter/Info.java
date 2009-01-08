@@ -1,6 +1,7 @@
 package ij.plugin.filter;
 import java.awt.*;
 import java.util.*;
+import java.io.File;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
@@ -190,8 +191,12 @@ public class Info implements PlugInFilter {
 
 	    FileInfo fi = imp.getOriginalFileInfo();
 		if (fi!=null) {
-			if (fi.directory!=null && fi.fileName!=null)
-				s += "Path: " + fi.directory + fi.fileName + "\n";
+			if (fi.directory!=null && fi.fileName!=null) {
+				String d = fi.directory;
+				if(!d.endsWith(File.separator))
+					d += File.separator;
+				s += "Path: " + d + fi.fileName + "\n";
+			}
 			if (fi.url!=null && !fi.url.equals("")) {
 				s += "URL: " + fi.url + "\n";
 			}

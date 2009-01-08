@@ -281,8 +281,9 @@ plug-in02=>"Shortcuts"
 plug-in03=>"Utilities"
 plug-in04=>"New_"
 plug-in05="Compile and Run...",ij.plugin.Compiler
-plug-in06=-
-#plug-in07=>"User_Plugins"
+plug-in06="Install PlugIn...",ij.plugin.PlugInInstaller
+#plug-in07=-
+#plug-in08=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
 #user_plugins01="Red And Blue",RedAndBlue_
@@ -306,7 +307,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJ Properties...",ij.plugin.JavaProperties
+utilities02="ImageJA Properties...",ij.plugin.JavaProperties
 utilities03="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities04="Threads...",ij.plugin.ThreadLister
 utilities05="Benchmark",ij.plugin.filter.Benchmark
@@ -314,9 +315,8 @@ utilities06="Reset...",ij.plugin.SimpleCommands("reset")
 utilities07="Monitor Memory...",ij.plugin.MemoryMonitor
 utilities08="Search...",ij.plugin.SimpleCommands("search")
 utilities09="Capture Screen [G]",ij.plugin.ScreenGrabber
-utilities10="Capture Image",ij.plugin.ScreenGrabber("image")
-utilities11="Find Commands... [l]",ij.plugin.CommandFinder
-utilities12="Update ImageJ... ",ij.plugin.ImageJ_Updater
+utilities10="Find Commands... [l]",ij.plugin.CommandFinder
+# utilities11="Update ImageJ... ",ij.plugin.ImageJ_Updater
 
 # Plugins installed in the Plugins/New submenu
 new_01="Macro",ij.plugin.NewPlugin("macro")
