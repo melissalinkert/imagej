@@ -96,6 +96,7 @@ public class Executer implements Runnable {
 				else
 					IJ.log(s);
 			}
+			IJ.abort();
 		}
 	}
 	

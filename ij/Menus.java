@@ -8,7 +8,6 @@ import java.awt.image.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.*;
-import java.applet.Applet;
 import java.awt.event.*;
 import java.util.zip.*;
 
@@ -51,7 +50,7 @@ public class Menus {
 	private PopupMenu popup;
 
 	private static ImageJ ij;
-	private Applet applet;
+	private ImageJApplet applet;
 	private Hashtable demoImagesTable = new Hashtable();
 	private String pluginsPath, macrosPath;
 	private Properties menus = new Properties();
@@ -78,7 +77,7 @@ public class Menus {
 	private Font menuFont;
 	static boolean jnlp; // true when using Java WebStart
 		
-	Menus(ImageJ ijInstance, Applet appletInstance) {
+	Menus(ImageJ ijInstance, ImageJApplet appletInstance) {
 		ij = ijInstance;
 		applet = appletInstance;
 		instance = this;
@@ -92,7 +91,8 @@ public class Menus {
 		Menu newMenu = getMenu("File>New", true);
 		addPlugInItem(file, "Open...", "ij.plugin.Commands(\"open\")", KeyEvent.VK_O, false);
 		addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
-		getMenu("File>Open Samples", true);
+		if (applet == null)
+			getMenu("File>Open Samples", true);
 		addOpenRecentSubMenu(file);
 		Menu importMenu = getMenu("File>Import", true);
 		file.addSeparator();
@@ -212,20 +212,20 @@ public class Menus {
 		addPlugInItem(help, "Update Menus", "ij.plugin.ImageJ_Updater(\"menus\")", 0, false);
 		help.addSeparator();
 		Menu aboutMenu = getMenu("Help>About Plugins", true);
-		addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
+		addPlugInItem(help, "About ImageJA...", "ij.plugin.AboutBoxJA", 0, false);
 				
 		if (applet==null) {
 			menuSeparators = new Properties();
 			installPlugins();
+			if (fontSize!=0)
+				mbar.setFont(getFont());
 		}
 
 		// make	sure "Quit" is the last item in the File menu
 		file.addSeparator();
 		addPlugInItem(file, "Quit", "ij.plugin.Commands(\"quit\")", 0, false);
 
-		if (fontSize!=0)
-			mbar.setFont(getFont());
-		if (ij!=null)
+		if (ij!=null && applet == null)
 			ij.setMenuBar(mbar);
 		
 		if (pluginError!=null)
@@ -651,8 +651,12 @@ public class Menus {
 			int offset = menuName.lastIndexOf('>');
 			if (offset < 0) {
 				result = new PopupMenu(menuName);
-				if (mbar == null)
-					mbar = new MenuBar();
+				if (mbar == null) {
+					if (applet == null)
+						mbar = new MenuBar();
+					else
+						mbar = applet.menu.getMenuBar();
+				}
 				if (menuName.equals("Help"))
 					mbar.setHelpMenu(result);
 				else
@@ -902,10 +906,14 @@ public class Menus {
 	/** Installs a plugin in the Plugins menu using the class name,
 		with underscores replaced by spaces, as the command. */
 	void installUserPlugin(String className) {
-		installUserPlugin(className, false);
+		doInstallUserPlugin(className, false);
 	}
 
-	public void installUserPlugin(String className, boolean force) {
+	public static void installUserPlugin(String className, boolean force) {
+		instance.doInstallUserPlugin(className, force);
+	}
+
+	void doInstallUserPlugin(String className, boolean force) {
 		int slashIndex = className.indexOf('/');
 		String menuName = slashIndex < 0 ? "Plugins" : "Plugins>" +
 			className.substring(0, slashIndex).replace('/', '>');
@@ -1461,7 +1469,8 @@ public class Menus {
 	}
 	
 	public static void updateImageJMenus() {
-		Menus m = new Menus(IJ.getInstance(), IJ.getApplet());
+		Menus m = new Menus(IJ.getInstance(),
+				(ImageJApplet)IJ.getApplet());
 		String err = m.addMenuBar();
 		if (err!=null) IJ.error(err);
 		IJ.setClassLoader(null);
