@@ -98,7 +98,7 @@ public class Program implements MacroConstants {
 	}
 
 	/** Looks up a word in the symbol table. Returns null if the word is not found. */
-	Symbol lookupWord(String str) {
+	public Symbol lookupWord(String str) {
         //IJ.log("lookupWord: "+str);
 		Symbol symbol;
 		String symStr;
@@ -250,4 +250,4 @@ public class Program implements MacroConstants {
         return menus;
     }
 
-}
+} // Program
