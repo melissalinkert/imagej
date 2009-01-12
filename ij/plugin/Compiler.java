@@ -139,15 +139,6 @@ public class Compiler implements PlugIn, FilenameFilter {
 		}
 	}
 
-       public static boolean compileFile(String path) {
-	       Compiler compiler = new Compiler();
-               if(!compiler.isJavac())
-                       return false;
-               return compiler.compile(path);
-         
-       }
-
-
 	boolean areErrors(String s) {
 		boolean errors = s!=null && s.length()>0;
 		if(errors && s.indexOf("1 warning")>0 && s.indexOf("[deprecation] show()")>0)
@@ -265,8 +256,9 @@ class PlugInExecuter implements Runnable {
 
 	public void run() {
 		try {
-			ImageJ ij = IJ.getInstance();
 			IJ.resetEscape();
+			IJ.runPlugIn("ij.plugin.ClassChecker", "");
+			ImageJ ij = IJ.getInstance();
 			if (ij!=null) ij.runUserPlugIn(plugin, plugin, "", true);
 		} catch(Throwable e) {
 			IJ.showStatus("");
