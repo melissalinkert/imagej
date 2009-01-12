@@ -8,7 +8,6 @@ import java.awt.image.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.*;
-import java.applet.Applet;
 import java.awt.event.*;
 import java.util.zip.*;
 
@@ -43,14 +42,15 @@ public class Menus {
 	public static final int COMMAND_NOT_FOUND = -5;
 	
 	public static final int MAX_OPEN_RECENT_ITEMS = 15;
-	
+
+	private static Menus instance;
 	private static MenuBar mbar;
 	private static CheckboxMenuItem gray8Item,gray16Item,gray32Item,
 			color256Item,colorRGBItem,RGBStackItem,HSBStackItem;
 	private static PopupMenu popup;
 
 	private static ImageJ ij;
-	private static Applet applet;
+	private static ImageJApplet applet;
 	private static Hashtable demoImagesTable = new Hashtable();
 	private static String pluginsPath, macrosPath;
 	private static Menu pluginsMenu, importMenu, saveAsMenu, shortcutsMenu, 
@@ -79,9 +79,10 @@ public class Menus {
 	private static Font menuFont;
 	static boolean jnlp; // true when using Java WebStart
 		
-	Menus(ImageJ ijInstance, Applet appletInstance) {
+	Menus(ImageJ ijInstance, ImageJApplet appletInstance) {
 		ij = ijInstance;
 		applet = appletInstance;
+		instance = this;
 	}
 
 	String addMenuBar() {
@@ -92,7 +93,8 @@ public class Menus {
 		addSubMenu(file, "New");
 		addPlugInItem(file, "Open...", "ij.plugin.Commands(\"open\")", KeyEvent.VK_O, false);
 		addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
-		addSubMenu(file, "Open Samples");
+		if (applet == null)
+			addSubMenu(file, "Open Samples");
 		addOpenRecentSubMenu(file);
 		importMenu = addSubMenu(file, "Import");
 		file.addSeparator();
@@ -212,12 +214,15 @@ public class Menus {
 		addPlugInItem(help, "Update Menus", "ij.plugin.ImageJ_Updater(\"menus\")", 0, false);
 		help.addSeparator();
 		aboutMenu = addSubMenu(help, "About Plugins");
-		addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
+		addPlugInItem(help, "About ImageJA...", "ij.plugin.AboutBoxJA", 0, false);
 				
 		addPluginsMenu();
-		if (applet==null)
+		if (applet==null) {
 			installPlugins();
-		
+			if (fontSize!=0)
+				mbar.setFont(getFont());
+		}
+
 		mbar = new MenuBar();
 		if (fontSize!=0)
 			mbar.setFont(getFont());
@@ -229,7 +234,7 @@ public class Menus {
 		mbar.add(pluginsMenu);
 		mbar.add(window);
 		mbar.setHelpMenu(help);
-		if (ij!=null)
+		if (ij!=null && applet == null)
 			ij.setMenuBar(mbar);
 		
 		if (pluginError!=null)
@@ -864,6 +869,14 @@ public class Menus {
 	/** Installs a plugin in the Plugins menu using the class name,
 		with underscores replaced by spaces, as the command. */
 	void installUserPlugin(String className) {
+		installUserPlugin(className, false);
+	}
+
+	public static void installUserPlugin(String className, boolean force) {
+		instance.doInstallUserPlugin(className, force);
+	}
+
+	public void doInstallUserPlugin(String className, boolean force) {
 		Menu menu = pluginsMenu;
 		int slashIndex = className.indexOf('/');
 		String command = className;
@@ -1161,6 +1174,10 @@ public class Menus {
 	public static PopupMenu getPopupMenu() {
 		return popup;
 	}
+
+	public static Menu getSaveAsMenu() {
+		return saveAsMenu;
+	}
 	
 	/** Adds a plugin based command to the end of a specified menu.
 	* @param plugin			the plugin (e.g. "Inverter_", "Inverter_("arg")")
@@ -1402,7 +1419,8 @@ public class Menus {
 		pluginsPrefs = new Vector();
 		jarFiles = macroFiles = null;
 		menusTable = null;
-		Menus m = new Menus(IJ.getInstance(), IJ.getApplet());
+		Menus m = new Menus(IJ.getInstance(),
+				(ImageJApplet)IJ.getApplet());
 		String err = m.addMenuBar();
 		//m.installPopupMenu(IJ.getInstance());
 		//m.installStartupMacroSet();
