@@ -70,7 +70,7 @@ public class PlugInInstaller implements PlugIn {
 			return;
 		}
 		// insert into menu
-		Menus.forceInstallUserPlugin(className);
+		Menus.updateImageJMenus();
 		IJ.showMessage("PluginInstaller","Plugin "+className+" successfully installed!");
 	}
 
