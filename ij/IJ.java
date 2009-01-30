@@ -21,7 +21,7 @@ import java.lang.reflect.*;
 /** This class consists of static utility methods. */
 public class IJ {
 	public static final String URL = "http://rsb.info.nih.gov/ij";
-	public static final int ALL_KEYS = -1;
+	public static final int ALL_KEYS = 0x32;
 	
 	public static boolean debugMode;
 	public static boolean hideProcessStackDialog;
@@ -68,6 +68,8 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
+		if (theApplet == null)
+			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -183,7 +185,17 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			if (dotIndex >= 0)
+			String cause = e.getMessage();
+			int parenIndex = cause.indexOf('(');
+			if (parenIndex >= 1)
+				cause = cause.substring(0, parenIndex - 1);
+			boolean correctClass = cause.endsWith(dotIndex < 0 ?
+				className : className.substring(dotIndex + 1));
+			if (!correctClass && !suppressPluginNotFoundError)
+				error("Plugin " + className +
+					" did not find required class: " +
+					e.getMessage());
+			if (correctClass && dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -485,7 +497,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJ", msg);
+		showMessage("ImageJA", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -689,7 +701,7 @@ public class IJ {
 	}
 
 	public static void setKeyDown(int key) {
-		if (debugMode) IJ.log("setKeyDown: "+key);
+		//IJ.showStatus("setKeyDown: "+key);
 		switch (key) {
 			case KeyEvent.VK_ALT:
 				altDown=true;
@@ -712,7 +724,7 @@ public class IJ {
 	}
 	
 	public static void setKeyUp(int key) {
-		if (debugMode) IJ.log("setKeyUp: "+key);
+		//IJ.showStatus("setKeyUp: "+key);
 		switch (key) {
 			case KeyEvent.VK_ALT: altDown=false; break;
 			case KeyEvent.VK_SHIFT: shiftDown=false; if (debugMode) beep(); break;
@@ -793,7 +805,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJ "+version+" or later.");
+			error("This plugin or macro requires ImageJA "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -899,11 +911,8 @@ public class IJ {
 		ImagePlus img = getImage();
 		Calibration cal = img.getCalibration();
 		min = cal.getRawValue(min); 
-		max = cal.getRawValue(max);
-		if (channels==7)
-			img.setDisplayRange(min, max);
-		else
-			img.setDisplayRange(min, max, channels);
+		max = cal.getRawValue(max); 
+		img.setDisplayRange(min, max, channels);
 		img.updateAndDraw();
 	}
 
@@ -1464,7 +1473,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-	
+
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
