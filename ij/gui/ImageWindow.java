@@ -86,14 +86,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -130,35 +123,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	private ImageJApplet getApplet() {
-		if (null == IJ.getInstance())
-			return null;
-		return IJ.getInstance().getApplet();
-	}
-
-	public void pack() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
@@ -251,7 +215,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				if (ci.getMode()==CompositeImage.COMPOSITE)
 					g.setColor(ci.getChannelColor());
 			}
-			g.drawString(createSubtitle(), 5, insets.top+TEXT_GAP);
+			g.drawString(createSubtitle(), insets.left+5, insets.top+TEXT_GAP);
 		}
     }
     
