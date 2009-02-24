@@ -68,8 +68,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -96,12 +94,12 @@ public class IJ {
 		return mr.runMacro(macro, arg);
 	}
 
-	/** Runs the specified macro file. The file is assumed to be in the macros 
+	/** Runs the specified macro file or script. The file is assumed to be in the macros 
 		folder unless <code>name</code> is a full path. ".txt"  is
     	added if <code>name</code> does not have an extension.
 		The optional string argument (<code>arg</code>) can be retrieved in the called 
-		macro using the getArgument() macro function. 
-		Returns any string value returned by the macro or null. 
+		macro or script (v1.42k or later) using the getArgument() function. 
+		Returns any string value returned by the macro or null. Scripts always return null.
 		The equivalent macro function is runMacro(). */
 	public static String runMacroFile(String name, String arg) {
 		if (ij==null && Menus.getCommands()==null)
@@ -185,17 +183,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -497,7 +485,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage("ImageJ", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -805,7 +793,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1478,7 +1466,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
