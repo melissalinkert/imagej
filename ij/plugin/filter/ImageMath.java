@@ -24,7 +24,7 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	private static String andValue = defaultAndValue;
 	private static final double defaultGammaValue = 0.5;
 	private static double gammaValue = defaultGammaValue;
-	private static String macro = Prefs.get(MACRO_KEY, "v=v+50*sin(a+d/5)");
+	private static String macro = Prefs.get(MACRO_KEY, "v=v+50*sin(d/10)");
 	private Interpreter interp;
 	private int w, h, w2, h2;
 	private boolean hasX, hasA, hasD, hasGetPixel;
@@ -450,7 +450,7 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
 	 	if (arg.equals("macro")) {
 	 		String str = gd.getNextString();
-			if (previewing() && !str.equals(macro2))
+			if (previewing() && macro2!=null && !str.equals(macro2))
 				gd.getPreviewCheckbox().setState(false);
 			macro2 = str;
     	} else if (arg.equals("add")||arg.equals("sub")||arg.equals("set"))
