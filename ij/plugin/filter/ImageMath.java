@@ -40,8 +40,6 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	}
 
 	public void run(ImageProcessor ip) {
-		imp.startTiming();
-		double value;
 	 	if (canceled)
 	 		return;
 	 	
@@ -440,11 +438,10 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	 		String prompt = rgb?"Value (0-255): ":"Value: ";
 	 		getValue("Set", prompt, addValue, 0);
 		}
-		if (gd!=null && gd.wasCanceled()) {
-			canceled = true;
+		if (gd!=null && gd.wasCanceled())
 			return DONE;
-		} else
- 			return IJ.setupDialog(imp, flags);
+		else
+			return IJ.setupDialog(imp, flags);
    }
 
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
@@ -465,9 +462,9 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	 		maxValue = gd.getNextNumber();
 	 	else if (arg.equals("gamma"))
 	 		gammaValue = gd.getNextNumber();
-		if (gd.invalidNumber()) {
-			if (gd.wasOKed()) IJ.error("Value is invalid.");
-			canceled = true;
+		canceled = gd.invalidNumber();
+		if (gd.wasOKed() && canceled) {
+			IJ.error("Value is invalid.");
 			return false;
 		}
 		return true;
