@@ -94,6 +94,8 @@ public class Prefs {
 	public static boolean moveToMisc;
 	/** Add points to ROI Manager. */
 	public static boolean pointAddToManager;
+	/** Use bicubic interpolation instead on bilinear. */
+	public static boolean bicubicInterpolation;
 
 	static Properties ijPrefs = new Properties();
 	static Properties props = new Properties(ijPrefs);
@@ -138,6 +140,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -466,7 +480,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
 		bos.close();
 	}
 	

@@ -8,6 +8,7 @@ import java.awt.image.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.*;
+import java.applet.Applet;
 import java.awt.event.*;
 import java.util.zip.*;
 
@@ -49,7 +50,7 @@ public class Menus {
 	private static PopupMenu popup;
 
 	private static ImageJ ij;
-	private static ImageJApplet applet;
+	private static Applet applet;
 	private Hashtable demoImagesTable = new Hashtable();
 	private static String pluginsPath, macrosPath;
 	private static Properties menus;
@@ -77,7 +78,7 @@ public class Menus {
 	private static Font menuFont;
 	static boolean jnlp; // true when using Java WebStart
 		
-	Menus(ImageJ ijInstance, ImageJApplet appletInstance) {
+	Menus(ImageJ ijInstance, Applet appletInstance) {
 		ij = ijInstance;
 		applet = appletInstance;
 	}
@@ -86,7 +87,7 @@ public class Menus {
 		nPlugins = nMacros = userPluginsIndex = 0;
 		addSorted = installingJars = duplicateCommand = false;
 		error = null;
-		mbar = applet == null ? null : applet.menu.getMenuBar();
+		mbar = null;
 		menus = new Properties();
 		pluginsTable = new Hashtable();
 		shortcuts = new Hashtable();
@@ -96,8 +97,7 @@ public class Menus {
 		Menu newMenu = getMenu("File>New", true);
 		addPlugInItem(file, "Open...", "ij.plugin.Commands(\"open\")", KeyEvent.VK_O, false);
 		addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
-		if (applet == null)
-			getMenu("File>Open Samples", true);
+		getMenu("File>Open Samples", true);
 		addOpenRecentSubMenu(file);
 		Menu importMenu = getMenu("File>Import", true);
 		file.addSeparator();
@@ -217,13 +217,12 @@ public class Menus {
 		addPlugInItem(help, "Update Menus", "ij.plugin.ImageJ_Updater(\"menus\")", 0, false);
 		help.addSeparator();
 		Menu aboutMenu = getMenu("Help>About Plugins", true);
-		addPlugInItem(help, "About ImageJA...", "ij.plugin.AboutBoxJA", 0, false);
+		addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
 				
 		if (applet==null) {
 			menuSeparators = new Properties();
 			installPlugins();
 		}
-
 
 		// make	sure "Quit" is the last item in the File menu
 		file.addSeparator();
@@ -231,7 +230,7 @@ public class Menus {
 
 		if (fontSize!=0)
 			mbar.setFont(getFont());
-		if (ij!=null && applet == null)
+		if (ij!=null)
 			ij.setMenuBar(mbar);
 		
 		if (pluginError!=null)
@@ -453,7 +452,7 @@ public class Menus {
 					}
 				}
 			}
-			if (found) {
+			if (found && menu!=pluginsMenu) {
 				addPluginItem(menu, value);
 				pluginsPrefs.addElement(prefsValue);
 				if (className.endsWith("\")")) { // remove any argument
@@ -656,7 +655,7 @@ public class Menus {
 		if (result == null) {
 			int offset = menuName.lastIndexOf('>');
 			if (offset < 0) {
-				result = new PopupMenu(menuName);
+				result = new Menu(menuName);
 				if (mbar == null)
 					mbar = new MenuBar();
 				if (menuName.equals("Help"))
@@ -679,11 +678,8 @@ public class Menus {
 				if (readFromProps)
 					result = addSubMenu(parentMenu,
 							menuItemName);
-				else if (parentName.startsWith("Plugins") &&
-						menuSeparators != null)
-					addItemSorted(parentMenu, result,
-						parentName.equals("Plugins") ?
-							userPluginsIndex : 0);
+				else if (parentName.startsWith("Plugins") && menuSeparators != null)
+					addItemSorted(parentMenu, result, parentName.equals("Plugins")?userPluginsIndex:0);
 				else
 					parentMenu.add(result);
 				if (menuName.equals("File>Open Recent"))
@@ -1194,11 +1190,11 @@ public class Menus {
 	public static PopupMenu getPopupMenu() {
 		return popup;
 	}
-
+	
 	public static Menu getSaveAsMenu() {
 		return saveAsMenu;
 	}
-	
+
 	/** Adds a plugin based command to the end of a specified menu.
 	* @param plugin			the plugin (e.g. "Inverter_", "Inverter_("arg")")
 	* @param menuCode		PLUGINS_MENU, IMPORT_MENU, SAVE_AS_MENU or HOT_KEYS
@@ -1436,8 +1432,7 @@ public class Menus {
 	
 	public static void updateImageJMenus() {
 		jarFiles = macroFiles = null;
-		Menus m = new Menus(IJ.getInstance(),
-				(ImageJApplet)IJ.getApplet());
+		Menus m = new Menus(IJ.getInstance(), IJ.getApplet());
 		String err = m.addMenuBar();
 		if (err!=null) IJ.error(err);
 		IJ.setClassLoader(null);
