@@ -390,7 +390,6 @@ public class CommandFinder implements PlugIn, TextListener, ActionListener, Wind
 		d.setLocation(initialX,initialY);
 
 		d.setVisible(true);
-		d.toFront();
 	}
 
 	/* Make sure that clicks on the close icon close the window: */
