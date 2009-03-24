@@ -122,7 +122,7 @@ stacks03="Next Slice [>]",ij.plugin.Animator("next")
 stacks04="Previous Slice [<]",ij.plugin.Animator("previous")
 stacks05="Set Slice...",ij.plugin.Animator("set")
 stacks06=-
-stacks07="Images to Stack",ij.plugin.StackEditor("tostack")
+stacks07="Images to Stack",ij.plugin.ImagesToStack
 stacks08="Stack to Images",ij.plugin.StackEditor("toimages")
 stacks09="Make Montage...",ij.plugin.MontageMaker
 stacks10="Reslice [/]...",ij.plugin.Slicer
@@ -284,9 +284,8 @@ plug-in02=>"Shortcuts"
 plug-in03=>"Utilities"
 plug-in04=>"New_"
 plug-in05="Compile and Run...",ij.plugin.Compiler
-plug-in06="Install PlugIn...",ij.plugin.PlugInInstaller
-#plug-in07=-
-#plug-in08=>"User_Plugins"
+#plug-in06=-
+#plug-in07=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
 #user_plugins01="Red And Blue",RedAndBlue_
@@ -310,7 +309,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities04="Threads...",ij.plugin.ThreadLister
 utilities05="Benchmark",ij.plugin.filter.Benchmark
