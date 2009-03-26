@@ -685,9 +685,9 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		}
 	}
 
- 	protected Double getValue(String theText) {
+ 	protected Double getValue(String text) {
  		Double d;
- 		try {d = new Double(theText);}
+ 		try {d = new Double(text);}
 		catch (NumberFormatException e){
 			d = null;
 		}
