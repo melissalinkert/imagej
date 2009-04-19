@@ -71,10 +71,7 @@ public class PluginClassLoader extends ClassLoader {
      * @param name a resource name.
      */
     public URL getResource(String name) {
-        // try system loader first
-        URL res = super.getSystemResource(name);
-        if (res != null) return res;
-
+	URL res;
         File resFile;
 
         //try plugins directory
@@ -125,6 +122,11 @@ public class PluginClassLoader extends ClassLoader {
                 IJ.error(e.toString());
             }
         }
+
+        // try system loader last
+        res = super.getSystemResource(name);
+        if (res != null) return res;
+
         return null;
     }
     
@@ -152,10 +154,7 @@ public class PluginClassLoader extends ClassLoader {
      * @param name a resource name.
      */
     public InputStream getResourceAsStream(String name) {
-        //try the system loader first
-        InputStream is = super.getSystemResourceAsStream(name);
-        if (is != null) return is;
-
+	InputStream is = null;
         File resFile;
 
         //try plugins directory
@@ -198,6 +197,11 @@ public class PluginClassLoader extends ClassLoader {
                 IJ.error(e.toString());
             }
         }
+
+        //try the system loader last
+        is = super.getSystemResourceAsStream(name);
+        if (is != null) return is;
+
         return null;
     }
 
@@ -215,27 +219,44 @@ public class PluginClassLoader extends ClassLoader {
      *        resolveIt a boolean (should almost always be true)
      */
     public synchronized Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
+		return loadClass(className, resolveIt, false);
+    }
+
+    /**
+     * Returns a Class from the path or JAR files. Classes are resolved if resolveIt is true. The cache is ignored if forceLoad is true.
+     * @param className a String class name without the .class extension.
+     * @param resolveIt a boolean (should almost always be true)
+     * @param forceLoad a boolean (should almost always be false)
+     */
+    public synchronized Class loadClass(String className, boolean resolveIt, boolean forceLoad) throws ClassNotFoundException {
 
         Class   result;
         byte[]  classBytes;
 
         // try the local cache of classes
         result = (Class)cache.get(className);
+	if(forceLoad && result!=null) {
+		PluginClassLoader loader = new PluginClassLoader(path);
+		result = loader.loadClass(className, resolveIt);
+		cache.put(className,result);
+		return result;
+	}
+
         if (result != null) {
             return result;
         }
-
-        // try the system class loader
-        try {
-            result = super.findSystemClass(className);
-            return result;
-        }
-        catch (Exception e) {}
 
         // Try to load it from plugins directory
         classBytes = loadClassBytes(className);
 		//IJ.log("loadClass: "+ className + "  "+ (classBytes!=null?""+classBytes.length:"null"));
 		if (classBytes==null) {
+			// try the system class loader
+			try {
+			    result = super.findSystemClass(className);
+			    return result;
+			}
+			catch (Exception e) {}
+
 			result = getParent().loadClass(className);
 			if (result != null) return result;
 		}
@@ -243,7 +264,14 @@ public class PluginClassLoader extends ClassLoader {
 			throw new ClassNotFoundException(className);
 
         // Define it (parse the class file)
-        result = defineClass(className, classBytes, 0, classBytes.length);
+	try {
+		result = defineClass(className,
+			classBytes, 0, classBytes.length);
+	} catch(UnsupportedClassVersionError e) {
+		throw new RuntimeException("Class " + className
+			+ " was compiled for a newer Java Runtime");
+        }
+
         if (result == null) {
             throw new ClassFormatError();
         }
