@@ -36,7 +36,7 @@ public class IJ {
 	private static TextPanel textPanel;
 	private static String osname, osarch;
 	private static boolean isMac, isWin, isJava2, isJava14, isJava15, isJava16, isJava17, isLinux, isVista, is64Bit;
-	private static boolean altDown, spaceDown, shiftDown;
+	private static boolean controlDown, altDown, spaceDown, shiftDown;
 	private static boolean macroRunning;
 	private static Thread previousThread;
 	private static TextPanel logPanel;
@@ -68,8 +68,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -92,8 +90,6 @@ public class IJ {
 		called macro using the getArgument() macro function. 
 		Returns any string value returned by the macro, or null. */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -188,17 +184,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -500,7 +486,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
+		showMessage("ImageJ", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -693,6 +679,11 @@ public class IJ {
 		return spaceDown;
 	}
 
+	/** Returns true if the control key is down. */
+	public static boolean controlKeyDown() {
+		return controlDown;
+	}
+
 	/** Returns true if the alt key is down. */
 	public static boolean altKeyDown() {
 		return altDown;
@@ -706,6 +697,9 @@ public class IJ {
 	public static void setKeyDown(int key) {
 		if (debugMode) IJ.log("setKeyDown: "+key);
 		switch (key) {
+			case KeyEvent.VK_CONTROL:
+				controlDown=true;
+				break;
 			case KeyEvent.VK_ALT:
 				altDown=true;
 				break;
@@ -729,15 +723,17 @@ public class IJ {
 	public static void setKeyUp(int key) {
 		if (debugMode) IJ.log("setKeyUp: "+key);
 		switch (key) {
+			case KeyEvent.VK_CONTROL: controlDown=false; break;
 			case KeyEvent.VK_ALT: altDown=false; break;
 			case KeyEvent.VK_SHIFT: shiftDown=false; if (debugMode) beep(); break;
-			case KeyEvent.VK_SPACE: {
+			case KeyEvent.VK_SPACE:
 				spaceDown=false;
 				ImageWindow win = WindowManager.getCurrentWindow();
 				if (win!=null) win.getCanvas().setCursor(-1,-1,-1,-1);
 				break;
-			}
-			case ALL_KEYS: altDown=shiftDown=spaceDown=false; break;
+			case ALL_KEYS:
+				shiftDown=controlDown=altDown=spaceDown=false;
+				break;
 		}
 	}
 	
@@ -808,7 +804,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1476,7 +1472,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}

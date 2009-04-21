@@ -628,8 +628,7 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 	}
 	
 	protected Dimension canEnlarge(int newWidth, int newHeight) {
-		if ((flags&Event.SHIFT_MASK)!=0 || IJ.shiftKeyDown())
-			return null;
+		//if ((flags&Event.CTRL_MASK)!=0 || IJ.controlKeyDown()) return null;
 		ImageWindow win = imp.getWindow();
 		if (win==null) return null;
 		Rectangle r1 = win.getBounds();
@@ -854,9 +853,9 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		int x = e.getX();
 		int y = e.getY();
 		flags = e.getModifiers();
-		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags) + " button: " + e.getButton() + ": " + e);		
+		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags));		
 		//if (toolID!=Toolbar.MAGNIFIER && e.isPopupTrigger()) {
-		if (toolID!=Toolbar.MAGNIFIER && ((e.isPopupTrigger() && e.getButton() != 0) || (flags & Event.META_MASK)!=0)) {
+		if (toolID!=Toolbar.MAGNIFIER && (e.isPopupTrigger() || (flags & Event.META_MASK)!=0)) {
 			handlePopupMenu(e);
 			return;
 		}
