@@ -2996,6 +2996,9 @@ public class Functions implements MacroConstants, Measurements {
 			interp.getParens();
 			String lastName = OpenDialog.getLastName();
 			return lastName!=null?lastName:"";
+		} else if (name.equals("nameWithoutExtension")) {
+			interp.getParens();
+			return nameWithoutExtension();
 		} else if (name.equals("rename")) {
 			File f1 = new File(getFirstString());
 			File f2 = new File(getLastString());
@@ -3036,6 +3039,15 @@ public class Functions implements MacroConstants, Measurements {
 		} else
 			interp.error("Unrecognized File function "+name);
 		return null;
+	}
+	
+	String nameWithoutExtension() {
+		String name = OpenDialog.getLastName();
+		if (name==null) return "";
+		int dotIndex = name.lastIndexOf(".");
+		if (dotIndex>=0 && (name.length()-dotIndex)<=5)
+			name = name.substring(0, dotIndex);
+		return name;
 	}
 	
 	/*
