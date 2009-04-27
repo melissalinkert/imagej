@@ -570,6 +570,7 @@ public class CompositeImage extends ImagePlus {
 		setChannelLut(new LUT(cm,0.0,0.0));
 	}
 	
+
 	public void setDisplayRange(double min, double max) {
 		ip.setMinAndMax(min, max);
 		int c = getChannelIndex();
