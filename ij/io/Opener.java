@@ -41,13 +41,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -360,7 +355,7 @@ public class Opener {
 		}
 	}
 
-	/** Opens the ZIP compressed TIFF at the specified URL. */
+	/** Opens the ZIP compressed TIFF or DICOM at the specified URL. */
 	ImagePlus openZipUsingUrl(URL url) throws IOException {
 		URLConnection uc = url.openConnection();
 		int fileSize = uc.getContentLength(); // compressed size
