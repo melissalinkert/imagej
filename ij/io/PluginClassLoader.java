@@ -30,12 +30,14 @@ public class PluginClassLoader extends ClassLoader {
      * @param path the path to the plugins directory.
      */
 	public PluginClassLoader(String path) {
+		if (IJ.debugMode) IJ.log("new ClassLoader: "+this);
 		init(path);
 	}
 	
 	/** This version of the constructor is used when ImageJ is launched using Java WebStart. */
 	public PluginClassLoader(String path, boolean callSuper) {
 		super(Thread.currentThread().getContextClassLoader());
+		if (IJ.debugMode) IJ.log("new ClassLoader (jnlp): "+this);
 		init(path);
 	}
 
@@ -215,29 +217,12 @@ public class PluginClassLoader extends ClassLoader {
      *        resolveIt a boolean (should almost always be true)
      */
     public synchronized Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
-		return loadClass(className, resolveIt, false);
-    }
-
-    /**
-     * Returns a Class from the path or JAR files. Classes are resolved if resolveIt is true. The cache is ignored if forceLoad is true.
-     * @param className a String class name without the .class extension.
-     * @param resolveIt a boolean (should almost always be true)
-     * @param forceLoad a boolean (should almost always be false)
-     */
-    public synchronized Class loadClass(String className, boolean resolveIt, boolean forceLoad) throws ClassNotFoundException {
 
         Class   result;
         byte[]  classBytes;
 
         // try the local cache of classes
         result = (Class)cache.get(className);
-	if(forceLoad && result!=null) {
-		PluginClassLoader loader = new PluginClassLoader(path);
-		result = loader.loadClass(className, resolveIt);
-		cache.put(className,result);
-		return result;
-	}
-
         if (result != null) {
             return result;
         }
@@ -260,14 +245,7 @@ public class PluginClassLoader extends ClassLoader {
 			throw new ClassNotFoundException(className);
 
         // Define it (parse the class file)
-	try {
-		result = defineClass(className,
-			classBytes, 0, classBytes.length);
-	} catch(UnsupportedClassVersionError e) {
-		throw new RuntimeException("Class " + className
-			+ " was compiled for a newer Java Runtime");
-        }
-
+        result = defineClass(className, classBytes, 0, classBytes.length);
         if (result == null) {
             throw new ClassFormatError();
         }
