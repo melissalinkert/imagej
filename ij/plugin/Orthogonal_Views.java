@@ -59,8 +59,7 @@ public class Orthogonal_Views implements PlugIn, MouseListener, MouseMotionListe
 	private static boolean rotate=false;
 	private static boolean sticky=true;
 	
-	private int xyImX = 0;
-	private int xyImY = 0;
+	private int xyX, xyY;
 	private Calibration cal=null, cal_xz=new Calibration(), cal_yz=new Calibration();
 	private double magnification=1.0;
 	private Color color = Roi.getColor();
@@ -246,26 +245,28 @@ public class Orthogonal_Views implements PlugIn, MouseListener, MouseMotionListe
 	}
 	
 	void arrangeWindows(boolean sticky) {
-		Point loc = imp.getWindow().getLocation();
-		if ((xyImX!=loc.x)||(xyImY!=loc.y)) {
-			xyImX =  imp.getWindow().getLocation().x;
-			xyImY =  imp.getWindow().getLocation().y;
-			ImageWindow win1 = null;
+		ImageWindow xyWin = imp.getWindow();
+		if (xyWin==null) return;
+		Point loc = xyWin.getLocation();
+		if ((xyX!=loc.x)||(xyY!=loc.y)) {
+			xyX =  loc.x;
+			xyY =  loc.y;
+ 			ImageWindow yzWin =null;
  			long start = System.currentTimeMillis();
- 			while (win1==null && (System.currentTimeMillis()-start)<=2500L) {
-				win1 = xz_image.getWindow();
-				if (win1==null) IJ.wait(50);
+ 			while (yzWin==null && (System.currentTimeMillis()-start)<=2500L) {
+				yzWin = yz_image.getWindow();
+				if (yzWin==null) IJ.wait(50);
 			}
-			if (win1!=null)
- 				win1.setLocation(xyImX,xyImY +imp.getWindow().getHeight());
- 			ImageWindow win2 =null;
+			if (yzWin!=null)
+ 				yzWin.setLocation(xyX+xyWin.getWidth(), xyY);
+			ImageWindow xzWin =null;
  			start = System.currentTimeMillis();
- 			while (win2==null && (System.currentTimeMillis()-start)<=2500L) {
-				win2 = yz_image.getWindow();
-				if (win2==null) IJ.wait(50);
+ 			while (xzWin==null && (System.currentTimeMillis()-start)<=2500L) {
+				xzWin = xz_image.getWindow();
+				if (xzWin==null) IJ.wait(50);
 			}
-			if (win2!=null)
- 				win2.setLocation(xyImX+imp.getWindow().getWidth(),xyImY);
+			if (xzWin!=null)
+ 				xzWin.setLocation(xyX,xyY+xyWin.getHeight());
  			if (firstTime) {
  				imp.getWindow().toFront();
  				imp.setSlice(imp.getStackSize()/2);
@@ -718,8 +719,22 @@ public class Orthogonal_Views implements PlugIn, MouseListener, MouseMotionListe
 			ImagePlus cimp = WindowManager.getCurrentImage();
 			if (cimp==null) return command;
 			if (cimp==imp) {
+				/*if (syncZoom) {
+					ImageWindow xyWin = cimp.getWindow();
+					if (xyWin==null) return command;
+					ImageCanvas ic = xyWin.getCanvas();
+					Dimension screen = IJ.getScreenSize();
+					int xyWidth = xyWin.getWidth();
+					ImageWindow yzWin = yz_image.getWindow();
+					double mag = ic.getHigherZoomLevel(ic.getMagnification());
+					if (yzWin!=null&&xyX+xyWidth+(int)(yzWin.getWidth()*mag)>screen.width) {
+						xyX = screen.width-xyWidth-(int)(yzWin.getWidth()*mag);
+						if (xyX<10) xyX = 10;
+						xyWin.setLocation(xyX, xyY);
+					}
+ 				}*/
 				IJ.runPlugIn("ij.plugin.Zoom", command.toLowerCase());
-				xyImX=0; xyImY=0;
+				xyX=0; xyY=0;
 				update();
 				return null;
 			} else if (cimp==xz_image || cimp==yz_image) {
