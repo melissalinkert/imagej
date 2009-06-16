@@ -546,8 +546,6 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		}
 		if ((measurements&FERET)!=0) {
 			line=addMean(ResultsTable.FERET, line, start);
-			line=addMean(ResultsTable.FERET_X, line, start);
-			line=addMean(ResultsTable.FERET_Y, line, start);
 			line=addMean(ResultsTable.FERET_ANGLE, line, start);
 			line=addMean(ResultsTable.MIN_FERET, line, start);
 		}

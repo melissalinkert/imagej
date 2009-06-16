@@ -30,5 +30,5 @@ icon.gif aboutja.jpg: %: images/%
 	javac $(JAVACOPTS) $(JAVAS)
 
 clean:
-	rm $(COPYFILES) $(ALLCLASSES)
+	rm -f $(COPYFILES) $(ALLCLASSES)
 
