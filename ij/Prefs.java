@@ -146,6 +146,18 @@ public class Prefs {
 		return null;
 	}
 
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
+
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
 			return PROPS_NAME+" not found in ij.jar";
@@ -321,8 +333,10 @@ public class Prefs {
 				msg += vistaHint;
 				delay = 8000;
 			}
-			new TextWindow("Error Saving Preferences", msg, 500, 200);
-			IJ.wait(delay);
+			try {
+				new TextWindow("Error Saving Preferences", msg, 500, 200);
+				IJ.wait(delay);
+			} catch (Throwable t2) {}
 		}
 	}
 
@@ -477,7 +491,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
 		bos.close();
 	}
 	
