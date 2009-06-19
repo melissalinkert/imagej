@@ -68,8 +68,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -92,8 +90,6 @@ public class IJ {
 		called macro using the getArgument() macro function. 
 		Returns any string value returned by the macro, or null. */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -142,7 +138,7 @@ public class IJ {
 		if (arg==null) arg = "";
 		// Load using custom classloader if this is a user 
 		// plugin and we are not running as an applet
-		if (!className.startsWith("ij") && applet==null)
+		if (!className.startsWith("ij.") && applet==null)
 			return runUserPlugIn(commandName, className, arg, false);
 		Object thePlugIn=null;
 		try {
@@ -154,7 +150,7 @@ public class IJ {
 				new PlugInFilterRunner(thePlugIn, commandName, arg);
 		}
 		catch (ClassNotFoundException e) {
-			if (IJ.getApplet()==null && className.indexOf("JpegWriter")==-1)
+			if (IJ.getApplet()==null)
 				log("Plugin or class not found: \"" + className + "\"\n(" + e+")");
 		}
 		catch (InstantiationException e) {log("Unable to load plugin (ins)");}
@@ -186,17 +182,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -498,7 +484,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
+		showMessage("ImageJ", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -820,7 +806,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1094,16 +1080,34 @@ public class IJ {
 	/** Equivalent to clicking on the current image at (x,y) with the
 		wand tool. Returns the number of points in the resulting ROI. */
 	public static int doWand(int x, int y) {
+		return doWand(x, y, 0, null);
+	}
+
+	/** Traces the boundary of the area with pixel values within
+	* 'tolerance' of the value of the pixel at the starting location.
+	* 'tolerance' is in uncalibrated units.
+	* 'mode' can be "4-connected", "8-connected" or "Legacy".
+	* "Legacy" is for compatibility with previous versions of ImageJ;
+	* it is ignored if 'tolerance' > 0.
+	*/
+	public static int doWand(int x, int y, double tolerance, String mode) {
 		ImagePlus img = getImage();
 		ImageProcessor ip = img.getProcessor();
 		if ((img.getType()==ImagePlus.GRAY32) && Double.isNaN(ip.getPixelValue(x,y)))
 			return 0;
+		int imode = Wand.LEGACY_MODE;
+		if (mode!=null) {
+			if (mode.startsWith("4"))
+				imode = Wand.FOUR_CONNECTED;
+			else if (mode.startsWith("8"))
+				imode = Wand.EIGHT_CONNECTED;
+		}
 		Wand w = new Wand(ip);
 		double t1 = ip.getMinThreshold();
-		if (t1==ImageProcessor.NO_THRESHOLD)
-			w.autoOutline(x, y);
+		if (t1==ImageProcessor.NO_THRESHOLD || (ip.getLutUpdateMode()==ImageProcessor.NO_LUT_UPDATE&& tolerance>0.0))
+			w.autoOutline(x, y, tolerance, imode);
 		else
-			w.autoOutline(x, y, t1, ip.getMaxThreshold());
+			w.autoOutline(x, y, t1, ip.getMaxThreshold(), imode);
 		if (w.npoints>0) {
 			Roi previousRoi = img.getRoi();
 			int type = Wand.allPoints()?Roi.FREEROI:Roi.TRACED_ROI;
@@ -1492,7 +1496,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
