@@ -32,21 +32,30 @@ public class PlugInInstaller implements PlugIn {
 			return;
 		}
 
+		String className;
+		if(file.endsWith(".java"))
+			className = file.substring(0,file.length()-5);
+		else if(file.endsWith(".class"))
+			className = file.substring(0,file.length()-6);
+		else {
+			IJ.error("TODO: support jar files");
+			return;
+		}
+
 		if(!(new File(pluginsPath).equals(new File(dir))))
 			if(!filecopy(dir+"/"+file,pluginsPath+"/"+file)) {
 				IJ.error("Error copying "+file+" to "+pluginsPath);
 				return;
 			}
-
-		if(file.endsWith(".java")) {
+		if(file.endsWith(".java"))
 			if(!Compiler.compileFile(pluginsPath+"/"+file)) {
 				IJ.error("Could not compile "+file);
 				return;
 			}
-		}
 
+		// insert into menu
 		Menus.updateImageJMenus();
-		IJ.showMessage("PluginInstaller","Plugin "+file+" was installed!");
+		IJ.showMessage("PluginInstaller","Plugin "+className+" successfully installed!");
 	}
 
 	static boolean filecopy(String from, String to) {
