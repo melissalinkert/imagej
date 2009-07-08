@@ -42,7 +42,7 @@ public class FileOpener {
 			width = fi.width;
 			height = fi.height;
 		}
-		if (IJ.debugMode) IJ.log("FileInfo: "+fi);
+		if (IJ.debugMode) IJ.log("FileOpener: "+fi);
 	}
 	
 	/** Opens the image and displays it. */
