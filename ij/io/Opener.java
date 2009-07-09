@@ -41,13 +41,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -325,12 +320,6 @@ public class Opener {
 			return null;
 	   	} 
 	}
-	
-		//for (int i=1;; i++) {
-		//	String header = uc.getHeaderField(i);
-		//	if (header==null) break;
-		//	IJ.log(uc.getHeaderFieldKey(i) + " " + header);
-		//}
 	
 	public ImagePlus openWithHandleExtraFileTypes(String path, int[] fileType) {
 		ImagePlus imp = null;
