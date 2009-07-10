@@ -86,14 +86,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -130,35 +123,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	private ImageJApplet getApplet() {
-		if (null == IJ.getInstance())
-			return null;
-		return IJ.getInstance().getApplet();
-	}
-
-	public void pack() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
@@ -443,7 +407,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		int extraHeight = insets.top+insets.bottom + 10;
 		if (extraHeight==20) extraHeight = 42;
 		int members = getComponentCount();
-		if (IJ.debugMode) IJ.log("getExtraSize: "+members+" "+insets);
+		//if (IJ.debugMode) IJ.log("getExtraSize: "+members+" "+insets);
 		for (int i=1; i<members; i++) {
 		    Component m = getComponent(i);
 		    Dimension d = m.getPreferredSize();
@@ -455,7 +419,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 
 	public Component add(Component comp) {
 		comp = super.add(comp);
-		if (IJ.debugMode) IJ.log("add: "+comp);
 		maxBounds = getMaximumBounds();
 		//if (!IJ.isLinux()) {
 			setMaximizedBounds(maxBounds);
