@@ -16,7 +16,6 @@ import java.awt.*;
 import java.applet.Applet;
 import java.io.*;
 import java.lang.reflect.*;
-import java.net.*;
 
 
 /** This class consists of static utility methods. */
@@ -69,6 +68,8 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
+		if (theApplet == null)
+			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -91,6 +92,8 @@ public class IJ {
 		called macro using the getArgument() macro function. 
 		Returns any string value returned by the macro, or null. */
 	public static String runMacro(String macro, String arg) {
+		if (ij==null && Menus.getCommands()==null)
+			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -183,7 +186,17 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			if (dotIndex >= 0)
+			String cause = e.getMessage();
+			int parenIndex = cause.indexOf('(');
+			if (parenIndex >= 1)
+				cause = cause.substring(0, parenIndex - 1);
+			boolean correctClass = cause.endsWith(dotIndex < 0 ?
+				className : className.substring(dotIndex + 1));
+			if (!correctClass && !suppressPluginNotFoundError)
+				error("Plugin " + className +
+					" did not find required class: " +
+					e.getMessage());
+			if (correctClass && dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -485,7 +498,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJ", msg);
+		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -807,7 +820,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJ "+version+" or later.");
+			error("This plugin or macro requires ImageJA "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1205,7 +1218,6 @@ public class IJ {
 			return OpenDialog.getDefaultDirectory();
 		else if (title.equals("temp")) {
 			String dir = System.getProperty("java.io.tmpdir");
-			if (isMacintosh()) dir = "/tmp/";
 			if (dir!=null && !dir.endsWith(File.separator)) dir += File.separator;
 			return dir;
 		} else if (title.equals("image")) {
@@ -1267,34 +1279,6 @@ public class IJ {
 	/** Opens an image using a file open dialog and returns it as an ImagePlus object. */
 	public static ImagePlus openImage() {
 		return openImage(null);
-	}
-
-	/** Opens a URL and returns the contents as a string.
-		Returns "<Error: message>" if there an error, including
-		host or file not found. */
-	public static String openUrlAsString(String url) {
-		StringBuffer sb = null;
-		url = url.replaceAll(" ", "%20");
-		try {
-			URL u = new URL(url);
-			URLConnection uc = u.openConnection();
-			long len = uc.getContentLength();
-			if (len>1048576L)
-				return "<Error: file is larger than 1MB>";
-			InputStream in = u.openStream();
-			BufferedReader br = new BufferedReader(new InputStreamReader(in));
-			sb = new StringBuffer() ;
-			String line;
-			while ((line=br.readLine()) != null)
-				sb.append (line + "\n");
-			in.close ();
-		} catch (Exception e) {
-			return("<Error: "+e+">");
-		}
-		if (sb!=null)
-			return new String(sb);
-		else
-			return "";
 	}
 
 	/** Saves the current image, lookup table, selection or text window to the specified file path. 
@@ -1540,7 +1524,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-	
+
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
