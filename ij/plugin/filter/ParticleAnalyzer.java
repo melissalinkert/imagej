@@ -745,7 +745,6 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 			particleCount++;
 			if (roiNeedsImage)
 				roi.setImage(imp);
-			stats.xstart=x; stats.ystart=y;
 			saveResults(stats, roi);
 			if (showChoice!=NOTHING)
 				drawParticle(drawIP, roi, stats, mask);
@@ -775,8 +774,12 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	protected void saveResults(ImageStatistics stats, Roi roi) {
 		analyzer.saveResults(stats, roi);
 		if (recordStarts) {
-			rt.addValue("XStart", stats.xstart);
-			rt.addValue("YStart", stats.ystart);
+			int coordinates = ((PolygonRoi)roi).getNCoordinates();
+			Rectangle r = roi.getBounds();
+			int x = r.x+((PolygonRoi)roi).getXCoordinates()[coordinates-1];
+			int y = r.y+((PolygonRoi)roi).getYCoordinates()[coordinates-1];
+			rt.addValue("XStart", x);
+			rt.addValue("YStart", y);
 		}
 		if (addToManager) {
 			if (roiManager==null) {

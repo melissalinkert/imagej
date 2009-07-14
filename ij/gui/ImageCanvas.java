@@ -855,9 +855,9 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		int x = e.getX();
 		int y = e.getY();
 		flags = e.getModifiers();
-		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags));		
+		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags) + " button: " + e.getButton() + ": " + e);		
 		//if (toolID!=Toolbar.MAGNIFIER && e.isPopupTrigger()) {
-		if (toolID!=Toolbar.MAGNIFIER && (e.isPopupTrigger()||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
+		if (toolID!=Toolbar.MAGNIFIER && ((e.isPopupTrigger() && e.getButton() != 0)||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
 			handlePopupMenu(e);
 			return;
 		}
@@ -949,9 +949,7 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 			if (labelRects[i]!=null && labelRects[i].contains(x,y)) {
 				//rm.select(i);
 				// this needs to run on a separate thread, at least on OS X
-				// "update2" does not clone the ROI so the "Show All"
-				// outline moves as the user moves the RO.
-				new ij.macro.MacroRunner("roiManager('select', "+i+"); roiManager('update2');");
+				new ij.macro.MacroRunner("roiManager('select', "+i+"); roiManager('update');");
 				return true;
 			}
 		}

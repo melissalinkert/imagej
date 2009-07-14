@@ -398,10 +398,6 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 		openingStartupMacrosInEditor = fileName.startsWith("StartupMacros");
 	}
 
-	public static String getFileName() {
-		return fileName;
-	}
-
 	public void actionPerformed(ActionEvent evt) {
 		String cmd = evt.getActionCommand();
 		MenuItem item = (MenuItem)evt.getSource();

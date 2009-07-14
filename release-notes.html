@@ -5,15 +5,18 @@
 </head>
 <body>
 
-<li> <u>1.43d, 13 July 2009</u>
+<li> <u>1.43b, 23 June 2009</u>
 <ul>
-<li> Text files can now be dragged from a browser window
-and dropped on the "ImageJ" window.
-<li> The ImageJ and Java version numbers are displayed when
-you click in the status bar.
-<li> Added the IJ.openUrlAsString() method.
-<li> Fixed a bug that sometimes caused the micron symbol (&micro;) to not
-be displayed correctly on Linux.
+<li> Kevin Moll contributed an enhanced and simplfied PluginClassLoader
+that extends URLClassLoader.
+<li> Added the "Use Titles as Labels" checkbox to the
+<i>Image&gt;Stacks&gt;Images to Stack</i> dialog box.
+<li> Fixed a bug, introduced in v1.43a, that caused
+<i>Help&gt;Update ImageJ</i> to fail if the path to ij.jar contained a space.
+<li> Fixed a bug that caused <i>Image&gt;Show Info</i> to not display metadata of stacks
+opened using <i>File&gt;Import&gt;TIFF Virtual Stack</i>.
+<li> Fixed a bug that sometimes caused the threshold limits to not be passed to PlugInFilters
+using the CONVERT_TO_FLOAT flag.
 </ul>
 
 <a href="http://rsb.info.nih.gov/ij">Home</a>

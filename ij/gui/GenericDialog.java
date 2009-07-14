@@ -74,7 +74,6 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
     private boolean hideCancelButton;
     private boolean centerDialog = true;
     private String helpURL;
-    private String yesLabel, noLabel;
 
     /** Creates a new GenericDialog with the specified title. Uses the current image
     	image window as the parent frame or the ImageJ frame if no image windows
@@ -584,29 +583,9 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 
     /** Make this a "Yes No Cancel" dialog. */
     public void enableYesNoCancel() {
-    	enableYesNoCancel(" Yes ", " No ");
-    }
-    
-    /** Make this a "Yes No Cancel" dialog with custom labels. Here is an example:
-    	<pre>
-        GenericDialog gd = new GenericDialog("YesNoCancel Demo");
-        gd.addMessage("This is a custom YesNoCancel dialog");
-        gd.enableYesNoCancel("Do something", "Do something else");
-        gd.showDialog();
-        if (gd.wasCanceled())
-            IJ.log("User clicked 'Cancel'");
-        else if (gd.wasOKed())
-            IJ. log("User clicked 'Yes'");
-        else
-            IJ. log("User clicked 'No'");
-    	</pre>
-	*/
-    public void enableYesNoCancel(String yesLabel, String noLabel) {
-    	this.yesLabel = yesLabel;
-    	this.noLabel = noLabel;
     	yesNoCancel = true;
     }
-
+    
     /** No not display "Cancel" button. */
     public void hideCancelButton() {
     	hideCancelButton = true;
@@ -885,8 +864,8 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 			cancel.addActionListener(this);
 			cancel.addKeyListener(this);
 			if (yesNoCancel) {
-				okLabel = yesLabel;
-				no = new Button(noLabel);
+				okLabel = " Yes ";
+				no = new Button(" No ");
 				no.addActionListener(this);
 				no.addKeyListener(this);
 			}

@@ -71,7 +71,9 @@ public class ScaleDialog implements PlugInFilter {
 		known = gd.getNextNumber();
 		aspectRatio = gd.getNextNumber();
 		unit = gd.getNextString();
-        if (unit.equals("A"))
+        if (unit.equals("um"))
+            unit = IJ.micronSymbol+"m";
+        else if (unit.equals("A"))
         	unit = ""+IJ.angstromSymbol;
  		global2 = gd.getNextBoolean();
 		//if (measured!=0.0 && known==0.0) {
