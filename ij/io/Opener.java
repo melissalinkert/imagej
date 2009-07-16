@@ -41,13 +41,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -118,7 +113,17 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-        boolean fullPath = path.startsWith("/") || path.startsWith("\\") || path.indexOf(":\\")==1 || path.startsWith("http://");
+		boolean isURL = path.startsWith("http://");
+		if (isURL && isText(path)) {
+			openTextURL(path);
+			return;
+		}
+		if (path.endsWith(".jar") || path.endsWith(".class")) {
+				installPlugin(path);
+				return;
+		}
+
+        boolean fullPath = path.startsWith("/") || path.startsWith("\\") || path.indexOf(":\\")==1 || isURL;
         if (!fullPath && IJ.getInstance()!=null) {
             String workingDir = OpenDialog.getDefaultDirectory();
             if (workingDir!=null)
@@ -181,6 +186,18 @@ public class Opener {
 					break;
 			}
 		}
+	}
+	
+	private boolean isText(String path) {
+		if (path.endsWith(".txt") || path.endsWith(".ijm") || path.endsWith(".java")
+		|| path.endsWith(".js") || path.endsWith(".html") || path.endsWith(".htm")
+		|| path.endsWith("/"))
+			return true;
+		int lastSlash = path.lastIndexOf("/");
+		if (lastSlash==-1) lastSlash = 0;
+		if (path.indexOf(".", lastSlash+1)==-1)
+			return true;  // no extension
+		return false;
 	}
 	
 	/** Opens the specified file and adds it to the File/Open Recent menu.
@@ -326,11 +343,24 @@ public class Opener {
 	   	} 
 	}
 	
-		//for (int i=1;; i++) {
-		//	String header = uc.getHeaderField(i);
-		//	if (header==null) break;
-		//	IJ.log(uc.getHeaderFieldKey(i) + " " + header);
-		//}
+	/** Used by open() and IJ.open() to open text URLs. */
+	void openTextURL(String url) {
+		if (url.endsWith(".pdf")||url.endsWith(".zip"))
+			return;
+		String text = IJ.openUrlAsString(url);
+		String name = url.substring(7);
+		int index = name.lastIndexOf("/");
+		int len = name.length();
+		if (index==len-1)
+			name = name.substring(0, len-1);
+		else if (index!=-1 && index<len-1)
+			name = name.substring(index+1);
+		Editor ed = new Editor();
+		ed.setSize(600, 300);
+		ed.create(name, text);
+		IJ.showStatus("");
+	}
+
 	
 	public ImagePlus openWithHandleExtraFileTypes(String path, int[] fileType) {
 		ImagePlus imp = null;
@@ -709,6 +739,9 @@ public class Opener {
 		FileOpener fo = new FileOpener(info[0]);
 		imp = fo.open(false);
 		if (imp==null) return null;
+		int[] offsets = info[0].stripOffsets;
+		if (offsets!=null&&offsets.length>1 && offsets[offsets.length-1]<offsets[0])
+			ij.IJ.run(imp, "Flip Vertically", "stack");
 		int c = imp.getNChannels();
 		boolean composite = c>1 && info[0].description!=null && info[0].description.indexOf("mode=")!=-1;
 		if (c>1 && (imp.getOpenAsHyperStack()||composite) && !imp.isComposite() && imp.getType()!=ImagePlus.COLOR_RGB) {
@@ -892,6 +925,67 @@ public class Opener {
 	/** Returns the state of the openUsingPlugins flag. */
 	public static boolean getOpenUsingPlugins() {
 		return openUsingPlugins;
+	}
+	
+	void installPlugin(String path) {
+		boolean isURL = path.startsWith("http://");
+		byte[] data = null;
+		String name = path;
+		if (isURL) {
+			URL url = null;
+			try {
+				url = new URL(path);
+			} catch (Exception e) {
+				IJ.error(""+e);
+				return;
+			}
+			int index = path.lastIndexOf("/");
+			if (index!=-1 && index<=path.length()-1)
+					name = path.substring(index+1);
+			data = download(url);
+		} else
+			return;
+		SaveDialog sd = new SaveDialog("Save Plugin...", Menus.getPlugInsPath(), name, null);
+		String name2 = sd.getFileName();
+		if (name2==null) return;
+		String dir = sd.getDirectory();
+		boolean err = savePlugin(new File(dir,name), data);
+		if (!err) Menus.updateImageJMenus();
+	}
+	
+	boolean savePlugin(File f, byte[] data) {
+		try {
+			FileOutputStream out = new FileOutputStream(f);
+			out.write(data, 0, data.length);
+			out.close();
+		} catch (IOException e) {
+			IJ.error("Plugin Installer", ""+e);
+			return true;
+		}
+		return false;
+	}
+
+	byte[] download(URL url) {
+		byte[] data;
+		try {
+			URLConnection uc = url.openConnection();
+			int len = uc.getContentLength();
+			IJ.showStatus("Downloading "+url.getFile());
+			InputStream in = uc.getInputStream();
+			data = new byte[len];
+			int n = 0;
+			while (n < len) {
+				int count = in.read(data, n, len - n);
+				if (count<0)
+					throw new EOFException();
+				n += count;
+				IJ.showProgress(n, len);
+			}
+			in.close();
+		} catch (IOException e) {
+			return null;
+		}
+		return data;
 	}
 
 }
