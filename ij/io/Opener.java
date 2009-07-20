@@ -195,7 +195,8 @@ public class Opener {
 			return true;
 		int lastSlash = path.lastIndexOf("/");
 		if (lastSlash==-1) lastSlash = 0;
-		if (path.indexOf(".", lastSlash+1)==-1)
+		int dotIndex = path.indexOf(".", lastSlash+1);
+		if (dotIndex==-1 ||  (path.length()-dotIndex)>6)
 			return true;  // no extension
 		return false;
 	}

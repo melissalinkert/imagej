@@ -3,10 +3,10 @@ import ij.util.Tools;
 import ij.text.TextWindow;
 import ij.plugin.MacroInstaller;
 import ij.plugin.frame.Recorder;
+import ij.io.OpenDialog;
 import java.io.*;
 import java.util.*;
 import java.awt.event.KeyEvent;
-import java.awt.event.ActionEvent;
 
 /** Runs ImageJ menu commands in a separate thread.*/
 public class Executer implements Runnable {
@@ -41,38 +41,22 @@ public class Executer implements Runnable {
 		thread.start();
 	}
 
-	void notifyCommandListeners(Command cmd, int action) {
-		if (listeners.size()>0) synchronized (listeners) {
-			for (int i=0; i<listeners.size(); i++) {
-				CommandListener listener = (CommandListener)listeners.elementAt(i);
-				if (listener instanceof CommandListenerPlus)
-					((CommandListenerPlus)listener).stateChanged(cmd, action);
-			}
-		}
-	}
-
 	public void run() {
 		if (command==null) return;
-		Command cmd = new Command(command);
 		if (listeners.size()>0) synchronized (listeners) {
 			for (int i=0; i<listeners.size(); i++) {
 				CommandListener listener = (CommandListener)listeners.elementAt(i);
-				cmd.command = listener.commandExecuting(cmd.command);
-				if (listener instanceof CommandListenerPlus) {
-					((CommandListenerPlus)listener).stateChanged(cmd, CommandListenerPlus.CMD_REQUESTED);
-					if (cmd.isConsumed()) return;
-				}
-				if (cmd.command==null) return;
+				command = listener.commandExecuting(command);
+				if (command==null) return;
 			}
 		}
-		cmd.modifiers = (IJ.altKeyDown()?ActionEvent.ALT_MASK:0)|(IJ.shiftKeyDown()?ActionEvent.SHIFT_MASK:0);
 		try {
 			if (Recorder.record) {
-				Recorder.setCommand(cmd.command);
-				runCommand(cmd);
+				Recorder.setCommand(command);
+				runCommand(command);
 				Recorder.saveCommand();
 			} else
-				runCommand(cmd);
+				runCommand(command);
 			int len = command.length();
 			if (command.charAt(len-1)!=']' && !(len<4&&(command.equals("In")||command.equals("Out"))))
 				IJ.setKeyUp(IJ.ALL_KEYS);  // set keys up except for "<", ">", "+" and "-" shortcuts
@@ -82,13 +66,11 @@ public class Executer implements Runnable {
 			ImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.unlock();
 			String msg = e.getMessage();
-			if (e instanceof OutOfMemoryError) {
+			if (e instanceof OutOfMemoryError)
 				IJ.outOfMemory(command);
-				notifyCommandListeners(cmd, CommandListenerPlus.CMD_ERROR);
-			} else if (e instanceof RuntimeException && msg!=null && msg.equals(Macro.MACRO_CANCELED)) {
-				notifyCommandListeners(cmd, CommandListenerPlus.CMD_CANCELED);
+			else if (e instanceof RuntimeException && msg!=null && msg.equals(Macro.MACRO_CANCELED))
 				; //do nothing
-			} else {
+			else {
 				CharArrayWriter caw = new CharArrayWriter();
 				PrintWriter pw = new PrintWriter(caw);
 				e.printStackTrace(pw);
@@ -117,52 +99,42 @@ public class Executer implements Runnable {
 					new TextWindow("Exception", s, w, h);
 				else
 					IJ.log(s);
-				notifyCommandListeners(cmd, CommandListenerPlus.CMD_ERROR);
 			}
-			IJ.abort();
 		}
 	}
 	
-    void runCommand(Command cmd) {
+    void runCommand(String cmd) {
 		Hashtable table = Menus.getCommands();
-		cmd.className = (String)table.get(cmd.command);
-		if (cmd.className!=null) {
-			cmd.arg = "";
-			if (cmd.className.endsWith("\")")) {
+		String className = (String)table.get(cmd);
+		if (className!=null) {
+			String arg = "";
+			if (className.endsWith("\")")) {
 				// extract string argument (e.g. className("arg"))
-				int argStart = cmd.className.lastIndexOf("(\"");
+				int argStart = className.lastIndexOf("(\"");
 				if (argStart>0) {
-					cmd.arg = cmd.className.substring(argStart+2, cmd.className.length()-2);
-					cmd.className = cmd.className.substring(0, argStart);
+					arg = className.substring(argStart+2, className.length()-2);
+					className = className.substring(0, argStart);
 				}
 			}
-			notifyCommandListeners(cmd, CommandListenerPlus.CMD_READY);
-			if (cmd.isConsumed()) return; // last chance to interrupt
-			if (IJ.shiftKeyDown() && cmd.className.startsWith("ij.plugin.Macro_Runner") && !Menus.getShortcuts().contains("*"+cmd))
-    			IJ.open(IJ.getDirectory("plugins")+cmd.arg);
-    			else {
-				cmd.plugin = IJ.runPlugIn(cmd.command, cmd.className, cmd.arg);
-			}
-			notifyCommandListeners(cmd, CommandListenerPlus.CMD_STARTED);
+			if (IJ.shiftKeyDown() && className.startsWith("ij.plugin.Macro_Runner") && !Menus.getShortcuts().contains("*"+cmd))
+    			IJ.open(IJ.getDirectory("plugins")+arg);
+    		else
+				IJ.runPlugIn(cmd, className, arg);
 		} else {
-			notifyCommandListeners(cmd, CommandListenerPlus.CMD_READY);
 			// Is this command in Plugins>Macros?
-			if (MacroInstaller.runMacroCommand(cmd.command)) {
-				notifyCommandListeners(cmd, CommandListenerPlus.CMD_MACRO);
+			if (MacroInstaller.runMacroCommand(cmd))
 				return;
-			}
 			// Is this command a LUT name?
-			String path = IJ.getDirectory("luts")+cmd.command+".lut";
+			String path = IJ.getDirectory("luts")+cmd+".lut";
 			File f = new File(path);
 			if (f.exists()) {
+				String dir = OpenDialog.getLastDirectory();
 				IJ.open(path);
-				notifyCommandListeners(cmd, CommandListenerPlus.CMD_LUT);
-			}
-			else
-				IJ.error("Unrecognized command: " + cmd.command);
+				OpenDialog.setLastDirectory(dir);
+			} else
+				IJ.error("Unrecognized command: " + cmd);
 	 	}
-		notifyCommandListeners(cmd, CommandListenerPlus.CMD_FINISHED);
-	}
+    }
 
 	/** Returns the last command executed. Returns null
 		if no command has been executed. */
