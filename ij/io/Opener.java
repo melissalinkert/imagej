@@ -41,13 +41,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -361,6 +356,7 @@ public class Opener {
 			name = name.substring(0, len-1);
 		else if (index!=-1 && index<len-1)
 			name = name.substring(index+1);
+		name = name.replaceAll("%20", " ");
 		Editor ed = new Editor();
 		ed.setSize(600, 300);
 		ed.create(name, text);
