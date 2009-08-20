@@ -109,6 +109,7 @@ public class Prefs {
 	static String homeDir; // ImageJ folder
 	static int threads;
 	static int transparentIndex = -1;
+	static boolean commandLineMacro;
 
 	/** Finds and loads the ImageJ configuration file, "IJ_Props.txt".
 		@return	an error message if "IJ_Props.txt" not found.
@@ -145,6 +146,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -188,6 +201,14 @@ public class Prefs {
 		if (path.endsWith(File.separator))
 			path = path.substring(0, path.length()-1);
 		homeDir = path;
+	}
+
+	/** Returns the default directory, if any, or null. */
+	public static String getDefaultDirectory() {
+		if (commandLineMacro)
+			return null;
+		else
+			return getString(DIR_IMAGE);
 	}
 
 	/** Finds an string in IJ_Props or IJ_Prefs.txt. */
@@ -479,7 +500,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
 		bos.close();
 	}
 	
