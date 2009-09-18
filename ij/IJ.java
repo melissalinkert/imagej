@@ -69,8 +69,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -96,8 +94,6 @@ public class IJ {
 		does not return a value, or "[aborted]" if the macro was aborted
 		due to an error.  */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -190,17 +186,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -505,7 +491,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
+		showMessage("ImageJ", msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -636,7 +622,8 @@ public class IJ {
 
 	/** Converts a number to a rounded formatted string.
 		The 'decimalPlaces' argument specifies the number of
-		digits to the right of the decimal point (0-9). */
+		digits to the right of the decimal point (0-9). Uses
+		scientific notation if 'decimalPlaces is negative. */
 	public static String d2s(double n, int decimalPlaces) {
 		if (Double.isNaN(n))
 			return "NaN";
@@ -658,12 +645,9 @@ public class IJ {
 			df[8] = new DecimalFormat("0.00000000", dfs);
 			df[9] = new DecimalFormat("0.000000000", dfs);
 		}
-		if ((np<0.001 && np!=0.0 && np<1.0/Math.pow(10,decimalPlaces)) || np>999999999999d || decimalPlaces<0) {
-			if (decimalPlaces<0) {
-				decimalPlaces = -decimalPlaces;
-				if (decimalPlaces>9) decimalPlaces=9;
-			} else
-				decimalPlaces = 3;
+		if (decimalPlaces<0) {
+			decimalPlaces = -decimalPlaces;
+			if (decimalPlaces>9) decimalPlaces=9;
 			if (sf==null) {
 				sf = new DecimalFormat[10];
 				sf[1] = new DecimalFormat("0.0E0",dfs);
@@ -827,7 +811,7 @@ public class IJ {
 	public static boolean versionLessThan(String version) {
 		boolean lessThan = ImageJ.VERSION.compareTo(version)<0;
 		if (lessThan)
-			error("This plugin or macro requires ImageJA "+version+" or later.");
+			error("This plugin or macro requires ImageJ "+version+" or later.");
 		return lessThan;
 	}
 	
@@ -1605,9 +1589,38 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
+
+	/** Displays a stack trace. Use the setExceptionHandler 
+		method() to override with a custom exception handler. */
+	public static void handleException(Throwable e) {
+		if (exceptionHandler!=null) {
+			exceptionHandler.handle(e);
+			return;
+		}
+		CharArrayWriter caw = new CharArrayWriter();
+		PrintWriter pw = new PrintWriter(caw);
+		e.printStackTrace(pw);
+		String s = caw.toString();
+		if (getInstance()!=null)
+			new TextWindow("Exception", s, 350, 250);
+		else
+			log(s);
+	}
+
+	/** Installs a custom exception handler that 
+		overrides the handleException() method. */
+	public static void setExceptionHandler(ExceptionHandler handler) {
+		exceptionHandler = handler;
+	}
+
+	public interface ExceptionHandler {
+		public void handle(Throwable e);
+	}
+
+	static ExceptionHandler exceptionHandler;
 
 }
