@@ -286,9 +286,9 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
                     break;
             }
             if ((flags&PlugInFilter.ROI_REQUIRED)!=0 && imp.getRoi()==null)
-            {IJ.error(cmd, "This command requires a selection"); return false;}
+            {IJ.error(cmd+": Selection required"); return false;}
             if ((flags&PlugInFilter.STACK_REQUIRED)!=0 && imp.getStackSize()==1)
-            {IJ.error(cmd, "This command requires a stack"); return false;}
+            {IJ.error(cmd+": Stack required"); ; return false;}
         } // if imageRequired
         return true;
     }

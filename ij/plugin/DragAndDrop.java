@@ -3,10 +3,9 @@ import ij.*;
 import ij.gui.*;
 import ij.io.*;
 import java.io.*;
-import java.awt.Point;
 import java.awt.datatransfer.*;
 import java.awt.dnd.*;
-import java.util.*;
+import java.util.List;
 import java.util.Iterator;
 import java.util.ArrayList;
 
@@ -21,7 +20,6 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 	private Iterator iterator;
 	private static boolean convertToRGB;
 	private static boolean virtualStack;
-	private boolean openAsVirtualStack;
 	
 	public void run(String arg) {
 		ImageJ ij = IJ.getInstance();
@@ -110,25 +108,13 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 	    	return s;
 	    }
 
-	    public void dragEnter(DropTargetDragEvent e)  {
+	    public void dragEnter(DropTargetDragEvent dtde)  {
 	    	IJ.showStatus("<<Drag and Drop>>");
-			if (IJ.debugMode) IJ.log("DragEnter: "+e.getLocation());
-			e.acceptDrag(DnDConstants.ACTION_COPY);
-			openAsVirtualStack = false;
+			if (IJ.debugMode) IJ.log("DragAndDrop.dragEnter");
+			dtde.acceptDrag(DnDConstants.ACTION_COPY);
 	    }
 
-	    public void dragOver(DropTargetDragEvent e) {
-			if (IJ.debugMode) IJ.log("DragOver: "+e.getLocation());
-			Point loc = e.getLocation();
-			int buttonSize = Toolbar.getButtonSize();
-			int width = IJ.getInstance().getSize().width;
-			openAsVirtualStack = width-loc.x<=buttonSize;
-			if (openAsVirtualStack)
-	    		IJ.showStatus("<<Open as Virtual Stack>>");
-	    	else
-	    		IJ.showStatus("<<Drag and Drop>>");
-	    }
-	    
+	    public void dragOver(DropTargetDragEvent e) {}
 	    public void dragExit(DropTargetEvent e) {
 	    	IJ.showStatus("");
 	    }
@@ -162,10 +148,7 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 					if (f.isDirectory())
 						openDirectory(f, path);
 					else {
-						if (openAsVirtualStack && (path.endsWith(".tif")||path.endsWith(".TIF")))
-							(new FileInfoVirtualStack()).run(path);
-						else
-							(new Opener()).openAndAddToRecent(path);
+						(new Opener()).openAndAddToRecent(path);
 						OpenDialog.setLastDirectory(f.getParent()+File.separator);
 						OpenDialog.setLastName(f.getName());
 					}
@@ -173,8 +156,11 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 					IJ.log("File not found: " + path);
 				}
 			} catch (Throwable e) {
-				if (!Macro.MACRO_CANCELED.equals(e.getMessage()))
-					IJ.handleException(e);
+				CharArrayWriter caw = new CharArrayWriter();
+				PrintWriter pw = new PrintWriter(caw);
+				e.printStackTrace(pw);
+				String s = caw.toString();
+				new ij.text.TextWindow("Exception", s, 400, 300);
 			}
 		}
 		

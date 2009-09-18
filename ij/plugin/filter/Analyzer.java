@@ -323,14 +323,9 @@ public class Analyzer implements PlugInFilter, Measurements {
 			ip2 = imp.getProcessor();
 			saveR = ip2.getRoi();
 			ip2.setRoi(roi.getPolygon());
-		} else if (lineWidth>1) {
-			if ((measurements&AREA)!=0 || (measurements&MEAN)!=0)
-				ip2 = (new Straightener()).straightenLine(imp, lineWidth);
-			else {
-				saveResults(new ImageStatistics(), roi);
-				return;
-			}
-		} else {
+		} else if (lineWidth>1)
+			ip2 = (new Straightener()).straightenLine(imp, lineWidth);
+		else {
 			ProfilePlot profile = new ProfilePlot(imp);
 			double[] values = profile.getProfile();
 			if (values==null) return;
