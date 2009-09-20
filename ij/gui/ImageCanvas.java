@@ -213,8 +213,7 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
     }
     
     void drawRoi(Graphics g, Roi roi, int index) {
-    	int type = roi.getType();
-    	if (type==Roi.COMPOSITE||type==Roi.POINT||(roi instanceof TextRoi)) {
+		if (roi.getType()==Roi.COMPOSITE) {
 			roi.setImage(imp);
 			Color c = roi.getColor();
 			if (index==-1 && listColor!=null)
@@ -223,10 +222,7 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 				roi.setColor(showAllColor);
 			roi.draw(g);
 			roi.setColor(c);
-			if (index>=0) {
-				g.setColor(showAllColor);
-				drawRoiLabel(g, index, roi.getBounds());
-			}
+			if (index>=0) drawRoiLabel(g, index, roi.getBounds());
 		} else {
 			Color c = index==-1?roi.getInstanceColor():null;
 			Color saveg = null;
@@ -834,9 +830,9 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		int x = e.getX();
 		int y = e.getY();
 		flags = e.getModifiers();
-		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags));		
+		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags) + " button: " + e.getButton() + ": " + e);		
 		//if (toolID!=Toolbar.MAGNIFIER && e.isPopupTrigger()) {
-		if (toolID!=Toolbar.MAGNIFIER && (e.isPopupTrigger()||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
+		if (toolID!=Toolbar.MAGNIFIER && ((e.isPopupTrigger() && e.getButton() != 0)||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
 			handlePopupMenu(e);
 			return;
 		}
@@ -1122,11 +1118,6 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		}
 	}
 
-	/** Installs a list of ROIs ("display list") that will be drawn as an overly on this image.
-	 * @see ij.gui.Roi#setInstanceColor
-	 * @see ij.gui.Roi#setLocation
-	 * @see ij.gui.Roi#setNonScalable
-	 */
 	public void setDisplayList(Vector list) {
 		displayList = list;
 		listColor = null;
@@ -1138,12 +1129,6 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		repaint();
 	}
 
-	/** Creates a single ShapeRoi display list from the specified 
-	 * Shape, Color and BasicStroke, and activates it.
-	 * @see ij.gui.Roi#setInstanceColor
-	 * @see ij.gui.Roi#setLineWidth
-	 * @see ij.gui.Roi#setStroke
-	 */
 	public void setDisplayList(Shape shape, Color color, BasicStroke stroke) {
 		if (shape==null)
 			{setDisplayList(null); return;}
@@ -1158,21 +1143,10 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		repaint();
 	}
 	
-	/** Creates a single ROI display list from the specified 
-		ROI and Color, and activates it. */
-	public void setDisplayList(Roi roi, Color color) {
-		roi.setInstanceColor(color);
-		Vector list = new Vector();
-		list.addElement(roi);
-		setDisplayList(list);
-	}
-
-	/** Returns the current display list, or null if there is no display list. */
 	public Vector getDisplayList() {
 		return displayList;
 	}
 	
-	/** Allows plugins (e.g., Orthogonal_Views) to create a custom ROI using a display list. */
 	public void setCustomRoi(boolean customRoi) {
 		this.customRoi = customRoi;
 	}

@@ -286,6 +286,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 			saveResults(stats, new PointRoi(p.xpoints[i], p.ypoints[i]));
 			if (i!=p.npoints-1) displayResults();
 		}
+		//IJ.write(rt.getCounter()+"\t"+n(cal.getX(x))+n(cal.getY(y))+n(value));
 	}
 	
 	void measureAngle(Roi roi) {
@@ -299,6 +300,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 		ip.setRoi(roi.getPolygon());
 		ImageStatistics stats = new ImageStatistics();
 		saveResults(stats, roi);
+		//IJ.write(rt.getCounter()+"\t"+n(((PolygonRoi)roi).getAngle()));
 	}
 	
 	void measureLength(Roi roi) {
@@ -321,14 +323,9 @@ public class Analyzer implements PlugInFilter, Measurements {
 			ip2 = imp.getProcessor();
 			saveR = ip2.getRoi();
 			ip2.setRoi(roi.getPolygon());
-		} else if (lineWidth>1) {
-			if ((measurements&AREA)!=0 || (measurements&MEAN)!=0)
-				ip2 = (new Straightener()).straightenLine(imp, lineWidth);
-			else {
-				saveResults(new ImageStatistics(), roi);
-				return;
-			}
-		} else {
+		} else if (lineWidth>1)
+			ip2 = (new Straightener()).straightenLine(imp, lineWidth);
+		else {
 			ProfilePlot profile = new ProfilePlot(imp);
 			double[] values = profile.getProfile();
 			if (values==null) return;
@@ -339,7 +336,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 					ip2.setRoi(0, 0, ip2.getWidth()-1, 1);
 			}
 		}
-		ImageStatistics stats = ImageStatistics.getStatistics(ip2, AREA+MEAN+STD_DEV+MODE+MIN_MAX, imp.getCalibration());
+		ImageStatistics stats = ImageStatistics.getStatistics(ip2, AREA+MEAN+STD_DEV+MODE+MIN_MAX, null);
 		if (saveR!=null) ip2.setRoi(saveR);
 		saveResults(stats, roi);
 	}
@@ -631,9 +628,9 @@ public class Analyzer implements PlugInFilter, Measurements {
 	public String n(double n) {
 		String s;
 		if (Math.round(n)==n)
-			s = ResultsTable.d2s(n,0);
+			s = IJ.d2s(n,0);
 		else
-			s = ResultsTable.d2s(n,precision);
+			s = IJ.d2s(n,precision);
 		return s+"\t";
 	}
 		
