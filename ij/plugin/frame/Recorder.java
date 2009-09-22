@@ -245,7 +245,14 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 	}
 	
 	static String trimKey(String key) {
-		return Macro.trimKey(key);
+		int index = key.indexOf(" ");
+		if (index>-1)
+			key = key.substring(0,index);
+		index = key.indexOf(":");
+		if (index>-1)
+			key = key.substring(0,index);
+		key = key.toLowerCase(Locale.US);
+		return key;
 	}
 
 	/** Writes the current command and options to the Recorder window. */
@@ -275,6 +282,8 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener {
 					textArea.append("//run(\""+name+"\");\n");
 				else if (name.equals("Start Animation [\\]"))
 					textArea.append("doCommand(\"Start Animation [\\\\]\");\n");
+				else if (name.equals("Add to Manager "))
+					;
 				else if (name.equals("Draw")) {
 					ImagePlus imp = WindowManager.getCurrentImage();
 					Roi roi = imp.getRoi();
