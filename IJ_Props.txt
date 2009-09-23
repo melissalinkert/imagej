@@ -149,12 +149,14 @@ hyperstacks03="Hyperstack to Stack",ij.plugin.HyperStackConverter("hstostack")
 hyperstacks04="Reduce Dimensionality...",ij.plugin.HyperStackReducer
 hyperstacks05="Channels Tool...[Z]",ij.plugin.frame.Channels
 
-# Plugins installed in the Image/Rotate submenu
-rotate01="Flip Horizontally",ij.plugin.filter.Transformer("fliph")
-rotate02="Flip Vertically",ij.plugin.filter.Transformer("flipv")
-rotate03="Rotate 90 Degrees Right",ij.plugin.filter.Transformer("right")
-rotate04="Rotate 90 Degrees Left",ij.plugin.filter.Transformer("left")
-rotate05="Arbitrarily...",ij.plugin.filter.Rotator
+# Plugins installed in the Image/Transform submenu
+transform01="Flip Horizontally",ij.plugin.filter.Transformer("fliph")
+transform02="Flip Vertically",ij.plugin.filter.Transformer("flipv")
+transform03="Flip Stack",ij.plugin.StackReverser
+transform04="Rotate 90 Degrees Right",ij.plugin.filter.Transformer("right")
+transform05="Rotate 90 Degrees Left",ij.plugin.filter.Transformer("left")
+transform06="Rotate...",ij.plugin.filter.Rotator
+transform07="Translate...",ij.plugin.filter.Translator
 
 # Plugins installed in the Image/Zoom submenu
 zoom01="In[+]",ij.plugin.Zoom("in")
@@ -299,9 +301,8 @@ plug-in02=>"Shortcuts"
 plug-in03=>"Utilities"
 plug-in04=>"New_"
 plug-in05="Compile and Run...",ij.plugin.Compiler
-plug-in06="Install PlugIn...",ij.plugin.PlugInInstaller
-#plug-in07=-
-#plug-in08=>"User_Plugins"
+#plug-in06=-
+#plug-in07=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
 #user_plugins01="Red And Blue",RedAndBlue_
@@ -325,7 +326,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities04="Threads...",ij.plugin.ThreadLister
 utilities05="Benchmark",ij.plugin.filter.Benchmark
