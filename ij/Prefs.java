@@ -37,6 +37,7 @@ public class Prefs {
     public static final String NOISE_SD = "noise.sd";
     public static final String MENU_SIZE = "menu.size";
     public static final String THREADS = "threads";
+    public static final String ENABLE_RMI = "enable.rmi.listener";
 	public static final String KEY_PREFIX = ".";
  
 	private static final int USE_POINTER=1<<0, ANTIALIASING=1<<1, INTERPOLATE=1<<2, ONE_HUNDRED_PERCENT=1<<3,
@@ -79,8 +80,8 @@ public class Prefs {
 	public static boolean antialiasedTools;
 	/** Export Raw using little-endian byte order. */
 	public static boolean intelByteOrder;
-	/** Double buffer display of selections and overlays. */
-	public static boolean doubleBuffer = true;
+	/** Double buffer display of selections. */
+	public static boolean doubleBuffer;
 	/** Do not label multiple points created using point tool. */
 	public static boolean noPointLabels = true;
 	/** Disable Edit/Undo command. */
@@ -99,7 +100,9 @@ public class Prefs {
 	public static boolean pointAddToManager;
 	/** Extend the borders to foreground for binary erosions and closings. */
 	public static boolean padEdges;
-	/** Run the SocketListener. */
+	/** Run the RMIListener (-1 unspecified, 0 no, 1 yes). */
+	public static int enableRMIListener = -1;
+	/** Only for backwards compatibility */
 	public static boolean runSocketListener;
 
 	static Properties ijPrefs = new Properties();
@@ -146,18 +149,6 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
-
-	/*
-	static void dumpPrefs(String title) {
-		IJ.log("");
-		IJ.log(title);
-		Enumeration e = ijPrefs.keys();
-		while (e.hasMoreElements()) {
-			String key = (String) e.nextElement();
-			IJ.log(key+": "+ijPrefs.getProperty(key));
-		}
-	}
-	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -368,7 +359,7 @@ public class Prefs {
 		useInvertingLut = (options&USE_INVERTING_LUT)!=0;
 		antialiasedTools = (options&ANTIALIASED_TOOLS)!=0;
 		intelByteOrder = (options&INTEL_BYTE_ORDER)!=0;
-		// doubleBuffer = (options&DOUBLE_BUFFER)!=0; // always double buffer
+		doubleBuffer = (options&DOUBLE_BUFFER)!=0;
 		noPointLabels = (options&NO_POINT_LABELS)!=0;
 		noBorder = (options&NO_BORDER)!=0;
 		showAllSliceOnly = (options&SHOW_ALL_SLICE_ONLY)!=0;
@@ -376,7 +367,7 @@ public class Prefs {
 		noRowNumbers = (options&NO_ROW_NUMBERS)!=0;
 		moveToMisc = (options&MOVE_TO_MISC)!=0;
 		pointAddToManager = (options&ADD_TO_MANAGER)!=0;
-		runSocketListener = (options&RUN_SOCKET_LISTENER)!=0;
+		enableRMIListener = getInt(ENABLE_RMI, -1);
 	}
 
 	static void saveOptions(Properties prefs) {
@@ -390,8 +381,10 @@ public class Prefs {
 			+ (noPointLabels?NO_POINT_LABELS:0) + (noBorder?NO_BORDER:0)
 			+ (showAllSliceOnly?SHOW_ALL_SLICE_ONLY:0) + (copyColumnHeaders?COPY_HEADERS:0)
 			+ (noRowNumbers?NO_ROW_NUMBERS:0) + (moveToMisc?MOVE_TO_MISC:0)
-			+ (pointAddToManager?ADD_TO_MANAGER:0) + (runSocketListener?RUN_SOCKET_LISTENER:0);
+			+ (pointAddToManager?ADD_TO_MANAGER:0);
 		prefs.put(OPTIONS, Integer.toString(options));
+		if (enableRMIListener >= 0)
+			prefs.put(ENABLE_RMI, new Integer(enableRMIListener));
 	}
 
 	/** Saves the value of the string <code>text</code> in the preferences
@@ -500,7 +493,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
 		bos.close();
 	}
 	
