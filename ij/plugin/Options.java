@@ -34,7 +34,7 @@ public class Options implements PlugIn {
 		//gd.addCheckbox("Antialiased_Text", Prefs.antialiasedText);
 		gd.addCheckbox("Require "+key+" key for shortcuts", Prefs.requireControlKey);
 		gd.addCheckbox("Move isolated plugins to Misc. menu", Prefs.moveToMisc);
-		gd.addCheckbox("Run socket listener", Prefs.enableRMIListener != 0);
+		gd.addCheckbox("Run socket listener", Prefs.runSocketListener);
 		gd.addCheckbox("Debug mode", IJ.debugMode);
 		gd.addHelp(IJ.URL+"/docs/menus/edit.html#misc");
 		gd.showDialog();
@@ -62,7 +62,7 @@ public class Options implements PlugIn {
 		//Prefs.antialiasedText = gd.getNextBoolean();
 		Prefs.requireControlKey = gd.getNextBoolean();
 		Prefs.moveToMisc = gd.getNextBoolean();
-		Prefs.enableRMIListener = gd.getNextBoolean() ? 1 : 0;
+		Prefs.runSocketListener = gd.getNextBoolean();
 		IJ.debugMode = gd.getNextBoolean();
 	}
 
@@ -140,7 +140,6 @@ public class Options implements PlugIn {
 		gd.addCheckbox("Black canvas", Prefs.blackCanvas);
 		gd.addCheckbox("No image border", Prefs.noBorder);
 		gd.addCheckbox("Use inverting lookup table", Prefs.useInvertingLut);
-		gd.addCheckbox("Double buffer selections", Prefs.doubleBuffer);
 		gd.addCheckbox("Antialiased tool icons", Prefs.antialiasedTools);
 		gd.addNumericField("Menu font size:", Menus.getFontSize(), 0, 3, "points");
         gd.addHelp(IJ.URL+"/docs/menus/edit.html#appearance");
@@ -152,7 +151,6 @@ public class Options implements PlugIn {
 		boolean blackCanvas = gd.getNextBoolean();
 		boolean noBorder = gd.getNextBoolean();
 		boolean useInvertingLut = gd.getNextBoolean();
-		Prefs.doubleBuffer = gd.getNextBoolean();
 		boolean antialiasedTools = gd.getNextBoolean();
 		boolean change = antialiasedTools!=Prefs.antialiasedTools;
 		Prefs.antialiasedTools = antialiasedTools;
@@ -190,10 +188,6 @@ public class Options implements PlugIn {
 			invertLuts(useInvertingLut);
 			Prefs.useInvertingLut = useInvertingLut;
 		}
-		if (Prefs.doubleBuffer && IJ.isMacOSX()) {
-			IJ.error("Double-buffering is built into Mac OS X.");
-			Prefs.doubleBuffer = false;
-		}
 		if (menuSize!=Menus.getFontSize() && !IJ.isMacintosh()) {
 			Menus.setFontSize(menuSize);
 			IJ.showMessage("Appearance", "Restart ImageJ to use the new font size");
@@ -222,4 +216,4 @@ public class Options implements PlugIn {
 		}
 	}
 
-}
+} // class Options
