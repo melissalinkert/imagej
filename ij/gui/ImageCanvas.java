@@ -49,7 +49,6 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
     private static Color showAllColor = Prefs.getColor(Prefs.SHOW_ALL_COLOR, new Color(128, 255, 255));
     private static Color labelColor;
     private int resetMaxBoundsCount;
-    private Roi currentRoi;
 		
 	protected ImageJ ij;
 	protected double magnification;
@@ -146,8 +145,8 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
  				g.drawImage(img, 0, 0, (int)(srcRect.width*magnification), (int)(srcRect.height*magnification),
 				srcRect.x, srcRect.y, srcRect.x+srcRect.width, srcRect.y+srcRect.height, null);
 			if (displayList!=null) drawDisplayList(g);
-			if (showAllROIs) drawAllROIs(g);
-			if (roi!=null) drawRoi(roi, g);
+			if (roi != null) roi.draw(g);
+			if (showAllROIs) showAllROIs(g);
 			if (srcRect.width<imageWidth || srcRect.height<imageHeight)
 				drawZoomIndicator(g);
 			if (IJ.debugMode) showFrameRate(g);
@@ -155,24 +154,7 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		catch(OutOfMemoryError e) {IJ.outOfMemory("Paint");}
     }
     
-    private void drawRoi(Roi roi, Graphics g) {
-			if (roi==currentRoi) {
-				Color lineColor = roi.getLineColor();
-				Color fillColor = roi.getFillColor();
-				int lineWidth = roi.getLineWidth();
-				roi.setLineColor(null);
-				roi.setFillColor(null);
-				roi.setLineWidth(1);
-				roi.draw(g);
-				roi.setLineColor(lineColor);
-				roi.setFillColor(fillColor);
-				roi.setLineWidth(lineWidth);
-				currentRoi = null;
-			} else
-				roi.draw(g);
-    }
-    
-    void drawAllROIs(Graphics g) {
+    void showAllROIs(Graphics g) {
 		RoiManager rm=RoiManager.getInstance();
 		if (rm==null) {
 			rm = Interpreter.getBatchModeRoiManager();
@@ -190,7 +172,6 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		Hashtable rois = rm.getROIs();
 		java.awt.List list = rm.getList();
 		boolean drawLabels = rm.getDrawLabels();
-		currentRoi = null;
 		int n = list.getItemCount();
 		if (labelRects==null || labelRects.length!=n)
 			labelRects = new Rectangle[n];
@@ -210,8 +191,18 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 					drawRoi(g, roi, drawLabels?i:-1);
 			} else
 				drawRoi(g, roi, drawLabels?i:-1);
-			if (i<200 && drawLabels && imp!=null && roi==imp.getRoi())
-				currentRoi = roi;
+			if (i<100 && drawLabels && imp!=null && roi==imp.getRoi() && !(roi instanceof TextRoi)) {
+				Color lineColor = roi.getLineColor();
+				Color fillColor = roi.getFillColor();
+				int lineWidth = roi.getLineWidth();
+				roi.setLineColor(null);
+				roi.setFillColor(null);
+				roi.setLineWidth(1);
+				roi.draw(g);
+				roi.setLineColor(lineColor);
+				roi.setFillColor(fillColor);
+				roi.setLineWidth(lineWidth);
+			}
 		}
     }
     
@@ -412,8 +403,8 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 				offScreenGraphics.drawImage(img, 0, 0, srcRectWidthMag, srcRectHeightMag,
 					srcRect.x, srcRect.y, srcRect.x+srcRect.width, srcRect.y+srcRect.height, null);
 			if (displayList!=null) drawDisplayList(offScreenGraphics);
-			if (showAllROIs) drawAllROIs(offScreenGraphics);
-			if (roi!=null) drawRoi(roi, offScreenGraphics);
+			if (roi!=null) roi.draw(offScreenGraphics);
+			if (showAllROIs) showAllROIs(offScreenGraphics);
 			if (srcRect.width<imageWidth ||srcRect.height<imageHeight)
 				drawZoomIndicator(offScreenGraphics);
 			if (IJ.debugMode) showFrameRate(offScreenGraphics);
@@ -918,9 +909,9 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		int x = e.getX();
 		int y = e.getY();
 		flags = e.getModifiers();
-		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags));		
+		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags) + " button: " + e.getButton() + ": " + e);		
 		//if (toolID!=Toolbar.MAGNIFIER && e.isPopupTrigger()) {
-		if (toolID!=Toolbar.MAGNIFIER && (e.isPopupTrigger()||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
+		if (toolID!=Toolbar.MAGNIFIER && ((e.isPopupTrigger() && e.getButton() != 0)||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
 			handlePopupMenu(e);
 			return;
 		}
