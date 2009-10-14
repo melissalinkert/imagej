@@ -16,16 +16,17 @@ import java.awt.image.*;
 		System.gc();
 		int lines = 7;
 		String[] text = new String[lines];
-		text[0] = "ImageJ "+ImageJ.VERSION;
-		text[1] = "Wayne Rasband";
-		text[2] = "National Institutes of Health, USA";
-		text[3] = IJ.URL;
-		text[4] = "Java "+System.getProperty("java.version")+(IJ.is64Bit()?" (64-bit)":" (32-bit)");
-		text[5] = IJ.freeMemory();
-		text[6] = "ImageJ is in the public domain";
+		int k = 0;
+		text[k++] = "ImageJA "+ImageJ.VERSION;
+		text[k++] = "http://imageja.sourceforge.net/";
+		text[k++] = "Based on ImageJ";
+		text[k++] = IJ.URL;
+		text[k++] = "Java "+System.getProperty("java.version")+(IJ.is64Bit()?" (64-bit)":" (32-bit)");
+		text[k++] = IJ.freeMemory();
+		text[k++] = "ImageJA is in the public domain";
 		ImageProcessor ip = null;
 		ImageJ ij = IJ.getInstance();
-		URL url = ij .getClass() .getResource("/about.jpg");
+		URL url = ij .getClass() .getResource("/aboutja.jpg");
 		if (url!=null) {
 			Image img = null;
 			try {img = ij.createImage((ImageProducer)url.getContent());}
@@ -36,7 +37,7 @@ import java.awt.image.*;
 			}
 		}
 		if (ip==null) 
-			ip =  new ColorProcessor(55,45);
+			ip =  new ColorProcessor(0,0);
 		ip = ip.resize(ip.getWidth()*4, ip.getHeight()*4);
 		ip.setFont(new Font("SansSerif", Font.PLAIN, LARGE_FONT));
 		ip.setAntialiasedText(true);
@@ -49,7 +50,7 @@ import java.awt.image.*;
 		for (int i=0; i<lines-1; i++) 
 			if (widths[i]>max)
 				max = widths[i];
-		ip.setColor(new Color(255,255, 140));
+		ip.setColor(new Color(0, 0, 0));
 		ip.setFont(new Font("SansSerif", Font.PLAIN, LARGE_FONT));
 		int y  = 45;
 		ip.drawString(text[0], x(text[0],ip,max), y);
@@ -68,7 +69,7 @@ import java.awt.image.*;
 		}
 		ip.drawString(text[6], ip.getWidth()-ip.getStringWidth(text[6])-10, ip.getHeight()-3);
 		ImageWindow.centerNextImage();
-		new ImagePlus("About ImageJ", ip).show();
+		new ImagePlus("About ImageJA", ip).show();
 	}
 
 	int x(String text, ImageProcessor ip, int max) {
