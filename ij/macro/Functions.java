@@ -3678,7 +3678,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;
@@ -4167,6 +4167,8 @@ public class Functions implements MacroConstants, Measurements {
 		interp.getRightParen();
 		if (x.length!=y.length)
 			interp.error("Arrays not same length");
+		if (x.length==0)
+			interp.error("Zero length array");
 		fitter = new CurveFitter(x, y);
 		if (fit==-1 && name!=null) {
 			int params = fitter.doCustomFit(name, initialValues, showFitDialog);
