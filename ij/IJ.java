@@ -96,6 +96,8 @@ public class IJ {
 		does not return a value, or "[aborted]" if the macro was aborted
 		due to an error.  */
 	public static String runMacro(String macro, String arg) {
+		if (ij==null && Menus.getCommands()==null)
+			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -506,7 +508,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage("ImageJA", msg);
+		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
