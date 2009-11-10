@@ -311,9 +311,8 @@ plug-in02=>"Shortcuts"
 plug-in03=>"Utilities"
 plug-in04=>"New_"
 plug-in05="Compile and Run...",ij.plugin.Compiler
-plug-in06="Install PlugIn...",ij.plugin.PlugInInstaller
-#plug-in07=-
-#plug-in08=>"User_Plugins"
+#plug-in06=-
+#plug-in07=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
 #user_plugins01="Red And Blue",RedAndBlue_
@@ -326,9 +325,8 @@ macros01="Install...[M]",ij.plugin.MacroInstaller
 macros02="Run...",ij.plugin.Macro_Runner
 macros03="Edit...",ij.plugin.Compiler("edit")
 macros04="Startup Macros...",ij.plugin.Commands("startup")
-macros05="Record Macro...",ij.plugin.frame.Recorder
-macros06="Record Script...",ij.plugin.frame.Recorder("methods")
-macros07=-
+macros05="Record...",ij.plugin.frame.Recorder
+macros06=-
 
 # Plugins installed in the Plugins/Shortcuts submenu
 shortcuts01="Create Shortcut... ",ij.plugin.Hotkeys("install")
@@ -338,7 +336,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities04="Threads...",ij.plugin.ThreadLister
 utilities05="Benchmark",ij.plugin.filter.Benchmark
