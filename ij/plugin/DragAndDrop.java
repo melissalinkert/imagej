@@ -39,12 +39,6 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 			iterator = null;
 			flavors = t.getTransferDataFlavors();
 			if (IJ.debugMode) IJ.log("DragAndDrop.drop: "+flavors.length+" flavors");
-			if (flavors==null || flavors.length==0) {
-				IJ.error("Drag and Drop ignored. Please try again. You can avoid\n"
-				+"this problem, which occurs the first time a file is dropped,\n"
-				+"by dragging to the toolbar instead of the status bar.");
-				return;
-			}
 			for (int i=0; i<flavors.length; i++) {
 			if (IJ.debugMode) IJ.log("  flavor["+i+"]: "+flavors[i].getMimeType());
 			if (flavors[i].isFlavorJavaFileListType()) {
@@ -68,10 +62,10 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 				BufferedReader br = new BufferedReader(new StringReader(s));
 				String tmp;
 				while (null != (tmp = br.readLine())) {
-					tmp = java.net.URLDecoder.decode(tmp.replaceAll("\\+", "%2b"), "UTF-8");
+					tmp = java.net.URLDecoder.decode(tmp.replaceAll("\\+","%2b"), "UTF-8");
 					if (tmp.startsWith("file://")) tmp = tmp.substring(7);
 					if (IJ.debugMode) IJ.log("  content: "+tmp);
-					if (tmp.startsWith("http://") || tmp.startsWith("https://"))
+					if (tmp.startsWith("http://"))
 						list.add(s);
 					else
 						list.add(new File(tmp));
