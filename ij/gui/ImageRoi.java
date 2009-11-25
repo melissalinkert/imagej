@@ -47,8 +47,8 @@ public class ImageRoi extends Roi {
 		this.composite = composite;
 	}
 	
-	/** Sets the composite mode using the specified opacity (0.0-1.0),
-	     where 0.0 is transparent and 1.0 is fully opaque. */
+	/** Sets the composite mode using the specified opacity (alpha), in the 
+	     range 0.0-1.0, where 0.0 is fully transparent and 1.0 is fully opaque. */
 	public void setOpacity(double opacity) {
 		if (opacity<0.0) opacity = 0.0;
 		if (opacity>1.0) opacity = 1.0;
