@@ -170,14 +170,14 @@ zoom06="Set... ",ij.plugin.Zoom("set")
 #zoom07="Maximize",ij.plugin.Zoom("max")
 
 # Plugins installed in the Image/Overlay submenu
-overlay01="Add Selection...[L]",ij.plugin.Overlay("add")
-overlay02="Add Image...",ij.plugin.Overlay("image")
-overlay03="Hide Overlay",ij.plugin.Overlay("hide")
-overlay04="Show Overlay",ij.plugin.Overlay("show")
-overlay05="From ROI Manager",ij.plugin.Overlay("from")
-overlay06="To ROI Manager",ij.plugin.Overlay("to")
-overlay07="Remove Overlay",ij.plugin.Overlay("remove")
-overlay08="Flatten[F]",ij.plugin.Overlay("flatten")
+overlay01="Add Selection...[L]",ij.plugin.OverlayCommands("add")
+overlay02="Add Image...",ij.plugin.OverlayCommands("image")
+overlay03="Hide Overlay",ij.plugin.OverlayCommands("hide")
+overlay04="Show Overlay",ij.plugin.OverlayCommands("show")
+overlay05="From ROI Manager",ij.plugin.OverlayCommands("from")
+overlay06="To ROI Manager",ij.plugin.OverlayCommands("to")
+overlay07="Remove Overlay",ij.plugin.OverlayCommands("remove")
+overlay08="Flatten[F]",ij.plugin.OverlayCommands("flatten")
 
 # Plugins installed in the Image/Lookup Tables submenu
 lookup01="Invert LUT",ij.plugin.LutLoader("invert")
@@ -313,9 +313,8 @@ plug-in02=>"Shortcuts"
 plug-in03=>"Utilities"
 plug-in04=>"New_"
 plug-in05="Compile and Run...",ij.plugin.Compiler
-plug-in06="Install PlugIn...",ij.plugin.PlugInInstaller
-#plug-in07=-
-#plug-in08=>"User_Plugins"
+#plug-in06=-
+#plug-in07=>"User_Plugins"
 
 # Install user plugins located in ij.jar to Plugins>User Plugins submenu
 #user_plugins01="Red And Blue",RedAndBlue_
@@ -339,7 +338,7 @@ shortcuts04=-
 
 # Plugins installed in the Plugins/Utilities submenu
 utilities01="Control Panel...",ij.plugin.ControlPanel
-utilities02="ImageJA Properties...",ij.plugin.JavaProperties
+utilities02="ImageJ Properties...",ij.plugin.JavaProperties
 utilities03="List Shortcuts...",ij.plugin.CommandLister("shortcuts")
 utilities04="Threads...",ij.plugin.ThreadLister
 utilities05="Benchmark",ij.plugin.filter.Benchmark

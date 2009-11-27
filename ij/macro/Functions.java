@@ -209,6 +209,7 @@ public class Functions implements MacroConstants, Measurements {
 			case MATCHES: value = matches(); break;
 			case GET_STRING_WIDTH: value = getStringWidth(); break;
 			case FIT: value = fit(); break;
+			case OVERLAY: value = overlay(); break;
 			default:
 				interp.error("Numeric function expected");
 		}
@@ -3700,7 +3701,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;
@@ -4446,6 +4447,38 @@ public class Functions implements MacroConstants, Measurements {
 			interp.error("Unrecognized function name");
 		return null;
 	}
-
+	
+	double overlay() {
+		interp.getToken();
+		if (interp.token!='.')
+			interp.error("'.' expected");
+		interp.getToken();
+		if (!(interp.token==WORD||interp.token==ARRAY_FUNCTION))
+			interp.error("Function name expected: ");
+		String name = interp.tokenString;
+		ImagePlus imp = getImage();
+		Overlay overlay = imp.getOverlay();
+		if (overlay==null && name.equals("size"))
+			return 0.0;
+		if (overlay==null)
+			interp.error("No overlay");
+		int size = overlay.size();
+		if (name.equals("size"))
+			return size;
+		else if (name.equals("removeRoi")) {
+			int index = (int)getArg();
+			checkIndex(index, 0, size-1);
+			overlay.remove(index);
+			imp.draw();
+			return Double.NaN;
+		} else if (name.equals("removeRoiAt")) {
+			overlay.remove((int)getFirstArg(), (int)getLastArg());
+			imp.draw();
+			return Double.NaN;
+		} else
+			interp.error("Unrecognized function name");
+		return Double.NaN;
+	}
+	
 } // class Functions
 
