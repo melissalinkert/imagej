@@ -5,6 +5,7 @@ import ij.process.*;
 import ij.plugin.frame.*;
 import ij.plugin.DICOM;
 import ij.plugin.AVI_Reader;
+import ij.plugin.SimpleCommands;
 import ij.text.TextWindow;
 import ij.util.Java2;
 import java.awt.*;
@@ -27,9 +28,9 @@ public class Opener {
 
 	public static final int UNKNOWN=0,TIFF=1,DICOM=2,FITS=3,PGM=4,JPEG=5,
 		GIF=6,LUT=7,BMP=8,ZIP=9,JAVA_OR_TEXT=10,ROI=11,TEXT=12,PNG=13,
-		TIFF_AND_DICOM=14,CUSTOM=15, AVI=16, OJJ=17; // don't forget to also update 'types'
+		TIFF_AND_DICOM=14,CUSTOM=15, AVI=16, OJJ=17, RESULTS=18; // don't forget to also update 'types'
 	private static final String[] types = {"unknown","tif","dcm","fits","pgm",
-		"jpg","gif","lut","bmp","zip","java/txt","roi","txt","png","t&d","custom","ojj"};
+		"jpg","gif","lut","bmp","zip","java/txt","roi","txt","png","t&d","custom","ojj", "results"};
 	private static String defaultDirectory = null;
 	private static int fileType;
 	private boolean error;
@@ -41,13 +42,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -118,7 +114,7 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-		boolean isURL = path.startsWith("http://") || path.startsWith("https://");
+		boolean isURL = path.startsWith("http://");
 		if (isURL && isText(path)) {
 			openTextURL(path);
 			return;
@@ -160,8 +156,6 @@ public class Opener {
 						IJ.setKeyUp(KeyEvent.VK_ALT);
 						break;
 					}
-					if (IJ.runPlugIn("Script Editor", path) != null)
-						break;
 					File file = new File(path);
 					int maxSize = 250000;
 					long size = file.length();
@@ -178,6 +172,9 @@ public class Opener {
 					break;
 				case OJJ:  // ObjectJ project
 					IJ.runPlugIn("ObjectJ_", path);
+					break;
+				case RESULTS:  // ImageJ Results table
+					SimpleCommands.openResultsTable(path);
 					break;
 				case UNKNOWN:
 					String msg =
@@ -719,7 +716,7 @@ public class Opener {
 		fi.directory = f.getParent()+File.separator;
 		return imp;
 	}
-	
+		
 	public String getName(String path) {
 		int i = path.lastIndexOf('/');
 		if (i==-1)
@@ -871,6 +868,10 @@ public class Opener {
 		// ObjectJ project
 		if (name.endsWith(".ojj")) 
 			return OJJ;
+
+		// Results table
+		if (name.endsWith(".xls")) 
+			return RESULTS;
 
 		// Text file
 		boolean isText = true;
