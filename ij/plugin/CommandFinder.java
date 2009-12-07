@@ -20,8 +20,6 @@ package ij.plugin;
 import ij.*;
 import ij.text.*;
 
-import ij.util.Levenshtein;
-
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -101,11 +99,12 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 	JScrollPane scrollPane;
 	DefaultListModel completionsModel;
 	JButton runButton, closeButton, exportButton;
-	JCheckBox fullInfoCheckBox, fuzzyCheckBox, closeCheckBox;
+	JCheckBox fullInfoCheckBox, closeCheckBox;
 	Hashtable commandsHash;
 	String [] commands;
 	Hashtable listLabelToCommand;
-	static boolean closeWhenRunning = true;
+	static boolean closeWhenRunning = Prefs.get("command-finder.close", true);
+;
 
 	protected String makeListLabel(String command, CommandAction ca, boolean fullInfo) {
 		if (fullInfo) {
@@ -127,10 +126,6 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 		boolean fullInfo=fullInfoCheckBox.isSelected();
 		String substring = matchingSubstring.toLowerCase();
 		completionsModel.removeAllElements();
-		if (fuzzyCheckBox.isSelected()) {
-			populateListFuzzily(substring, fullInfo);
-			return;
-		}
 		for(int i=0; i<commands.length; ++i) {
 			String commandName = commands[i];
 			if (commandName.length()==0)
@@ -157,32 +152,12 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 		}
 	}
 
-	protected void populateListFuzzily(String substring, boolean fullInfo) {
-		Levenshtein levenshtein = new Levenshtein(0, 10, 1, 5, 0, 0);
-		LevenshteinPair[] pairs = new LevenshteinPair[commands.length];
-		for (int i = 0; i < commands.length; i++) {
-			int cost = levenshtein.cost(substring,
-					commands[i].toLowerCase());
-			pairs[i] = new LevenshteinPair(i, cost);
-		}
-
-		Arrays.sort(pairs);
-
-		for (int i = 0; i < pairs.length && i < 50; i++) {
-			String name = commands[pairs[i].index];
-			CommandAction ca =
-				(CommandAction)commandsHash.get(name);
-			String listLabel = makeListLabel(name, ca, fullInfo);
-			completionsModel.addElement(listLabel);
-		}
-	}
-
 	public void actionPerformed(ActionEvent ae) {
 		Object source = ae.getSource();
 		if (source==runButton) {
 			String selected = (String)completions.getSelectedValue();
 			if(selected==null) {
-				IJ.error("You must select a plugin to run");
+				IJ.error("Please select a command to run");
 				return;
 			}
 			runFromLabel(selected);
@@ -219,13 +194,12 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 	public void mouseExited(MouseEvent e) {}
 	
 	void export() {
-		String[] list = (String [])completionsModel.toArray();
-		StringBuilder sb = new StringBuilder(2000);
-		for (int i=0; i<list.length; i++) {
+		StringBuffer sb = new StringBuffer(5000);
+		for (int i=0; i<completionsModel.size(); i++) {
 			sb.append(i);
-			sb.append('\t');
-			sb.append(list[i]);
-			sb.append('\n');
+			sb.append("\t");
+			sb.append((String)completionsModel.elementAt(i));
+			sb.append("\n");
 		}
 		TextWindow tw = new TextWindow("ImageJ Menu Commands", " \tCommand", sb.toString(), 600, 500);
 	}
@@ -233,19 +207,19 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 	protected void runFromLabel(String listLabel) {
 		String command = (String)listLabelToCommand.get(listLabel);
 		CommandAction ca = (CommandAction)commandsHash.get(command);
-		if (ca.classCommand != null ) {
-			IJ.showStatus("Running command "+ca.classCommand);
-			IJ.doCommand(command);
-		} else if (ca.menuItem != null) {
-			IJ.showStatus("Clicking menu item "+ca.menuLocation+" > "+command);
-			ActionEvent ae = new ActionEvent(ca.menuItem, ActionEvent.ACTION_PERFORMED, command);
-			ActionListener [] als = ca.menuItem.getActionListeners();
-			for (int i=0; i<als.length; ++i)
-				als[i].actionPerformed(ae);
-		} else {
-			IJ.error("BUG: nothing to run found for '"+listLabel+"'");
-			return;
-		}
+		//if (ca.classCommand != null ) {
+		IJ.showStatus("Running command "+ca.classCommand);
+		IJ.doCommand(command);
+		//} else if (ca.menuItem != null) {
+		//	IJ.showStatus("Clicking menu item "+ca.menuLocation+" > "+command);
+		//	ActionEvent ae = new ActionEvent(ca.menuItem, ActionEvent.ACTION_PERFORMED, command);
+		//	ActionListener [] als = ca.menuItem.getActionListeners();
+		//	for (int i=0; i<als.length; ++i)
+		//		als[i].actionPerformed(ae);
+		//} else {
+		//	IJ.error("BUG: nothing to run found for '"+listLabel+"'");
+		//	return;
+		//}
 		closeWhenRunning = closeCheckBox.isSelected();
 		if (closeWhenRunning)
 			d.dispose();
@@ -449,8 +423,6 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 
 		fullInfoCheckBox = new JCheckBox("Show full information", false);
 		fullInfoCheckBox.addItemListener(this);
-		fuzzyCheckBox = new JCheckBox("Fuzzy matching", false);
-		fuzzyCheckBox.addItemListener(this);
 		closeCheckBox = new JCheckBox("Close when running", closeWhenRunning);
 		closeCheckBox.addItemListener(this);
 
@@ -496,7 +468,6 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 
 		JPanel optionsPanel = new JPanel();
 		optionsPanel.add(fullInfoCheckBox);
-		optionsPanel.add(fuzzyCheckBox);
 		optionsPanel.add(closeCheckBox);
 
 		JPanel buttonsPanel = new JPanel();
@@ -548,7 +519,8 @@ public class CommandFinder implements PlugIn, ActionListener, WindowListener, Ke
 
 	public void windowClosing(WindowEvent e) {
 		d.dispose();
-	}
+		Prefs.set("command-finder.close", closeWhenRunning);
+ }
 
 	public void windowActivated(WindowEvent e) { }
 	public void windowDeactivated(WindowEvent e) { }
