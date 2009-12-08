@@ -43,8 +43,13 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		Hashtable commands = Menus.getCommands();
-		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
+		try {
+			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
+			Hashtable commands = Menus.getCommands();
+			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
+		} catch (Exception e) {
+			bioformats = false;
+		}
 	}
 
 	public Opener() {
@@ -115,7 +120,7 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-		boolean isURL = path.startsWith("http://");
+		boolean isURL = path.startsWith("http://") || path.startsWith("https://");
 		if (isURL && isText(path)) {
 			openTextURL(path);
 			return;
@@ -157,6 +162,8 @@ public class Opener {
 						IJ.setKeyUp(KeyEvent.VK_ALT);
 						break;
 					}
+					if (IJ.runPlugIn("Script Editor", path) != null)
+						break;
 					File file = new File(path);
 					int maxSize = 250000;
 					long size = file.length();
