@@ -47,7 +47,7 @@ public class IJ {
 	private static boolean memMessageDisplayed;
 	private static long maxMemory;
 	private static boolean escapePressed;
-	private static boolean redirectErrorMessages;
+	private static boolean redirectErrorMessages, redirectErrorMessages2;
 	private static boolean suppressPluginNotFoundError;
 	private static Dimension screenSize;
 	private static Hashtable commandTable;
@@ -70,8 +70,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -97,8 +95,6 @@ public class IJ {
 		does not return a value, or "[aborted]" if the macro was aborted
 		due to an error.  */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -191,17 +187,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -500,11 +486,6 @@ public class IJ {
 	/**	Displays a message in a dialog box with the specified title.
 		Writes the Java console if ImageJ is not present. */
 	public static void showMessage(String title, String msg) {
-		if (redirectErrorMessages) {
-			IJ.log(title + ": " + msg);
-			redirectErrorMessages = false;
-			return;
-		}
 		if (ij!=null) {
 			if (msg!=null && msg.startsWith("<html>"))
 				new HTMLDialog(title, msg);
@@ -518,7 +499,7 @@ public class IJ {
 		macro is running, it is aborted. Writes to the Java console
 		if the ImageJ window is not present.*/
 	public static void error(String msg) {
-		showMessage(ij == null ? "ImageJA" : ij.getTitle(), msg);
+		error(null, msg);
 		if (Thread.currentThread().getName().endsWith("JavaScript"))
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 		else
@@ -529,8 +510,13 @@ public class IJ {
 		If a macro is running, it is aborted. Writes to the Java  
 		console if ImageJ is not present. */
 	public static synchronized void error(String title, String msg) {
-		showMessage(title, msg);
-		Macro.abort();
+		String title2 = title!=null?title:"ImageJ";
+		if (redirectErrorMessages || redirectErrorMessages2) {
+			IJ.log(title2 + ": " + msg);
+			redirectErrorMessages = false;
+		} else
+			showMessage(title2, msg);
+		if (title!=null) Macro.abort();
 	}
 
 	/** Displays a message in a dialog box with the specified title.
@@ -1556,14 +1542,19 @@ public class IJ {
 		escapePressed = false;
 	}
 	
-	/** Causes IJ.error() and IJ.showMessage() output to be temporarily redirected to the "Log" window. */
+	/** Causes IJ.error() output to be temporarily redirected to the "Log" window. */
 	public static void redirectErrorMessages() {
 		redirectErrorMessages = true;
 	}
 	
+	/** Set 'true' and IJ.error() output will be redirected to the "Log" window. */
+	public static void redirectErrorMessages(boolean redirect) {
+		redirectErrorMessages2 = redirect;
+	}
+
 	/** Returns the state of the  'redirectErrorMessages' flag. The File/Import/Image Sequence command sets this flag.*/
 	public static boolean redirectingErrorMessages() {
-		return redirectErrorMessages;
+		return redirectErrorMessages || redirectErrorMessages2;
 	}
 
 	/** Temporarily suppress "plugin not found" errors. */
@@ -1625,7 +1616,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
