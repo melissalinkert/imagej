@@ -43,13 +43,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -120,7 +115,7 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-		boolean isURL = path.startsWith("http://") || path.startsWith("https://");
+		boolean isURL = path.startsWith("http://");
 		if (isURL && isText(path)) {
 			openTextURL(path);
 			return;
@@ -162,8 +157,6 @@ public class Opener {
 						IJ.setKeyUp(KeyEvent.VK_ALT);
 						break;
 					}
-					if (IJ.runPlugIn("Script Editor", path) != null)
-						break;
 					File file = new File(path);
 					int maxSize = 250000;
 					long size = file.length();
@@ -887,8 +880,8 @@ public class Opener {
 		if (name.endsWith(".ojj")) 
 			return OJJ;
 
-		// Results table
-		if (name.endsWith(".xls")) 
+		// Results table (tab-delimited or comma-separated tabular text)
+		if (name.endsWith(".xls") || name.endsWith(".csv")) 
 			return TABLE;
 
 		// Text file
