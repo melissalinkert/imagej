@@ -404,6 +404,7 @@ public class RoiManager extends PlugInFrame implements ActionListener, ItemListe
 		if (xs.length()>digits) digits = xs.length();
 		String ys = "" + yc;
 		if (ys.length()>digits) digits = ys.length();
+		if (digits==4 && imp.getStackSize()>=10000) digits = 5;
 		xs = "000000" + xc;
 		ys = "000000" + yc;
 		String label = ys.substring(ys.length()-digits) + "-" + xs.substring(xs.length()-digits);
@@ -1545,7 +1546,7 @@ public class RoiManager extends PlugInFrame implements ActionListener, ItemListe
     
     public void mousePressed (MouseEvent e) {
 		int x=e.getX(), y=e.getY();
-		if ((e.isPopupTrigger() && e.getButton() != 0) || e.isMetaDown())
+		if (e.isPopupTrigger() || e.isMetaDown())
 			pm.show(e.getComponent(),x,y);
 	}
 
