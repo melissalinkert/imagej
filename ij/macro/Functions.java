@@ -3701,7 +3701,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;
@@ -4443,8 +4443,10 @@ public class Functions implements MacroConstants, Measurements {
 			{interp.getParens(); return ""+IJ.maxMemory();}
 		else if (name.equals("getToolName"))
 			{interp.getParens(); return ""+IJ.getToolName();}
+		else if (name.equals("redirectErrorMessages"))
+			{interp.getParens(); IJ.redirectErrorMessages(); return null;}
 		else
-			interp.error("Unrecognized function name");
+			interp.error("Unrecognized IJ function name");
 		return null;
 	}
 	
