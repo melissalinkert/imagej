@@ -91,6 +91,7 @@ public abstract class ImageProcessor extends Object {
 	protected ColorModel cm2;
 	protected SampleModel sampleModel;
 	protected static IndexColorModel defaultColorModel;
+	protected boolean minMaxSet;
 
 		
 	protected void showProgress(double percentDone) {
@@ -1471,8 +1472,11 @@ public abstract class ImageProcessor extends Object {
 
 	public abstract void setf(int index, float value);
 
-	/** Returns a copy of the pixel data as a 2D int array
-		with dimensions [x=0..width-1][y=0..height-1]. */
+	/** Returns a copy of the pixel data as a 2D int array with
+		dimensions [x=0..width-1][y=0..height-1]. With RGB
+		images, the returned values are in packed ARGB format.
+		With float images, the returned values must be converted
+		to float using Float.intBitsToFloat(). */
 	public int[][] getIntArray() {
 		int[][] a = new int [width][height];
 		for(int y=0; y<height; y++) {

@@ -70,8 +70,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -97,8 +95,6 @@ public class IJ {
 		does not return a value, or "[aborted]" if the macro was aborted
 		due to an error.  */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -191,17 +187,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -525,7 +511,7 @@ public class IJ {
 		If a macro is running, it is aborted. Writes to the Java  
 		console if ImageJ is not present. */
 	public static synchronized void error(String title, String msg) {
-		String title2 = title!=null?title:"ImageJA";
+		String title2 = title!=null?title:"ImageJ";
 		boolean abortMacro = title!=null;
 		if (redirectErrorMessages || redirectErrorMessages2) {
 			IJ.log(title2 + ": " + msg);
@@ -1299,13 +1285,25 @@ public class IJ {
 		macroRunning = false;
 	}
 		
-	/** Open the specified file as a tiff, bmp, dicom, fits, pgm, gif 
+	/** Opens and displays the nth image in the specified tiff stack. */
+	public static void open(String path, int n) {
+		if (ij==null && Menus.getCommands()==null) init();
+		ImagePlus imp = openImage(path, n);
+		if (imp!=null) imp.show();
+	}
+
+	/** Opens the specified file as a tiff, bmp, dicom, fits, pgm, gif 
 		or jpeg image and returns an ImagePlus object if successful.
 		Calls HandleExtraFileTypes plugin if the file type is not recognised.
 		Displays a file open dialog if 'path' is null or an empty string.
 		Note that 'path' can also be a URL. */
 	public static ImagePlus openImage(String path) {
 		return (new Opener()).openImage(path);
+	}
+
+	/** Opens the nth image of the specified tiff stack. */
+	public static ImagePlus openImage(String path, int n) {
+		return (new Opener()).openImage(path, n);
 	}
 
 	/** Opens an image using a file open dialog and returns it as an ImagePlus object. */
@@ -1633,7 +1631,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}

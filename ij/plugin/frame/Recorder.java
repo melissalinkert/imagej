@@ -332,7 +332,14 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 	}
 	
 	static String trimKey(String key) {
-		return Macro.trimKey(key);
+		int index = key.indexOf(" ");
+		if (index>-1)
+			key = key.substring(0,index);
+		index = key.indexOf(":");
+		if (index>-1)
+			key = key.substring(0,index);
+		key = key.toLowerCase(Locale.US);
+		return key;
 	}
 
 	/** Writes the current command and options to the Recorder window. */
@@ -468,8 +475,8 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 		boolean java = mode.getSelectedItem().equals(modes[PLUGIN]);
 		String name = fileName.getText();
 		int dotIndex = name.lastIndexOf(".");
-		if (dotIndex>=0) name = name.substring(0, dotIndex);
-		if (scriptMode) {
+		if (scriptMode) { // JavaScript or Java
+			if (dotIndex>=0) name = name.substring(0, dotIndex);
 			if (text.indexOf("rm.")!=-1) {
 				text = (java?"RoiManager ":"")+ "rm = RoiManager.getInstance();\n"
 				+ "if (rm==null) rm = new RoiManager();\n"
@@ -486,8 +493,12 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 				return;
 			} else
 				name += ".js";
-		} else
-			name += ".ijm";
+		} else { // ImageJ macro
+			if (!name.endsWith(".txt")) {
+				if (dotIndex>=0) name = name.substring(0, dotIndex);
+				name += ".ijm";
+			}
+		}
 		ed.createMacro(name, text);
 	}
 	
