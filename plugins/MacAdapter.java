@@ -1,7 +1,6 @@
 import ij.plugin.*;
 import ij.*;
 import ij.io.*;
-import com.apple.mrj.*;
 import com.apple.eawt.*;
 import java.util.Vector;
 
@@ -17,7 +16,7 @@ public class MacAdapter implements PlugIn, ApplicationListener, Runnable {
 	}
     
 	public void handleAbout(ApplicationEvent event) {
-		IJ.run("About ImageJ...");
+		IJ.run("About ImageJA...");
 		event.setHandled(true);
 	}
 
