@@ -1202,6 +1202,7 @@ public class Functions implements MacroConstants, Measurements {
 		|| next=='-' || next==PI)
 			return initNewArray();
 		int size = (int)interp.getExpression();
+		if (size<0) interp.error("Negative array size");
 		interp.getRightParen();
     	Variable[] array = new Variable[size];
     	for (int i=0; i<size; i++)
@@ -3753,7 +3754,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;
