@@ -1356,6 +1356,12 @@ public class Functions implements MacroConstants, Measurements {
 				ImageProcessor ip = getProcessor();
 				setFont(ip);
 				return ip.getFont().getName();
+			} else if (key.equals("overlay")) {
+				Overlay overlay = getImage().getOverlay();
+				if (overlay==null)
+					return "";
+				else
+					return overlay.toString();
 			} else {
 				String value = "";
 				try {value = System.getProperty(key);}
@@ -3660,6 +3666,7 @@ public class Functions implements MacroConstants, Measurements {
 		if (!IJ.isResultsWindow())
 			interp.error("No results");
 		TextPanel tp = IJ.getTextPanel();
+		if (tp==null) return null;
 		StringSelection ss = new StringSelection(tp.getText());
 		java.awt.datatransfer.Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		clipboard.setContents(ss, null);
@@ -3754,7 +3761,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;

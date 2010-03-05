@@ -22,6 +22,8 @@ public class Options implements PlugIn {
 			{conversions(); return;}
 		else if (arg.equals("display"))
 			{appearance(); return;}
+		else if (arg.equals("dicom"))
+			{dicom(); return;}
 	}
 				
 	// Miscellaneous Options
@@ -34,7 +36,7 @@ public class Options implements PlugIn {
 		//gd.addCheckbox("Antialiased_Text", Prefs.antialiasedText);
 		gd.addCheckbox("Require "+key+" key for shortcuts", Prefs.requireControlKey);
 		gd.addCheckbox("Move isolated plugins to Misc. menu", Prefs.moveToMisc);
-		gd.addCheckbox("Run single instance listener", Prefs.enableRMIListener != 0);
+		gd.addCheckbox("Run single instance listener", Prefs.runSocketListener);
 		gd.addCheckbox("Debug mode", IJ.debugMode);
 		gd.addHelp(IJ.URL+"/docs/menus/edit.html#misc");
 		gd.showDialog();
@@ -62,7 +64,7 @@ public class Options implements PlugIn {
 		//Prefs.antialiasedText = gd.getNextBoolean();
 		Prefs.requireControlKey = gd.getNextBoolean();
 		Prefs.moveToMisc = gd.getNextBoolean();
-		Prefs.enableRMIListener = gd.getNextBoolean() ? 1 : 0;
+		Prefs.runSocketListener = gd.getNextBoolean();
 		IJ.debugMode = gd.getNextBoolean();
 	}
 
@@ -216,4 +218,14 @@ public class Options implements PlugIn {
 		}
 	}
 	
+	// DICOM options
+	void dicom() {
+		GenericDialog gd = new GenericDialog("DICOM Options");
+		gd.addCheckbox("Open as 32-bit float", Prefs.openDicomsAsFloat);
+		gd.showDialog();
+		if (gd.wasCanceled())
+			return;
+		Prefs.openDicomsAsFloat = gd.getNextBoolean();
+	}
+
 } // class Options

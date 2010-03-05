@@ -37,7 +37,6 @@ public class Prefs {
     public static final String NOISE_SD = "noise.sd";
     public static final String MENU_SIZE = "menu.size";
     public static final String THREADS = "threads";
-    public static final String ENABLE_RMI = "enable.rmi.listener";
 	public static final String KEY_PREFIX = ".";
  
 	private static final int USE_POINTER=1<<0, ANTIALIASING=1<<1, INTERPOLATE=1<<2, ONE_HUNDRED_PERCENT=1<<3,
@@ -101,12 +100,12 @@ public class Prefs {
 	public static boolean pointAddToManager;
 	/** Extend the borders to foreground for binary erosions and closings. */
 	public static boolean padEdges;
-	/** Run the RMIListener (-1 unspecified, 0 no, 1 yes). */
-	public static int enableRMIListener = -1;
-	/** Only for backwards compatibility */
+	/** Run the SocketListener. */
 	public static boolean runSocketListener;
 	/** Use MultiPoint tool. */
 	public static boolean multiPointMode;
+	/** Open DICOMs as 32-bit float images */
+	public static boolean openDicomsAsFloat;
 
 	static Properties ijPrefs = new Properties();
 	static Properties props = new Properties(ijPrefs);
@@ -152,6 +151,18 @@ public class Prefs {
 		loadOptions();
 		return null;
 	}
+
+	/*
+	static void dumpPrefs(String title) {
+		IJ.log("");
+		IJ.log(title);
+		Enumeration e = ijPrefs.keys();
+		while (e.hasMoreElements()) {
+			String key = (String) e.nextElement();
+			IJ.log(key+": "+ijPrefs.getProperty(key));
+		}
+	}
+	*/
 
 	static String loadAppletProps(InputStream f, Applet applet) {
 		if (f==null)
@@ -320,7 +331,6 @@ public class Prefs {
 			Analyzer.savePreferences(prefs);
 			ImportDialog.savePreferences(prefs);
 			PlotWindow.savePreferences(prefs);
-			GelAnalyzer.savePreferences(prefs);
 			NewImage.savePreferences(prefs);
 			String path = prefsDir+separator+PREFS_NAME;
 			if (prefsDir.endsWith(".imagej")) {
@@ -370,7 +380,7 @@ public class Prefs {
 		noRowNumbers = (options&NO_ROW_NUMBERS)!=0;
 		moveToMisc = (options&MOVE_TO_MISC)!=0;
 		pointAddToManager = (options&ADD_TO_MANAGER)!=0;
-		enableRMIListener = getInt(ENABLE_RMI, -1);
+		runSocketListener = (options&RUN_SOCKET_LISTENER)!=0;
 		multiPointMode = (options&MULTI_POINT_MODE)!=0;
 	}
 
@@ -385,11 +395,9 @@ public class Prefs {
 			+ (noPointLabels?NO_POINT_LABELS:0) + (noBorder?NO_BORDER:0)
 			+ (showAllSliceOnly?SHOW_ALL_SLICE_ONLY:0) + (copyColumnHeaders?COPY_HEADERS:0)
 			+ (noRowNumbers?NO_ROW_NUMBERS:0) + (moveToMisc?MOVE_TO_MISC:0)
-			+ (pointAddToManager?ADD_TO_MANAGER:0)
+			+ (pointAddToManager?ADD_TO_MANAGER:0) + (runSocketListener?RUN_SOCKET_LISTENER:0)
 			+ (multiPointMode?MULTI_POINT_MODE:0);
 		prefs.put(OPTIONS, Integer.toString(options));
-		if (enableRMIListener >= 0)
-			prefs.put(ENABLE_RMI, new Integer(enableRMIListener));
 	}
 
 	/** Saves the value of the string <code>text</code> in the preferences
@@ -498,7 +506,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJ "+ImageJ.VERSION+" Preferences");
 		bos.close();
 	}
 	
