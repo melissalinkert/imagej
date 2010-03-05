@@ -36,7 +36,7 @@ public class Options implements PlugIn {
 		//gd.addCheckbox("Antialiased_Text", Prefs.antialiasedText);
 		gd.addCheckbox("Require "+key+" key for shortcuts", Prefs.requireControlKey);
 		gd.addCheckbox("Move isolated plugins to Misc. menu", Prefs.moveToMisc);
-		gd.addCheckbox("Run single instance listener", Prefs.runSocketListener);
+		gd.addCheckbox("Run single instance listener", Prefs.enableRMIListener != 0);
 		gd.addCheckbox("Debug mode", IJ.debugMode);
 		gd.addHelp(IJ.URL+"/docs/menus/edit.html#misc");
 		gd.showDialog();
@@ -64,7 +64,7 @@ public class Options implements PlugIn {
 		//Prefs.antialiasedText = gd.getNextBoolean();
 		Prefs.requireControlKey = gd.getNextBoolean();
 		Prefs.moveToMisc = gd.getNextBoolean();
-		Prefs.runSocketListener = gd.getNextBoolean();
+		Prefs.enableRMIListener = gd.getNextBoolean() ? 1 : 0;
 		IJ.debugMode = gd.getNextBoolean();
 	}
 

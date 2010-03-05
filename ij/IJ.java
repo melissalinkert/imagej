@@ -101,6 +101,8 @@ public class IJ {
 		does not return a value, or "[aborted]" if the macro was aborted
 		due to an error.  */
 	public static String runMacro(String macro, String arg) {
+		if (ij==null && Menus.getCommands()==null)
+			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -1679,6 +1681,10 @@ public class IJ {
 		exceptionHandler = handler;
 	}
 
+	public static ExceptionHandler getExceptionHandler() {
+		return exceptionHandler;
+	}
+
 	public interface ExceptionHandler {
 		public void handle(Throwable e);
 	}
@@ -1702,4 +1708,16 @@ public class IJ {
 		}
 	}
 
+	public static boolean runFijiEditor(String title, String body) {
+		try {
+			Class clazz = IJ.getClassLoader()
+				.loadClass("fiji.scripting.TextEditor");
+			Frame frame = (Frame)clazz.getConstructor(new Class[] {
+					String.class, String.class })
+				.newInstance(new Object[] { title, body });
+			frame.setVisible(true);
+			return true;
+		} catch (Exception e) { IJ.handleException(e); /* ignore */ }
+		return false;
+	}
 }

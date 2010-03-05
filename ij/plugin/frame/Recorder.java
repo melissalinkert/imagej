@@ -399,11 +399,21 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 	}
 	
 	static boolean isSaveAs() {
-		Menu saveAsMenu = Menus.getSaveAsMenu();
-		for(int i=0;i<saveAsMenu.getItemCount();i++)
-			if(commandName.equals(saveAsMenu.getItem(i).getLabel()))
-				return true;
-		return false;
+		return commandName.equals("Tiff...")
+			|| commandName.equals("Gif...")
+			|| commandName.equals("Jpeg...")
+			|| commandName.equals("Text Image...")
+			|| commandName.equals("ZIP...")
+			|| commandName.equals("Raw Data...")
+			|| commandName.equals("BMP...")
+			|| commandName.equals("PNG...")
+			|| commandName.equals("PGM...")
+			|| commandName.equals("FITS...")
+			|| commandName.equals("LUT...")
+			|| commandName.equals("Selection...")
+			|| commandName.equals("XY Coordinates...")
+			|| commandName.equals("Measurements...")
+			|| commandName.equals("Text... ");
 	}
 
 	static void appendNewImage() {
@@ -453,9 +463,6 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 			IJ.showMessage("Recorder", "A macro cannot be created until at least\none command has been recorded.");
 			return;
 		}
-		Editor ed = (Editor)IJ.runPlugIn("ij.plugin.frame.Editor", "");
-		if (ed==null)
-			return;
 		boolean java = mode.getSelectedItem().equals(modes[PLUGIN]);
 		String name = fileName.getText();
 		int dotIndex = name.lastIndexOf(".");
@@ -483,6 +490,11 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 				name += ".ijm";
 			}
 		}
+		if (scriptMode && IJ.runFijiEditor(name, text))
+			return;
+		Editor ed = (Editor)IJ.runPlugIn("ij.plugin.frame.Editor", "");
+		if (ed==null)
+			return;
 		ed.createMacro(name, text);
 	}
 	
@@ -508,6 +520,8 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 		text2 = text2.replaceAll("print", "IJ.log");
 		NewPlugin np = (NewPlugin)IJ.runPlugIn("ij.plugin.NewPlugin", text2);
 		Editor ed = np.getEditor();
+		if (ed == null)
+			return;
 		ed.updateClassName(ed.getTitle(), name);
 		ed.setTitle(name);
 	}
@@ -573,7 +587,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
     
     public void windowClosing(WindowEvent e) {
     	close();
-    }
+	}
 
 	public void close() {
 		super.close();
