@@ -97,10 +97,11 @@ public class ImageJApplet extends Applet {
 	if (north.getComponentCount() < 2)
 		north.add(c, BorderLayout.SOUTH);
 	else if (getComponentCount() < 3)
+		add(c, BorderLayout.CENTER);
+	else if (getComponentCount() < 4)
 		add(c, BorderLayout.SOUTH);
-	//Ask Johannes about next 2 lines
-	//else
-	//	IJ.error("Too many components!");
+	else
+		IJ.error("Too many components!");
 	return null;
     }
 
