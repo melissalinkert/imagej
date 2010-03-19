@@ -2205,7 +2205,8 @@ public class Functions implements MacroConstants, Measurements {
 		int index=0;
 		double countOrIndex=Double.NaN;
 		boolean twoArgCommand = cmd.equals("open")||cmd.equals("save")||cmd.equals("rename")
-			||cmd.equals("set color")||cmd.equals("set fill color")||cmd.equals("set line width");
+			||cmd.equals("set color")||cmd.equals("set fill color")||cmd.equals("set line width")
+			||cmd.equals("associate")||cmd.equals("centered");
 		boolean select = cmd.equals("select");
 		boolean add = cmd.equals("add");
 		if (twoArgCommand)
@@ -3761,7 +3762,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;

@@ -70,8 +70,6 @@ public class IJ {
 	}
 			
 	static void init(ImageJ imagej, Applet theApplet) {
-		if (theApplet == null)
-			System.setSecurityManager(null);
 		ij = imagej;
 		applet = theApplet;
 		progressBar = ij.getProgressBar();
@@ -101,8 +99,6 @@ public class IJ {
 		does not return a value, or "[aborted]" if the macro was aborted
 		due to an error.  */
 	public static String runMacro(String macro, String arg) {
-		if (ij==null && Menus.getCommands()==null)
-			init();
 		Macro_Runner mr = new Macro_Runner();
 		return mr.runMacro(macro, arg);
 	}
@@ -195,17 +191,7 @@ public class IJ {
 		}
 		catch (NoClassDefFoundError e) {
 			int dotIndex = className.indexOf('.');
-			String cause = e.getMessage();
-			int parenIndex = cause.indexOf('(');
-			if (parenIndex >= 1)
-				cause = cause.substring(0, parenIndex - 1);
-			boolean correctClass = cause.endsWith(dotIndex < 0 ?
-				className : className.substring(dotIndex + 1));
-			if (!correctClass && !suppressPluginNotFoundError)
-				error("Plugin " + className +
-					" did not find required class: " +
-					e.getMessage());
-			if (correctClass && dotIndex >= 0)
+			if (dotIndex >= 0)
 				return runUserPlugIn(commandName, className.substring(dotIndex + 1), arg, createNewLoader);
 			if (className.indexOf('_')!=-1 && !suppressPluginNotFoundError)
 				error("Plugin or class not found: \"" + className + "\"\n(" + e+")");
@@ -533,7 +519,7 @@ public class IJ {
 		If a macro is running, it is aborted. Writes to the Java  
 		console if ImageJ is not present. */
 	public static synchronized void error(String title, String msg) {
-		String title2 = title!=null?title:"ImageJA";
+		String title2 = title!=null?title:"ImageJ";
 		boolean abortMacro = title!=null;
 		if (redirectErrorMessages || redirectErrorMessages2) {
 			IJ.log(title2 + ": " + msg);
@@ -1214,7 +1200,10 @@ public class IJ {
 		ImagePlus img = WindowManager.getCurrentImage();
 		if (img==null) {
 			IJ.noImage();
-			abort();
+			if (ij==null)
+				System.exit(0);
+			else
+				abort();
 		}
 		return img;
 	}
@@ -1653,7 +1642,7 @@ public class IJ {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
-
+	
 	static void setClassLoader(ClassLoader loader) {
 		classLoader = loader;
 	}
@@ -1681,10 +1670,6 @@ public class IJ {
 		exceptionHandler = handler;
 	}
 
-	public static ExceptionHandler getExceptionHandler() {
-		return exceptionHandler;
-	}
-
 	public interface ExceptionHandler {
 		public void handle(Throwable e);
 	}
@@ -1708,16 +1693,4 @@ public class IJ {
 		}
 	}
 
-	public static boolean runFijiEditor(String title, String body) {
-		try {
-			Class clazz = IJ.getClassLoader()
-				.loadClass("fiji.scripting.TextEditor");
-			Frame frame = (Frame)clazz.getConstructor(new Class[] {
-					String.class, String.class })
-				.newInstance(new Object[] { title, body });
-			frame.setVisible(true);
-			return true;
-		} catch (Exception e) { IJ.handleException(e); /* ignore */ }
-		return false;
-	}
 }
