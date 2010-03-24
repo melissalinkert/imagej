@@ -3,17 +3,15 @@ package ij;
 import ij.ImagePlus;
 import ij.gui.ImageCanvas;
 import ij.gui.MenuCanvas;
-import ij.gui.ScrollbarWithLabel;
-import ij.gui.StackWindow;
 import java.applet.Applet;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Label;
 import java.awt.MenuBar;
 import java.awt.Panel;
 import java.awt.ScrollPane;
+import java.awt.Scrollbar;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.io.BufferedReader;
@@ -42,9 +40,10 @@ import java.net.URL;
 */
 public class ImageJApplet extends Applet {
     ScrollPane imagePane;
-    ScrollbarWithLabel scrollC, scrollZ, scrollT;
+    Scrollbar scrollC, scrollZ, scrollT;
     int heightWithoutImage;
-    Panel north, south;
+    Panel north;
+    Panel scrollPane;
     MenuCanvas menu;
     ImagePlus image;
 
@@ -60,10 +59,38 @@ public class ImageJApplet extends Applet {
 	imagePane = new ScrollPane();
 	add(imagePane, BorderLayout.CENTER);
 
-	south = new Panel();
-	south.setLayout(new GridBagLayout());
+	AdjustmentListener listener = new AdjustmentListener() {
+                public synchronized void adjustmentValueChanged(AdjustmentEvent e) {
+			if (image == null)
+				return;
+			int channel = scrollC.getValue();
+			int slice = scrollZ.getValue();
+			int frame = scrollT.getValue();
+			image.setPosition(channel, slice, frame);
+			imagePane.repaint();
+		}
+	};
 
-	add(south, BorderLayout.SOUTH);
+	scrollPane = new Panel();
+	scrollPane.setLayout(new GridBagLayout());
+	GridBagConstraints c = new GridBagConstraints();
+	scrollC = new Scrollbar(Scrollbar.HORIZONTAL);
+	scrollC.addAdjustmentListener(listener);
+	c.fill = GridBagConstraints.HORIZONTAL;
+	c.weightx = 1;
+	c.gridy = 0;
+	scrollPane.add(scrollC, c);
+	scrollZ = new Scrollbar(Scrollbar.HORIZONTAL);
+	scrollZ.addAdjustmentListener(listener);
+	c.gridy = 1;
+	scrollPane.add(scrollZ, c);
+        scrollPane.validate();
+	scrollT = new Scrollbar(Scrollbar.HORIZONTAL);
+	scrollT.addAdjustmentListener(listener);
+	c.gridy = 2;
+	scrollPane.add(scrollT, c);
+
+	add(scrollPane, BorderLayout.SOUTH);
 }
 
     public Component add(Component c) {
@@ -71,14 +98,8 @@ public class ImageJApplet extends Applet {
 		north.add(c, BorderLayout.SOUTH);
 	else if (getComponentCount() < 3)
 		add(c, BorderLayout.CENTER);
-	else if (getComponentCount() < 4){
-		GridBagConstraints b = new GridBagConstraints();
-		b.fill = GridBagConstraints.HORIZONTAL;
-		b.weightx = 1;
-		b.gridx = 0;
-		b.gridy = 0;
-		south.add(c,b);
-	}
+	else if (getComponentCount() < 4)
+		add(c, BorderLayout.SOUTH);
 	else
 		IJ.error("Too many components!");
 	return null;
@@ -87,7 +108,7 @@ public class ImageJApplet extends Applet {
     public void pack() {
 	north.doLayout();
 	imagePane.doLayout();
-	south.doLayout();
+	scrollPane.doLayout();
 	doLayout();
     }
 
@@ -96,87 +117,56 @@ public class ImageJApplet extends Applet {
 		imagePane.removeAll();
 		imagePane.add(c);
 		c.requestFocus();
-
-		if (scrollC != null)
-			south.remove(scrollC);
-
-		if (scrollZ != null)
-			south.remove(scrollZ);
-
-		if (scrollT != null)
-			south.remove(scrollT);
-
+		imagePane.repaint();
 		if (c instanceof ImageCanvas) {
 			image = ((ImageCanvas)c).getImage();
 
-			if (image.getWindow() instanceof StackWindow) {
-				StackWindow stackWindow = (StackWindow)image.getWindow();
-				GridBagConstraints b = new GridBagConstraints();
+			scrollC.setMinimum(1);
+			scrollC.setMaximum(image.getNChannels()+1);
+			scrollC.setVisible(image.getNChannels() > 1);
 
-				scrollC = stackWindow.getCSelector();
-				scrollZ = stackWindow.getZSelector();
-				scrollT = stackWindow.getTSelector();
+			scrollZ.setMinimum(1);
+			scrollZ.setMaximum(image.getNSlices()+1);
+			scrollZ.setVisible(image.getNSlices() > 1);
 
-				if (scrollC != null){
-					b.fill = GridBagConstraints.HORIZONTAL;
-					b.weightx = 1;
-					b.gridx = 0;
-					b.gridy = 1;
-					south.add(scrollC, b);
-				}
-					
-				if (scrollZ != null){
-					b.fill = GridBagConstraints.HORIZONTAL;
-					b.weightx = 1;
-					b.gridx = 0;
-					b.gridy = 2;
-					south.add(scrollZ, b);
-				}
-
-				if (scrollT != null){
-					b.fill = GridBagConstraints.HORIZONTAL;
-					b.weightx = 1;
-					b.gridx = 0;
-					b.gridy = 3;
-					south.add(scrollT, b);
-				}
-			}
+			scrollT.setMinimum(1);
+			scrollT.setMaximum(image.getNFrames()+1);
+			scrollT.setVisible(image.getNFrames() > 1);
+			pack();
 		}
-		pack();
 	}
     }
 
-    /** Starts ImageJ if it's not already running. */
+    public String getURLParameter(String key) {
+	    String url = getParameter(key);
+	    if (url==null)
+			return null;
+	    if (url.indexOf(":/") < 0)
+		    url = getCodeBase().toString() + url;
+	    if (url.indexOf("://") < 0) {
+		    int index = url.indexOf(":/");
+		    if (index > 0)
+			    url = url.substring(0, index) + ":///"
+				    + url.substring(index + 2);
+	    }
+		return url;
+    }
+
+	/** Starts ImageJ if it's not already running. */
     public void init() {
     	ImageJ ij = IJ.getInstance();
      	if (ij==null || (ij!=null && !ij.isShowing()))
 			new ImageJ(this);
 		for (int i=1; i<=9; i++) {
-			String url = getParameter("url"+i);
+			String url = getURLParameter("url"+i);
 			if (url==null) break;
-			if (url.indexOf(":/") < 0)
-				url = getCodeBase().toString() + url;
-			if (url.indexOf("://") < 0) {
-				int index = url.indexOf(":/");
-				if (index > 0)
-					url = url.substring(0, index) + ":///"
-						+ url.substring(index + 2);
-			}
 			ImagePlus imp = new ImagePlus(url);
 			if (imp!=null) imp.show();
 		}
 		/** Also look for up to 9 macros to run. */
 		for (int i=1; i<=9; i++) {
-			String url = getParameter("macro"+i);
+			String url = getURLParameter("macro"+i);
 			if (url==null) break;
-			if (url.indexOf(":/") < 0)
-				url = getCodeBase().toString() + url;
-			if (url.indexOf("://") < 0) {
-				int index = url.indexOf(":/");
-				if (index > 0)
-					url = url.substring(0, index) + ":///"
-						+ url.substring(index + 2);
-			}
 			try {
 				InputStream in = new URL(url).openStream();
 				BufferedReader br = new BufferedReader(new
