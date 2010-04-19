@@ -16,7 +16,7 @@ import ij.plugin.Converter;
 
 /**
 An ImagePlus contain an ImageProcessor (2D image) or an ImageStack (3D, 4D or 5D image).
-It also includes metadata (spatial calibration and possibly the directory/file where Ê
+It also includes metadata (spatial calibration and possibly the directory/file where
 it was read from). The ImageProcessor contains the pixel data (8-bit, 16-bit, float or RGB) 
 of the 2D image and some basic methods to manipulate it. An ImageStack is essentually 
 a list ImageProcessors of same type and size.
@@ -664,7 +664,10 @@ public class ImagePlus implements ImageObserver, Measurements {
 			ip2.setSnapshotPixels(null);
 		}
 	}
-	
+
+	/* @deprecated */
+	public void killProcessor() { }
+
 	/** For images with irregular ROIs, returns a byte mask, otherwise, returns
 		null. Mask pixels have a non-zero value. */
 	public ImageProcessor getMask() {
@@ -2019,7 +2022,22 @@ public class ImagePlus implements ImageObserver, Measurements {
 		else
 			return overlay;
 	}
-	
+
+	/* @deprecated Use setOverlay() instead */
+	public void setDisplayList(Vector list) {
+		getCanvas().setDisplayList(list);
+	}
+
+	/* @deprecated Use getOverlay() instead */
+	public Vector getDisplayList() {
+		return getCanvas().getDisplayList();
+	}
+
+	/* @deprected Use setOverlay() instead */
+	public void setDisplayList(Roi roi, Color strokeColor, int strokeWidth, Color fillColor) {
+		setOverlay(roi, strokeColor, strokeWidth, fillColor);
+	}
+
 	public void setHideOverlay(boolean hide) {
 		ImageCanvas ic = getCanvas();
 		if (ic!=null && hide!=hideOverlay && ic.getOverlay()!=null)
