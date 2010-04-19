@@ -3,13 +3,13 @@ import ij.process.*;
 import ij.gui.*;
 import ij.plugin.*;
 import ij.plugin.frame.*;
-import ij.plugin.filter.RGBStackSplitter;
 import ij.io.FileInfo;
 import java.awt.*;
 import java.awt.image.*;
 
 public class CompositeImage extends ImagePlus {
 
+	// Note: TRANSPARENT mode has not yet been implemented
 	public static final int COMPOSITE=1, COLOR=2, GRAYSCALE=3, TRANSPARENT=4;
 	public static final int MAX_CHANNELS = 7;
 	int[] rgbPixels;
@@ -330,6 +330,7 @@ public class CompositeImage extends ImagePlus {
 		return sampleModel;
 	}
 
+	/*
 	void createBlitterImage(int n) {
 		ImageProcessor ip = cip[n-1].duplicate();
 		if (ip instanceof FloatProcessor){
@@ -348,6 +349,7 @@ public class CompositeImage extends ImagePlus {
 		img = ip.createImage();
 		singleChannel = false;
 	}
+	*/
 
 	ImageStack getRGBStack(ImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
@@ -595,10 +597,6 @@ public class CompositeImage extends ImagePlus {
 	
 	public boolean hasCustomLuts() {
 		return customLuts && mode!=GRAYSCALE;
-	}
-
-	public ImagePlus[] splitChannels(boolean closeAfter) {
-		return RGBStackSplitter.splitChannelsToArray(this,closeAfter);
 	}
 
 }

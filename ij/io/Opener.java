@@ -43,13 +43,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -120,7 +115,7 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-		boolean isURL = path.startsWith("http://") || path.startsWith("https://");
+		boolean isURL = path.startsWith("http://");
 		if (isURL && isText(path)) {
 			openTextURL(path);
 			return;
@@ -162,8 +157,6 @@ public class Opener {
 						IJ.setKeyUp(KeyEvent.VK_ALT);
 						break;
 					}
-					if (!path.endsWith(".ijm") && !path.endsWith(".txt") && IJ.runPlugIn("fiji.scripting.Script_Editor", path) != null)
-						break;
 					File file = new File(path);
 					int maxSize = 250000;
 					long size = file.length();
@@ -945,7 +938,7 @@ public class Opener {
 			return ROI;
 			
 		// ObjectJ project
-		if (name.endsWith(".ojj")) 
+		if ((b0=='o' && b1=='j' && b2=='j' && b3==0) || name.endsWith(".ojj") )
 			return OJJ;
 
 		// Results table (tab-delimited or comma-separated tabular text)

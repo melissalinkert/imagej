@@ -9,7 +9,7 @@ import java.awt.event.*;
 public class StackWindow extends ImageWindow implements Runnable, AdjustmentListener, ActionListener, MouseWheelListener {
 
 	protected Scrollbar sliceSelector; // for backward compatibity with Image5D
-	protected ScrollbarWithLabel cSelector, zSelector, tSelector;
+	private ScrollbarWithLabel cSelector, zSelector, tSelector;
 	protected Thread thread;
 	protected volatile boolean done;
 	protected volatile int slice;
@@ -53,7 +53,10 @@ public class StackWindow extends ImageWindow implements Runnable, AdjustmentList
 			cSelector.setBlockIncrement(1);
 		}
 		if (nSlices>1) {
-			zSelector = new ScrollbarWithLabel(this, 1, 1, 1, nSlices+1, 'z');
+			char label = nChannels>1||nFrames>1?'z':'t';
+			if (stackSize==dim[2]) label = 'c';
+			zSelector = new ScrollbarWithLabel(this, 1, 1, 1, nSlices+1, label);
+			if (label=='t') animationSelector = zSelector;
 			add(zSelector);
 			if (ij!=null) zSelector.addKeyListener(ij);
 			zSelector.addAdjustmentListener(this);
@@ -253,7 +256,4 @@ public class StackWindow extends ImageWindow implements Runnable, AdjustmentList
     	return running2;
     }
 
-    public ScrollbarWithLabel getCSelector() { return cSelector; }
-    public ScrollbarWithLabel getZSelector() { return zSelector; }
-    public ScrollbarWithLabel getTSelector() { return tSelector; }
 }

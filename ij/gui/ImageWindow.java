@@ -86,14 +86,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -130,35 +123,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	private ImageJApplet getApplet() {
-		if (null == IJ.getInstance())
-			return null;
-		return IJ.getInstance().getApplet();
-	}
-
-	public void pack() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
@@ -392,6 +356,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 			return true;
 		dispose();
 		imp.flush();
+		imp = null;
 		return true;
 	}
 	
@@ -535,7 +500,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		if (IJ.debugMode) IJ.log("windowActivated: "+imp.getTitle());
 		ImageJ ij = IJ.getInstance();
 		boolean quitting = ij!=null && ij.quitting();
-		if (IJ.isMacintosh() && ij!=null && ij.getApplet() == null && !quitting) {
+		if (IJ.isMacintosh() && ij!=null && !quitting) {
 			IJ.wait(10); // may be needed for Java 1.4 on OS X
 			setMenuBar(Menus.getMenuBar());
 		}
