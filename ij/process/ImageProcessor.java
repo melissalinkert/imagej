@@ -13,7 +13,7 @@ import ij.Prefs;
 /**
 This abstract class is the superclass for classes that process
 the four data types (byte, short, float and RGB) supported by ImageJ.
-An ImageProcessor contains the pixel data of a 2D image and
+An ImageProcessor contains the pixel data of a 2D image and Ê
 some basic methods to manipulate it.
 @see ByteProcessor
 @see ShortProcessor
@@ -473,7 +473,14 @@ public abstract class ImageProcessor extends Object {
 		int index = mString.indexOf(" ");
 		if (index!=-1)
 			mString = mString.substring(0, index);
-		Method m = Method.valueOf(Method.class, mString); // throws exception if unknown argument
+		Method m = null;
+		try {
+			m = Method.valueOf(Method.class, mString);
+		} catch(Exception e) {
+			m = null;
+		}
+		if (m==null)
+			throw new IllegalArgumentException("Invalid method (\""+mString+"\")");
 		setAutoThreshold(m, darkBackground, RED_LUT);
 	}
 	
@@ -520,8 +527,8 @@ public abstract class ImageProcessor extends Object {
 				lower = upper = min;
 		}
 		setThreshold(lower, upper, lutUpdate);
-		if (notByteData && lutUpdate!=NO_LUT_UPDATE)
-			setLutAnimation(true);
+		//if (notByteData && lutUpdate!=NO_LUT_UPDATE)
+		//	setLutAnimation(true);
 	}
 
 	/** Automatically sets the lower and upper threshold levels, where 'method'
@@ -600,8 +607,8 @@ public abstract class ImageProcessor extends Object {
 				lower = upper = min;
 		}
 		setThreshold(lower, upper, lutUpdate);
-		if (notByteData && lutUpdate!=NO_LUT_UPDATE)
-			setLutAnimation(true);
+		//if (notByteData && lutUpdate!=NO_LUT_UPDATE)
+		//	setLutAnimation(true);
 	}
 
 	/** Disables thresholding. */
