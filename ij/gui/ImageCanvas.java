@@ -606,7 +606,8 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 
 	/** Zooms in by making the window bigger. If it can't
 		be made bigger, then make the source rectangle 
-		(srcRect) smaller and center it at (x,y). */
+		(srcRect) smaller and center it at (x,y). Note that
+		x and y are screen coordinates. */
 	public void zoomIn(int x, int y) {
 		if (magnification>=32) return;
 		double newMag = getHigherZoomLevel(magnification);
@@ -873,9 +874,9 @@ public class ImageCanvas extends Canvas implements MouseListener, MouseMotionLis
 		int x = e.getX();
 		int y = e.getY();
 		flags = e.getModifiers();
-		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags) + " button: " + e.getButton() + ": " + e);		
+		//IJ.log("Mouse pressed: " + e.isPopupTrigger() + "  " + ij.modifiers(flags));		
 		//if (toolID!=Toolbar.MAGNIFIER && e.isPopupTrigger()) {
-		if (toolID!=Toolbar.MAGNIFIER && ((e.isPopupTrigger() && e.getButton() != 0)||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
+		if (toolID!=Toolbar.MAGNIFIER && (e.isPopupTrigger()||(!IJ.isMacintosh()&&(flags&Event.META_MASK)!=0))) {
 			handlePopupMenu(e);
 			return;
 		}

@@ -188,11 +188,11 @@ public class PolygonRoi extends Roi {
 		GeneralPath path = new GeneralPath();
 		if (mag==1f && srcx==0f && srcy==0f) {
 			path.moveTo(xpoints[0]+xf, ypoints[0]+yf);
-			for (int i=1; i<npoints; i++)
+			for (int i=0; i<npoints; i++)
 				path.lineTo(xpoints[i]+xf, ypoints[i]+yf);
 		} else {
 			path.moveTo((xpoints[0]-srcx+xf)*mag, (ypoints[0]-srcy+yf)*mag);
-			for (int i=1; i<npoints; i++)
+			for (int i=0; i<npoints; i++)
 				path.lineTo((xpoints[i]-srcx+xf)*mag, (ypoints[i]-srcy+yf)*mag);
 		}
 		if (closed)
@@ -321,14 +321,14 @@ public class PolygonRoi extends Roi {
 		y = r.y;
 		width = r.width;
 		height = r.height;
-		if (nPoints<2 || (!(type==FREELINE||type==POLYLINE||type==ANGLE) && (nPoints<3||width==0||height==0))) {
-			if (imp!=null) imp.killRoi();
-			if (type!=POINT) return;
-		}
         for (int i=0; i<nPoints; i++) {
             xp[i] = xp[i]-x;
             yp[i] = yp[i]-y;
         }
+		if (nPoints<2 || (!(type==FREELINE||type==POLYLINE||type==ANGLE) && (nPoints<3||width==0||height==0))) {
+			if (imp!=null) imp.killRoi();
+			if (type!=POINT) return;
+		}
 		state = NORMAL;
 		if (imp!=null && !(type==TRACED_ROI))
 			imp.draw(x-5, y-5, width+10, height+10);
