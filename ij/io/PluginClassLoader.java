@@ -1,7 +1,12 @@
 package ij.io;
+
 import ij.IJ;
+
 import java.io.*;
 import java.net.*;
+
+import java.util.Enumeration;
+import java.util.Vector;
 
 /** ImageJ uses this class loader to load plugins and resources from the
  * plugins directory and immediate subdirectories. This class loader will
@@ -34,6 +39,17 @@ public class PluginClassLoader extends URLClassLoader {
 	public PluginClassLoader(String path, boolean callSuper) {
 		super(new URL[0], Thread.currentThread().getContextClassLoader());
 		init(path);
+	}
+
+	public PluginClassLoader(Vector urls) {
+		super(new URL[0], Thread.currentThread().getContextClassLoader());
+		Enumeration e = urls.elements();
+		while (e.hasMoreElements()) try {
+			String url = (String)e.nextElement();
+			addURL(new URL(url));
+		} catch (MalformedURLException e2) {
+			e2.printStackTrace();
+		}
 	}
 
 	void init(String path) {
