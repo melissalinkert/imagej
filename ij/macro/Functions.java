@@ -3764,7 +3764,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;
@@ -4257,7 +4257,9 @@ public class Functions implements MacroConstants, Measurements {
 			interp.error("Zero length array");
 		fitter = new CurveFitter(x, y);
 		if (fit==-1 && name!=null) {
+			Interpreter instance = Interpreter.getInstance();
 			int params = fitter.doCustomFit(name, initialValues, showFitDialog);
+			Interpreter.instance = instance;
 			if (params==0)
 				interp.error("Invalid custom function");
 		} else

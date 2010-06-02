@@ -188,11 +188,11 @@ public class PolygonRoi extends Roi {
 		GeneralPath path = new GeneralPath();
 		if (mag==1f && srcx==0f && srcy==0f) {
 			path.moveTo(xpoints[0]+xf, ypoints[0]+yf);
-			for (int i=1; i<npoints; i++)
+			for (int i=0; i<npoints; i++)
 				path.lineTo(xpoints[i]+xf, ypoints[i]+yf);
 		} else {
 			path.moveTo((xpoints[0]-srcx+xf)*mag, (ypoints[0]-srcy+yf)*mag);
-			for (int i=1; i<npoints; i++)
+			for (int i=0; i<npoints; i++)
 				path.lineTo((xpoints[i]-srcx+xf)*mag, (ypoints[i]-srcy+yf)*mag);
 		}
 		if (closed)
@@ -520,7 +520,7 @@ public class PolygonRoi extends Roi {
 		for (int i=0; i<points.npoints; i++) {
 			double dx = points.xpoints[i] - x;
 			double dy = points.ypoints[i] - y;
-			double distance2 = Math.sqrt(dx*dx+dy*dy);
+			double distance2 = dx*dx+dy*dy;
 			if (distance2<distance) {
 				distance = distance2;
 				index = i;
