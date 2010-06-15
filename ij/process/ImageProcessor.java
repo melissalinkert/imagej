@@ -13,7 +13,7 @@ import ij.Prefs;
 /**
 This abstract class is the superclass for classes that process
 the four data types (byte, short, float and RGB) supported by ImageJ.
-An ImageProcessor contains the pixel data of a 2D image and
+An ImageProcessor contains the pixel data of a 2D image and Ê
 some basic methods to manipulate it.
 @see ByteProcessor
 @see ShortProcessor
@@ -512,13 +512,14 @@ public abstract class ImageProcessor extends Object {
 			if (isInvertedLut())
 				{lower=0.0; upper=threshold;}
 			else
-				{lower=threshold; upper=255.0;}
+				{lower=threshold+1; upper=255.0;}
 		} else {
 			if (isInvertedLut())
-				{lower=threshold; upper=255.0;}
+				{lower=threshold+1; upper=255.0;}
 			else
 				{lower=0.0; upper=threshold;}
 		}
+		if (lower>255) lower = 255;
 		if (notByteData) {
 			if (max>min) {
 				lower = min + (lower/255.0)*(max-min);

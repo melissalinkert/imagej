@@ -61,7 +61,7 @@ public class Functions implements MacroConstants, Measurements {
 	int measurements;
 	int decimalPlaces;
 	boolean blackBackground;
-	static Dialog waitForUserDialog;
+	static WaitForUserDialog waitForUserDialog;
 	int pasteMode;
 
 	Functions(Interpreter interp, Program pgm) {
@@ -3764,7 +3764,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;
@@ -4062,6 +4062,13 @@ public class Functions implements MacroConstants, Measurements {
 		}
 		waitForUserDialog = new WaitForUserDialog(title, text);
 		waitForUserDialog.show();
+		if (waitForUserDialog.escPressed())
+			throw new RuntimeException(Macro.MACRO_CANCELED);
+	}
+	
+	void abortDialog() {
+		if (waitForUserDialog!=null && waitForUserDialog.isVisible())
+			waitForUserDialog.close();
 	}
 	
 	double getStringWidth() {
@@ -4510,6 +4517,8 @@ public class Functions implements MacroConstants, Measurements {
 			{interp.getParens(); return ""+IJ.getToolName();}
 		else if (name.equals("redirectErrorMessages"))
 			{interp.getParens(); IJ.redirectErrorMessages(); return null;}
+		else if (name.equals("renameResults"))
+			IJ.renameResults(getStringArg());
 		else
 			interp.error("Unrecognized IJ function name");
 		return null;

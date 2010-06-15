@@ -43,13 +43,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -120,7 +115,7 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-		boolean isURL = path.startsWith("http://") || path.startsWith("https://");
+		boolean isURL = path.startsWith("http://");
 		if (isURL && isText(path)) {
 			openTextURL(path);
 			return;
@@ -162,8 +157,6 @@ public class Opener {
 						IJ.setKeyUp(KeyEvent.VK_ALT);
 						break;
 					}
-					if (IJ.runPlugIn("fiji.scripting.Script_Editor", path) != null)
-						break;
 					File file = new File(path);
 					int maxSize = 250000;
 					long size = file.length();
@@ -557,10 +550,10 @@ public class Opener {
 		}
 		if (contiguous &&  info[0].fileType!=FileInfo.RGB48)
 			info[0].nImages = info.length;
-		if (IJ.debugMode) {
-			IJ.log("  sameSizeAndType: " + sameSizeAndType);
-			IJ.log("  contiguous: " + contiguous);
-		}
+		//if (IJ.debugMode) {
+		//	IJ.log("sameSizeAndType: " + sameSizeAndType);
+		//	IJ.log("contiguous: " + contiguous);
+		//}
 		return sameSizeAndType;
 	}
 	
@@ -576,7 +569,7 @@ public class Opener {
 			ColorModel cm = createColorModel(fi);
 			ImageStack stack = new ImageStack(fi.width, fi.height, cm);
 			Object pixels = null;
-			int skip = fi.offset;
+			long skip = fi.getOffset();
 			int imageSize = fi.width*fi.height*fi.getBytesPerPixel();
 			if (info[0].fileType==FileInfo.GRAY12_UNSIGNED) {
 				imageSize = (int)(fi.width*fi.height*1.5);
@@ -585,7 +578,7 @@ public class Opener {
 				int scan=(int)Math.ceil(fi.width/8.0);
 				imageSize = scan*fi.height;
 			}
-			int loc = 0;
+			long loc = 0L;
 			int nChannels = 1;
 			try {
 				InputStream is = createInputStream(fi);
@@ -609,7 +602,7 @@ public class Opener {
 						nChannels = fi.samplesPerPixel;
 						channels = new Object[nChannels];
 						for (int c=0; c<nChannels; c++) {
-							pixels = reader.readPixels(is, c==0?skip:0);
+							pixels = reader.readPixels(is, c==0?skip:0L);
 							channels[c] = pixels;
 						}
 					} else 
@@ -617,10 +610,12 @@ public class Opener {
 					if (pixels==null && channels==null) break;
 					loc += imageSize*nChannels+skip;
 					if (i<(info.length-1)) {
-						skip = info[i+1].offset-loc;
+						skip = info[i+1].getOffset()-loc;
 						if (info[i+1].compression>=FileInfo.LZW) skip = 0;
-						if (skip<0)
-							throw new IOException("Images are not in order");
+						if (skip<0L) {
+							IJ.error("Opener", "Unexpected image offset");
+							break;
+						}
 					}
 					if (fi.fileType==FileInfo.RGB48) {
 						Object[] pixels2 = (Object[])pixels;
@@ -634,7 +629,7 @@ public class Opener {
 								stack.addSlice(null, channels[c]);
 						}
 					} else
-						stack.addSlice(null, pixels);					
+						stack.addSlice(null, pixels);
 					IJ.showProgress(i, info.length);
 				}
 				is.close();

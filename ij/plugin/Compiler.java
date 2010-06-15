@@ -134,20 +134,12 @@ public class Compiler implements PlugIn, FilenameFilter {
 			File f2 = new File(path+list[i]);
 			if (f2.isDirectory())
 				addJars(path+list[i], sb);
-			else if (list[i].endsWith(".jar")&& list[i].indexOf("_")==-1) {
+			else if (list[i].endsWith(".jar")&&(list[i].indexOf("_")==-1||list[i].equals("loci_tools.jar"))) {
 				sb.append(File.pathSeparator+path+list[i]);
 				if (IJ.debugMode) IJ.log("javac: "+path+list[i]);
 			}
 		}
 	}
-
-       public static boolean compileFile(String path) {
-	       Compiler compiler = new Compiler();
-               if(!compiler.isJavac())
-                       return false;
-               return compiler.compile(path);
-         
-       }
 
 	boolean areErrors(String s) {
 		boolean errors = s!=null && s.length()>0;

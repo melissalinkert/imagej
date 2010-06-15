@@ -11,7 +11,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 /** This class opens images, roi's, luts and text files dragged and dropped on  the "ImageJ" window.
-     It is ased on the Draw_And_Drop plugin by Eric Kischell (keesh@ieee.org).
+     It is based on the Draw_And_Drop plugin by Eric Kischell (keesh@ieee.org).
      
      10 November 2006: Albert Cardona added Linux support and an  
      option to open all images in a dragged folder as a stack.
@@ -39,12 +39,6 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 			iterator = null;
 			flavors = t.getTransferDataFlavors();
 			if (IJ.debugMode) IJ.log("DragAndDrop.drop: "+flavors.length+" flavors");
-			if (flavors==null || flavors.length==0) {
-				IJ.error("Drag and Drop ignored. Please try again. You can avoid\n"
-				+"this problem, which occurs the first time a file is dropped,\n"
-				+"by dragging to the toolbar instead of the status bar.");
-				return;
-			}
 			for (int i=0; i<flavors.length; i++) {
 			if (IJ.debugMode) IJ.log("  flavor["+i+"]: "+flavors[i].getMimeType());
 			if (flavors[i].isFlavorJavaFileListType()) {
@@ -71,7 +65,7 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 					tmp = java.net.URLDecoder.decode(tmp.replaceAll("\\+","%2b"), "UTF-8");
 					if (tmp.startsWith("file://")) tmp = tmp.substring(7);
 					if (IJ.debugMode) IJ.log("  content: "+tmp);
-					if (tmp.startsWith("http://") || tmp.startsWith("https://"))
+					if (tmp.startsWith("http://"))
 						list.add(s);
 					else
 						list.add(new File(tmp));
@@ -167,7 +161,7 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 			if (IJ.debugMode) IJ.log("DragAndDrop.openFile: "+f);
 			try {
 				if (null == f) return;
-				String path = f.getAbsolutePath();
+				String path = f.getCanonicalPath();
 				if (f.exists()) {
 					if (f.isDirectory())
 						openDirectory(f, path);
@@ -189,6 +183,9 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 		}
 		
 		private void openDirectory(File f, String path) {
+			if (path==null) return;
+			if (!(path.endsWith(File.separator)||path.endsWith("/")))
+				path += File.separator;
 			String[] names = f.list();
 			String msg = "Open all "+names.length+" images in \"" + f.getName() + "\" as a stack?";
 			GenericDialog gd = new GenericDialog("Open Folder");
@@ -207,12 +204,12 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 				String options  = " sort";
 				if (convertToRGB) options += " convert_to_rgb";
 				if (virtualStack) options += " use";
-				IJ.run("Image Sequence...", "open=[" + path + "/]"+options);
+				IJ.run("Image Sequence...", "open=[" + path + "]"+options);
 			} else {
 				for (int k=0; k<names.length; k++) {
 					IJ.redirectErrorMessages();
 					if (!names[k].startsWith("."))
-						(new Opener()).open(path + "/" + names[k]);
+						(new Opener()).open(path + names[k]);
 				}
 			}
 			IJ.register(DragAndDrop.class);
