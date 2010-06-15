@@ -36,7 +36,9 @@ public class ImageStack {
 		this.height = height;
 		stack = new Object[size];
 		label = new String[size];
-		nSlices = size;
+		// The number of existing slices starts with 0, even if the
+		// allocated space may be larger
+		nSlices = 0;
 	}
 
 	/** Creates a new, empty image stack using the specified color model. */
@@ -56,12 +58,12 @@ public class ImageStack {
 		if (!pixels.getClass().isArray()) 
 			throw new IllegalArgumentException("'pixels' is not an array");
 		nSlices++;
-		if (nSlices==stack.length) {
+		if (nSlices>=stack.length) {
 			Object[] tmp1 = new Object[nSlices*2];
-			System.arraycopy(stack, 0, tmp1, 0, nSlices);
+			System.arraycopy(stack, 0, tmp1, 0, stack.length);
 			stack = tmp1;
 			String[] tmp2 = new String[nSlices*2];
-			System.arraycopy(label, 0, tmp2, 0, nSlices);
+			System.arraycopy(label, 0, tmp2, 0, label.length);
 			label = tmp2;
 		}
 		stack[nSlices-1] = pixels;
