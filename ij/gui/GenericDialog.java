@@ -505,6 +505,15 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		y++;
     }
     
+	/**
+	* Adds a slider (scroll bar) to the dialog box.
+	* Floating point values will be used if (maxValue-minValue)<=5.0
+	* and either minValue or maxValue are non-integer.
+	* @param label	 the label
+	* @param minValue  the minimum value of the slider
+	* @param maxValue  the maximum value of the slider
+	* @param defaultValue  the initial value of the slider
+	*/
 	public void addSlider(String label, double minValue, double maxValue, double defaultValue) {
 		int columns = 4;
 		int digits = 0;
@@ -957,6 +966,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 	/** Displays this dialog box. */
 	public void showDialog() {
 		if (macro) {
+			dispose();
 			recorderOn = Recorder.record && Recorder.recordInMacros;
 		} else {
 			if (pfr!=null) // prepare preview (not in macro mode): tell the PlugInFilterRunner to listen

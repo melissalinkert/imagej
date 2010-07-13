@@ -31,7 +31,7 @@ public class ImageStack {
 	}
 	
 	/** Creates a new, empty image stack with a capacity of 'size'.  All
-	 * 'size' slices and labels of this image stack are initially null.*/
+	     'size' slices and labels of this image stack are initially null.*/
 	public ImageStack(int width, int height, int size) {
 		this.width = width;
 		this.height = height;
@@ -57,12 +57,12 @@ public class ImageStack {
 		if (!pixels.getClass().isArray()) 
 			throw new IllegalArgumentException("'pixels' is not an array");
 		nSlices++;
-		if (nSlices>=stack.length) {
+		if (nSlices==stack.length) {
 			Object[] tmp1 = new Object[nSlices*2];
-			System.arraycopy(stack, 0, tmp1, 0, stack.length);
+			System.arraycopy(stack, 0, tmp1, 0, nSlices);
 			stack = tmp1;
 			String[] tmp2 = new String[nSlices*2];
-			System.arraycopy(label, 0, tmp2, 0, label.length);
+			System.arraycopy(label, 0, tmp2, 0, nSlices);
 			label = tmp2;
 		}
 		stack[nSlices-1] = pixels;

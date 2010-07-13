@@ -43,13 +43,8 @@ public class Opener {
 	private static boolean bioformats;
 
 	static {
-		try {
-			// Menus.getCommands() will fail when ij.jar is used as a library and no Menus.instance exists
-			Hashtable commands = Menus.getCommands();
-			bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
-		} catch (Exception e) {
-			bioformats = false;
-		}
+		Hashtable commands = Menus.getCommands();
+		bioformats = commands!=null && commands.get("Bio-Formats Importer")!=null;
 	}
 
 	public Opener() {
@@ -120,7 +115,7 @@ public class Opener {
 		roi, or text file. Displays an error message if the specified file
 		is not in one of the supported formats. */
 	public void open(String path) {
-		boolean isURL = path.startsWith("http://") || path.startsWith("https://");
+		boolean isURL = path.startsWith("http://");
 		if (isURL && isText(path)) {
 			openTextURL(path);
 			return;
@@ -162,8 +157,6 @@ public class Opener {
 						IJ.setKeyUp(KeyEvent.VK_ALT);
 						break;
 					}
-					if (IJ.runPlugIn("fiji.scripting.Script_Editor", path) != null)
-						break;
 					File file = new File(path);
 					int maxSize = 250000;
 					long size = file.length();
@@ -518,28 +511,24 @@ public class Opener {
 		return imp;
 	}
 
-	/** If this image is grayscale, convert it to 8-bits. */
+	/** If the specified image is grayscale, convert it to 8-bits. */
 	public static void convertGrayJpegTo8Bits(ImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		int width = ip.getWidth();
 		int height = ip.getHeight();
 		int[] pixels = (int[])ip.getPixels();
 		int c,r,g,b,offset;
-		for (int y=0; y<(height-8); y++) {
+		for (int y=0; y<height; y++) {
 			offset = y*width;
-			for (int x=0; x<(width-8); x++) {
+			for (int x=0; x<width; x++) {
 				c = pixels[offset+x];
 				r = (c&0xff0000)>>16;
 				g = (c&0xff00)>>8;
 				b = c&0xff;
-				if (!((r==g)&&(g==b))) {
-					//IJ.write("count: "+count+" "+r+" "+g+" "+b);
-					return;
-				}
+				if (!((r==g)&&(g==b))) return;
 			}
-			//count++;
 		}
-		IJ.showStatus("Converting to 8-bits");
+		IJ.showStatus("Converting to 8-bit grayscale");
 		new ImageConverter(imp).convertToGray8();
 	}
 

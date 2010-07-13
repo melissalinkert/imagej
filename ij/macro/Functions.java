@@ -77,8 +77,7 @@ public class Functions implements MacroConstants, Measurements {
 			case BEEP: interp.getParens(); IJ.beep(); break;
 			case RESET_MIN_MAX: interp.getParens(); IJ.resetMinAndMax(); resetImage(); break;
 			case RESET_THRESHOLD: interp.getParens(); IJ.resetThreshold(); resetImage(); break;
-			case PRINT: print(); break;
-			case WRITE: IJ.write(getStringArg()); break;
+			case PRINT: case WRITE: print(); break;
 			case DO_WAND: doWand(); break;
 			case SET_MIN_MAX: setMinAndMax(); break;
 			case SET_THRESHOLD: setThreshold(); break;
@@ -3764,7 +3763,7 @@ public class Functions implements MacroConstants, Measurements {
 		boolean openingDoc = cmd.length==2&&cmd[0].equals("open") || cmd.length==5&&cmd[3].equals("excel.exe");
 		if (openingDoc&&IJ.isWindows()) {
 			String path = cmd[1];
-			if (path.startsWith("http://")||path.startsWith("HTTP://") || path.startsWith("https://")) {
+			if (path.startsWith("http://")||path.startsWith("HTTP://")) {
 				cmd = new String[4];
 				cmd[2] = "start";
 				cmd[3] = path;

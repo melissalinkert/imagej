@@ -16,7 +16,7 @@ import ij.plugin.Converter;
 
 /**
 An ImagePlus contain an ImageProcessor (2D image) or an ImageStack (3D, 4D or 5D image).
-It also includes metadata (spatial calibration and possibly the directory/file where
+It also includes metadata (spatial calibration and possibly the directory/file where Ê
 it was read from). The ImageProcessor contains the pixel data (8-bit, 16-bit, float or RGB) 
 of the 2D image and some basic methods to manipulate it. An ImageStack is essentually 
 a list ImageProcessors of same type and size.
@@ -670,10 +670,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 			ip2.setSnapshotPixels(null);
 		}
 	}
-
-	/* @deprecated */
-	public void killProcessor() { }
-
+	
 	/** For images with irregular ROIs, returns a byte mask, otherwise, returns
 		null. Mask pixels have a non-zero value. */
 	public ImageProcessor getMask() {
@@ -1110,7 +1107,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 			s.update(ip2);
 		} else {
 			s = stack;
-			s.update(ip);
+			s.update(getProcessor());
 		}
 		if (roi!=null)
 			s.setRoi(roi.getBounds());
@@ -1212,14 +1209,24 @@ public class ImagePlus implements ImageObserver, Measurements {
 		}
 	}
 	
+	/** Set the current hyperstack position based on the stack index 'n' (one-based). */
 	public void setPosition(int n) {
-		int[] dim = getDimensions();
-		int c = ((n-1)%dim[2])+1;
-		int z = (((n-1)/dim[2])%dim[3])+1;
-		int t = (((n-1)/(dim[2]*dim[3]))%dim[4])+1;
-		setPosition(c, z, t);
+		int[] pos = convertIndexToPosition(n);
+		setPosition(pos[0], pos[1], pos[2]);
 	}
 			
+	/** Converts the stack index 'n' (one-based) into a hyperstack position (channel, slice, frame). */
+	public int[] convertIndexToPosition(int n) {
+		if (n<1 || n>getStackSize())
+			throw new IllegalArgumentException("n out of range: "+n);
+		int[] position = new int[3];
+		int[] dim = getDimensions();
+		position[0] = ((n-1)%dim[2])+1;
+		position[1] = (((n-1)/dim[2])%dim[3])+1;
+		position[2] = (((n-1)/(dim[2]*dim[3]))%dim[4])+1;
+		return position;
+	}
+
 	/** Displays the specified stack image, where 1<=n<=stackSize.
 		Does nothing if this image is not a stack. */
 	public synchronized void setSlice(int n) {
@@ -1987,7 +1994,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 		imp2.setRoi(getRoi());	
 		ImageCanvas ic = getCanvas();
 		Overlay overlay2 = getOverlay();
-		int n = overlay2.size();
+		int n = overlay2!=null?overlay2.size():0;
 		int stackSize = getStackSize();
 		boolean stackLabels = n>1 && n>=stackSize && (overlay2.get(0) instanceof TextRoi) && (overlay2.get(stackSize-1) instanceof TextRoi);
 		if (stackLabels) { // created by Image>Stacks>Label
@@ -2059,22 +2066,7 @@ public class ImagePlus implements ImageObserver, Measurements {
 		else
 			return overlay;
 	}
-
-	/* @deprecated Use setOverlay() instead */
-	public void setDisplayList(Vector list) {
-		getCanvas().setDisplayList(list);
-	}
-
-	/* @deprecated Use getOverlay() instead */
-	public Vector getDisplayList() {
-		return getCanvas().getDisplayList();
-	}
-
-	/* @deprected Use setOverlay() instead */
-	public void setDisplayList(Roi roi, Color strokeColor, int strokeWidth, Color fillColor) {
-		setOverlay(roi, strokeColor, strokeWidth, fillColor);
-	}
-
+	
 	public void setHideOverlay(boolean hide) {
 		hideOverlay = hide;
 		ImageCanvas ic = getCanvas();

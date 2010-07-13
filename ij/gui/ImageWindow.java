@@ -38,6 +38,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 	private static int yloc;
 	private static int count;
 	private static boolean centerOnScreen;
+	private static Point nextLocation;
 	
     private int textGap = centerOnScreen?0:TEXT_GAP;
 	
@@ -86,14 +87,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setResizable(true);
 		WindowManager.addWindow(this);
 		imp.setWindow(this);
-		ImageJApplet applet = getApplet();
-		if (applet != null) {
-			if (Interpreter.isBatchMode()) {
-				WindowManager.setTempCurrentImage(imp);
-				Interpreter.addBatchModeImage(imp);
-			} else
-				applet.setImageCanvas(ic);
-		} else if (previousWindow!=null) {
+		if (previousWindow!=null) {
 			if (newCanvas)
 				setLocationAndSize(false);
 			else
@@ -122,6 +116,9 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 			if (centerOnScreen) {
 				GUI.center(this);
 				centerOnScreen = false;
+			} else if (nextLocation!=null) {
+				setLocation(nextLocation);
+				nextLocation = null;
 			}
 			if (Interpreter.isBatchMode() || (IJ.getInstance()==null&&this instanceof HistogramWindow)) {
 				WindowManager.setTempCurrentImage(imp);
@@ -130,35 +127,6 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 		}
      }
-
-	private ImageJApplet getApplet() {
-		if (null == IJ.getInstance())
-			return null;
-		return IJ.getInstance().getApplet();
-	}
-
-	public void pack() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.pack();
-		else
-			super.pack();
-	}
-
-	public void toFront() {
-		super.toFront();
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-	}
-
-	public void show() {
-		ImageJApplet applet = getApplet();
-		if (applet != null)
-			applet.setImageCanvas(ic);
-		else
-			super.show();
-	}
     
 	private void setLocationAndSize(boolean updating) {
 		int width = imp.getWidth();
@@ -401,8 +369,15 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 	}
 
 
-	void setImagePlus(ImagePlus imp) {
-		this.imp = imp;
+	public void setImage(ImagePlus imp2) {
+		ImageCanvas ic = getCanvas();
+		if (ic==null || imp2==null)
+			return;
+		imp = imp2;
+		imp.setWindow(this);
+		ic.updateImage(imp);
+		ic.setImageUpdated();
+		ic.repaint();
 		repaint();
 	}
 	
@@ -415,10 +390,8 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
         pack();
 		repaint();
 		maxBounds = getMaximumBounds();
-		//if (!IJ.isLinux()) {
-			setMaximizedBounds(maxBounds);
-			setMaxBoundsTime = System.currentTimeMillis();
-		//}
+		setMaximizedBounds(maxBounds);
+		setMaxBoundsTime = System.currentTimeMillis();
 	}
 
 	public ImageCanvas getCanvas() {
@@ -536,7 +509,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		if (IJ.debugMode) IJ.log("windowActivated: "+imp.getTitle());
 		ImageJ ij = IJ.getInstance();
 		boolean quitting = ij!=null && ij.quitting();
-		if (IJ.isMacintosh() && ij!=null && ij.getApplet() == null && !quitting) {
+		if (IJ.isMacintosh() && ij!=null && !quitting) {
 			IJ.wait(10); // may be needed for Java 1.4 on OS X
 			setMenuBar(Menus.getMenuBar());
 		}
@@ -627,6 +600,11 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
     	centerOnScreen = true;
     }
     
+    /** Causes the next image to be displayed at the specified location. */
+    public static void setNextLocation(Point loc) {
+    	nextLocation = loc;
+    }
+
     /** Moves and resizes this window. Changes the 
     	 magnification so the image fills the window. */
     public void setLocationAndSize(int x, int y, int width, int height) {
