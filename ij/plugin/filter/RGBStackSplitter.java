@@ -5,6 +5,7 @@ import ij.gui.*;
 import ij.measure.Calibration;
 import ij.plugin.HyperStackReducer;
 import java.awt.*;
+import ij.io.FileInfo;
 
 /** Splits an RGB image or stack into three 8-bit grayscale images or stacks. */
 public class RGBStackSplitter implements PlugInFilter {
@@ -35,19 +36,23 @@ public class RGBStackSplitter implements PlugInFilter {
     	boolean keepSource = IJ.altKeyDown();
         String title = imp.getTitle();
         Calibration cal = imp.getCalibration();
+        FileInfo fi = imp.getOriginalFileInfo();
         split(imp.getStack(), keepSource);
         if (!keepSource)
             {imp.unlock(); imp.changes=false; imp.close();}
         ImagePlus rImp = new ImagePlus(title+" (red)",red);
         rImp.setCalibration(cal);
+        rImp.setFileInfo(fi);
         rImp.show();
         if (IJ.isMacOSX()) IJ.wait(500);
         ImagePlus gImp = new ImagePlus(title+" (green)",green);
         gImp.setCalibration(cal);
+        rImp.setFileInfo(fi);
         gImp.show();
         if (IJ.isMacOSX()) IJ.wait(500);
         ImagePlus bImp = new ImagePlus(title+" (blue)",blue);
         bImp.setCalibration(cal);
+        bImp.setFileInfo(fi);
         bImp.show();
     }
 
@@ -80,8 +85,18 @@ public class RGBStackSplitter implements PlugInFilter {
              IJ.showProgress((double)i/n);
         }
     }
-    
-    void splitChannels(ImagePlus imp) {
+
+	public static ImagePlus[] splitChannelsToArray(
+		ImagePlus imp,
+		boolean closeAfter) {
+
+		if(!imp.isComposite()) {
+			String error="splitChannelsToArray was called "+
+				"on a non-composite image";
+			IJ.error(error);
+			return null;
+		}
+
 		int width = imp.getWidth();
 		int height = imp.getHeight();
 		int channels = imp.getNChannels();
@@ -89,6 +104,8 @@ public class RGBStackSplitter implements PlugInFilter {
 		int frames = imp.getNFrames();
 		int bitDepth = imp.getBitDepth();
 		int size = slices*frames;
+		FileInfo fi = imp.getOriginalFileInfo();
+		ImagePlus[] result=new ImagePlus[channels];
 		HyperStackReducer reducer = new HyperStackReducer(imp);
 		for (int c=1; c<=channels; c++) {
 			ImageStack stack2 = new ImageStack(width, height, size); // create empty stack
@@ -101,13 +118,19 @@ public class RGBStackSplitter implements PlugInFilter {
 			reducer.reduce(imp2);
 			if (imp2.getNDimensions()>3)
 				imp2.setOpenAsHyperStack(true);
-			imp2.show();
+			imp2.setFileInfo(fi);
+			result[c - 1] = imp2;
 		}
 		imp.changes = false;
-		imp.close();
-    }
+		if (closeAfter)
+			imp.close();
+		return result;
+	}
+
+	void splitChannels(ImagePlus imp) {
+		ImagePlus[] a=splitChannelsToArray(imp,true);
+		for(int i=0;i<a.length;++i)
+			a[i].show();
+	}
 
 }
-
-
-
