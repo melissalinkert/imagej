@@ -135,7 +135,7 @@ public class PolygonRoi extends Roi {
         if (xSpline!=null) {
             if (type==POLYLINE || type==FREELINE) {
                 drawSpline(g, xSpline, ySpline, splinePoints, false, fill);
-                if (wideLine) {
+                if (wideLine && !overlay) {
                 	g2d.setStroke(onePixelWide);
                 	g.setColor(getColor());
                 	drawSpline(g, xSpline, ySpline, splinePoints, false, fill);
@@ -145,7 +145,7 @@ public class PolygonRoi extends Roi {
         } else {
             if (type==POLYLINE || type==FREELINE || type==ANGLE || state==CONSTRUCTING) {
                 g.drawPolyline(xp2, yp2, nPoints);
-                if (wideLine) {
+                if (wideLine && !overlay) {
                 	g2d.setStroke(onePixelWide);
                 	g.setColor(getColor());
                 	g.drawPolyline(xp2, yp2, nPoints);
@@ -179,20 +179,22 @@ public class PolygonRoi extends Roi {
 	}
 	
  	private void drawSpline(Graphics g, float[] xpoints, float[] ypoints, int npoints, boolean closed, boolean fill) {
- 		if (ic==null) return;
-  		Rectangle srcRect = ic.getSrcRect();
- 		float srcx=srcRect.x, srcy=srcRect.y;
- 		float mag = (float)ic.getMagnification();
+ 		float srcx=0f, srcy=0f, mag=1f;
+ 		if (ic!=null) {
+			Rectangle srcRect = ic.getSrcRect();
+			srcx=srcRect.x; srcy=srcRect.y;
+			mag = (float)ic.getMagnification();
+ 		}
  		float xf=x, yf=y;
 		Graphics2D g2d = (Graphics2D)g;
 		GeneralPath path = new GeneralPath();
 		if (mag==1f && srcx==0f && srcy==0f) {
 			path.moveTo(xpoints[0]+xf, ypoints[0]+yf);
-			for (int i=1; i<npoints; i++)
+			for (int i=0; i<npoints; i++)
 				path.lineTo(xpoints[i]+xf, ypoints[i]+yf);
 		} else {
 			path.moveTo((xpoints[0]-srcx+xf)*mag, (ypoints[0]-srcy+yf)*mag);
-			for (int i=1; i<npoints; i++)
+			for (int i=0; i<npoints; i++)
 				path.lineTo((xpoints[i]-srcx+xf)*mag, (ypoints[i]-srcy+yf)*mag);
 		}
 		if (closed)

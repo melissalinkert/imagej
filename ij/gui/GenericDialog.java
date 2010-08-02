@@ -825,7 +825,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 				// Is the value a macro variable?
 				if (theText.startsWith("&")) theText = theText.substring(1);
 				Interpreter interp = Interpreter.getInstance();
-				String s = interp!=null?interp.getStringVariable(theText):null;
+				String s = interp!=null?interp.getVariableAsString(theText):null;
 				if (s!=null) theText = s;
 			}
 		}	
@@ -966,6 +966,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 	/** Displays this dialog box. */
 	public void showDialog() {
 		if (macro) {
+			dispose();
 			recorderOn = Recorder.record && Recorder.recordInMacros;
 		} else {
 			if (pfr!=null) // prepare preview (not in macro mode): tell the PlugInFilterRunner to listen

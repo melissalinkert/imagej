@@ -91,7 +91,7 @@ public class Commands implements PlugIn {
 				ImagePlus imp = WindowManager.getImage(list[i]);
 				if (imp!=null && imp.changes) imagesWithChanges++;
 			}
-			if (imagesWithChanges>0) {
+			if (imagesWithChanges>0 && !IJ.macroRunning()) {
 				GenericDialog gd = new GenericDialog("Close All");
 				String msg = null;
 				if (imagesWithChanges==1)
@@ -139,8 +139,6 @@ public class Commands implements PlugIn {
 			IJ.run("URL...", "url="+IJ.URL+"/applet/StartupMacros.txt");
 		} else {
 			String path = IJ.getDirectory("macros")+"/StartupMacros.txt";
-			if (IJ.runPlugIn("fiji.scripting.Script_Editor", path) != null)
-				return;
 			File f = new File(path);
 			if (!f.exists())
 				IJ.error("\"StartupMacros.txt\" not found in ImageJ/macros/");
