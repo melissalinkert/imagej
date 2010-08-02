@@ -3,6 +3,7 @@ import ij.process.*;
 import ij.gui.*;
 import ij.plugin.*;
 import ij.plugin.frame.*;
+import ij.plugin.filter.RGBStackSplitter;
 import ij.io.FileInfo;
 import java.awt.*;
 import java.awt.image.*;
@@ -603,6 +604,10 @@ public class CompositeImage extends ImagePlus {
 	
 	public void setChannelsUpdated() {
 		channelsUpdated = true;
+	}
+
+	public ImagePlus[] splitChannels(boolean closeAfter) {
+		return RGBStackSplitter.splitChannelsToArray(this,closeAfter);
 	}
 
 }
