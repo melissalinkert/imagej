@@ -10,7 +10,7 @@ import java.awt.Frame;
 import java.io.File;
 import java.applet.Applet;
 	
-/**	Runs File and Window menu commands. */
+/**	Runs miscellaneous File and Window menu commands. */
 public class Commands implements PlugIn {
 	
 	public void run(String cmd) {
@@ -139,8 +139,6 @@ public class Commands implements PlugIn {
 			IJ.run("URL...", "url="+IJ.URL+"/applet/StartupMacros.txt");
 		} else {
 			String path = IJ.getDirectory("macros")+"/StartupMacros.txt";
-			if (IJ.runPlugIn("fiji.scripting.Script_Editor", path) != null)
-				return;
 			File f = new File(path);
 			if (!f.exists())
 				IJ.error("\"StartupMacros.txt\" not found in ImageJ/macros/");

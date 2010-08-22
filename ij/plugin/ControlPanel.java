@@ -53,7 +53,7 @@ public class ControlPanel implements PlugIn {
 	private boolean savePropsUponClose=true;
 	private boolean propertiesChanged=true;
 	private boolean closeChildPanelOnExpand = true;
-	private boolean requireDoubleClick=false;
+	private boolean requireDoubleClick;
 	private boolean quitting = true;
 
 	Vector menus = new Vector();
@@ -71,7 +71,7 @@ public class ControlPanel implements PlugIn {
 	MenuItem reloadMI = null;
 
 	public ControlPanel() {
-		requireDoubleClick = !(IJ.isWindows() || IJ.isMacintosh());
+		//requireDoubleClick = !(IJ.isWindows() || IJ.isMacintosh());
 		Java2.setSystemLookAndFeel();
 	}
 
@@ -164,8 +164,8 @@ public class ControlPanel implements PlugIn {
 		}
 		if (arg.equals("imagej menus"))
 			node=doRootFromMenus();
-		if(arg.equals("imagej commands")) {
-			node = new DefaultMutableTreeNode("ImageJA Commands");
+		if (arg.equals("imagej commands")) {
+			node = new DefaultMutableTreeNode("ImageJ Commands");
 			if(argLength==0) node.setUserObject("Control Panel");
 			populateNode(commands,node);
 		}
@@ -181,7 +181,7 @@ public class ControlPanel implements PlugIn {
 	 *
 	 */
 	private synchronized DefaultMutableTreeNode doRootFromMenus() {
-		DefaultMutableTreeNode node = new DefaultMutableTreeNode("ImageJA Menus");
+		DefaultMutableTreeNode node = new DefaultMutableTreeNode("ImageJ Menus");
 		if(argLength==0) node.setUserObject("Control Panel");
 		MenuBar menuBar = Menus.getMenuBar();
 		for (int i=0; i<menuBar.getMenuCount(); i++) {
@@ -690,9 +690,9 @@ public class ControlPanel implements PlugIn {
 	void showHelp()
 	{
 		IJ.showMessage("About Control Panel...",
-		"This plugin displays a panel with ImageJA commands in a hierarchical tree structure.\n"+" \n"+
+		"This plugin displays a panel with ImageJ commands in a hierarchical tree structure.\n"+" \n"+
 		"Usage:\n"+" \n"+
-		"     Click on a leaf node to launch the corresponding ImageJA command (or plugin)\n"+
+		"     Click on a leaf node to launch the corresponding ImageJ command (or plugin)\n"+
 		"     (double-click on X Window Systems)\n"+" \n"+
 		"     Double-click on a tree branch node (folder) to expand or collapse it\n"+" \n"+
 		"     Click and drag on a tree branch node (folder) to display its descendants,\n"+
@@ -1197,9 +1197,7 @@ class TreePanel implements
 			String aCmd=nde.toString();
 			String cmd= aCmd;
 			if(pcp.treeCommands.containsKey(aCmd))
-			{
 				cmd = (String)pcp.treeCommands.get(aCmd);
-			}
 			processEvent(new ActionEvent(this,ActionEvent.ACTION_PERFORMED,cmd));
 	}
 
