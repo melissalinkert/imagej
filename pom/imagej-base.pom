@@ -1,0 +1,127 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+    http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>imagej</groupId>
+  <artifactId>imagej-base-pom</artifactId>
+  <packaging>pom</packaging>
+  <version>1.01</version>
+  <name>ImageJ Base POM</name>
+  <url>http://imagejdev.org/</url>
+
+  <organization>
+    <name>ImageJDev.org</name>
+    <url>http://imagejdev.org/</url>
+  </organization>
+
+  <issueManagement>
+    <system>Trac</system>
+    <url>http://imagejdev.org/trac/java/</url>
+  </issueManagement>
+
+  <ciManagement>
+    <system>Hudson</system>
+    <url>http://imagejdev.org:8080/</url>
+  </ciManagement>
+
+  <mailingLists>
+    <mailingList>
+      <name>ImageJX</name>
+      <subscribe>http://groups.google.com/group/imagejx</subscribe>
+      <unsubscribe>http://groups.google.com/group/imagejx</unsubscribe>
+      <post>imagejx@googlegroups.com</post>
+      <archive>http://groups.google.com/group/imagejx</archive>
+    </mailingList>
+    <mailingList>
+      <name>ImageJ-devel</name>
+      <subscribe>http://imagejdev.org/mailman/listinfo/imagej-devel</subscribe>
+      <unsubscribe>http://imagejdev.org/mailman/listinfo/imagej-devel</unsubscribe>
+      <post>imagej-devel@imagejdev.org</post>
+      <archive>http://imagejdev.org/pipermail/imagej-devel/</archive>
+    </mailingList>
+  </mailingLists>
+
+  <scm>
+    <connection>scm:svn:http://imagejdev.org/svn/java</connection>
+    <developerConnection>scm:svn:http://imagejdev.org/svn/java</developerConnection>
+    <tag>HEAD</tag>
+    <url>http://imagejdev.org/svn/java</url>
+  </scm>
+
+  <repositories>
+    <!-- NB: for imagej projects -->
+    <repository>
+      <id>imagej.releases</id>
+      <url>http://imagejdev.org:8081/content/repositories/releases</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <defaultGoal>install</defaultGoal>
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-webdav</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+    </extensions>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>2.2-beta-5</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.2-beta-5</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <distributionManagement>
+    <repository>
+      <id>imagej.releases</id>
+      <name>ImageJ Releases Repository</name>
+      <url>dav:http://imagejdev.org:8081/content/repositories/releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>imagej.snapshots</id>
+      <name>ImageJ Snapshots Repository</name>
+      <url>dav:http://imagejdev.org:8081/content/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <!-- NB: Avoid platform encoding warning when copying filtered resources. -->
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+</project>
