@@ -8,7 +8,7 @@
   <groupId>imagej</groupId>
   <artifactId>imagej-base-pom</artifactId>
   <packaging>pom</packaging>
-  <version>1.01</version>
+  <version>1.02</version>
   <name>ImageJ Base POM</name>
   <url>http://imagejdev.org/</url>
 
@@ -19,7 +19,7 @@
 
   <issueManagement>
     <system>Trac</system>
-    <url>http://imagejdev.org/trac/java/</url>
+    <url>http://imagejdev.org/trac/imagej/</url>
   </issueManagement>
 
   <ciManagement>
@@ -28,6 +28,13 @@
   </ciManagement>
 
   <mailingLists>
+    <mailingList>
+      <name>ImageJ</name>
+      <subscribe>http://rsb.info.nih.gov/ij/list.html</subscribe>
+      <unsubscribe>http://rsb.info.nih.gov/ij/list.html</unsubscribe>
+      <post>imagej@list.nih.gov</post>
+      <archive>http://list.nih.gov/archives/imagej.html</archive>
+    </mailingList>
     <mailingList>
       <name>ImageJX</name>
       <subscribe>http://groups.google.com/group/imagejx</subscribe>
@@ -42,13 +49,27 @@
       <post>imagej-devel@imagejdev.org</post>
       <archive>http://imagejdev.org/pipermail/imagej-devel/</archive>
     </mailingList>
+    <mailingList>
+      <name>Fiji-users</name>
+      <subscribe>http://groups.google.com/group/fiji-users</subscribe>
+      <unsubscribe>http://groups.google.com/group/fiji-users</unsubscribe>
+      <post>fiji-users@googlegroups.com</post>
+      <archive>http://groups.google.com/group/fiji-users</archive>
+    </mailingList>
+    <mailingList>
+      <name>Fiji-devel</name>
+      <subscribe>http://groups.google.com/group/fiji-devel</subscribe>
+      <unsubscribe>http://groups.google.com/group/fiji-devel</unsubscribe>
+      <post>fiji-devel@googlegroups.com</post>
+      <archive>http://groups.google.com/group/fiji-devel</archive>
+    </mailingList>
   </mailingLists>
 
   <scm>
-    <connection>scm:svn:http://imagejdev.org/svn/java</connection>
-    <developerConnection>scm:svn:http://imagejdev.org/svn/java</developerConnection>
+    <connection>scm:svn:http://imagejdev.org/svn/imagej</connection>
+    <developerConnection>scm:svn:http://imagejdev.org/svn/imagej</developerConnection>
     <tag>HEAD</tag>
-    <url>http://imagejdev.org/svn/java</url>
+    <url>http://imagejdev.org/svn/imagej</url>
   </scm>
 
   <repositories>
