@@ -8,7 +8,7 @@
   <groupId>imagej</groupId>
   <artifactId>imagej-base-pom</artifactId>
   <packaging>pom</packaging>
-  <version>1.02</version>
+  <version>1.03</version>
   <name>ImageJ Base POM</name>
   <url>http://imagejdev.org/</url>
 
@@ -19,12 +19,12 @@
 
   <issueManagement>
     <system>Trac</system>
-    <url>http://imagejdev.org/trac/imagej/</url>
+    <url>http://dev.imagejdev.org/trac/imagej/</url>
   </issueManagement>
 
   <ciManagement>
     <system>Hudson</system>
-    <url>http://imagejdev.org:8080/</url>
+    <url>http://dev.imagejdev.org:8080/</url>
   </ciManagement>
 
   <mailingLists>
@@ -66,17 +66,17 @@
   </mailingLists>
 
   <scm>
-    <connection>scm:svn:http://imagejdev.org/svn/imagej</connection>
-    <developerConnection>scm:svn:http://imagejdev.org/svn/imagej</developerConnection>
+    <connection>scm:svn:http://dev.imagejdev.org/svn/imagej</connection>
+    <developerConnection>scm:svn:http://dev.imagejdev.org/svn/imagej</developerConnection>
     <tag>HEAD</tag>
-    <url>http://imagejdev.org/svn/imagej</url>
+    <url>http://dev.imagejdev.org/svn/imagej</url>
   </scm>
 
   <repositories>
     <!-- NB: for imagej projects -->
     <repository>
       <id>imagej.releases</id>
-      <url>http://imagejdev.org:8081/content/repositories/releases</url>
+      <url>http://dev.imagejdev.org:8081/content/repositories/releases</url>
     </repository>
   </repositories>
 
@@ -130,12 +130,12 @@
     <repository>
       <id>imagej.releases</id>
       <name>ImageJ Releases Repository</name>
-      <url>dav:http://imagejdev.org:8081/content/repositories/releases</url>
+      <url>dav:http://dev.imagejdev.org:8081/content/repositories/releases</url>
     </repository>
     <snapshotRepository>
       <id>imagej.snapshots</id>
       <name>ImageJ Snapshots Repository</name>
-      <url>dav:http://imagejdev.org:8081/content/repositories/snapshots</url>
+      <url>dav:http://dev.imagejdev.org:8081/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
 
