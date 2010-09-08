@@ -1,5 +1,6 @@
 package ij.text;
 
+import ijx.app.IjxApplication;
 import java.awt.*;
 import java.io.*;
 import java.awt.event.*;
@@ -68,7 +69,7 @@ public class TextPanel extends Panel implements AdjustmentListener,
 		sbVert=new Scrollbar(Scrollbar.VERTICAL);
 		sbVert.addAdjustmentListener(this);
 		sbVert.setFocusable(false);
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		if (ij!=null) {
 			sbHoriz.addKeyListener(ij);
 			sbVert.addKeyListener(ij);

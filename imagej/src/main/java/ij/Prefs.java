@@ -1,8 +1,6 @@
 package ij;
-import ij.util.Java2;
 import java.io.*;
 import java.util.*;
-import java.applet.*;
 import java.net.URL;
 import java.awt.*;
 import java.applet.Applet;
@@ -10,12 +8,12 @@ import ij.io.*;
 import ij.util.Tools;
 import ij.gui.*;
 import ij.plugin.filter.*;
-import ij.process.ImageConverter;
 import ij.plugin.Animator;
 import ij.process.FloatBlitter;
-import ij.plugin.GelAnalyzer;
 import ij.process.ColorProcessor;
 import ij.text.TextWindow;
+import ijx.SavesPrefs;
+import org.openide.util.Lookup;
 
 /**
 This class contains the ImageJ preferences, which are 
@@ -325,12 +323,22 @@ public class Prefs {
 			saveOptions(prefs);
 			savePluginPrefs(prefs);
 			IJ.getInstance().savePreferences(prefs);
-			Menus.savePreferences(prefs);
-			ParticleAnalyzer.savePreferences(prefs);
-			Analyzer.savePreferences(prefs);
-			ImportDialog.savePreferences(prefs);
-			PlotWindow.savePreferences(prefs);
-			NewImage.savePreferences(prefs);
+                        // IjX: New dynamic approach to calling classes that save preferences
+            // Invoke savePrefs(prefs) on all implementors of SavesPrefs interface
+            Collection<? extends SavesPrefs> s = Lookup.getDefault().lookupAll(SavesPrefs.class);
+            for (Iterator<? extends SavesPrefs> it = s.iterator(); it.hasNext();) {
+                SavesPrefs savesPrefs = it.next();
+                System.out.println("SavesPrefs: " + savesPrefs.toString());
+                savesPrefs.savePrefs(prefs);
+            }
+            // these have been changed to @ServiceProvider(SavesPrefs.class)...
+            //Menus.savePreferences(prefs);
+            //ParticleAnalyzer.savePreferences(prefs);
+            //Analyzer.savePreferences(prefs);
+            //ImportDialog.savePreferences(prefs);
+            //PlotWindow.savePreferences(prefs);
+            //NewImage.savePreferences(prefs);
+
 			String path = prefsDir+separator+PREFS_NAME;
 			if (prefsDir.endsWith(".imagej")) {
 				File f = new File(prefsDir);

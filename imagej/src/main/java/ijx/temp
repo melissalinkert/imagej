@@ -1,0 +1,576 @@
+        <menu label="File"/>;
+        addSubMenu(file, "New");
+        addPlugInItem(file, "Open...", "ij.plugin.Commands(\"open\")", KeyEvent.VK_O, false);
+        addPlugInItem(file, "Open Next", "ij.plugin.NextImageOpener", KeyEvent.VK_O, true);
+        addSubMenu(file, "Open Samples");
+        addOpenRecentSubMenu(file);
+        importMenu = addSubMenu(file, "Import");
+        file.addSeparator();
+        addPlugInItem(file, "Close", "ij.plugin.Commands(\"close\")", KeyEvent.VK_W, false);
+        addPlugInItem(file, "Save", "ij.plugin.Commands(\"save\")", KeyEvent.VK_S, false);
+        saveAsMenu = addSubMenu(file, "Save As");
+        addPlugInItem(file, "Revert", "ij.plugin.Commands(\"revert\")", KeyEvent.VK_R, false);
+        file.addSeparator();
+        addPlugInItem(file, "Page Setup...", "ij.plugin.filter.Printer(\"setup\")", 0, false);
+        addPlugInItem(file, "Print...", "ij.plugin.filter.Printer(\"print\")", KeyEvent.VK_P, false);
+        file.addSeparator();
+        addPlugInItem(file, "Quit", "ij.plugin.Commands(\"quit\")", 0, false);
+        </menu>
+
+        <menu label="Edit"/>;
+        addPlugInItem(edit, "Undo", "ij.plugin.Commands(\"undo\")", KeyEvent.VK_Z, false);
+        edit.addSeparator();
+        addPlugInItem(edit, "Cut", "ij.plugin.Clipboard(\"cut\")", KeyEvent.VK_X, false);
+        addPlugInItem(edit, "Copy", "ij.plugin.Clipboard(\"copy\")", KeyEvent.VK_C, false);
+        addPlugInItem(edit, "Copy to System", "ij.plugin.Clipboard(\"scopy\")", 0, false);
+        addPlugInItem(edit, "Paste", "ij.plugin.Clipboard(\"paste\")", KeyEvent.VK_V, false);
+        addPlugInItem(edit, "Paste Control...", "ij.plugin.frame.PasteController", 0, false);
+        edit.addSeparator();
+        addPlugInItem(edit, "Clear", "ij.plugin.filter.Filler(\"clear\")", 0, false);
+        addPlugInItem(edit, "Clear Outside", "ij.plugin.filter.Filler(\"outside\")", 0, false);
+        addPlugInItem(edit, "Fill", "ij.plugin.filter.Filler(\"fill\")", KeyEvent.VK_F, false);
+        addPlugInItem(edit, "Draw", "ij.plugin.filter.Filler(\"draw\")", KeyEvent.VK_D, false);
+        addPlugInItem(edit, "Invert", "ij.plugin.filter.Filters(\"invert\")", KeyEvent.VK_I, true);
+        edit.addSeparator();
+        addSubMenu(edit, "Selection");
+        optionsMenu = addSubMenu(edit, "Options");
+        </menu>
+
+        <menu label="Image"/>;
+        imageType <menu label="Type">;
+        gray8Item = addCheckboxItem(imageType, "8-bit", "ij.plugin.Converter(\"8-bit\")");
+        gray16Item = addCheckboxItem(imageType, "16-bit", "ij.plugin.Converter(\"16-bit\")");
+        gray32Item = addCheckboxItem(imageType, "32-bit", "ij.plugin.Converter(\"32-bit\")");
+        color256Item = addCheckboxItem(imageType, "8-bit Color", "ij.plugin.Converter(\"8-bit Color\")");
+        colorRGBItem = addCheckboxItem(imageType, "RGB Color", "ij.plugin.Converter(\"RGB Color\")");
+        imageType.add(new JMenuItem("-"));
+        RGBStackItem = addCheckboxItem(imageType, "RGB Stack", "ij.plugin.Converter(\"RGB Stack\")");
+        HSBStackItem = addCheckboxItem(imageType, "HSB Stack", "ij.plugin.Converter(\"HSB Stack\")");
+        image.add(imageType);
+
+        image.addSeparator();
+        addSubMenu(image, "Adjust");
+        addPlugInItem(image, "Show Info...", "ij.plugin.filter.Info", KeyEvent.VK_I, false);
+        addPlugInItem(image, "Properties...", "ij.plugin.filter.ImageProperties", KeyEvent.VK_P, true);
+        //addSubMenu(image, "Benchmarks");
+        addSubMenu(image, "Color");
+        addSubMenu(image, "Stacks");
+        addSubMenu(image, "Hyperstacks");
+        image.addSeparator();
+        addPlugInItem(image, "Crop", "ij.plugin.filter.Resizer(\"crop\")", KeyEvent.VK_X, true);
+        addPlugInItem(image, "Duplicate...", "ij.plugin.filter.Duplicater", KeyEvent.VK_D, true);
+        addPlugInItem(image, "Rename...", "ij.plugin.SimpleCommands(\"rename\")", 0, false);
+        addPlugInItem(image, "Scale...", "ij.plugin.Scaler", KeyEvent.VK_E, false);
+        addPlugInItem(image, "Translate...", "ij.plugin.filter.Translator", 0, false);
+        addSubMenu(image, "Rotate");
+        addSubMenu(image, "Zoom");
+        image.addSeparator();
+        addSubMenu(image, "Lookup Tables");
+        </menu>
+
+        <menu label="Process"/>;
+        addPlugInItem(process, "Smooth", "ij.plugin.filter.Filters(\"smooth\")", KeyEvent.VK_S, true);
+        addPlugInItem(process, "Sharpen", "ij.plugin.filter.Filters(\"sharpen\")", 0, false);
+        addPlugInItem(process, "Find Edges", "ij.plugin.filter.Filters(\"edge\")", 0, false);
+        addPlugInItem(process, "Enhance Contrast", "ij.plugin.ContrastEnhancer", 0, false);
+        addSubMenu(process, "Noise");
+        addSubMenu(process, "Shadows");
+        addSubMenu(process, "Binary");
+        addSubMenu(process, "Math");
+        addSubMenu(process, "FFT");
+        filtersMenu = addSubMenu(process, "Filters");
+        process.addSeparator();
+        addPlugInItem(process, "Image Calculator...", "ij.plugin.ImageCalculator", 0, false);
+        addPlugInItem(process, "Subtract Background...", "ij.plugin.filter.BackgroundSubtracter", 0, false);
+        addItem(process, "Repeat Command", KeyEvent.VK_R, true);
+        </menu>
+        <menu label="Analyze"/>;
+        addPlugInItem(analyze, "Measure", "ij.plugin.filter.Analyzer", KeyEvent.VK_M, false);
+        addPlugInItem(analyze, "Analyze Particles...", "ij.plugin.filter.ParticleAnalyzer", 0, false);
+        addPlugInItem(analyze, "Summarize", "ij.plugin.filter.Analyzer(\"sum\")", 0, false);
+        addPlugInItem(analyze, "Distribution...", "ij.plugin.Distribution", 0, false);
+        addPlugInItem(analyze, "Label", "ij.plugin.filter.Filler(\"label\")", 0, false);
+        addPlugInItem(analyze, "Clear Results", "ij.plugin.filter.Analyzer(\"clear\")", 0, false);
+        addPlugInItem(analyze, "Set Measurements...", "ij.plugin.filter.Analyzer(\"set\")", 0, false);
+        analyze.addSeparator();
+        addPlugInItem(analyze, "Set Scale...", "ij.plugin.filter.ScaleDialog", 0, false);
+        addPlugInItem(analyze, "Calibrate...", "ij.plugin.filter.Calibrator", 0, false);
+        addPlugInItem(analyze, "Histogram", "ij.plugin.Histogram", KeyEvent.VK_H, false);
+        addPlugInItem(analyze, "Plot Profile", "ij.plugin.filter.Profiler(\"plot\")", KeyEvent.VK_K, false);
+        addPlugInItem(analyze, "Surface Plot...", "ij.plugin.SurfacePlotter", 0, false);
+        addSubMenu(analyze, "Gels");
+        toolsMenu = addSubMenu(analyze, "Tools");
+        </menu>
+        <menu label="Window"/>;
+        addPlugInItem(window, "Show All", "ij.plugin.WindowOrganizer(\"show\")", KeyEvent.VK_F, true);
+        addPlugInItem(window, "Put Behind [tab]", "ij.plugin.Commands(\"tab\")", 0, false);
+        addPlugInItem(window, "Cascade", "ij.plugin.WindowOrganizer(\"cascade\")", 0, false);
+        addPlugInItem(window, "Tile", "ij.plugin.WindowOrganizer(\"tile\")", 0, false);
+        window.addSeparator();
+        </menu>
+        <menu label="Help"/>;
+        addPlugInItem(help, "ImageJ Website...", "ij.plugin.BrowserLauncher", 0, false);
+        addPlugInItem(help, "ImageJ News...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/notes.html\")", 0, false);
+        addPlugInItem(help, "Documentation...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/docs\")", 0, false);
+        addPlugInItem(help, "Installation...", "ij.plugin.SimpleCommands(\"install\")", 0, false);
+        addPlugInItem(help, "Search Website...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/search.html\")", 0, false);
+        addPlugInItem(help, "List Archives...", "ij.plugin.BrowserLauncher(\"https://list.nih.gov/archives/imagej.html\")", 0, false);
+        help.addSeparator();
+        addPlugInItem(help, "Resources...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/developer/index.html\")", 0, false);
+        addPlugInItem(help, "Plugins...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/plugins\")", 0, false);
+        addPlugInItem(help, "Macros...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/macros/\")", 0, false);
+        addPlugInItem(help, "Macro Functions...", "ij.plugin.BrowserLauncher(\"" + IJ.URL + "/developer/macro/functions.html\")", 0, false);
+        help.addSeparator();
+        addPlugInItem(help, "Update ImageJ...", "ij.plugin.ImageJ_Updater", 0, false);
+        addPlugInItem(help, "Update Menus", "ij.plugin.ImageJ_Updater(\"menus\")", 0, false);
+        help.addSeparator();
+        aboutMenu = addSubMenu(help, "About Plugins");
+        addPlugInItem(help, "About ImageJ...", "ij.plugin.AboutBox", 0, false);
+        </menu>
+
+
+
+
+ <menubar>
+    <menu label="The Mozilla Organization"/>
+      <menupopup>
+        <menuitem label="At a Glance"     value="http://www.mozilla.org/mozorg.html" />
+        <menuitem label="Feedback"        value="http://www.mozilla.org/feedback.html" />
+        <menuitem label="Newsbot"         value="http://www.mozilla.org/newsbot/" />
+      </menupopup>
+    </menu>
+    <menu label="Developer Docs"/>
+      <menupopup>
+        <menuitem label="Roadmap"         value="http://www.mozilla.org/roadmap.html" />
+        <menuitem label="Get the Source"  value="http://www.mozilla.org/source.html" />
+        <menuitem label="Build It"        value="http://www.mozilla.org/build/" />
+      </menupopup>
+    </menu>
+    <menu label="Testing"/>
+      <menupopup>
+        <menuitem label="Download"        value="http://www.mozilla.org/releases/" />
+        <menuitem label="Report a Bug"    value="http://bugzilla.mozilla.org/enter_bu...?format=guided" />
+        <menuitem label="Bugzilla"        value="http://www.mozilla.org/bugs/" />
+        <menuitem label="Bug Writing"     value="http://www.mozilla.org/quality/bug-w...uidelines.html" />
+      </menupopup>
+    </menu>
+    <menu label="Tools"/>
+      <menupopup>
+        <menuitem label="View Source"     value="http://lxr.mozilla.org/seamonkey/" />
+        <menuitem label="Tree Status"     value="http://tinderbox.mozilla.org/showbui...tree=SeaMonkey" />
+        <menuitem label="New Checkins"    value="http://bonsai.mozilla.org/cvsquery.c...id=default&amp;..." />
+        <menuitem label="Submit a Bug"    value="http://bugzilla.mozilla.org/" />
+      </menupopup>
+    </menu>
+    <button label="Faq"                   value="http://www.mozilla.org/faq.html" />
+    <button label="Search"                value="http://www.mozilla.org/search.html" />
+  </menubar>
+
+===========================================================================================
+
+HotKey to Command =========================================
+ Minus	Out
+ Unknown keyCode: 0x141	In
+1	Select First Lane
+2	Select Next Lane
+3	Plot Lanes
+A	Select None
+B	Blobs (25K)
+C	Brightness/Contrast...
+D	Duplicate...
+E	Restore Selection
+F	Show All
+G	Capture Screen
+I	Invert
+K	Color Picker...
+M	Install...
+N	Text Window
+O	Open Next
+P	Properties...
+R	Repeat Command
+S	Smooth
+T	Threshold...
+V	System Clipboard
+X	Crop
+Z	Channels...
+a	Select All
+c	Copy
+d	Draw
+e	Scale...
+f	Fill
+h	Histogram
+i	Show Info...
+j	^Save As JPEG... [j]
+k	Plot Profile
+m	Measure
+n	Image...
+o	Open...
+p	Print...
+r	Revert
+s	Save
+t	Add to Manager
+v	Paste
+w	Close
+x	Cut
+z	Undo
+
+Commands ======================================================================
+16-bit	ij.plugin.Converter("16-bit")
+3-3-2 RGB	ij.plugin.LutLoader("3-3-2 RGB")
+32-bit	ij.plugin.Converter("32-bit")
+3D Project...	ij.plugin.filter.Projector
+8-bit	ij.plugin.Converter("8-bit")
+8-bit Color	ij.plugin.Converter("8-bit Color")
+AND...	ij.plugin.filter.ImageMath("and")
+AVI... 	ij.plugin.filter.AVIWriter
+About ImageJ...	ij.plugin.AboutBox
+About Plugin Macros	ij.plugin.Macro_Runner("Macros\About_Plugin_Macros.txt")
+About This Submenu...	ij.plugin.SimpleCommands("about")
+Abs	ij.plugin.filter.ImageMath("abs")
+Add Noise	ij.plugin.filter.Filters("add")
+Add Noise Plugin	Jython.Add_Noise
+Add Slice	ij.plugin.StackEditor("add")
+Add Specified Noise...	ij.plugin.filter.Filters("noise")
+Add to Manager 	ij.plugin.Selection("add")
+Add...	ij.plugin.filter.ImageMath("add")
+Analyze Line Graph	ij.plugin.filter.LineGraphAnalyzer
+Analyze Particles...	ij.plugin.filter.ParticleAnalyzer
+Analyze...	Analyze_Reader
+Analyze... 	Analyze_Writer
+Animated Gif...	Animated_Gif_Reader
+Animated Gif... 	Animated_Gif_Writer
+Animation Options...	ij.plugin.Animator("options")
+Appearance...	ij.plugin.Options("display")
+Apply LUT	ij.plugin.filter.LutApplier
+Arbitrarily...	ij.plugin.filter.Rotator
+AuPbSn 40 (56K)	ij.plugin.URLOpener("AuPbSn40.jpg")
+BMP...	ij.plugin.filter.Writer("bmp")
+Bandpass Filter...	ij.plugin.filter.FFTFilter
+Bat Cochlea Renderings (449K)	ij.plugin.URLOpener("bat-cochlea-renderings.zip")
+Bat Cochlea Volume (19K)	ij.plugin.URLOpener("bat-cochlea-volume.zip")
+Batch Measure	ij.plugin.Macro_Runner("Analyze\Batch_Measure.txt")
+Benchmark	ij.plugin.filter.Benchmark
+Bio-Formats Exporter	loci.plugins.LociExporter("")
+Bio-Formats Importer	loci.plugins.LociImporter("location=[Local machine] windowless=false ")
+Bio-Formats Macro Extensions	loci.plugins.LociFunctions("")
+Bio-Formats Remote Importer	loci.plugins.LociImporter("location=[Internet]")
+Bio-Formats Windowless Importer	loci.plugins.LociImporter("location=[Local machine] windowless=true ")
+Biorad Reader	Input-Output.Biorad_Reader
+Blobs (25K)	ij.plugin.URLOpener("blobs.gif")
+Blue	ij.plugin.LutLoader("blue")
+Boats (356K)	ij.plugin.URLOpener("boats.gif")
+Bridge (174K)	ij.plugin.URLOpener("bridge.gif")
+Brightness/Contrast...	ij.plugin.frame.ContrastAdjuster
+Bulls Eye	ij.plugin.Macro_Runner("Macros\Bulls_Eye.txt")
+CT (420K, 16-bit DICOM)	ij.plugin.URLOpener("ct.dcm.zip")
+Calc 5Fr	Calc_5Fr
+Calibrate...	ij.plugin.filter.Calibrator
+Calibration Bar...	ij.plugin.filter.CalibrationBar
+CamAcqJ	edu.mbl.jif.ijplugins.CamAcqJ_("")
+Canvas Size...	ij.plugin.CanvasResizer
+Capture Screen 	ij.plugin.ScreenGrabber
+Cardio (768K, RGB DICOM)	ij.plugin.URLOpener("cardio.dcm.zip")
+Cascade	ij.plugin.WindowOrganizer("cascade")
+Cell Colony (31K)	ij.plugin.URLOpener("Cell_Colony.jpg")
+Ceretec Sagittals (12K)	ij.plugin.URLOpener("cer-sag.gif")
+Channels...	ij.plugin.frame.Channels
+Clear	ij.plugin.filter.Filler("clear")
+Clear Outside	ij.plugin.filter.Filler("outside")
+Clear Results	ij.plugin.filter.Analyzer("clear")
+Close	ij.plugin.Commands("close")
+Close All Without Saving	ij.plugin.Macro_Runner("Tools\Close_All_Without_Saving.txt")
+Close-	ij.plugin.filter.Binary("close")
+Clown (14K)	ij.plugin.URLOpener("clown.jpg")
+Color Balance...	ij.plugin.frame.ContrastAdjuster("balance")
+Color Histogram	ColorHistogram_
+Color Histogram...	ColorHistogram_("about")
+Color Picker...	ij.plugin.ColorPicker
+Colors...	ij.plugin.Colors
+Compile and Run...	ij.plugin.Compiler
+Control Panel...	ij.plugin.ControlPanel
+Conversions...	ij.plugin.Options("conv")
+Convert to Mask	ij.plugin.Thresholder("mask")
+Convex Hull	ij.plugin.Selection("hull")
+Convolve...	ij.plugin.filter.Convolver
+Copy	ij.plugin.Clipboard("copy")
+Copy to System	ij.plugin.Clipboard("scopy")
+Create Mask	ij.plugin.Selection("mask")
+Create Selection	ij.plugin.Selection("from")
+Create Shortcut... 	ij.plugin.Hotkeys("install")
+Crop	ij.plugin.filter.Resizer("crop")
+Curve Fitting...	ij.plugin.frame.Fitter
+Custom Filter...	ij.plugin.filter.FFTCustomFilter
+Cut	ij.plugin.Clipboard("cut")
+Cyan	ij.plugin.LutLoader("cyan")
+Data Browser	loci.plugins.LociImporter("location=[Local machine] view=[Data Browser] stack_order=[XYZCT] group_files=true use_virtual_stack=true ")
+Delete Slice	ij.plugin.StackEditor("delete")
+Despeckle	ij.plugin.filter.RankFilters("despeckle")
+Dilate	ij.plugin.filter.Binary("dilate")
+Distance Map	ij.plugin.filter.EDM("edm")
+Distribution...	ij.plugin.Distribution
+Divide...	ij.plugin.filter.ImageMath("div")
+Documentation...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/docs")
+Dot Blot (7K)	ij.plugin.URLOpener("Dot_Blot.jpg")
+Download from OME	loci.plugins.LociImporter("location=[OME server]")
+Draw	ij.plugin.filter.Filler("draw")
+Draw Lane Outlines	ij.plugin.GelAnalyzer("draw")
+Duplicate...	ij.plugin.filter.Duplicater
+East	ij.plugin.filter.Shadows("east")
+Edit LUT...	ij.plugin.LUT_Editor
+Edit...	ij.plugin.Compiler("edit")
+Embryos (42K)	ij.plugin.URLOpener("embryos.jpg")
+Enhance Contrast	ij.plugin.ContrastEnhancer
+Enhance Me (25K)	ij.plugin.URLOpener("enhance-me.gif")
+Enlarge...	ij.plugin.Selection("enlarge")
+Erode	ij.plugin.filter.Binary("erode")
+Example Plot	Graphics.Example_Plot
+Exp	ij.plugin.filter.ImageMath("exp")
+FD Math...	ij.plugin.FFTMath
+FFT	ij.plugin.FFT("fft")
+FFT Options...	ij.plugin.FFT("options")
+FITS...	ij.plugin.filter.Writer("fits")
+Fibroblast Cell Nucleus (17K)	ij.plugin.URLOpener("Fibroblast_Cell_Nucleus.jpg")
+Fill	ij.plugin.filter.Filler("fill")
+Fill Holes	ij.plugin.filter.BinaryFiller
+Find Edges	ij.plugin.filter.Filters("edge")
+Find Maxima...	ij.plugin.filter.MaximumFinder
+Fire	ij.plugin.LutLoader("fire")
+Fit Ellipse	ij.plugin.Selection("ellipse")
+Fit Spline	ij.plugin.Selection("spline")
+Flip Horizontally	ij.plugin.filter.Transformer("fliph")
+Flip Vertically	ij.plugin.filter.Transformer("flipv")
+Fluorescent Cells (58K)	ij.plugin.URLOpener("FluorescentCells.jpg")
+Fonts...	ij.plugin.frame.Fonts
+Fractal Box Count...	ij.plugin.filter.FractalBoxCounter
+Gamma...	ij.plugin.filter.ImageMath("gamma")
+Gaussian Blur...	ij.plugin.filter.GaussianBlur
+Gel (105K)	ij.plugin.URLOpener("gel.gif")
+Gel Analyzer Options...	ij.plugin.GelAnalyzer("options")
+Gif...	ij.plugin.filter.Writer("gif")
+Grays	ij.plugin.LutLoader("grays")
+Green	ij.plugin.LutLoader("green")
+Grid 	Analyze.Grid_
+HSB Stack	ij.plugin.Converter("HSB Stack")
+HeLa Cells (1.3M, 48-bit RGB)	ij.plugin.URLOpener("hela-cells.zip")
+Histogram	ij.plugin.Histogram
+HyperStack to Stack	ij.plugin.HyperStackConverter("hstostack")
+IPLab Reader	Input-Output.IPLab_Reader
+Ice	ij.plugin.LutLoader("ice")
+Image Calculator...	ij.plugin.ImageCalculator
+Image Inverter	Examples.Image_Inverter
+Image Sequence...	ij.plugin.FolderOpener
+Image Sequence... 	ij.plugin.StackWriter
+Image...	ij.plugin.Commands("new")
+ImageJ News...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/notes.html")
+ImageJ Properties...	ij.plugin.JavaProperties
+ImageJ Website...	ij.plugin.BrowserLauncher
+Images to Stack	ij.plugin.StackEditor("tostack")
+In	ij.plugin.Zoom("in")
+Input/Output...	ij.plugin.Options("io")
+Install Plugin...	ij.plugin.Installer
+Install...	ij.plugin.MacroInstaller
+Installation...	ij.plugin.SimpleCommands("install")
+Internal Clipboard	ij.plugin.Clipboard("show")
+Inverse FFT	ij.plugin.FFT("inverse")
+Invert	ij.plugin.filter.Filters("invert")
+Invert LUT	ij.plugin.LutLoader("invert")
+JavaConsole	edu.mbl.jif.ijplugins.JavaConsole_("")
+Jpeg...	ij.plugin.filter.Writer("jpeg")
+Jython Interpreter	Jython_Interpreter
+LOCI Plugins...	loci.plugins.LociImporter("about")
+LSM Reader	LSM_Reader
+LUT...	ij.plugin.filter.Writer("lut")
+LUT... 	ij.plugin.LutLoader
+Label	ij.plugin.filter.Filler("label")
+Label Peaks	ij.plugin.GelAnalyzer("label")
+Leaf (36K)	ij.plugin.URLOpener("leaf.jpg")
+Lena (68K)	ij.plugin.URLOpener("lena.jpg")
+Line Graph (21K)	ij.plugin.URLOpener("LineGraph.jpg")
+Line Width...	ij.plugin.Options("line")
+List Archives...	ij.plugin.BrowserLauncher("https://list.nih.gov/archives/imagej.html")
+List Commands...	ij.plugin.CommandLister
+List Shortcuts...	ij.plugin.CommandLister("shortcuts")
+Log	ij.plugin.filter.ImageMath("log")
+M51 Galaxy  (116K, RGB)	ij.plugin.URLOpener("m51.jpg")
+M51 Galaxy (177K, 16-bits)	ij.plugin.URLOpener("m51.zip")
+MRI Stack (528K)	ij.plugin.URLOpener("mri-stack.zip")
+Macro Functions...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/developer/macro/functions.html")
+Macro Language...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/developer/macro/macros.html")
+Macros...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/macros/")
+Magenta	ij.plugin.LutLoader("magenta")
+Make Band...	ij.plugin.Selection("band")
+Make Binary	ij.plugin.Thresholder
+Make Composite	ij.plugin.CompositeConverter
+Make Inverse	ij.plugin.Selection("inverse")
+Make Montage...	ij.plugin.MontageMaker
+Mandrill (70K)	ij.plugin.URLOpener("baboon.jpg")
+Max...	ij.plugin.filter.ImageMath("max")
+Maximum...	ij.plugin.filter.RankFilters("max")
+Mean...	ij.plugin.filter.RankFilters("mean")
+Measure	ij.plugin.filter.Analyzer
+Measure RGB	ij.plugin.Macro_Runner("Analyze\Measure_RGB.txt")
+Measure Stack	ij.plugin.Macro_Runner("Stacks\Measure_Stack.txt")
+Measurements...	ij.plugin.MeasurementsWriter
+Median...	ij.plugin.filter.RankFilters("median")
+Memory & Threads...	ij.plugin.Memory
+Min...	ij.plugin.filter.ImageMath("min")
+Minimum...	ij.plugin.filter.RankFilters("min")
+Misc...	ij.plugin.Options("misc")
+Monitor Memory...	ij.plugin.MemoryMonitor
+MultiThresholder	Multi_Thresholder
+Multiply...	ij.plugin.filter.ImageMath("mul")
+NaN Background	ij.plugin.filter.ImageMath("nan")
+New HyperStack...	ij.plugin.HyperStackConverter("new")
+New... 	ij.plugin.NewPlugin
+Next Slice [>]	ij.plugin.Animator("next")
+North	ij.plugin.filter.Shadows("north")
+Northeast	ij.plugin.filter.Shadows("northeast")
+Northwest	ij.plugin.filter.Shadows("northwest")
+OR...	ij.plugin.filter.ImageMath("or")
+Open	ij.plugin.filter.Binary("open")
+Open Next	ij.plugin.NextImageOpener
+Open...	ij.plugin.Commands("open")
+Options...	ij.plugin.filter.Binary("options")
+Original Scale	ij.plugin.Zoom("orig")
+Out	ij.plugin.Zoom("out")
+Outline	ij.plugin.filter.Binary("outline")
+PET Scan (11K)	ij.plugin.URLOpener("PET_Scan.gif")
+PGM...	ij.plugin.filter.Writer("pgm")
+PNG...	ij.plugin.filter.Writer("png")
+PS_Viewer	edu.mbl.jif.ijplugins.PSViewer.PS_Viewer("")
+Page Setup...	ij.plugin.filter.Printer("setup")
+Particles (75K)	ij.plugin.URLOpener("particles.gif")
+Paste	ij.plugin.Clipboard("paste")
+Paste Control...	ij.plugin.frame.PasteController
+Plasma2 	Examples.Plasma2_
+Plot Lanes	ij.plugin.GelAnalyzer("plot")
+Plot Profile	ij.plugin.filter.Profiler("plot")
+Plot Z-axis Profile	ij.plugin.filter.ZAxisProfiler
+Plugins...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/plugins")
+Point Tool...	ij.plugin.Colors("point")
+Polygon 	ij.plugin.Macro_Runner("Macros\Polygon_.txt")
+Previous Slice [<]	ij.plugin.Animator("previous")
+Print...	ij.plugin.filter.Printer("print")
+Profile Plot Options...	ij.plugin.filter.Profiler("set")
+Properties...	ij.plugin.filter.ImageProperties
+Put Behind [tab]	ij.plugin.Commands("tab")
+QuadReg Calibrate	QReg.QuadReg_Calibrate
+QuadReg Process	QReg.QuadReg_Process
+QuickTime Movie...	QuickTime_Writer
+QuickTime Player...	QT_Movie_Player
+Quit	ij.plugin.Commands("quit")
+RGB Color	ij.plugin.Converter("RGB Color")
+RGB Histogram	ij.plugin.Macro_Runner("Macros\RGB_Histogram.txt")
+RGB Merge...	ij.plugin.RGBStackMerge
+RGB Split	ij.plugin.filter.RGBStackSplitter
+RGB Stack	ij.plugin.Converter("RGB Stack")
+ROI Manager...	ij.plugin.frame.RoiManager
+Raw Data...	ij.plugin.filter.Writer("raw")
+Raw...	ij.plugin.Raw
+Re-plot Lanes	ij.plugin.GelAnalyzer("replot")
+Reciprocal	ij.plugin.filter.ImageMath("reciprocal")
+Record...	ij.plugin.frame.Recorder
+Red	ij.plugin.LutLoader("red")
+Red And Blue	Examples.Red_And_Blue
+Red/Green	ij.plugin.LutLoader("redgreen")
+Redisplay Power Spectrum	ij.plugin.FFT("redisplay")
+Refresh Jython List	Refresh_Jython_List
+Remove Outliers...	ij.plugin.filter.RankFilters("outliers")
+Remove...	ij.plugin.Hotkeys("remove")
+Rename...	ij.plugin.SimpleCommands("rename")
+Reset	ij.plugin.GelAnalyzer("reset")
+Reset...	ij.plugin.SimpleCommands("reset")
+Reslice [/]...	ij.plugin.Slicer
+Restore Selection	ij.plugin.Selection("restore")
+Results...	ij.plugin.SimpleCommands("import")
+Revert	ij.plugin.Commands("revert")
+Rotate 90 Degrees Left	ij.plugin.filter.Transformer("left")
+Rotate 90 Degrees Right	ij.plugin.filter.Transformer("right")
+Rotate...	ij.plugin.Selection("rotate")
+Run...	ij.plugin.Macro_Runner
+Salt and Pepper	ij.plugin.filter.SaltAndPepper
+Save	ij.plugin.Commands("save")
+Save XY Coordinates...	ij.plugin.XYCoordinates
+Scale Bar...	ij.plugin.ScaleBar
+Scale...	ij.plugin.Scaler
+Search Website...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/search.html")
+Search...	ij.plugin.SimpleCommands("search")
+Select All	ij.plugin.Selection("all")
+Select First Lane	ij.plugin.GelAnalyzer("first")
+Select Next Lane	ij.plugin.GelAnalyzer("next")
+Select None	ij.plugin.Selection("none")
+Selection...	ij.plugin.filter.RoiWriter
+SerialTester	edu.mbl.jif.ijplugins.SerialTester_("")
+Set Measurements...	ij.plugin.filter.Analyzer("set")
+Set Scale...	ij.plugin.filter.ScaleDialog
+Set Slice...	ij.plugin.Animator("set")
+Shadows Demo	ij.plugin.filter.Shadows("demo")
+Sharpen	ij.plugin.filter.Filters("sharpen")
+Show All	ij.plugin.WindowOrganizer("show")
+Show Circular Masks...	ij.plugin.filter.RankFilters("masks")
+Show Info...	ij.plugin.filter.Info
+Show LUT	ij.plugin.filter.LutViewer
+Size...	ij.plugin.filter.Resizer
+Skeletonize	ij.plugin.filter.Binary("skel")
+Smooth	ij.plugin.filter.Filters("smooth")
+Source Code...	ij.plugin.BrowserLauncher("http://rsb.info.nih.gov/ij/developer/source/")
+South	ij.plugin.filter.Shadows("south")
+Southeast	ij.plugin.filter.Shadows("southeast")
+Southwest	ij.plugin.filter.Shadows("southwest")
+Specify...	ij.plugin.SpecifyROI
+Spectrum	ij.plugin.LutLoader("spectrum")
+Split Channels...	ij.plugin.HyperStackConverter("split")
+Square	ij.plugin.filter.ImageMath("sqr")
+Square Root	ij.plugin.filter.ImageMath("sqrt")
+Stack Colorizer	loci.plugins.Colorizer("")
+Stack From List...	ij.plugin.ListVirtualStack
+Stack Slicer	loci.plugins.Slicer("")
+Stack to HyperStack...	ij.plugin.HyperStackConverter("stacktohs")
+Stack to Images	ij.plugin.StackEditor("toimages")
+Stack to RGB	ij.plugin.RGBStackConverter
+Start Animation [\]	ij.plugin.Animator("start")
+Startup Macros...	ij.plugin.Commands("startup")
+Stop Animation	ij.plugin.Animator("stop")
+Subtract Background...	ij.plugin.filter.BackgroundSubtracter
+Subtract...	ij.plugin.filter.ImageMath("sub")
+Summarize	ij.plugin.filter.Analyzer("sum")
+Surface Plot...	ij.plugin.SurfacePlotter
+Swap Quadrants	ij.plugin.FFT("swap")
+System Clipboard	ij.plugin.Clipboard("showsys")
+T1 Head (2.4M, 16-bits)	ij.plugin.URLOpener("t1-head.zip")
+T1 Head Renderings (736K)	ij.plugin.URLOpener("t1-rendering.zip")
+TEM Filter (112K)	ij.plugin.URLOpener("TEM_filter_sample.jpg")
+TIFF Virtual Stack...	ij.plugin.FileInfoVirtualStack
+Table Tricks	ij.plugin.Macro_Runner("Examples\Table_Tricks.txt")
+Text File... 	ij.plugin.TextFileReader
+Text Image...	ij.plugin.filter.Writer("text")
+Text Image... 	ij.plugin.TextReader
+Text Window	ij.plugin.NewPlugin("text")
+Text...	ij.plugin.TextWriter
+Threads...	ij.plugin.ThreadLister
+Threshold...	ij.plugin.frame.ThresholdAdjuster
+Tiff...	ij.plugin.filter.Writer("tiff")
+Tile	ij.plugin.WindowOrganizer("tile")
+Time Stamper	Stacks.Time_Stamper
+To Selection	ij.plugin.Zoom("to")
+Translate...	ij.plugin.filter.Translator
+Tree Rings (48K)	ij.plugin.URLOpener("Tree_Rings.jpg")
+TurboReg 	QReg.TurboReg_
+URL...	ij.plugin.URLOpener
+Ultimate Points	ij.plugin.filter.EDM("points")
+Undo	ij.plugin.Commands("undo")
+Unsharp Mask...	ij.plugin.filter.UnsharpMask
+Upgrade ImageJ...	ij.plugin.ImageJ_Updater
+Upload to OME	loci.plugins.LociUploader("")
+Using QuickTime...	QT_Movie_Opener
+Variance...	ij.plugin.filter.RankFilters("variance")
+Video	QuickTime_Capture
+View 100%	ij.plugin.Zoom("100%")
+Watershed	ij.plugin.filter.EDM("watershed")
+West	ij.plugin.filter.Shadows("west")
+Window/Level...	ij.plugin.frame.ContrastAdjuster("wl")
+XOR...	ij.plugin.filter.ImageMath("xor")
+XY Coordinates...	ij.plugin.filter.XYWriter
+Yellow	ij.plugin.LutLoader("yellow")
+Z Project...	ij.plugin.ZProjector
+ZIP...	ij.plugin.filter.Writer("zip")

@@ -1,5 +1,10 @@
 package ij.gui;
 
+import ijx.gui.IjxStackWindow;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxImageCanvas;
+import ijx.app.IjxApplication;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.image.*;
 import java.util.Properties;
@@ -10,16 +15,17 @@ import ij.io.*;
 import ij.measure.*;
 import ij.plugin.frame.*;
 import ij.macro.Interpreter;
+import ijx.IjxImageStack;
 
 /** A frame for displaying images. */
-public class ImageWindow extends Frame implements FocusListener, WindowListener, WindowStateListener, MouseWheelListener {
+public class ImageWindow extends Frame implements IjxImageWindow {
 
 	public static final int MIN_WIDTH = 128;
 	public static final int MIN_HEIGHT = 32;
-	
-	protected ImagePlus imp;
-	protected ImageJ ij;
-	protected ImageCanvas ic;
+	  protected IjxImagePlus imp;
+  protected IjxApplication ij;
+  protected IjxImageCanvas ic;
+
 	private double initialMagnification = 1;
 	private int newWidth, newHeight;
 	protected boolean closed;
@@ -41,42 +47,42 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 	private static Point nextLocation;
 	
     private int textGap = centerOnScreen?0:TEXT_GAP;
-	
+	// private int textGap = IJ.isCenterNextImage() ? 0 : TEXT_GAP;
+
 	/** This variable is set false if the user presses the escape key or closes the window. */
-	public boolean running;
-	
+  private boolean running;
 	/** This variable is set false if the user clicks in this
 		window, presses the escape key, or closes the window. */
-	public boolean running2;
+  private boolean running2;
 	
 	public ImageWindow(String title) {
 		super(title);
 	}
 
-    public ImageWindow(ImagePlus imp) {
+  public ImageWindow(IjxImagePlus imp) {
     	this(imp, null);
    }
     
-    public ImageWindow(ImagePlus imp, ImageCanvas ic) {
+  public ImageWindow(IjxImagePlus imp, IjxImageCanvas ic) {
 		super(imp.getTitle());
 		if (Prefs.blackCanvas && getClass().getName().equals("ij.gui.ImageWindow")) {
 			setForeground(Color.white);
 			setBackground(Color.black);
 		} else {
         	setForeground(Color.black);
-        	if (IJ.isLinux())
-        		setBackground(ImageJ.backgroundColor);
-        	else
+      if (IJ.isLinux()) {
+        setBackground(IJ.backgroundColor);
+      } else {
         		setBackground(Color.white);
         }
 		ij = IJ.getInstance();
 		this.imp = imp;
 		if (ic==null)
-			{ic=new ImageCanvas(imp); newCanvas=true;}
+			{ic= IJ.getFactory().newImageCanvas(imp); newCanvas=true;}
 		this.ic = ic;
-		ImageWindow previousWindow = imp.getWindow();
+    IjxImageWindow previousWindow = (IjxImageWindow) imp.getWindow();
 		setLayout(new ImageLayout(ic));
-		add(ic);
+    add((ImageCanvas) ic);
  		addFocusListener(this);
  		addWindowListener(this);
  		addWindowStateListener(this);
@@ -106,22 +112,23 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 				show();
 			}
 			boolean unlocked = imp.lockSilently();
-			boolean changes = imp.changes;
-			imp.changes = false;
+			boolean changes = imp.isChanged();
+			imp.setChanged(false);
 			previousWindow.close();
-			imp.changes = changes;
+			imp.setChanged(changes);
 			if (unlocked)
 				imp.unlock();
 			WindowManager.setCurrentWindow(this);
 		} else {
 			setLocationAndSize(false);
 			if (ij!=null && !IJ.isMacintosh()) {
-				Image img = ij.getIconImage();
+				Image img = IJ.getTopComponentFrame().getIconImage();
 				if (img!=null) 
 					try {setIconImage(img);} catch (Exception e) {}
 			}
 			if (centerOnScreen) {
 				GUI.center(this);
+                //IJ.setCenterOnScreen(false);
 				centerOnScreen = false;
 			} else if (nextLocation!=null) {
 				setLocation(nextLocation);
@@ -287,7 +294,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
     	String s="";
     	int nSlices = imp.getStackSize();
     	if (nSlices>1) {
-    		ImageStack stack = imp.getStack();
+    		IjxImageStack stack = imp.getStack();
     		int currentSlice = imp.getCurrentSlice();
     		s += currentSlice+"/"+nSlices;
     		String label = stack.getShortSliceLabel(currentSlice);
@@ -295,7 +302,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
     			if (imp.isHyperStack()) label = label.replace(';', ' ');
     			s += " (" + label + ")";
     		}
-			if ((this instanceof StackWindow) && running2) {
+      if ((this instanceof IjxStackWindow) && isRunning2()) {
 				return s;
 			}
     		s += "; ";
@@ -322,19 +329,19 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
     		s += imp.getWidth() + "x" + imp.getHeight() + " pixels; ";
 		double size = ((double)imp.getWidth()*imp.getHeight()*imp.getStackSize())/1024.0;
     	switch (type) {
-	    	case ImagePlus.GRAY8:
-	    	case ImagePlus.COLOR_256:
+      case IjxImagePlus.GRAY8:
+      case IjxImagePlus.COLOR_256:
 	    		s += "8-bit";
 	    		break;
-	    	case ImagePlus.GRAY16:
+      case IjxImagePlus.GRAY16:
 	    		s += "16-bit";
 				size *= 2.0;
 	    		break;
-	    	case ImagePlus.GRAY32:
+      case IjxImagePlus.GRAY32:
 	    		s += "32-bit";
 				size *= 4.0;
 	    		break;
-	    	case ImagePlus.COLOR_RGB:
+      case IjxImagePlus.COLOR_RGB:
 	    		s += "RGB";
 				size *= 4.0;
 	    		break;
@@ -363,7 +370,17 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		if (extraWidth<=0 && extraHeight<=0 && !Prefs.noBorder && !IJ.isLinux())
 			g.drawRect(r.x-1, r.y-1, r.width+1, r.height+1);
     }
-    
+
+    	public boolean canClose() {
+//		if (!super.canClose())
+//			return false;
+//		synchronized(this) {
+//			done = true;
+//			notify();
+//		}
+        return true;
+	}
+
 	/** Removes this window from the window list and disposes of it.
 		Returns false if the user cancels the "save changes" dialog. */
 	public boolean close() {
@@ -371,8 +388,8 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		running = running2 = false;
 		if (isRunning) IJ.wait(500);
 		if (ij==null || IJ.getApplet()!=null || Interpreter.isBatchMode() || IJ.macroRunning())
-			imp.changes = false;
-		if (imp.changes) {
+			imp.setChanged(false);
+		if (imp.isChanged()) {
 			String msg;
 			String name = imp.getTitle();
 			if (name.length()>22)
@@ -404,7 +421,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		return imp;
 	}
 
-	public void setImage(ImagePlus imp2) {
+	public void setImage(IjxImagePlus imp2) {
 		ImageCanvas ic = getCanvas();
 		if (ic==null || imp2==null)
 			return;
@@ -416,7 +433,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		repaint();
 	}
 	
-	public void updateImage(ImagePlus imp) {
+	public void updateImage(IjxImagePlus imp) {
         if (imp!=this.imp)
             throw new IllegalArgumentException("imp!=this.imp");
 		this.imp = imp;
@@ -438,13 +455,13 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		setMaxBoundsTime = System.currentTimeMillis();
 	}
 
-	public ImageCanvas getCanvas() {
+  public IjxImageCanvas getCanvas() {
 		return ic;
 	}
 	
 
-	static ImagePlus getClipboard() {
-		return ImagePlus.getClipboard();
+	static IjxImagePlus getClipboard() {
+		return IjxImagePlus.getClipboard();
 	}
 	
 	public Rectangle getMaximumBounds() {
@@ -551,7 +568,7 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 
 	public void windowActivated(WindowEvent e) {
 		if (IJ.debugMode) IJ.log("windowActivated: "+imp.getTitle());
-		ImageJ ij = IJ.getInstance();
+    IjxApplication ij = IJ.getInstance();
 		boolean quitting = ij!=null && ij.quitting();
 		if (IJ.isMacintosh() && ij!=null && ij.getApplet() == null && !quitting) {
 			IJ.wait(10); // may be needed for Java 1.4 on OS X
@@ -657,6 +674,33 @@ public class ImageWindow extends Frame implements FocusListener, WindowListener,
 		pack();
 	}
 	
+  public boolean isRunning() {
+    return running;
+  }
+
+  public void setRunning(boolean b) {
+    this.running = b;
+  }
+
+  public boolean isRunning2() {
+    return running2;
+  }
+
+  public void setRunning2(boolean b) {
+    this.running2 = b;
+  }
+
+  @Override
+  public void setMaxBoundsTime(long time) {
+    setMaxBoundsTime = time;
+  }
+
+  @Override
+  public long getMaxBoundsTime() {
+    return setMaxBoundsTime;
+  }
+
+
 	/** Overrides the setBounds() method in Component so
 		we can find out when the window is resized. */
 	//public void setBounds(int x, int y, int width, int height)	{

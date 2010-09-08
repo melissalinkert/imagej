@@ -1,8 +1,17 @@
 package ij;
+import ijx.IjxMenus;
+import ijx.app.IjxApplication;
+import ijx.IjxTopComponent;
+import ijx.IjxImagePlus;
 import ij.process.*;
 import ij.util.*;
 import ij.gui.ImageWindow;
+import ijx.gui.IjxWindow;
 import ij.plugin.MacroInstaller;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxWindow;
+import java.applet.Applet;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
@@ -20,34 +29,16 @@ import java.util.jar.JarInputStream;
 /**
 This class installs and updates ImageJ's menus. Note that menu labels,
 even in submenus, must be unique. This is because ImageJ uses a single
-hash table for all menu labels. If you look closely, you will see that
+hash table for all menu   labels. If you look closely, you will see that
 File->Import->Text Image... and File->Save As->Text Image... do not use
 the same label. One of the labels has an extra space.
 
 @see ImageJ
 */
 
-public class Menus {
+public class Menus implements IjxMenus {
 
-	public static final char PLUGINS_MENU = 'p';
-	public static final char IMPORT_MENU = 'i';
-	public static final char SAVE_AS_MENU = 's';
-	public static final char SHORTCUTS_MENU = 'h'; // 'h'=hotkey
-	public static final char ABOUT_MENU = 'a';
-	public static final char FILTERS_MENU = 'f';
-	public static final char TOOLS_MENU = 't';
-	public static final char UTILITIES_MENU = 'u';
-		
-	public static final int WINDOW_MENU_ITEMS = 5; // fixed items at top of Window menu
-	
-	public static final int NORMAL_RETURN = 0;
-	public static final int COMMAND_IN_USE = -1;
-	public static final int INVALID_SHORTCUT = -2;
-	public static final int SHORTCUT_IN_USE = -3;
-	public static final int NOT_INSTALLED = -4;
-	public static final int COMMAND_NOT_FOUND = -5;
-	
-	public static final int MAX_OPEN_RECENT_ITEMS = 15;
+
 
 	private static Menus instance;
 	private MenuBar mbar;
@@ -55,13 +46,15 @@ public class Menus {
 			color256Item,colorRGBItem,RGBStackItem,HSBStackItem;
 	private PopupMenu popup;
 
-	private static ImageJ ij;
+	//private static ImageJ ij;
 	private ImageJApplet applet;
 	private Hashtable demoImagesTable = new Hashtable();
 	private String pluginsPath, macrosPath;
 	private Properties menus = new Properties();
 	private Properties menuSeparators;
-	static Menu window, openRecentMenu, pluginsMenu, shortcutsMenu, utilitiesMenu, macrosMenu;
+	static Menu pluginsMenu, shortcutsMenu, utilitiesMenu, macrosMenu;
+	public static Menu window;
+	public static Menu openRecentMenu;
 	private Hashtable pluginsTable;
 	
 	private int nPlugins, nMacros;
@@ -84,10 +77,13 @@ public class Menus {
 	private static Font menuFont;
 
 	static boolean jnlp; // true when using Java WebStart
+    private static IjxTopComponent topComponent;
+	private static IjxApplication ijApp;
 		
-	Menus(ImageJ ijInstance, ImageJApplet appletInstance) {
-		ij = ijInstance;
-		applet = appletInstance;
+	Menus(IjxTopComponent tc, IjxApplication _ijApp, Applet appletInstance) {
+		topComponent = tc;
+        ijApp = _ijApp;
+		applet = (ImageJApplet) appletInstance;
 		instance = this;
 	}
 
@@ -243,8 +239,8 @@ public class Menus {
 		// make	sure "Quit" is the last item in the File menu
 		file.addSeparator();
 		addPlugInItem(file, "Quit", "ij.plugin.Commands(\"quit\")", 0, false);
-		if (ij!=null && applet == null)
-			ij.setMenuBar(mbar);
+		if (topComponent!=null && applet == null)
+			topComponent.setMenuBar(mbar);
 		
 		if (pluginError!=null)
 			error = error!=null?error+="\n"+pluginError:pluginError;
@@ -260,7 +256,7 @@ public class Menus {
 			if (path==null) break;
 			MenuItem item = new MenuItem(path);
 			openRecentMenu.add(item);
-			item.addActionListener(ij);
+			item.addActionListener(ijApp);
 		}
 		menu.add(openRecentMenu);
 	}
@@ -287,7 +283,7 @@ public class Menus {
 				addOrdered(menu, item);
 		} else
 			menu.add(item);
-		item.addActionListener(ij);
+		item.addActionListener(ijApp);
 		if (menu == macrosMenu)
 			nMacros++;
 	}
@@ -303,7 +299,7 @@ public class Menus {
 		nPlugins++;
 		CheckboxMenuItem item = new CheckboxMenuItem(label);
 		menu.add(item);
-		item.addItemListener(ij);
+		item.addItemListener(ijApp);
 		item.setState(false);
 		return item;
 	}
@@ -348,7 +344,7 @@ public class Menus {
  				name = name.substring(0,name.length()-4);
  				MenuItem item = new MenuItem(name);
 				submenu.add(item);
-				item.addActionListener(ij);
+				item.addActionListener(ijApp);
 				instance.nPlugins++;
 			}
 		}
@@ -527,7 +523,7 @@ public class Menus {
 			command = command + " Macro";
 		MenuItem item = new MenuItem(command);
 		addOrdered(menu, item);
-		item.addActionListener(ij);
+		item.addActionListener(ijApp);
 		String path = (dir!=null?dir+File.separator:"") + name;
 		pluginsTable.put(command, "ij.plugin.Macro_Runner(\""+path+"\")");
 		nMacros++;
@@ -738,7 +734,7 @@ public class Menus {
 
 	void addItemSorted(Menu menu, MenuItem item, int startingIndex) {
 		String itemLabel = item.getLabel();
-		int count = menu.getItemCount();
+		 int count = menu.getItemCount();
 		boolean inserted = false;
 		for (int i=startingIndex; i<count; i++) {
 			MenuItem mi = menu.getItem(i);
@@ -1021,12 +1017,12 @@ public class Menus {
 			addItemSorted(menu,item,0);
 		else
 			addOrdered(menu, item);
-		item.addActionListener(ij);
+		item.addActionListener(ijApp);
 		pluginsTable.put(command, className.replace('/', '.'));
 		nPlugins++;
 	}
 	
-	void installPopupMenu(ImageJ ij) {
+	void installPopupMenu(IjxApplication ijApp) {
 		String s;
 		int count = 0;
 		MenuItem mi;
@@ -1043,7 +1039,7 @@ public class Menus {
 				popup.addSeparator();
 			else if (!s.equals("")) {
 				mi = new MenuItem(s);
-				mi.addActionListener(ij);
+				mi.addActionListener(ijApp);
 				popup.add(mi);
 			}
 		}
@@ -1065,11 +1061,11 @@ public class Menus {
 		return nPlugins;
 	}
 	
-	static final int RGB_STACK=10, HSB_STACK=11;
+	
 
 	/** Updates the Image/Type and Window menus. */
 	public static void updateMenus() {
-		if (ij==null) return;
+		if (ijApp==null) return;
 		instance.doUpdateMenus();
 	}
 
@@ -1081,36 +1077,36 @@ public class Menus {
 		colorRGBItem.setState(false);
 		RGBStackItem.setState(false);
 		HSBStackItem.setState(false);
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			return;
     	int type = imp.getType();
      	if (imp.getStackSize()>1) {
-    		ImageStack stack = imp.getStack();
+    		IjxImageStack stack = imp.getStack();
     		if (stack.isRGB()) type = RGB_STACK;
     		else if (stack.isHSB()) type = HSB_STACK;
     	}
-		if (type==ImagePlus.GRAY8) {
+    	if (type==IjxImagePlus.GRAY8) {
 			ImageProcessor ip = imp.getProcessor();
 			if (ip!=null && ip.getMinThreshold()==ImageProcessor.NO_THRESHOLD && ip.isColorLut() && !ip.isPseudoColorLut()) {
-				type = ImagePlus.COLOR_256;
-				imp.setType(ImagePlus.COLOR_256);
+				type = IjxImagePlus.COLOR_256;
+				imp.setType(IjxImagePlus.COLOR_256);
 			}
 		}
     	switch (type) {
-    		case ImagePlus.GRAY8:
+    		case IjxImagePlus.GRAY8:
 				gray8Item.setState(true);
 				break;
-     		case ImagePlus.GRAY16:
+     		case IjxImagePlus.GRAY16:
 				gray16Item.setState(true);
 				break;
-     		case ImagePlus.GRAY32:
+     		case IjxImagePlus.GRAY32:
 				gray32Item.setState(true);
 				break;
-   			case ImagePlus.COLOR_256:
+   			case IjxImagePlus.COLOR_256:
 				color256Item.setState(true);
 				break;
-    		case ImagePlus.COLOR_RGB:
+    		case IjxImagePlus.COLOR_RGB:
 				colorRGBItem.setState(true);
 				break;
     		case RGB_STACK:
@@ -1133,7 +1129,7 @@ public class Menus {
 		} catch (Exception e) {}
 	}
 	
-	static boolean isColorLut(ImagePlus imp) {
+	static boolean isColorLut(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
     	IndexColorModel cm = (IndexColorModel)ip.getColorModel();
     	if (cm==null) return false;
@@ -1187,15 +1183,15 @@ public class Menus {
 	}
         
 	/** Inserts one item (a non-image window) into the Window menu. */
-	static synchronized void insertWindowMenuItem(Frame win) {
-		if (ij==null || win==null)
+	static synchronized void insertWindowMenuItem(IjxWindow win) {
+		if (ijApp==null || win==null)
 			return;
 		instance.doInsertWindowMenuItem(win);
 	}
 
-	private void doInsertWindowMenuItem(Frame win) {
+	private void doInsertWindowMenuItem(IjxWindow win) {
 		CheckboxMenuItem item = new CheckboxMenuItem(win.getTitle());
-		item.addItemListener(ij);
+		item.addItemListener(ijApp);
 		int index = WINDOW_MENU_ITEMS+windowMenuItems2;
 		if (windowMenuItems2>=2)
 			index--;
@@ -1209,20 +1205,20 @@ public class Menus {
 	}
 
 	/** Adds one image to the end of the Window menu. */
-	static synchronized void addWindowMenuItem(ImagePlus imp) {
+	static synchronized void addWindowMenuItem(IjxImagePlus imp) {
 		//IJ.log("addWindowMenuItem: "+imp);
-		if (ij==null) return;
+		if (ijApp==null) return;
 		instance.doAddWindowMenuItem(imp);
 	}
 
-	private void doAddWindowMenuItem(ImagePlus imp) {
+	private void doAddWindowMenuItem(IjxImagePlus imp) {
 		String name = imp.getTitle();
 		int size = (imp.getWidth()*imp.getHeight()*imp.getStackSize())/1024;
 		switch (imp.getType()) {
-			case ImagePlus.GRAY32: case ImagePlus.COLOR_RGB: // 32-bit
+			case IjxImagePlus.GRAY32: case IjxImagePlus.COLOR_RGB: // 32-bit
 				size *=4;
 				break;
-			case ImagePlus.GRAY16:  // 16-bit
+			case IjxImagePlus.GRAY16:  // 16-bit
 				size *= 2;
 				break;
 			default: // 8-bit
@@ -1230,13 +1226,13 @@ public class Menus {
 		}
 		CheckboxMenuItem item = new CheckboxMenuItem(name + " " + size + "K");
 		window.add(item);
-		item.addItemListener(ij);
+		item.addItemListener(ijApp);
 	}
 	
 	/** Removes the specified item from the Window menu. */
 	static synchronized void removeWindowMenuItem(int index) {
 		//IJ.log("removeWindowMenuItem: "+index+" "+windowMenuItems2+" "+window.getItemCount());
-		if (ij==null) return;
+		if (ijApp==null) return;
 		instance.doRemoveWindowMenuItem(index);
 	}
 
@@ -1286,7 +1282,7 @@ public class Menus {
 	
 	/** Adds a file path to the beginning of the File/Open Recent submenu. */
 	public static synchronized void addOpenRecentItem(String path) {
-		if (ij==null) return;
+		if (ijApp==null) return;
 		instance.doAddOpenRecentItem(path);
 	}
 
@@ -1303,7 +1299,7 @@ public class Menus {
 			openRecentMenu.remove(MAX_OPEN_RECENT_ITEMS-1);
 		MenuItem item = new MenuItem(path);
 		openRecentMenu.insert(item, 0);
-		item.addActionListener(ij);
+		item.addActionListener(ijApp);
 	}
 
 	public static PopupMenu getPopupMenu() {
@@ -1323,11 +1319,11 @@ public class Menus {
 	*
 	* @return				returns an error code(NORMAL_RETURN,COMMAND_IN_USE_ERROR, etc.)
 	*/
-	public static int installPlugin(String plugin, char menuCode, String command, String shortcut, ImageJ ij) {
+	public static int installPlugin(String plugin, char menuCode, String command, String shortcut, IjxApplication ij) {
 		return instance.doInstallPlugin(plugin, menuCode, command, shortcut, ij);
 	}
 
-	private int doInstallPlugin(String plugin, char menuCode, String command, String shortcut, ImageJ ij) {
+	private int doInstallPlugin(String plugin, char menuCode, String command, String shortcut, IjxApplication ij) {
 		if (command.equals("")) { //uninstall
 			//Object o = pluginsPrefs.remove(plugin);
 			//if (o==null)
@@ -1581,8 +1577,7 @@ public class Menus {
 	public static void updateImageJMenus() {
 		MenuItem[] windows = instance == null ? null :
 			instance.getWindowItems();
-		Menus m = new Menus(IJ.getInstance(),
-				(ImageJApplet)IJ.getApplet());
+		Menus m = new Menus(IJ.getTopComponent(), ijApp, (ImageJApplet)IJ.getApplet());
 		String err = m.addMenuBar();
 		m.addWindowItems(windows);
 		if (err!=null) IJ.error(err);

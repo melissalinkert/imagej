@@ -1,6 +1,7 @@
 package ij.gui;
 import java.awt.*;
 import ij.*;
+import ijx.gui.IjxImageCanvas;
 
 /** This is a custom layout manager that supports resizing of zoomed
 images. It's based on FlowLayout, but with vertical and centered flow. */
@@ -8,10 +9,10 @@ public class ImageLayout implements LayoutManager {
 
     int hgap;
     int vgap;
-	ImageCanvas ic;
+	IjxImageCanvas ic;
 
     /** Creates a new ImageLayout with center alignment and 5 pixel horizontal and vertical gaps. */
-    public ImageLayout(ImageCanvas ic) {
+    public ImageLayout(IjxImageCanvas ic) {
     	this.ic = ic;
 		this.hgap = 5;
 		this.vgap = 5;

@@ -1,4 +1,5 @@
 package ij.io;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.io.*;
 import java.util.zip.*;
@@ -12,6 +13,8 @@ import ij.plugin.Orthogonal_Views;
 import ij.gui.Roi;
 import ij.gui.Overlay;
 import ij.gui.ImageCanvas;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageCanvas;
 import javax.imageio.*;
 
 /** Saves images in tiff, gif, jpeg, raw, zip and text format. */
@@ -23,13 +26,13 @@ public class FileSaver {
     static {setJpegQuality(ij.Prefs.getInt(ij.Prefs.JPEG, DEFAULT_JPEG_QUALITY));}
 
 	private static String defaultDirectory = null;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private FileInfo fi;
 	private String name;
 	private String directory;
 
 	/** Constructs a FileSaver from an ImagePlus. */
-	public FileSaver(ImagePlus imp) {
+	public FileSaver(IjxImagePlus imp) {
 		this.imp = imp;
 		fi = imp.getFileInfo();
 	}
@@ -114,12 +117,12 @@ public class FileSaver {
 		return true;
 	}
 	
-	byte[][] getOverlay(ImagePlus imp) {
+	byte[][] getOverlay(IjxImagePlus imp) {
 		if (imp.getHideOverlay())
 			return null;
 		Overlay overlay = imp.getOverlay();
 		if (overlay==null) {
-			ImageCanvas ic = imp.getCanvas();
+			IjxImageCanvas ic = imp.getCanvas();
 			if (ic==null) return null;
 			overlay = ic.getShowAllList(); // ROI Manager "Show All" list
 			if (overlay==null) return null;
@@ -149,7 +152,7 @@ public class FileSaver {
 		fi.description = getDescriptionString();
 		if (virtualStack) {
 			String[] labels = null;
-			ImageStack vs = imp.getStack();
+			IjxImageStack vs = imp.getStack();
 			for (int i=1; i<=vs.getSize(); i++) {
 				ImageProcessor ip = vs.getProcessor(i);
 				String label = vs.getSliceLabel(i);
@@ -177,7 +180,7 @@ public class FileSaver {
 		return true;
 	}
 	
-	void  saveDisplayRangesAndLuts(ImagePlus imp, FileInfo fi) {
+	void  saveDisplayRangesAndLuts(IjxImagePlus imp, FileInfo fi) {
 		CompositeImage ci = (CompositeImage)imp;
 		int channels = imp.getNChannels();
 		fi.displayRanges = new double[channels*2];
@@ -245,9 +248,9 @@ public class FileSaver {
 		return true;
 	}
 
-	public static boolean okForGif(ImagePlus imp) {
+	public static boolean okForGif(IjxImagePlus imp) {
 		int type = imp.getType();
-		if (type==ImagePlus.COLOR_RGB) {
+		if (type==IjxImagePlus.COLOR_RGB) {
 			IJ.error("To save as Gif, the image must be converted to \"8-bit Color\".");
 			return false;
 		} else
@@ -277,7 +280,7 @@ public class FileSaver {
 	}
 
 	/** Always returns true. */
-	public static boolean okForJpeg(ImagePlus imp) {
+	public static boolean okForJpeg(IjxImagePlus imp) {
 		return true;
 	}
 
@@ -382,7 +385,7 @@ public class FileSaver {
 		return true;
 	}
 
-	public static boolean okForFits(ImagePlus imp) {
+	public static boolean okForFits(IjxImagePlus imp) {
 		if (imp.getBitDepth()==24) {
 			IJ.error("FITS Writer", "Grayscale image required");
 			return false;
@@ -508,7 +511,7 @@ public class FileSaver {
 	/** Save the current LUT using a save file
 		dialog. Returns false if the user selects cancel. */
 	public boolean saveAsLut() {
-		if (imp.getType()==ImagePlus.COLOR_RGB) {
+		if (imp.getType()==IjxImagePlus.COLOR_RGB) {
 			IJ.error("RGB Images do not have a LUT.");
 			return false;
 		}
@@ -558,7 +561,7 @@ public class FileSaver {
 	}
 
 	private void updateImp(FileInfo fi, int fileFormat) {
-		imp.changes = false;
+		imp.setChanged(false);
 		if (name!=null) {
 			fi.fileFormat = fileFormat;
 			fi.fileName = name;
@@ -637,8 +640,8 @@ public class FileSaver {
 		double min = ip.getMin();
 		double max = ip.getMax();
 		int type = imp.getType();
-		boolean enhancedLut = (type==ImagePlus.GRAY8 || type==ImagePlus.COLOR_256) && (min!=0.0 || max !=255.0);
-		if (enhancedLut || type==ImagePlus.GRAY16 || type==ImagePlus.GRAY32) {
+		boolean enhancedLut = (type==IjxImagePlus.GRAY8 || type==IjxImagePlus.COLOR_256) && (min!=0.0 || max !=255.0);
+		if (enhancedLut || type==IjxImagePlus.GRAY16 || type==IjxImagePlus.GRAY32) {
 			sb.append("min="+min+"\n");
 			sb.append("max="+max+"\n");
 		}

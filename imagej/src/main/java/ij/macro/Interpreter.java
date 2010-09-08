@@ -7,6 +7,8 @@ import ij.plugin.frame.*;
 import ij.util.Tools;
 import ij.text.*;
 import ij.measure.ResultsTable;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxWindow;
 import java.awt.*;
 import java.util.*;
 import java.awt.event.KeyEvent;
@@ -1084,7 +1086,7 @@ public class Interpreter implements MacroConstants {
 
 	public TextWindow updateDebugWindow(String[] variables, TextWindow debugWindow) {
 		if (debugWindow==null) {
-			Frame f = WindowManager.getFrame("Debug");
+			IjxWindow f = WindowManager.getFrame("Debug");
 			if (f!=null && (f instanceof TextWindow)) {
 				debugWindow = (TextWindow)f;
 				debugWindow.toFront();
@@ -1622,7 +1624,7 @@ public class Interpreter implements MacroConstants {
 		return batchMode;
 	}
 	
-	public static void addBatchModeImage(ImagePlus imp) {
+	public static void addBatchModeImage(IjxImagePlus imp) {
 		if (!batchMode || imp==null) return;
 		if (imageTable==null)
 			imageTable = new Vector();
@@ -1630,7 +1632,7 @@ public class Interpreter implements MacroConstants {
 		imageTable.addElement(imp);
 	}
 
-	public static void removeBatchModeImage(ImagePlus imp) {
+	public static void removeBatchModeImage(IjxImagePlus imp) {
 		if (imageTable!=null && imp!=null) {
 			int index = imageTable.indexOf(imp);
 			//IJ.log("remove: "+imp+"  "+imageTable.size());
@@ -1645,7 +1647,7 @@ public class Interpreter implements MacroConstants {
 		int n = imageTable.size();
 		int[] imageIDs = new int[n];
 		for (int i=0; i<n; i++) {
-			ImagePlus imp = (ImagePlus)imageTable.elementAt(i);
+			IjxImagePlus imp = (IjxImagePlus)imageTable.elementAt(i);
 			imageIDs[i] = imp.getID();
 		}
 		return imageIDs;
@@ -1658,22 +1660,22 @@ public class Interpreter implements MacroConstants {
 			return imageTable.size();
 	}
 	
-	public static ImagePlus getBatchModeImage(int id) {
+	public static IjxImagePlus getBatchModeImage(int id) {
 		if (!batchMode || imageTable==null)
 			return null;
 		for (Enumeration en=Interpreter.imageTable.elements(); en.hasMoreElements();) {
-			ImagePlus imp = (ImagePlus)en.nextElement();
+			IjxImagePlus imp = (IjxImagePlus)en.nextElement();
 			if (id==imp.getID())
 				return imp;
 		}
 		return null;
 	}
 	
-	public static ImagePlus getLastBatchModeImage() { 
+	public static IjxImagePlus getLastBatchModeImage() {
 		if (!batchMode || imageTable==null) return null; 
 		int size = imageTable.size(); 
 		if (size==0) return null; 
-		return (ImagePlus)imageTable.elementAt(size-1); 
+		return (IjxImagePlus)imageTable.elementAt(size-1);
 	} 
  
 	public void setLocalVariable(String key,String value) {
@@ -1742,7 +1744,7 @@ public class Interpreter implements MacroConstants {
 		if (showDebugFunctions) {
 			String title = null;
 			if (nImages>0) {
-				ImagePlus imp = WindowManager.getCurrentImage();
+				IjxImagePlus imp = WindowManager.getCurrentImage();
 				if (imp!=null) title = imp.getTitle();
 			}
 			if (debugMode==STEP) System.gc();

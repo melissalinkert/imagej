@@ -1,4 +1,5 @@
 package ij;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.image.*;
 import ij.process.*;
@@ -8,7 +9,7 @@ This class represents an expandable array of images.
 @see ImagePlus
 */
 
-public class ImageStack {
+public class ImageStack implements IjxImageStack {
 
 	static final int INITIAL_SIZE = 25;
 	static final String outOfRange = "Argument out of range: ";

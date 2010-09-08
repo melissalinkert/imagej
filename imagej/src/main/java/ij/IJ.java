@@ -1,4 +1,11 @@
 package ij;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxWindow;
+import ijx.gui.IjxImageCanvas;
+import ijx.IjxFactory;
+import ijx.app.IjxApplication;
+import ijx.IjxTopComponent;
+import ijx.IjxImagePlus;
 import ij.gui.*;
 import ij.process.*;
 import ij.text.*;
@@ -32,7 +39,7 @@ public class IJ {
     public static final char angstromSymbol = '\u00C5';
     public static final char degreeSymbol = '\u00B0';
 
-	private static ImageJ ij;
+	private static IjxApplication ij;
 	private static java.applet.Applet applet;
 	private static ProgressBar progressBar;
 	private static TextPanel textPanel;
@@ -50,7 +57,12 @@ public class IJ {
 	private static boolean redirectErrorMessages, redirectErrorMessages2;
 	private static boolean suppressPluginNotFoundError;
 	private static Hashtable commandTable;
-	private static Vector eventListeners = new Vector();
+    private static Vector eventListeners = new Vector();
+    private static IjxImagePlus clipboard;
+    private static boolean centerOnScreen;
+    private static IjxFactory factory;
+    private static IjxTopComponent topComponent;
+    public static Color backgroundColor = new Color(220,220,220); //224,226,235
 			
 	static {
 		osname = System.getProperty("os.name");
@@ -68,23 +80,46 @@ public class IJ {
 		}
 	}
 			
-	static void init(ImageJ imagej, Applet theApplet) {
+	static void init(IjxApplication imagej, IjxTopComponent tc, Applet theApplet) {
 		if (theApplet == null)
 			System.setSecurityManager(null);
 		ij = imagej;
+        topComponent = tc;
 		applet = theApplet;
-		progressBar = ij.getProgressBar();
+		progressBar = topComponent.getProgressBar();
 	}
 
 	static void cleanup() {
 		ij=null; applet=null; progressBar=null; textPanel=null;
+        // ? topComponent=null;
 	}
 
 	/**Returns a reference to the "ImageJ" frame.*/
-	public static ImageJ getInstance() {
+	public static IjxApplication getInstance() {
 		return ij;
 	}
 	
+	public static IjxTopComponent getTopComponent() {
+		return topComponent;
+	}
+	public static Frame getTopComponentFrame() {
+		return (Frame) topComponent;
+	}
+
+	public static void setTopComponent(IjxTopComponent tc) {
+        topComponent = tc;
+    }
+
+
+    // Factory, GBH
+    public static IjxFactory getFactory() {
+        return factory;
+    }
+
+    public static void setFactory(IjxFactory factory) {
+        IJ.factory = factory;
+    }
+
 	/** Runs the macro contained in the string <code>macro</code>.
 		Returns any string value returned by the macro, null if the macro
 		does not return a value, or "[aborted]" if the macro was aborted
@@ -127,9 +162,9 @@ public class IJ {
 	}
 
 	/** Runs the specified plugin using the specified image. */
-	public static Object runPlugIn(ImagePlus imp, String className, String arg) {
+	public static Object runPlugIn(IjxImagePlus imp, String className, String arg) {
 		if (imp!=null) {
-			ImagePlus temp = WindowManager.getTempCurrentImage();
+			IjxImagePlus temp = WindowManager.getTempCurrentImage();
 			WindowManager.setTempCurrentImage(imp);
 			Object o = runPlugIn("", className, arg);
 			WindowManager.setTempCurrentImage(temp);
@@ -144,7 +179,7 @@ public class IJ {
 	}
 	
 	/** Runs the specified plugin and returns a reference to it. */
-	static Object runPlugIn(String commandName, String className, String arg) {
+	public static Object runPlugIn(String commandName, String className, String arg) {
 		if (IJ.debugMode)
 			IJ.log("runPlugin: "+className+" "+arg);
 		if (arg==null) arg = "";
@@ -178,7 +213,7 @@ public class IJ {
 		return thePlugIn;
 	}
         
-	static Object runUserPlugIn(String commandName, String className, String arg, boolean createNewLoader) {
+	public static Object runUserPlugIn(String commandName, String className, String arg, boolean createNewLoader) {
 		if (applet == null && checkForDuplicatePlugins) {
 			// check for duplicate classes and jars in the plugins folder
 			IJ.runPlugIn("ij.plugin.ClassChecker", "");
@@ -304,9 +339,9 @@ public class IJ {
 	}
 
 	/** Runs an ImageJ command using the specified image and options. */
-	public static void run(ImagePlus imp, String command, String options) {
+	public static void run(IjxImagePlus imp, String command, String options) {
 		if (imp!=null) {
-			ImagePlus temp = WindowManager.getTempCurrentImage();
+			IjxImagePlus temp = WindowManager.getTempCurrentImage();
 			WindowManager.setTempCurrentImage(imp);
 			run(command, options);
 			WindowManager.setTempCurrentImage(temp);
@@ -343,9 +378,9 @@ public class IJ {
 	
 	/**Displays a message in the ImageJ status bar.*/
 	public static void showStatus(String s) {
-		if (ij!=null) ij.showStatus(s);
-		ImagePlus imp = WindowManager.getCurrentImage();
-		ImageCanvas ic = imp!=null?imp.getCanvas():null;
+		if (ij!=null) topComponent.showStatus(s);
+		IjxImagePlus imp = WindowManager.getCurrentImage();
+		IjxImageCanvas ic = imp!=null?imp.getCanvas():null;
 		if (ic!=null)
 			ic.setShowCursorStatus(s.length()==0?true:false);
 	}
@@ -537,7 +572,7 @@ public class IJ {
 			if (msg!=null && msg.startsWith("<html>"))
 				new HTMLDialog(title, msg);
 			else
-				new MessageDialog(ij, title, msg);
+				new MessageDialog(IJ.getTopComponentFrame(), title, msg);
 		} else
 			System.out.println(msg);
 	}
@@ -652,11 +687,11 @@ public class IJ {
 		return maxMemory;
 	}
 	
-	public static void showTime(ImagePlus imp, long start, String str) {
+	public static void showTime(IjxImagePlus imp, long start, String str) {
 		showTime(imp, start, str, 1);
 	}
 	
-	public static void showTime(ImagePlus imp, long start, String str, int nslices) {
+	public static void showTime(IjxImagePlus imp, long start, String str, int nslices) {
 		if (Interpreter.isBatchMode()) return;
 	    long elapsedTime = System.currentTimeMillis() - start;
 		double seconds = elapsedTime / 1000.0;
@@ -777,8 +812,10 @@ public class IJ {
 				break;
 			case KeyEvent.VK_SPACE: {
 				spaceDown=true;
-				ImageWindow win = WindowManager.getCurrentWindow();
-				if (win!=null) win.getCanvas().setCursor(-1,-1,-1, -1);
+                IjxWindow win = WindowManager.getCurrentWindow();
+				if (win!=null)
+                    if(win instanceof IjxImageWindow)
+                        ((IjxImageWindow)win).getCanvas().setCursor(-1,-1,-1,-1);
 				break;
 			}
 			case KeyEvent.VK_ESCAPE: {
@@ -797,8 +834,10 @@ public class IJ {
 			case KeyEvent.VK_SHIFT: shiftDown=false; if (debugMode) beep(); break;
 			case KeyEvent.VK_SPACE:
 				spaceDown=false;
-				ImageWindow win = WindowManager.getCurrentWindow();
-				if (win!=null) win.getCanvas().setCursor(-1,-1,-1,-1);
+				IjxWindow win = WindowManager.getCurrentWindow();
+				if (win!=null)
+                    if(win instanceof IjxImageWindow)
+                        ((IjxImageWindow)win).getCanvas().setCursor(-1,-1,-1,-1);
 				break;
 			case ALL_KEYS:
 				shiftDown=controlDown=altDown=spaceDown=false;
@@ -882,8 +921,8 @@ public class IJ {
 		'flags' if the user selects "No" and PlugInFilter.DONE
 		if the user selects "Cancel".
 	*/
-	public static int setupDialog(ImagePlus imp, int flags) {
-		if (imp==null || (ij!=null&&ij.hotkey))
+	public static int setupDialog(IjxImagePlus imp, int flags) {
+		if (imp==null || (ij!=null&&ij.isHotkey()))
 			return flags;
 		int stackSize = imp.getStackSize();
 		if (stackSize>1) {
@@ -899,7 +938,7 @@ public class IJ {
 			if (hideProcessStackDialog)
 				return flags;
 			String note = ((flags&PlugInFilter.NO_CHANGES)==0)?" There is\nno Undo if you select \"Yes\".":"";
- 			YesNoCancelDialog d = new YesNoCancelDialog(getInstance(),
+ 			YesNoCancelDialog d = new YesNoCancelDialog(IJ.getTopComponentFrame()),
 				"Process Stack?", "Process all "+stackSize+" images?"+note);
 			if (d.cancelPressed())
 				return PlugInFilter.DONE;
@@ -930,7 +969,7 @@ public class IJ {
 		if (width<=0 || height<0)
 			getImage().killRoi();
 		else {
-			ImagePlus img = getImage();
+			IjxImagePlus img = getImage();
 			if (Interpreter.isBatchMode())
 				img.setRoi(new Roi(x,y,width,height), false);
 			else
@@ -944,7 +983,7 @@ public class IJ {
 		if (width<=0 || height<0)
 			getImage().killRoi();
 		else {
-			ImagePlus img = getImage();
+			IjxImagePlus img = getImage();
 			img.setRoi(new OvalRoi(x, y, width, height));
 		}
 	}
@@ -979,7 +1018,7 @@ public class IJ {
 	/** Sets the minimum and maximum displayed pixel values on the specified RGB
 	channels, where 4=red, 2=green and 1=blue. */
 	public static void setMinAndMax(double min, double max, int channels) {
-		ImagePlus img = getImage();
+		IjxImagePlus img = getImage();
 		Calibration cal = img.getCalibration();
 		min = cal.getRawValue(min); 
 		max = cal.getRawValue(max);
@@ -993,7 +1032,7 @@ public class IJ {
 	/** Resets the minimum and maximum displayed pixel values
 		to be the same as the min and max pixel values. */
 	public static void resetMinAndMax() {
-		ImagePlus img = getImage();
+		IjxImagePlus img = getImage();
 		img.resetDisplayRange();
 		img.updateAndDraw();
 	}
@@ -1013,13 +1052,13 @@ public class IJ {
 	}
 
 	/** Sets the lower and upper threshold levels of the specified image. */
-	public static void setThreshold(ImagePlus img, double lowerThreshold, double upperThreshold) {
+	public static void setThreshold(IjxImagePlus img, double lowerThreshold, double upperThreshold) {
 		setThreshold(img, lowerThreshold, upperThreshold, "Red");
 	}
 
 	/** Sets the lower and upper threshold levels of the specified image and updates the display using
 		the specified <code>displayMode</code> ("Red", "Black & White", "Over/Under" or "No Update"). */
-	public static void setThreshold(ImagePlus img, double lowerThreshold, double upperThreshold, String displayMode) {
+	public static void setThreshold(IjxImagePlus img, double lowerThreshold, double upperThreshold, String displayMode) {
 		int mode = ImageProcessor.RED_LUT;
 		if (displayMode!=null) {
 			displayMode = displayMode.toLowerCase(Locale.US);
@@ -1040,7 +1079,7 @@ public class IJ {
 		}
 	}
 
-	public static void setAutoThreshold(ImagePlus img, String method) {
+	public static void setAutoThreshold(IjxImagePlus img, String method) {
 		ImageProcessor ip = img.getProcessor();
 		if (ip instanceof ColorProcessor)
 			throw new IllegalArgumentException("Non-RGB image required");
@@ -1059,7 +1098,7 @@ public class IJ {
 	}
 	
 	/** Disables thresholding on the specified image. */
-	public static void resetThreshold(ImagePlus img) {
+	public static void resetThreshold(IjxImagePlus img) {
 		ImageProcessor ip = img.getProcessor();
 		ip.resetThreshold();
 		ip.setLutAnimation(true);
@@ -1071,16 +1110,16 @@ public class IJ {
 	public static void selectWindow(int id) {
 		if (id>0)
 			id = WindowManager.getNthImageID(id);
-		ImagePlus imp = WindowManager.getImage(id);
+		IjxImagePlus imp = WindowManager.getImage(id);
 		if (imp==null)
 			error("Macro Error", "Image "+id+" not found or no images are open.");
 		if (Interpreter.isBatchMode()) {
-			ImagePlus imp2 = WindowManager.getCurrentImage();
+			IjxImagePlus imp2 = WindowManager.getCurrentImage();
 			if (imp2!=null && imp2!=imp) imp2.saveRoi();
             WindowManager.setTempCurrentImage(imp);
             WindowManager.setWindow(null);
 		} else {
-			ImageWindow win = imp.getWindow();
+			IjxWindow win = imp.getWindow();
 			win.toFront();
 			WindowManager.setWindow(win);
 			long start = System.currentTimeMillis();
@@ -1106,7 +1145,7 @@ public class IJ {
 			{ij.toFront(); return;}
 		long start = System.currentTimeMillis();
 		while (System.currentTimeMillis()-start<3000) { // 3 sec timeout
-			Frame frame = WindowManager.getFrame(title);
+			IjxWindow frame = WindowManager.getFrame(title);
 			if (frame!=null && !(frame instanceof ImageWindow)) {
 				selectWindow(frame);
 				return;
@@ -1114,7 +1153,7 @@ public class IJ {
 			int[] wList = WindowManager.getIDList();
 			int len = wList!=null?wList.length:0;
 			for (int i=0; i<len; i++) {
-				ImagePlus imp = WindowManager.getImage(wList[i]);
+				IjxImagePlus imp = WindowManager.getImage(wList[i]);
 				if (imp!=null) {
 					if (imp.getTitle().equals(title)) {
 						selectWindow(imp.getID());
@@ -1127,7 +1166,7 @@ public class IJ {
 		error("Macro Error", "No window with the title \""+title+"\" found.");
 	}
 	
-	static void selectWindow(Frame frame) {
+	static void selectWindow(IjxWindow frame) {
 		frame.toFront();
 		long start = System.currentTimeMillis();
 		while (true) {
@@ -1157,7 +1196,7 @@ public class IJ {
 		Color c = new Color(red, green, blue);
 		if (foreground) {
 			Toolbar.setForegroundColor(c);
-			ImagePlus img = WindowManager.getCurrentImage();
+			IjxImagePlus img = WindowManager.getCurrentImage();
 			if (img!=null)
 				img.getProcessor().setColor(c);
 		} else
@@ -1195,9 +1234,9 @@ public class IJ {
 	* it is ignored if 'tolerance' > 0.
 	*/
 	public static int doWand(int x, int y, double tolerance, String mode) {
-		ImagePlus img = getImage();
+		IjxImagePlus img = getImage();
 		ImageProcessor ip = img.getProcessor();
-		if ((img.getType()==ImagePlus.GRAY32) && Double.isNaN(ip.getPixelValue(x,y)))
+		if ((img.getType()==IjxImagePlus.GRAY32) && Double.isNaN(ip.getPixelValue(x,y)))
 			return 0;
 		int imode = Wand.LEGACY_MODE;
 		if (mode!=null) {
@@ -1261,8 +1300,8 @@ public class IJ {
 
 	/** Returns a reference to the active image. Displays an error
 		message and aborts the macro if no images are open. */
-	public static ImagePlus getImage() {  //ts
-		ImagePlus img = WindowManager.getCurrentImage();
+	public static IjxImagePlus getImage() {  //ts
+		IjxImagePlus img = WindowManager.getCurrentImage();
 		if (img==null) {
 			IJ.noImage();
 			if (ij==null)
@@ -1315,7 +1354,7 @@ public class IJ {
 			if (dir!=null && !dir.endsWith(File.separator)) dir += File.separator;
 			return dir;
 		} else if (title.equals("image")) {
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 	    	FileInfo fi = imp!=null?imp.getOriginalFileInfo():null;
 			if (fi!=null && fi.directory!=null)
 				return fi.directory;
@@ -1364,7 +1403,7 @@ public class IJ {
 	/** Opens and displays the nth image in the specified tiff stack. */
 	public static void open(String path, int n) {
 		if (ij==null && Menus.getCommands()==null) init();
-		ImagePlus imp = openImage(path, n);
+		IjxImagePlus imp = openImage(path, n);
 		if (imp!=null) imp.show();
 	}
 
@@ -1379,12 +1418,12 @@ public class IJ {
 	}
 
 	/** Opens the nth image of the specified tiff stack. */
-	public static ImagePlus openImage(String path, int n) {
+	public static IjxImagePlus openImage(String path, int n) {
 		return (new Opener()).openImage(path, n);
 	}
 
 	/** Opens an image using a file open dialog and returns it as an ImagePlus object. */
-	public static ImagePlus openImage() {
+	public static IjxImagePlus openImage() {
 		return openImage(null);
 	}
 
@@ -1424,10 +1463,10 @@ public class IJ {
 
 	/** Saves the specified image, lookup table or selection to the specified file path. 
 		The path must end in ".tif", ".jpg", ".gif", ".zip", ".raw", ".avi", ".bmp", ".fits", ".pgm", ".png", ".lut", ".roi" or ".txt".  */
-	public static void save(ImagePlus imp, String path) {
+	public static void save(IjxImagePlus imp, String path) {
 		int dotLoc = path.lastIndexOf('.');
 		if (dotLoc!=-1) {
-			ImagePlus imp2 = imp;
+			IjxImagePlus imp2 = imp;
 			if (imp2==null) imp2 = WindowManager.getCurrentImage();
 			String title = imp2!=null?imp2.getTitle():null;
 			saveAs(imp, path.substring(dotLoc+1), path);
@@ -1448,7 +1487,7 @@ public class IJ {
 	/* Saves the specified image. The format argument must be "tiff",  
 		"jpeg", "gif", "zip", "raw", "avi", "bmp", "fits", "pgm", "png", 
 		"text image", "lut", "selection" or "xy Coordinates". */
- 	public static void saveAs(ImagePlus imp, String format, String path) {
+ 	public static void saveAs(IjxImagePlus imp, String format, String path) {
 		if (format==null) return;
 		if (path!=null && path.length()==0) path = null;
 		format = format.toLowerCase(Locale.US);
@@ -1593,7 +1632,7 @@ public class IJ {
 		 In addition, it can contain "white", "black" or "ramp" (the default is "white"). <code>Width</code> 
 	 	and <code>height</code> specify the width and height of the image in pixels.  
 	 	<code>Depth</code> specifies the number of stack slices. */
-	 public static ImagePlus createImage(String title, String type, int width, int height, int depth) {
+	 public static IjxImagePlus createImage(String title, String type, int width, int height, int depth) {
 		type = type.toLowerCase(Locale.US);
 		int bitDepth = 8;
 		if (type.indexOf("16")!=-1) bitDepth = 16;
@@ -1617,7 +1656,7 @@ public class IJ {
 		and <code>height</code> specify the width and height of the image in pixels.  
 		<code>Depth</code> specifies the number of stack slices. */
 	public static void newImage(String title, String type, int width, int height, int depth) {
-		ImagePlus imp = createImage(title, type, width, height, depth);
+		IjxImagePlus imp = createImage(title, type, width, height, depth);
 		if (imp!=null) {
 			macroRunning = true;
 			imp.show();
@@ -1701,7 +1740,7 @@ public class IJ {
 			return Toolkit.getDefaultToolkit().getScreenSize();
 	}
 	
-	static void abort() {
+	public static void abort() {
 		if (ij!=null || Interpreter.isBatchMode())
 			throw new RuntimeException(Macro.MACRO_CANCELED);
 	}
@@ -1733,8 +1772,8 @@ public class IJ {
 		exceptionHandler = handler;
 	}
 
-	public static ExceptionHandler getExceptionHandler() {
-		return exceptionHandler;
+    public static Vector getListeners() {
+        return listeners;
 	}
 
 	public interface ExceptionHandler {

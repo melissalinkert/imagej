@@ -4,6 +4,7 @@ import ij.text.TextWindow;
 import ij.plugin.MacroInstaller;
 import ij.plugin.frame.Recorder;
 import ij.io.OpenDialog;
+import ijx.IjxImagePlus;
 import java.io.*;
 import java.util.*;
 import java.awt.event.KeyEvent;
@@ -82,7 +83,7 @@ public class Executer implements Runnable {
 		} catch(Throwable e) {
 			IJ.showStatus("");
 			IJ.showProgress(1, 1);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.unlock();
 			String msg = e.getMessage();
 			if (e instanceof OutOfMemoryError) {

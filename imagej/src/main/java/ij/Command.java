@@ -5,11 +5,11 @@ import ij.plugin.PlugIn;
 public class Command {
 	private long time = System.currentTimeMillis();
 	private boolean consumed = false;
-	String command;
-	String className;
-	String arg;
-	Object plugin;
-	int modifiers;
+	public String command;
+	public String className;
+	public String arg;
+	public Object plugin;
+	public int modifiers;
 
 	public Command(String command) {
 		this.command = command;

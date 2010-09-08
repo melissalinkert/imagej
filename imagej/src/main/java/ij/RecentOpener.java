@@ -7,7 +7,7 @@ import java.io.*;
 public class RecentOpener implements Runnable {
 	private String path;
 
-	RecentOpener(String path) {
+	public RecentOpener(String path) {
 		this.path = path;
 		Thread thread = new Thread(this, "RecentOpener");
 		thread.start();

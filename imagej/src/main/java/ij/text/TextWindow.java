@@ -9,11 +9,12 @@ import ij.gui.*;
 import ij.plugin.filter.Analyzer;
 import ij.measure.ResultsTable;
 import ij.macro.Interpreter;
+import ijx.gui.IjxWindow;
 
 /** Uses a TextPanel to displays text in a window.
 	@see TextPanel
 */
-public class TextWindow extends Frame implements ActionListener, FocusListener, ItemListener {
+public class TextWindow extends Frame implements IjxWindow, ActionListener, FocusListener, ItemListener {
 
 	public static final String LOC_KEY = "results.loc";
 	public static final String WIDTH_KEY = "results.width";

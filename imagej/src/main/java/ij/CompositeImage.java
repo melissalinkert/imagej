@@ -5,6 +5,8 @@ import ij.plugin.*;
 import ij.plugin.frame.*;
 import ij.plugin.filter.RGBStackSplitter;
 import ij.io.FileInfo;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.image.*;
 
@@ -39,11 +41,11 @@ public class CompositeImage extends ImagePlus {
 	boolean syncChannels;
 	boolean channelsUpdated;
 
-	public CompositeImage(ImagePlus imp) {
+	public CompositeImage(IjxImagePlus imp) {
 		this(imp, COLOR);
 	}
 	
-	public CompositeImage(ImagePlus imp, int mode) {
+	public CompositeImage(IjxImagePlus imp, int mode) {
 		if (mode<COMPOSITE || mode>GRAYSCALE)
 			mode = COLOR;
 		this.mode = mode;
@@ -95,12 +97,14 @@ public class CompositeImage extends ImagePlus {
 			setOpenAsHyperStack(true);
 	}
 
+    @Override
 	public Image getImage() {
 		if (img==null)
 			updateImage();
 		return img;
 	}
 	
+    @Override
 	public void updateChannelAndDraw() {
 		if (!customLuts) singleChannel = true;
 		updateAndDraw();
@@ -116,6 +120,7 @@ public class CompositeImage extends ImagePlus {
 		}
 	}
 
+    @Override
 	public ImageProcessor getChannelProcessor() {
 		if (cip!=null && currentChannel!=-1)
 			return cip[currentChannel];
@@ -177,6 +182,7 @@ public class CompositeImage extends ImagePlus {
 		}
 	}
 
+    @Override
 	public void updateAndDraw() {
 		updateImage();
 		if (win!=null)
@@ -184,6 +190,7 @@ public class CompositeImage extends ImagePlus {
 		draw();
 	}
 
+    @Override
 	public synchronized void updateImage() {
 		int imageSize = width*height;
 		int nChannels = getNChannels();
@@ -354,7 +361,7 @@ public class CompositeImage extends ImagePlus {
 	}
 	*/
 
-	ImageStack getRGBStack(ImagePlus imp) {
+	IjxImageStack getRGBStack(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		int w = ip.getWidth();
 		int h = ip.getHeight();
@@ -363,7 +370,8 @@ public class CompositeImage extends ImagePlus {
 		byte[] g = new byte[size];
 		byte[] b = new byte[size];
 		((ColorProcessor)ip).getRGB(r, g, b);
-		ImageStack stack = new ImageStack(w, h);
+        // @todo use factory
+		IjxImageStack stack =  (IjxImageStack) new ImageStack(w, h);
 		stack.addSlice("Red", r);	
 		stack.addSlice("Green", g);	
 		stack.addSlice("Blue", b);
@@ -486,6 +494,7 @@ public class CompositeImage extends ImagePlus {
 	}
 	
 	/* Returns a copy of this image's channel LUTs as an array. */
+    @Override
 	public LUT[] getLuts() {
 		int channels = getNChannels();
 		if (lut==null) setupLuts(channels);
@@ -508,7 +517,7 @@ public class CompositeImage extends ImagePlus {
 	/** Copies the LUTs and display mode of 'imp' to this image. Does
 		nothing if 'imp' is not a CompositeImage or 'imp' and this
 		image do not have the same number of channels. */
-	public void copyLuts(ImagePlus imp) {
+	public void copyLuts(IjxImagePlus imp) {
 		int channels = getNChannels();
 		if (!imp.isComposite() || imp.getNChannels()!=channels)
 			return;
@@ -576,6 +585,7 @@ public class CompositeImage extends ImagePlus {
 		setChannelLut(new LUT(cm,0.0,0.0));
 	}
 	
+    @Override
 	public void setDisplayRange(double min, double max) {
 		ip.setMinAndMax(min, max);
 		int c = getChannelIndex();
@@ -583,14 +593,17 @@ public class CompositeImage extends ImagePlus {
 		lut[c].max = max;
 	}
 
+    @Override
 	public double getDisplayRangeMin() {
 		return lut[getChannelIndex()].min;
 	}
 
+    @Override
 	public double getDisplayRangeMax() {
 		return lut[getChannelIndex()].max;
 	}
 
+    @Override
 	public void resetDisplayRange() {
 		ip.resetMinAndMax();
 		int c = getChannelIndex();
@@ -606,7 +619,7 @@ public class CompositeImage extends ImagePlus {
 		channelsUpdated = true;
 	}
 
-	public ImagePlus[] splitChannels(boolean closeAfter) {
+	public IjxImagePlus[] splitChannels(boolean closeAfter) {
 		return RGBStackSplitter.splitChannelsToArray(this,closeAfter);
 	}
 
