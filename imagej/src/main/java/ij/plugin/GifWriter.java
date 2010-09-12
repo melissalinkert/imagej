@@ -1,14 +1,11 @@
 package ij.plugin;
 import ij.*;
 import ij.io.*;
-import ij.gui.*;
 import ij.process.*;
-import ij.plugin.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.io.*;
-import java.awt.*;
 import java.awt.image.*;
-import java.awt.Color;
-import java.awt.Point;
 import java.io.OutputStream;
 import java.io.IOException;
 
@@ -17,13 +14,13 @@ import java.io.IOException;
  * This plugin encodes a GIF file consisting of one or more frames.
  *
  * <pre>
- * Extensively Modified for ImagePlus
+ * Extensively Modified for IjxImagePlus
  * Extended to handle 8 bit Images with more complex Color lookup tables with transparency index
  *
  * Ryan Raz March 2002
  * raz@rraz.ca
  * Version 1.01
- ** Extensively Modified for ImagePlus
+ ** Extensively Modified for IjxImagePlus
  * Extended to handle 8 bit Images with more complex Color lookup tables with transparency index
  *
  * Ryan Raz March 2002
@@ -47,15 +44,15 @@ public class GifWriter implements PlugIn {
 	static int transparentIndex = Prefs.getTransparentIndex();
    
 	public void run(String path) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		if (path.equals("")) {
 			SaveDialog sd = new SaveDialog("Save as Gif", imp.getTitle(), ".gif");
 			if (sd.getFileName()==null) return;
 			path = sd.getDirectory()+sd.getFileName();
 		}
 
-		ImageStack stack = imp.getStack();
-		ImagePlus tmp = new ImagePlus();
+		IjxImageStack stack = imp.getStack();
+		IjxImagePlus tmp = IJ.getFactory().newImagePlus();
 		int nSlices = stack.getSize();
 	    GifEncoder ge = new GifEncoder();
 		double fps = imp.getCalibration().fps;
@@ -100,7 +97,7 @@ class GifEncoder {
    protected int delay = 50;             // frame delay (hundredths)
    boolean started = false;   // ready to output frames
    OutputStream out;
-   ImagePlus image;       // current frame
+   IjxImagePlus image;       // current frame
    byte[] pixels;             // BGR byte array from frame
    byte[] indexedPixels;      // converted frame indexed to palette
    int colorDepth;            // number of bit planes
@@ -132,7 +129,7 @@ class GifEncoder {
     * @param im  containing frame to write.
     * @return true if successful.
     */
-   public boolean addFrame(ImagePlus image) {
+   public boolean addFrame(IjxImagePlus image) {
       if ((image == null) || !started) return false;
       boolean ok = true;
       try {
@@ -181,9 +178,9 @@ class GifEncoder {
 
   
 /********************************************************
-*    Gets Color lookup Table from 8 bit ImagePlus
+*    Gets Color lookup Table from 8 bit IjxImagePlus
 */
-void Process8bitCLT(ImagePlus image){
+void Process8bitCLT(IjxImagePlus image){
        colorDepth = 8;
      	//setTransparent(false);
 	    ImageProcessor ip = image.getProcessor();

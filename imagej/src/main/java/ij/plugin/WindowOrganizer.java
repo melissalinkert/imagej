@@ -1,7 +1,10 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxWindow;
 import java.awt.*;
 
 public class WindowOrganizer implements PlugIn {
@@ -32,7 +35,7 @@ public class WindowOrganizer implements PlugIn {
 		double totalWidth = 0;
 		double totalHeight = 0;
 		for (int i=0; i<wList.length; i++) {
-			ImageWindow win = getWindow(wList[i]);
+			IjxImageWindow win = getWindow(wList[i]);
 			if (win==null)
 				continue;
 			Dimension d = win.getSize();
@@ -97,11 +100,11 @@ public class WindowOrganizer implements PlugIn {
 				hloc = XSTART;
 				vloc = vloc + tileHeight;
 			}
-			ImageWindow win = getWindow(wList[i]);
+			IjxImageWindow win = getWindow(wList[i]);
 			if (win!=null) {
 				win.setLocation(hloc, vloc);
 				//IJ.write(i+" "+w+" "+tileWidth+" "+mag+" "+IJ.d2s(zoomFactor,2)+" "+zoomCount);
-				ImageCanvas canvas = win.getCanvas();
+				IjxImageCanvas canvas = win.getCanvas();
 				while (win.getSize().width*0.85>=tileWidth && canvas.getMagnification()>0.03125)
 					canvas.zoomOut(0, 0);
 				win.toFront();
@@ -110,9 +113,9 @@ public class WindowOrganizer implements PlugIn {
 		}
 	}
 
-	ImageWindow getWindow(int id) {
-		ImageWindow win = null;
-		ImagePlus imp = WindowManager.getImage(id);
+	IjxImageWindow getWindow(int id) {
+		IjxImageWindow win = null;
+		IjxImagePlus imp = WindowManager.getImage(id);
 		if (imp!=null)
 			win = imp.getWindow();
 		return win;
@@ -125,7 +128,7 @@ public class WindowOrganizer implements PlugIn {
 		int xstep = 0;
 		int xstart = XSTART;
 		for (int i=0; i<wList.length; i++) {
-			ImageWindow win = getWindow(wList[i]);
+			IjxImageWindow win = getWindow(wList[i]);
 			if (win==null)
 				continue;
 			Dimension d = win.getSize();
@@ -151,17 +154,17 @@ public class WindowOrganizer implements PlugIn {
 	void showAll(int[] wList) {
 		if (wList!=null) {
 			for (int i=0; i<wList.length; i++) {
-				ImageWindow win = getWindow(wList[i]);
+				IjxImageWindow win = getWindow(wList[i]);
 				if (win!=null) win.toFront();
 				
 			}
 		}
-		Frame[] frames = WindowManager.getNonImageWindows();
+		IjxWindow[] frames = WindowManager.getNonImageWindows();
 		if (frames!=null) {
 			for (int i=0; i<frames.length; i++)
 				frames[i].toFront();
 		}
-		IJ.getInstance().toFront();
+		IJ.getTopComponent().toFront();
 	}
 
 }

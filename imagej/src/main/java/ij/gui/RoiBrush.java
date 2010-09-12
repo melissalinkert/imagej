@@ -1,5 +1,7 @@
 package ij.gui;
 import ij.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 import java.awt.*;
 
 /** Implements the ROI Brush tool.*/
@@ -17,9 +19,9 @@ class RoiBrush implements Runnable {
 
 	public void run() {
 		int size = Toolbar.getBrushSize();
-		ImagePlus img = WindowManager.getCurrentImage();
+		IjxImagePlus img = WindowManager.getCurrentImage();
 		if (img==null) return;
-		ImageCanvas ic = img.getCanvas();
+		IjxImageCanvas ic = img.getCanvas();
 		if (ic==null) return;
 		Roi roi = img.getRoi();
 		if (roi!=null && !roi.isArea())
@@ -46,7 +48,7 @@ class RoiBrush implements Runnable {
 		}
 	}
 
-	void addCircle(ImagePlus img, int x, int y, int width) {
+	void addCircle(IjxImagePlus img, int x, int y, int width) {
 		Roi roi = img.getRoi();
 		Roi roi2 = roi;
 		if (roi2!=null) {
@@ -59,7 +61,7 @@ class RoiBrush implements Runnable {
 		img.setRoi(roi2);
 	}
 
-	void subtractCircle(ImagePlus img, int x, int y, int width) {
+	void subtractCircle(IjxImagePlus img, int x, int y, int width) {
 		Roi roi = img.getRoi();
 		Roi roi2 = roi;
 		if (roi2!=null) {

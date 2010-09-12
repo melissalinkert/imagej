@@ -7,11 +7,13 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.text.*;
-import ij.plugin.filter.Analyzer;
-import ij.plugin.frame.Recorder;
 import ij.plugin.frame.RoiManager;
 import ij.macro.Interpreter;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxWindow;
 
 /** Implements ImageJ's Analyze Particles command.
 	<p>
@@ -96,7 +98,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	protected static final int NOTHING=0,OUTLINES=1,MASKS=2,ELLIPSES=3,ROI_MASKS=4,
 		OVERLAY_OUTLINES=5, OVERLAY_MASKS=6;
 	protected static int staticShowChoice;
-	protected ImagePlus imp;
+	protected IjxImagePlus imp;
 	protected ResultsTable rt;
 	protected Analyzer analyzer;
 	protected int slice;
@@ -119,7 +121,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	private ImageProcessor drawIP;
 	private int width,height;
 	private boolean canceled;
-	private ImageStack outlines;
+	private IjxImageStack outlines;
 	private IndexColorModel customLut;
 	private int particleCount;
 	private int maxParticleCount = 0;
@@ -129,7 +131,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	private int imageType, imageType2;
 	private boolean roiNeedsImage;
 	private int minX, maxX, minY, maxY;
-	private ImagePlus redirectImp;
+	private IjxImagePlus redirectImp;
 	private ImageProcessor redirectIP;
 	private PolygonFiller pf;
 	private Roi saveRoi;
@@ -140,7 +142,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	private FloodFiller ff;
 	private Polygon polygon;
 	private RoiManager roiManager;
-	private ImagePlus outputImage;
+	private IjxImagePlus outputImage;
 	private boolean hideOutputImage;
 	private int roiType;
 	private int wandMode = Wand.LEGACY_MODE;
@@ -196,7 +198,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		slice = 1;
 	}
 	
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		IJ.register(ParticleAnalyzer.class);
@@ -228,7 +230,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		slice++;
 		if (imp.getStackSize()>1 && processStack)
 			imp.setSlice(slice);
-		if (imp.getType()==ImagePlus.COLOR_RGB) {
+		if (imp.getType()==IjxImagePlus.COLOR_RGB) {
 			ip = ip.convertToByte(false);
 			int t = Prefs.blackBackground?255:0;
 			ip.setThreshold(t, t, ImageProcessor.NO_LUT_UPDATE);
@@ -373,7 +375,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		return true;
 	}
 	
-	private boolean isBinaryRGB(ImagePlus imp) {
+	private boolean isBinaryRGB(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		int[] pixels = (int[])ip.getPixels();
 		int size = imp.getWidth()*imp.getHeight();
@@ -402,13 +404,13 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 
 	/** Performs particle analysis on the specified image. Returns
 		false if there is an error. */
-	public boolean analyze(ImagePlus imp) {
+	public boolean analyze(IjxImagePlus imp) {
 		return analyze(imp, imp.getProcessor());
 	}
 
-	/** Performs particle analysis on the specified ImagePlus and
+	/** Performs particle analysis on the specified IjxImagePlus and
 		ImageProcessor. Returns false if there is an error. */
-	public boolean analyze(ImagePlus imp, ImageProcessor ip) {
+	public boolean analyze(IjxImagePlus imp, ImageProcessor ip) {
 		if (this.imp==null) this.imp = imp;
 		showResults = (options&SHOW_RESULTS)!=0;
 		excludeEdgeParticles = (options&EXCLUDE_EDGE_PARTICLES)!=0;
@@ -427,7 +429,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 			if (redirectImp==null) return false;
 			int depth = redirectImp.getStackSize();
 			if (depth>1 && depth==imp.getStackSize()) {
-				ImageStack redirectStack = redirectImp.getStack();
+				IjxImageStack redirectStack = redirectImp.getStack();
 				redirectIP = redirectStack.getProcessor(imp.getCurrentSlice());
 			} else
 				redirectIP = redirectImp.getProcessor();
@@ -439,7 +441,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		if (!(showChoice==NOTHING||showChoice==OVERLAY_OUTLINES||showChoice==OVERLAY_MASKS)) {
 			blackBackground = Prefs.blackBackground && inSituShow;
 			if (slice==1)
-				outlines = new ImageStack(width, height);
+				outlines = IJ.getFactory().newImageStack(width, height);
 			if (showChoice==ROI_MASKS)
 				drawIP = new ShortProcessor(width, height);
 			else
@@ -502,9 +504,9 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		double value;
 		int inc = Math.max(r.height/25, 1);
 		int mi = 0;
-		ImageWindow win = imp.getWindow();
+		IjxImageWindow win = imp.getWindow();
 		if (win!=null)
-			win.running = true;
+			win.setRunning(true);
 		if (measurements==0)
 			measurements = Analyzer.getMeasurements();
 		if (showChoice==ELLIPSES)
@@ -536,7 +538,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 			if (showProgress && ((y%inc)==0))
 				IJ.showProgress((double)(y-r.y)/r.height);
 			if (win!=null)
-				canceled = !win.running;
+				canceled = !win.isRunning();
 			if (canceled) {
 				Macro.abort();
 				break;
@@ -584,7 +586,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		aLine = label+"\t"+particleCount+total+average+fraction;
 		aLine = addMeans(aLine, start);
 		if (slices==1) {
-			Frame frame = WindowManager.getFrame("Summary");
+			IjxWindow frame = WindowManager.getFrame("Summary");
 			if (frame!=null && (frame instanceof TextWindow) && summaryHdr.equals(prevHdr))
 				tw = (TextWindow)frame;
 		}
@@ -694,11 +696,11 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 		ip.fill();
 		ip.resetRoi();
 		//IJ.log("erase: "+fillColor+"	"+level1+"	"+level2+"	"+excludeEdgeParticles);
-		//(new ImagePlus("ip2", ip.duplicate())).show();
+		//(IJ.getFactory().newImagePlus("ip2", ip.duplicate())).show();
 		return true;
 	}
 
-	boolean setThresholdLevels(ImagePlus imp, ImageProcessor ip) {
+	boolean setThresholdLevels(IjxImagePlus imp, ImageProcessor ip) {
 		double t1 = ip.getMinThreshold();
 		double t2 = ip.getMaxThreshold();
 		boolean invertedLut = imp.isInvertedLut();
@@ -762,7 +764,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	
 	int counter = 0;
 	
-	void analyzeParticle(int x, int y, ImagePlus imp, ImageProcessor ip) {
+	void analyzeParticle(int x, int y, IjxImagePlus imp, ImageProcessor ip) {
 		//Wand wand = new Wand(ip);
 		ImageProcessor ip2 = redirectIP!=null?redirectIP:ip;
 		wand.autoOutline(x, y, level1, level2, wandMode);
@@ -849,7 +851,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 				if (Macro.getOptions()!=null && Interpreter.isBatchMode())
 					roiManager = Interpreter.getBatchModeRoiManager();
 				if (roiManager==null) {
-					Frame frame = WindowManager.getFrame("ROI Manager");
+					IjxWindow frame = WindowManager.getFrame("ROI Manager");
 					if (frame==null)
 						IJ.run("ROI Manager...");
 					frame = WindowManager.getFrame("ROI Manager");
@@ -943,7 +945,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 			else
 				prefix = "Drawing of ";
 			outlines.update(drawIP);
-			outputImage = new ImagePlus(prefix+title, outlines);
+			outputImage = IJ.getFactory().newImagePlus(prefix+title, outlines);
 			if (inSituShow) {
 				if (imp.getStackSize()==1)
 					Undo.setup(Undo.TRANSFORM, imp);
@@ -963,7 +965,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	
 	/** Returns the "Outlines", "Masks", "Elipses" or "Count Masks" image,
 		or null if "Nothing" is selected in the "Show:" menu. */
-	public ImagePlus getOutputImage() {
+	public IjxImagePlus getOutputImage() {
 		return outputImage;
 	}
 

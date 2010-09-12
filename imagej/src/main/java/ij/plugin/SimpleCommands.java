@@ -1,10 +1,8 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
 import ij.gui.*;
 import ij.io.Opener;
-import ij.text.TextWindow;
-import java.awt.Frame;
+import ijx.IjxImagePlus;
 
 /** This plugin implements the Plugins/Utilities/Unlock, Image/Rename
 	and Plugins/Utilities/Search commands. */
@@ -42,7 +40,7 @@ public class SimpleCommands implements PlugIn {
 	}
 	
 	void unlock() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		boolean wasUnlocked = imp.lockSilently();
 		if (wasUnlocked)
 			IJ.showStatus("\""+imp.getTitle()+"\" is not locked");
@@ -54,7 +52,7 @@ public class SimpleCommands implements PlugIn {
 	}
 
 	void resetClipboard() {
-		ImagePlus.resetClipboard();
+		IJ.getInstance().resetClipboard();
 		IJ.showStatus("Clipboard reset");
 	}
 	
@@ -64,7 +62,7 @@ public class SimpleCommands implements PlugIn {
 	}
 	
 	void rename() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		GenericDialog gd = new GenericDialog("Rename");
 		gd.addStringField("Title:", imp.getTitle(), 30);
 		gd.showDialog();

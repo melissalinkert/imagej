@@ -1,10 +1,10 @@
 package ijx.plugin.parameterized;
 
 import ij.IJ;
-import ij.ImageJ;
-import ij.ImagePlus;
 import ij.gui.NewImage;
 import ij.plugin.Duplicator;
+import ijx.IjxImagePlus;
+import ijx.ImageJX;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -40,10 +40,10 @@ public class Example_PlugIn extends AbstractPlugIn {
     @Parameter
     public boolean yesOrNo = false;
     @Parameter
-    public ImagePlus impIn;
+    public IjxImagePlus impIn;
     //
     @Parameter(output = true)
-    public ImagePlus impOut;
+    public IjxImagePlus impOut;
     @Parameter(output = true)
     public int outputValue = 9;
 
@@ -76,8 +76,8 @@ public class Example_PlugIn extends AbstractPlugIn {
         System.out.println("End of run() in " + this.getClass().getName() +".\n");
     }
 
-    public ImagePlus duplicateStack(ImagePlus imp, String newTitle) {
-        ImagePlus imp2 = (new Duplicator()).run(imp);
+    public IjxImagePlus duplicateStack(IjxImagePlus imp, String newTitle) {
+        IjxImagePlus imp2 = (new Duplicator()).run(imp);
         imp2.setTitle(newTitle);
         return imp2;
     }
@@ -88,8 +88,8 @@ public class Example_PlugIn extends AbstractPlugIn {
             SwingUtilities.invokeAndWait(new Runnable() {
 
                 public void run() {
-                    ImageJ.main(null); // launch ImageJ
-                    ImagePlus imp = IJ.openImage("http://rsb.info.nih.gov/ij/images/blobs.gif");
+                    ImageJX.main(null); // launch ImageJ
+                    IjxImagePlus imp = IJ.openImage("http://rsb.info.nih.gov/ij/images/blobs.gif");
                     imp.show();
                 }
             });

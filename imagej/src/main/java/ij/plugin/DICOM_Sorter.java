@@ -1,43 +1,43 @@
 package ij.plugin;
 import ij.*;
 import ij.process.*;
-import ij.gui.*;
-import java.awt.*;
 import ij.util.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /* Sorts a DICOM stack by image number. */
 public class DICOM_Sorter implements PlugIn {
 	static final int MAX_DIGITS = 5;
 
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		if (!isDicomStack(imp)) {
 			IJ.showMessage("DICOM Sorter", "This command requires a DICOM stack");
 			return;
 		}
 		int stackSize = imp.getStackSize();
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		String[] strings = getSortStrings(stack, "0020,0013");
 		if (strings==null) return;
 		StringSorter.sort(strings);
-		ImageStack stack2 = sortStack(stack, strings);
+		IjxImageStack stack2 = sortStack(stack, strings);
 		if (stack2!=null)
 			imp.setStack(null, stack2);
 	}
 	
-	public ImageStack sort(ImageStack stack) {
+	public IjxImageStack sort(IjxImageStack stack) {
 		if (IJ.debugMode) IJ.log("DICOM_Sorter: sorting by image number");
 		if (stack.getSize()==1) return stack;
 		String[] strings = getSortStrings(stack, "0020,0013");
 		if (strings==null) return stack;
 		StringSorter.sort(strings);
-		ImageStack stack2 = sortStack(stack, strings);
+		IjxImageStack stack2 = sortStack(stack, strings);
 		return stack2!=null?stack2:stack;
 	}
 	
-	ImageStack sortStack(ImageStack stack, String[] strings) {
+	IjxImageStack sortStack(IjxImageStack stack, String[] strings) {
 		ImageProcessor ip = stack.getProcessor(1);
-		ImageStack stack2 = new ImageStack(ip.getWidth(), ip.getHeight(), ip.getColorModel());
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(ip.getWidth(), ip.getHeight(), ip.getColorModel());
 		for (int i=0; i<stack.getSize(); i++) {
 			int slice = (int)Tools.parseDouble(strings[i].substring(strings[i].length()-MAX_DIGITS), 0.0);
 			if (slice==0) return null;
@@ -47,7 +47,7 @@ public class DICOM_Sorter implements PlugIn {
 		return stack2;
 	}
 
-	String[] getSortStrings(ImageStack stack, String tag) {
+	String[] getSortStrings(IjxImageStack stack, String tag) {
 		double series = getSeriesNumber(stack.getSliceLabel(1));
 		int n = stack.getSize();
 		String[] values = new String[n];
@@ -73,10 +73,10 @@ public class DICOM_Sorter implements PlugIn {
 		return s.substring(s.length()-MAX_DIGITS);
 	}
 
-	boolean isDicomStack(ImagePlus imp) {
+	boolean isDicomStack(IjxImagePlus imp) {
 		if (imp.getStackSize()==1)
 			return false;
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		String label = stack.getSliceLabel(1);
 		return label!=null && label.lastIndexOf("7FE0,0010")>0;
 	}

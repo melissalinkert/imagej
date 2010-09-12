@@ -3,7 +3,8 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.io.*;
-import ij.plugin.Animator;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
@@ -145,8 +146,8 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
     private  boolean           variableLength;      //compressed (PNG, JPEG) frames have variable length
     //for conversion to ImageJ stack
     private  Vector            frameInfos;  //for virtual stack: long[] with frame pos&size in file, time(usec)
-    private  ImageStack        stack;
-	private  ImagePlus	       imp;
+    private  IjxImageStack        stack;
+	private  IjxImagePlus	       imp;
     //for debug messages
     private  boolean           verbose = IJ.debugMode;
     private  long              startTime;
@@ -209,7 +210,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         }
         if (!showDialog(fileName)) return;                          //ask for parameters
         try {
-            ImageStack stack = makeStack (path, firstFrameNumber, lastFrameNumber,
+            IjxImageStack stack = makeStack (path, firstFrameNumber, lastFrameNumber,
                     isVirtual, convertToGray, flipVertical);        //read data
         } catch (Exception e) {
             IJ.showMessage("AVI Reader", exceptionMessage(e));
@@ -224,7 +225,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
             IJ.showMessage("AVI Reader","Error: No Frames Found"+rangeText);
             return;
         }
-        imp = new ImagePlus(fileName, stack);
+        imp = IJ.getFactory().newImagePlus(fileName, stack);
         if (imp.getBitDepth()==16)
         	imp.getProcessor().resetMinAndMax();
         setFramesPerSecond(imp);
@@ -237,12 +238,12 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         IJ.showTime(imp, startTime, "Read AVI in ", stack.getSize());
     }
 
-    /** Returns the ImagePlus opened by run(). */
-	public ImagePlus getImagePlus() {
+    /** Returns the IjxImagePlus opened by run(). */
+	public IjxImagePlus getImagePlus() {
 		return imp;
 	}
 
-    /** Create an ImageStack from an avi file with given path.
+    /** Create an IjxImageStack from an avi file with given path.
      * @param path              Directoy+filename of the avi file
      * @param firstFrameNumber  Number of first frame to read (first frame of the file is 1)
      * @param lastFrameNumber   Number of last frame to read or 0 for reading all, -1 for all but last...
@@ -251,7 +252,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
      * @return  Returns the stack; null on failure.
      *  The stack returned may be non-null, but have a length of zero if no suitable frames were found
      */
-    public ImageStack makeStack (String path, int firstFrameNumber, int lastFrameNumber,
+    public IjxImageStack makeStack (String path, int firstFrameNumber, int lastFrameNumber,
             boolean isVirtual, boolean convertToGray, boolean flipVertical) {
         this.firstFrameNumber = firstFrameNumber;
         this.lastFrameNumber = lastFrameNumber;
@@ -688,7 +689,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         if (isVirtual)
             frameInfos = new Vector(100);    //holds frame positions in file (for non-constant frame sizes, should hold long[] with pos and size)
         else
-            stack = new ImageStack(dwWidth, biHeight);
+            stack = IJ.getFactory().newImageStack(dwWidth, biHeight);
         int frameNumber = 1;
         while (true) {                          //loop over all chunks
             int type = readType(endPosition);
@@ -943,7 +944,7 @@ public class AVI_Reader extends VirtualStack implements PlugIn {
         }
     }
 
-    private void setFramesPerSecond (ImagePlus imp) {
+    private void setFramesPerSecond (IjxImagePlus imp) {
         if (dwMicroSecPerFrame<1000 && dwStreamRate>0)  //if no reasonable frame time, get it from rate
             dwMicroSecPerFrame = (int)(dwStreamScale*1e6/dwStreamRate);
         if (dwMicroSecPerFrame>=1000)

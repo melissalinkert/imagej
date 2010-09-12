@@ -1,12 +1,14 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
 import ij.gui.*;
 import ij.io.*;
 import ij.plugin.frame.*;
 import ij.text.TextWindow;
 import ij.macro.Interpreter;
-import java.awt.Frame;
+import ijx.IjxImagePlus;
+import ijx.app.IjxApplication;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxWindow;
 import java.io.File;
 import java.applet.Applet;
 	
@@ -28,12 +30,12 @@ public class Commands implements PlugIn {
 		else if (cmd.equals("save"))
 			save();
 		else if (cmd.equals("ij")) {
-			ImageJ ij = IJ.getInstance();
+            IjxWindow ij = IJ.getTopComponent();
 			if (ij!=null) ij.toFront();
 		} else if (cmd.equals("tab"))
 			WindowManager.putBehind();
 		else if (cmd.equals("quit")) {
-			ImageJ ij = IJ.getInstance();
+			IjxApplication ij = IJ.getInstance();
 			if (ij!=null) ij.quit();
 		} else if (cmd.equals("revert"))
 			revert();
@@ -44,7 +46,7 @@ public class Commands implements PlugIn {
     }
     
     void revert() {
-    	ImagePlus imp = WindowManager.getCurrentImage();
+    	IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null)
 			imp.revert();
 		else
@@ -52,7 +54,7 @@ public class Commands implements PlugIn {
 	}
 
     void save() {
-    	ImagePlus imp = WindowManager.getCurrentImage();
+    	IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
 			boolean unlockedImage = imp.getStackSize()==1&&!imp.isLocked();
 			if (unlockedImage) imp.lock();
@@ -63,7 +65,7 @@ public class Commands implements PlugIn {
 	}
 	
     void undo() {
-    	ImagePlus imp = WindowManager.getCurrentImage();
+    	IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null)
 			Undo.undo();
 		else
@@ -71,9 +73,9 @@ public class Commands implements PlugIn {
 	}
 
 	void close() {
-    	ImagePlus imp = WindowManager.getCurrentImage();
-		Frame frame = WindowManager.getFrontWindow();
-		if (frame==null || (Interpreter.isBatchMode() && frame instanceof ImageWindow))
+    	IjxImagePlus imp = WindowManager.getCurrentImage();
+		IjxWindow frame = WindowManager.getFrontWindow();
+		if (frame==null || (Interpreter.isBatchMode() && frame instanceof IjxImageWindow))
 			closeImage(imp);
 		else if (frame instanceof PlugInFrame)
 			((PlugInFrame)frame).close();
@@ -88,8 +90,8 @@ public class Commands implements PlugIn {
     	if (list!=null) {
     		int imagesWithChanges = 0;
 			for (int i=0; i<list.length; i++) {
-				ImagePlus imp = WindowManager.getImage(list[i]);
-				if (imp!=null && imp.changes) imagesWithChanges++;
+				IjxImagePlus imp = WindowManager.getImage(list[i]);
+				if (imp!=null && imp.isChanged()) imagesWithChanges++;
 			}
 			if (imagesWithChanges>0 && !IJ.macroRunning()) {
 				GenericDialog gd = new GenericDialog("Close All");
@@ -103,9 +105,9 @@ public class Commands implements PlugIn {
 				if (gd.wasCanceled()) return;
 			}
 			for (int i=0; i<list.length; i++) {
-				ImagePlus imp = WindowManager.getImage(list[i]);
+				IjxImagePlus imp = WindowManager.getImage(list[i]);
 				if (imp!=null) {
-					imp.changes = false;
+					imp.setChanged(false);
 					imp.close();
 				}
 			}
@@ -117,7 +119,7 @@ public class Commands implements PlugIn {
     	//}
 	}
 
-	void closeImage(ImagePlus imp) {
+	void closeImage(IjxImagePlus imp) {
 		if (imp==null) {
 			IJ.noImage();
 			return;

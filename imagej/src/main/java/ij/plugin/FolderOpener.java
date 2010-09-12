@@ -8,6 +8,8 @@ import ij.io.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** Implements the File/Import/Image Sequence command, which
 opens a folder of images as a stack. */
@@ -45,7 +47,7 @@ public class FolderOpener implements PlugIn {
 		if (list==null) return;
 		if (IJ.debugMode) IJ.log("FolderOpener: "+directory+" ("+list.length+" files)");
 		int width=0,height=0,depth=0,bitDepth=0;
-		ImageStack stack = null;
+		IjxImageStack stack = null;
 		double min = Double.MAX_VALUE;
 		double max = -Double.MAX_VALUE;
 		Calibration cal = null;
@@ -54,7 +56,7 @@ public class FolderOpener implements PlugIn {
 		try {
 			for (int i=0; i<list.length; i++) {
 				IJ.redirectErrorMessages();
-				ImagePlus imp = (new Opener()).openImage(directory, list[i]);
+				IjxImagePlus imp = (new Opener()).openImage(directory, list[i]);
 				if (imp!=null) {
 					width = imp.getWidth();
 					height = imp.getHeight();
@@ -109,7 +111,7 @@ public class FolderOpener implements PlugIn {
 				n = list.length-start+1;
 			int count = 0;
 			int counter = 0;
-			ImagePlus imp = null;
+			IjxImagePlus imp = null;
 			for (int i=start-1; i<list.length; i++) {
 				if ((counter++%increment)!=0)
 					continue;
@@ -130,9 +132,9 @@ public class FolderOpener implements PlugIn {
 						stack = new VirtualStack(width, height, cm, directory);
 						((VirtualStack)stack).setBitDepth(bitDepth);
 					} else if (scale<100.0)						
-						stack = new ImageStack((int)(width*scale/100.0), (int)(height*scale/100.0), cm);
+						stack = IJ.getFactory().newImageStack((int)(width*scale/100.0), (int)(height*scale/100.0), cm);
 					else
-						stack = new ImageStack(width, height, cm);
+						stack = IJ.getFactory().newImageStack(width, height, cm);
 					info1 = (String)imp.getProperty("Info");
 				}
 				if (imp==null)
@@ -149,7 +151,7 @@ public class FolderOpener implements PlugIn {
 				}
 				if (imp.getCalibration().pixelWidth!=cal.pixelWidth)
 					allSameCalibration = false;
-				ImageStack inputStack = imp.getStack();
+				IjxImageStack inputStack = imp.getStack();
 				for (int slice=1; slice<=inputStack.getSize(); slice++) {
 					ImageProcessor ip = inputStack.getProcessor(slice);
 					int bitDepth2 = imp.getBitDepth();
@@ -199,8 +201,8 @@ public class FolderOpener implements PlugIn {
 		if (stack!=null && stack.getSize()>0) {
 			if (info1!=null && info1.lastIndexOf("7FE0,0010")>0)
 				stack = (new DICOM_Sorter()).sort(stack);
-			ImagePlus imp2 = new ImagePlus(title, stack);
-			if (imp2.getType()==ImagePlus.GRAY16 || imp2.getType()==ImagePlus.GRAY32)
+			IjxImagePlus imp2 = IJ.getFactory().newImagePlus(title, stack);
+			if (imp2.getType()==IjxImagePlus.GRAY16 || imp2.getType()==IjxImagePlus.GRAY32)
 				imp2.getProcessor().setMinAndMax(min, max);
 			if (fi==null)
 				fi = new FileInfo();
@@ -227,7 +229,7 @@ public class FolderOpener implements PlugIn {
 		IJ.showProgress(1.0);
 	}
 	
-	boolean showDialog(ImagePlus imp, String[] list) {
+	boolean showDialog(IjxImagePlus imp, String[] list) {
 		int fileCount = list.length;
 		FolderOpenerDialog gd = new FolderOpenerDialog("Sequence Options", imp, list);
 		gd.addNumericField("Number of images:", fileCount, 0);
@@ -333,13 +335,13 @@ public class FolderOpener implements PlugIn {
 } // FolderOpener
 
 class FolderOpenerDialog extends GenericDialog {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int fileCount;
  	boolean eightBits, rgb;
  	String[] list;
  	boolean isRegex;
 
-	public FolderOpenerDialog(String title, ImagePlus imp, String[] list) {
+	public FolderOpenerDialog(String title, IjxImagePlus imp, String[] list) {
 		super(title);
 		this.imp = imp;
 		this.list = list;
@@ -395,10 +397,10 @@ class FolderOpenerDialog extends GenericDialog {
 			if (n2<n) n = n2;
  		}
 		switch (imp.getType()) {
-			case ImagePlus.GRAY16:
+			case IjxImagePlus.GRAY16:
 				bytesPerPixel=2;break;
-			case ImagePlus.COLOR_RGB:
-			case ImagePlus.GRAY32:
+			case IjxImagePlus.COLOR_RGB:
+			case IjxImagePlus.GRAY32:
 				bytesPerPixel=4; break;
 		}
 		if (eightBits)

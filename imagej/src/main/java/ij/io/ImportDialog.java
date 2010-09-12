@@ -12,6 +12,8 @@ import ij.plugin.frame.Recorder;
 import ij.plugin.FolderOpener;
 import ij.plugin.FileInfoVirtualStack;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 
 /** This is a dialog box used to imports raw 8, 16, 24 and 32-bit images. */
@@ -64,7 +66,7 @@ public class ImportDialog {
 	boolean showDialog() {
 		if (choiceSelection>=types.length)
 			choiceSelection = 0;
-		GenericDialog gd = new GenericDialog("Import...", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Import...", IJ.getTopComponentFrame());
 		gd.addChoice("Image type:", types, types[choiceSelection]);
 		gd.addNumericField("Width:", width, 0, 6, "pixels");
 		gd.addNumericField("Height:", height, 0, 6, "pixels");
@@ -100,8 +102,8 @@ public class ImportDialog {
 		list = fo.trimFileList(list);
 		list = fo.sortFileList(list);
 		if (list==null) return;
-		ImageStack stack=null;
-		ImagePlus imp=null;
+		IjxImageStack stack=null;
+		IjxImagePlus imp=null;
 		double min = Double.MAX_VALUE;
 		double max = -Double.MAX_VALUE;
 		for (int i=0; i<list.length; i++) {
@@ -129,7 +131,7 @@ public class ImportDialog {
 			}
 		}
 		if (stack!=null) {
-			imp = new ImagePlus("Imported Stack", stack);
+			imp = IJ.getFactory().newImagePlus("Imported Stack", stack);
 			if (imp.getBitDepth()==16 || imp.getBitDepth()==32)
 				imp.getProcessor().setMinAndMax(min, max);
                 Calibration cal = imp.getCalibration();
@@ -157,7 +159,7 @@ public class ImportDialog {
 			new FileInfoVirtualStack(fi);
 		else {
 			FileOpener fo = new FileOpener(fi);
-			ImagePlus imp = fo.open(false);
+			IjxImagePlus imp = fo.open(false);
 			if (imp!=null) {
 				imp.show();
 				int n = imp.getStackSize();

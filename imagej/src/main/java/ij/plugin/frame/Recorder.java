@@ -2,16 +2,12 @@ package ij.plugin.frame;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
-import java.io.*;
 import ij.*;
 import ij.plugin.*;
-import ij.plugin.frame.*; 
-import ij.text.*;
 import ij.gui.*;
 import ij.util.*;
-import ij.io.*;
-import ij.process.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
 
 /** This is ImageJ's macro recorder. */
 public class Recorder extends PlugInFrame implements PlugIn, ActionListener, ImageListener, ItemListener {
@@ -99,10 +95,12 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 		imageUpdated = false;
 		imageID = 0;
 		if (scriptMode) {
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			imageID = imp!=null?imp.getID():0;
-			if (imageID!=0)
-				ImagePlus.addImageListener(instance);
+            // @todo ??? this needs attention.
+			if (imageID!=0) {
+				//imp.addImageListener(instance);
+            }
 		}
 		//IJ.log("setCommand: "+command+" "+Thread.currentThread().getName());
 	}
@@ -382,7 +380,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 				else if (name.equals("Add to Manager "))
 					;
 				else if (name.equals("Draw")&&!scriptMode) {
-					ImagePlus imp = WindowManager.getCurrentImage();
+					IjxImagePlus imp = WindowManager.getCurrentImage();
 					Roi roi = imp.getRoi();
 					if (roi!=null && (roi instanceof TextRoi))
 						textArea.append(((TextRoi)roi).getMacroCode(imp.getProcessor()));
@@ -402,6 +400,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 		commandName = null;
 		commandOptions = null;
 		if (imageID!=0) {
+            // @todo ??? this needs attention.
 			ImagePlus.removeImageListener(instance);
 			imageID = 0;
 		}
@@ -488,7 +487,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 				+ text;
 			}
 			if (text.indexOf("imp =")==-1 && text.indexOf("IJ.openImage")==-1 && text.indexOf("IJ.createImage")==-1)
-				text = (java?"ImagePlus ":"") + "imp = IJ.getImage();\n" + text;
+				text = (java?"IjxImagePlus ":"") + "imp = IJ.getImage();\n" + text;
 			if (text.indexOf("imp =")!=-1 && !(text.indexOf("IJ.getImage")!=-1||text.indexOf("IJ.saveAs")!=-1||text.indexOf("imp.close")!=-1))
 				text = text + "imp.show();\n";
 			if (java) {
@@ -522,7 +521,7 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 			if (line!=null && line.length()>3) {
 				sb.append("\t\t");
 				if (line.startsWith("imp =") && !impDeclared) {
-					sb.append("ImagePlus ");
+					sb.append("IjxImagePlus ");
 					impDeclared = true;
 				}
 				sb.append(line);
@@ -565,14 +564,14 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
 			fileName.setText("My_Plugin.java");
 	}
 
-	public void imageUpdated(ImagePlus imp) {
+	public void imageUpdated(IjxImagePlus imp) {
 		if (imp.getID()==imageID)
 			imageUpdated = true;
 	}
 
-	public void imageOpened(ImagePlus imp) { }
+	public void imageOpened(IjxImagePlus imp) { }
 
-	public void imageClosed(ImagePlus imp) { }
+	public void imageClosed(IjxImagePlus imp) { }
 
     void showHelp() {
     	IJ.showMessage("Recorder",
@@ -597,13 +596,14 @@ public class Recorder extends PlugInFrame implements PlugIn, ActionListener, Ima
     	close();
 	}
 
-	public void close() {
+	public boolean close() {
 		super.close();
 		record = false;
 		textArea = null;
 		commandName = null;
 		instance = null;	
 		Prefs.set("recorder.mode", mode.getSelectedItem());
+        return true;
 	}
 
 	public String getText() {

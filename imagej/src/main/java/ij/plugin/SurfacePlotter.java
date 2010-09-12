@@ -5,9 +5,11 @@ import ij.process.*;
 import ij.gui.*;
 import java.awt.*;
 import java.awt.image.*;
-import java.math.*;
 import java.util.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 
 
 public class SurfacePlotter implements PlugIn {
@@ -25,7 +27,7 @@ public class SurfacePlotter implements PlugIn {
 	static boolean blackFill=false;
 	static boolean smooth = true;
 
-	ImagePlus img;
+	IjxImagePlus img;
 	int[] x,y;
 	boolean invertedLut;
 	double angleInDegrees = 35;
@@ -43,7 +45,7 @@ public class SurfacePlotter implements PlugIn {
 		img = WindowManager.getCurrentImage();
 		if (img==null)
 			{IJ.noImage(); return;}
-		if (img.getType()==ImagePlus.COLOR_RGB)
+		if (img.getType()==IjxImagePlus.COLOR_RGB)
 			{IJ.error("Surface Plotter", "Grayscale or pseudo-color image required"); return;}
 		invertedLut = img.getProcessor().isInvertedLut();
 		if (firstTime) {
@@ -61,28 +63,28 @@ public class SurfacePlotter implements PlugIn {
 		lut = img.createLut();
 		
 		if(stackFlags == PlugInFilter.DOES_STACKS && img.getStack().getSize()>1){			
-			ImageStack stackSource = img.getStack();
+			IjxImageStack stackSource = img.getStack();
 			ImageProcessor ip = stackSource.getProcessor(1);
 			ImageProcessor plot = makeSurfacePlot(ip);
-			ImageStack stack = new ImageStack(plot.getWidth(), plot.getHeight());
+			IjxImageStack stack = IJ.getFactory().newImageStack(plot.getWidth(), plot.getHeight());
 			stack.setColorModel(plot.getColorModel());			
 			for(int i=1;i<=stackSource.getSize();i++)
 				stack.addSlice(null, new byte[plot.getWidth()* plot.getHeight()]);
 			stack.setPixels(plot.getPixels(), 1);
-			ImagePlus plots = new ImagePlus("Surface Plot", stack);
+			IjxImagePlus plots = IJ.getFactory().newImagePlus("Surface Plot", stack);
 			plots.show();
 			for(int i=2;i<=stackSource.getSize();i++) {
 				IJ.showStatus("Drawing slice " + i + "..." + " (" + (100*(i-1)/stackSource.getSize()) + "% done)");
 				ip = stackSource.getProcessor(i);
 				plot = makeSurfacePlot(ip);
-				ImageWindow win = plots.getWindow();
+				IjxImageWindow win = plots.getWindow();
 				if (win!=null && win.isClosed()) break;
 				stack.setPixels(plot.getPixels(), i);
 				plots.setSlice(i);
 			}
 		} else {
 			ImageProcessor plot = makeSurfacePlot(img.getProcessor());
-			new ImagePlus("Surface Plot", plot).show();
+			IJ.getFactory().newImagePlus("Surface Plot", plot).show();
 		}
 		
 		Date end = new Date();
@@ -397,7 +399,7 @@ public class SurfacePlotter implements PlugIn {
 		ipText.setRoi(tW/2-ipW/2, 0, ipW, ipH);
 		ipText = ipText.crop();
 		
-		//new ImagePlus("test", ipText).show();
+		//IJ.getFactory().newImagePlus("test", ipText).show();
 		//ip.copyBits(ipText, x, y, Blitter.COPY_TRANSPARENT);
 
 		return ipText;

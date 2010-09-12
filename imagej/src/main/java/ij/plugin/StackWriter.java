@@ -1,13 +1,12 @@
 package ij.plugin;
-import java.awt.*;
-import java.io.*;
-import java.text.DecimalFormat;	
 import java.util.*;
 import ij.*;
 import ij.io.*;
 import ij.gui.*;
 import ij.measure.Calibration;
 import ij.process.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin, which saves the images in a stack as separate files, 
 	implements the File/Save As/Image Sequence command. */
@@ -25,7 +24,7 @@ public class StackWriter implements PlugIn {
 	//private static boolean startAtZero;
 
 	public void run(String arg) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null || (imp!=null && imp.getStackSize()<2)) {
 			IJ.error("Stack Writer", "This command requires a stack.");
 			return;
@@ -103,8 +102,8 @@ public class StackWriter implements PlugIn {
 		boolean isOverlay = imp.getOverlay()!=null && !imp.getHideOverlay();
 		if (!(format.equals("jpeg")||format.equals("png")))
 			isOverlay = false;
-		ImageStack stack = imp.getStack();
-		ImagePlus imp2 = new ImagePlus();
+		IjxImageStack stack = imp.getStack();
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus();
 		imp2.setTitle(imp.getTitle());
 		Calibration cal = imp.getCalibration();
 		int nSlices = stack.getSize();

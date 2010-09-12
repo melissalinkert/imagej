@@ -1,8 +1,9 @@
 package ij.plugin;
 import ij.*;
 import ij.gui.*;
-import ij.process.*;
-import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
 
 /** This plugin implements the commands in the Image/Zoom submenu. */
@@ -10,10 +11,10 @@ public class Zoom implements PlugIn{
 
 	/** 'arg' must be "in", "out", "100%" or "orig". */
 	public void run(String arg) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
-		ImageCanvas ic = imp.getCanvas();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic==null) return;
 		Point loc = ic.getCursorLoc();
 		int x = ic.screenX(loc.x);
@@ -33,13 +34,13 @@ public class Zoom implements PlugIn{
 		else if (arg.equals("set"))
 			setZoom(imp, ic);
 		else if (arg.equals("max")) {
-			ImageWindow win = imp.getWindow();
+			IjxImageWindow win = imp.getWindow();
 			win.setBounds(win.getMaximumBounds());
 			win.maximize();
 		}
 	}
 	
-	void zoomToSelection(ImagePlus imp, ImageCanvas ic) {
+	void zoomToSelection(IjxImagePlus imp, IjxImageCanvas ic) {
 		Roi roi = imp.getRoi();
 		ic.unzoom();
 		if (roi==null) return;
@@ -50,20 +51,20 @@ public class Zoom implements PlugIn{
 		int marginh = (int)((w.height - mag * imp.getHeight()));
 		int x = r.x+r.width/2;
 		int y = r.y+r.height/2;
-		mag = ic.getHigherZoomLevel(mag);
+		mag = ImageCanvasHelper.getHigherZoomLevel(mag);
 		while(r.width*mag<w.width - marginw && r.height*mag<w.height - marginh) {
 			ic.zoomIn(ic.screenX(x), ic.screenY(y));
 			double cmag = ic.getMagnification();
 			if (cmag==32.0) break;
-			mag = ic.getHigherZoomLevel(cmag);
+			mag = ImageCanvasHelper.getHigherZoomLevel(cmag);
 			w = imp.getWindow().getBounds();
 		}
 	}
 	
 	/** Based on Albert Cardona's ZoomExact plugin:
 		http://albert.rierol.net/software.html */
-	void setZoom(ImagePlus imp, ImageCanvas ic) {
-		ImageWindow win = imp.getWindow();
+	void setZoom(IjxImagePlus imp, IjxImageCanvas ic) {
+		IjxImageWindow win = imp.getWindow();
 		GenericDialog gd = new GenericDialog("Set Zoom");
 		gd.addNumericField("Zoom (%): ", ic.getMagnification() * 200, 0);
 		gd.showDialog();

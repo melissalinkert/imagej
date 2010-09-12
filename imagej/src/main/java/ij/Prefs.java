@@ -199,7 +199,7 @@ public class Prefs {
 	}
 
 	/** Sets the path to the ImageJ directory. */
-	static void setHomeDir(String path) {
+	public static void setHomeDir(String path) {
 		if (path.endsWith(File.separator))
 			path = path.substring(0, path.length()-1);
 		homeDir = path;
@@ -311,7 +311,7 @@ public class Prefs {
 			if (dir!=null)
 				prefs.put(DIR_IMAGE, dir);
 			prefs.put(ROICOLOR, Tools.c2hex(Roi.getColor()));
-			prefs.put(SHOW_ALL_COLOR, Tools.c2hex(ImageCanvas.getShowAllColor()));
+			prefs.put(SHOW_ALL_COLOR, Tools.c2hex(ImageCanvasHelper.getShowAllColor()));
 			prefs.put(FCOLOR, Tools.c2hex(Toolbar.getForegroundColor()));
 			prefs.put(BCOLOR, Tools.c2hex(Toolbar.getBackgroundColor()));
 			prefs.put(JPEG, Integer.toString(FileSaver.getJpegQuality()));
@@ -521,7 +521,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+ImageJ.VERSION+" Preferences");
+		prefs.store(bos, "ImageJA "+IJ.getInstance().VERSION+" Preferences");
 		bos.close();
 	}
 	

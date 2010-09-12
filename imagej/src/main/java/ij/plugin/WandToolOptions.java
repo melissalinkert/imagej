@@ -1,12 +1,7 @@
 package ij.plugin;
 import ij.*;
 import ij.gui.*;
-import ij.process.*;
-import ij.io.*;
-import ij.plugin.filter.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.Vector;
+import ijx.IjxImagePlus;
 
 /** This plugin implements the Edit/Options/Wand Tool command. */
 public class WandToolOptions implements PlugIn {
@@ -15,7 +10,7 @@ public class WandToolOptions implements PlugIn {
 	private static double tolerance;
 
  	public void run(String arg) {
- 		ImagePlus imp = WindowManager.getCurrentImage();
+ 		IjxImagePlus imp = WindowManager.getCurrentImage();
  		boolean showCheckbox = imp!=null && imp.getBitDepth()!=24 && WindowManager.getFrame("Threshold")==null;
 		GenericDialog gd = new GenericDialog("Wand Tool");
 		gd.addChoice("Mode: ", modes, mode);

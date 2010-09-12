@@ -1,7 +1,6 @@
 package ij.plugin;
 import ij.*;
 import ij.gui.*;
-import ij.util.Tools;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -201,11 +200,13 @@ public class ImageJ_Updater implements PlugIn {
 	// of ImageJ do not have the IJ.getVersion() method.
 	String version() {
 		String version = "";
-		try {
-			Class ijClass = ImageJ.class;
-			Field field = ijClass.getField("VERSION");
-			version = (String)field.get(ijClass);
-		}catch (Exception ex) {}
+        // @todo Is this still necessary ?
+//		try {
+//			Class ijClass = ImageJ.class;
+//			Field field = ijClass.getField("VERSION");
+//			version = (String)field.get(ijClass);
+//		}catch (Exception ex) {}
+        version = IJ.getInstance().getVersion();
 		return version;
 	}
 

@@ -34,11 +34,13 @@ public class PlugInFrameMDI extends javax.swing.JInternalFrame implements IjxPlu
     }
     
     /** Closes this window. */
-    public void close() {
+    public boolean close() {
 		setVisible(false);
 		dispose();
 		WindowManager.removeWindow(this);
+        return true;
     }
+    
     public boolean canClose() {
 		close();
         return true;
@@ -66,5 +68,9 @@ public class PlugInFrameMDI extends javax.swing.JInternalFrame implements IjxPlu
 
     public boolean isClosed() {
         return true;
+    }
+
+    public Image getIconImage() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

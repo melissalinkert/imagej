@@ -94,9 +94,9 @@ public class BinaryProcessor extends ByteProcessor {
 		moveTo(0,0); lineTo(width-1,0);
 		moveTo(width-1,0); lineTo(width-1,height-1);
 		moveTo(0,height-1); lineTo(width/*-1*/,height-1);
-		//ImageStack movie=null;
+		//IjxImageStack movie=null;
 		//boolean debug = IJ.altKeyDown();
-		//if (debug) movie = new ImageStack(width, height);
+		//if (debug) movie = IJ.getFactory().newImageStack(width, height);
 		do {
 			snapshot();
 			//if (debug) movie.addSlice(""+pass, duplicate());
@@ -106,7 +106,7 @@ public class BinaryProcessor extends ByteProcessor {
 			pixelsRemoved = thin(pass++, table);
 			//ij.IJ.write(pass+" "+pixelsRemoved);
 		} while (pixelsRemoved>0);
-		//if (debug) new ImagePlus("Skel Movie", movie).show();
+		//if (debug) IJ.getFactory().newImagePlus("Skel Movie", movie).show();
 	}
 
 	int thin(int pass, int[] table) {

@@ -4,6 +4,8 @@ import ij.*;
 import ij.process.*;
 import ij.util.*;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 
 
 /** This class is a rectangular ROI containing text. */
@@ -32,7 +34,7 @@ public class TextRoi extends Roi {
 	/** Creates a new TextRoi with the specified location and Font.
 	 * @see ij.gui.Roi#setStrokeColor
 	 * @see ij.gui.Roi#setNonScalable
-	 * @see ij.ImagePlus#setOverlay(ij.gui.Overlay)
+	 * @see ij.IjxImagePlus#setOverlay(ij.gui.Overlay)
 	 */
 	public TextRoi(int x, int y, String text, Font font) {
 		super(x, y, 1, 1);
@@ -54,9 +56,9 @@ public class TextRoi extends Roi {
 		IJ.error("TextRoi", "API has changed. See updated example at\nhttp://rsb.info.nih.gov/ij/macros/js/TextOverlay.js");
 	}
 
-	public TextRoi(int x, int y, ImagePlus imp) {
+	public TextRoi(int x, int y, IjxImagePlus imp) {
 		super(x, y, imp);
-        ImageCanvas ic = imp.getCanvas();
+        IjxImageCanvas ic = imp.getCanvas();
         double mag = (ic!=null)?ic.getMagnification():1.0;
         if (mag>1.0)
             mag = 1.0;
@@ -252,7 +254,7 @@ public class TextRoi extends Roi {
 		style = fontStyle;
 		antialiasedText = antialiased;
 		newFont = true;
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
 			Roi roi = imp.getRoi();
 			if (roi instanceof TextRoi) {

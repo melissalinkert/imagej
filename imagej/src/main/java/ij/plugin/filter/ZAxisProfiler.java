@@ -3,16 +3,17 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
-import ij.plugin.filter.Analyzer;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.Rectangle;
 
 /** Implements the Image/Stack/Plot Z-axis Profile command. */
 public class ZAxisProfiler implements PlugInFilter, Measurements  {
 
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_ALL+NO_CHANGES;
 	}
@@ -53,7 +54,7 @@ public class ZAxisProfiler implements PlugInFilter, Measurements  {
 	}
 		
 	float[] getZAxisProfile(Roi roi, double minThreshold, double maxThreshold) {
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int size = stack.getSize();
 		float[] values = new float[size];
 		Calibration cal = imp.getCalibration();

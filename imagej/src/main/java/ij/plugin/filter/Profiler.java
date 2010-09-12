@@ -2,15 +2,15 @@ package ij.plugin.filter;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.awt.event.*;
 
 /** Implements the Analyze/Plot Profile and Edit/Options/Profile Plot Options commands. */
 public class Profiler implements PlugInFilter {
 
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		if (arg.equals("set"))
 			{doOptions(); return DONE;}
 		this.imp = imp;
@@ -28,7 +28,7 @@ public class Profiler implements PlugInFilter {
 		boolean fixedScale = ymin!=0.0 || ymax!=0.0;
 		boolean wasFixedScale = fixedScale;
 		
-		GenericDialog gd = new GenericDialog("Profile Plot Options", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Profile Plot Options", IJ.getTopComponentFrame());
 		gd.addNumericField("Width (pixels):", PlotWindow.plotWidth, 0);
 		gd.addNumericField("Height (pixels):", PlotWindow.plotHeight, 0);
 		gd.addNumericField("Minimum Y:", ymin, 2);

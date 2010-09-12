@@ -3,6 +3,7 @@ import ij.*;
 import ij.text.*;
 import ij.measure.ResultsTable;
 import ij.io.*;
+import ijx.gui.IjxWindow;
 import java.io.*;
 import java.awt.Frame;
 
@@ -14,7 +15,7 @@ public class MeasurementsWriter implements PlugIn {
 	}
 	
 	public boolean save(String path) {
-		Frame frame = WindowManager.getFrontWindow();
+		IjxWindow frame = WindowManager.getFrontWindow();
 		if (frame!=null && (frame instanceof TextWindow)) {
 			TextWindow tw = (TextWindow)frame;
 			if (tw.getTextPanel().getResultsTable()==null) {

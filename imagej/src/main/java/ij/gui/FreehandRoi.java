@@ -3,12 +3,13 @@ package ij.gui;
 import java.awt.*;
 import java.awt.image.*;
 import ij.*;
+import ijx.IjxImagePlus;
 
 /** Freehand region of interest or freehand line of interest*/
 public class FreehandRoi extends PolygonRoi {
 
 
-	public FreehandRoi(int sx, int sy, ImagePlus imp) {
+	public FreehandRoi(int sx, int sy, IjxImagePlus imp) {
 		super(sx, sy, imp);
 		if (Toolbar.getToolId()==Toolbar.FREEROI)
 			type = FREEROI;

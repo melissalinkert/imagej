@@ -4,6 +4,8 @@ import java.util.Properties;
 import ij.*;
 import ij.io.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /**
  * This plugin saves a 16 or 32 bit image in FITS format. It is a stripped-down version of the SaveAs_FITS 
@@ -16,7 +18,7 @@ import ij.process.*;
 public class FITS_Writer implements PlugIn {
 
 	public void run(String path) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		ImageProcessor ip = imp.getProcessor();
 		int numImages = imp.getImageStackSize();
 		int bitDepth = imp.getBitDepth();
@@ -164,14 +166,14 @@ public class FITS_Writer implements PlugIn {
 
 	/**
 	 * Extracts the original FITS header from the Properties object of the
-	 * ImagePlus image (or from the current slice label in the case of an ImageStack)
+	 * IjxImagePlus image (or from the current slice label in the case of an IjxImageStack)
 	 * and returns it as an array of String objects representing each card.
 	 *
 	 * Taken from the ImageJ astroj package (www.astro.physik.uni-goettingen.de/~hessman/ImageJ/Astronomy)
 	 *
-	 * @param img		The ImagePlus image which has the FITS header in it's "Info" property.
+	 * @param img		The IjxImagePlus image which has the FITS header in it's "Info" property.
 	 */
-	public static String[] getHeader (ImagePlus img) {
+	public static String[] getHeader (IjxImagePlus img) {
 		String content = null;
 
 		int depth = img.getStackSize();
@@ -183,7 +185,7 @@ public class FITS_Writer implements PlugIn {
 		}
 		else if (depth > 1) {
 			int slice = img.getCurrentSlice();
-			ImageStack stack = img.getStack();
+			IjxImageStack stack = img.getStack();
 			content = stack.getSliceLabel(slice);
 		}
 		if (content == null)

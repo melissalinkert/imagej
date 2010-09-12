@@ -1,12 +1,10 @@
 package ij.gui;
 
-import java.awt.*;
-import java.awt.image.*;
-import java.io.*;
-import java.awt.event.*;
 import java.util.*;
 import ij.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** New image dialog box plus several static utility methods for creating images.*/
 public class NewImage {
@@ -36,7 +34,7 @@ public class NewImage {
     	openImage();
     }
     
-	static boolean createStack(ImagePlus imp, ImageProcessor ip, int nSlices, int type, int options) {
+	static boolean createStack(IjxImagePlus imp, ImageProcessor ip, int nSlices, int type, int options) {
 		int fill = getFill(options);
 		int width = imp.getWidth();
 		int height = imp.getHeight();
@@ -66,7 +64,7 @@ public class NewImage {
 				}
 			}
 		}
-		ImageStack stack = imp.createEmptyStack();
+		IjxImageStack stack = imp.createEmptyStack();
 		int inc = nSlices/40;
 		if (inc<1) inc = 1;
 		IJ.showStatus("Allocating "+size2+". Press 'Esc' to abort.");
@@ -98,12 +96,12 @@ public class NewImage {
 		return true;
 	}
 
-	static ImagePlus createImagePlus() {
-		//ImagePlus imp = WindowManager.getCurrentImage();
+	static IjxImagePlus createImagePlus() {
+		//IjxImagePlus imp = WindowManager.getCurrentImage();
 		//if (imp!=null)
 		//	return imp.createImagePlus();
 		//else
-		return new ImagePlus();
+		return IJ.getFactory().newImagePlus();
 	}
 	
 	static int getFill(int options) {
@@ -115,7 +113,7 @@ public class NewImage {
 		return fill;
 	}
 
-	public static ImagePlus createByteImage(String title, int width, int height, int slices, int options) {
+	public static IjxImagePlus createByteImage(String title, int width, int height, int slices, int options) {
 		int fill = getFill(options);
 		byte[] pixels = new byte[width*height];
 		switch (fill) {
@@ -138,7 +136,7 @@ public class NewImage {
 				break;
 		}
 		ImageProcessor ip = new ByteProcessor(width, height, pixels, null);
-		ImagePlus imp = createImagePlus();
+		IjxImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
 		if (slices>1) {
 			boolean ok = createStack(imp, ip, slices, GRAY8, options);
@@ -147,7 +145,7 @@ public class NewImage {
 		return imp;
 	}
 
-	public static ImagePlus createRGBImage(String title, int width, int height, int slices, int options) {
+	public static IjxImagePlus createRGBImage(String title, int width, int height, int slices, int options) {
 		int fill = getFill(options);
 		int[] pixels = new int[width*height];
 		switch (fill) {
@@ -174,7 +172,7 @@ public class NewImage {
 				break;
 		}
 		ImageProcessor ip = new ColorProcessor(width, height, pixels);
-		ImagePlus imp = createImagePlus();
+		IjxImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
 		if (slices>1) {
 			boolean ok = createStack(imp, ip, slices, RGB, options);
@@ -184,7 +182,7 @@ public class NewImage {
 	}
 
 	/** Creates an unsigned short image. */
-	public static ImagePlus createShortImage(String title, int width, int height, int slices, int options) {
+	public static IjxImagePlus createShortImage(String title, int width, int height, int slices, int options) {
 		int fill = getFill(options);
 		short[] pixels = new short[width*height];
 		switch (fill) {
@@ -205,7 +203,7 @@ public class NewImage {
 	    ImageProcessor ip = new ShortProcessor(width, height, pixels, null);
 	    if (fill==FILL_WHITE)
 	    	ip.invertLut();
-		ImagePlus imp = createImagePlus();
+		IjxImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
 		if (slices>1) {
 			boolean ok = createStack(imp, ip, slices, GRAY16, options);
@@ -219,11 +217,11 @@ public class NewImage {
 	* @deprecated
 	* Short images are always unsigned.
 	*/
-	public static ImagePlus createUnsignedShortImage(String title, int width, int height, int slices, int options) {
+	public static IjxImagePlus createUnsignedShortImage(String title, int width, int height, int slices, int options) {
 		return createShortImage(title, width, height, slices, options);
 	}
 
-	public static ImagePlus createFloatImage(String title, int width, int height, int slices, int options) {
+	public static IjxImagePlus createFloatImage(String title, int width, int height, int slices, int options) {
 		int fill = getFill(options);
 		float[] pixels = new float[width*height];
 		switch (fill) {
@@ -244,7 +242,7 @@ public class NewImage {
 	    ImageProcessor ip = new FloatProcessor(width, height, pixels, null);
 	    if (fill==FILL_WHITE)
 	    	ip.invertLut();
-		ImagePlus imp = createImagePlus();
+		IjxImagePlus imp = createImagePlus();
 		imp.setProcessor(title, ip);
 		if (slices>1) {
 			boolean ok = createStack(imp, ip, slices, GRAY32, options);
@@ -260,7 +258,7 @@ public class NewImage {
 		else if (type==GRAY32) bitDepth = 32;
 		else if (type==RGB) bitDepth = 24;
 		long startTime = System.currentTimeMillis();
-		ImagePlus imp = createImage(title, width, height, nSlices, bitDepth, options);
+		IjxImagePlus imp = createImage(title, width, height, nSlices, bitDepth, options);
 		if (imp!=null) {
 			WindowManager.checkForDuplicateName = true;          
 			imp.show();
@@ -268,8 +266,8 @@ public class NewImage {
 		}
 	}
 
-	public static ImagePlus createImage(String title, int width, int height, int nSlices, int bitDepth, int options) {
-		ImagePlus imp = null;
+	public static IjxImagePlus createImage(String title, int width, int height, int nSlices, int bitDepth, int options) {
+		IjxImagePlus imp = null;
 		switch (bitDepth) {
 			case 8: imp = createByteImage(title, width, height, nSlices, options); break;
 			case 16: imp = createShortImage(title, width, height, nSlices, options); break;
@@ -285,7 +283,7 @@ public class NewImage {
 			type = GRAY8;
 		if (fillWith<OLD_FILL_WHITE||fillWith>FILL_RAMP)
 			fillWith = OLD_FILL_WHITE;
-		GenericDialog gd = new GenericDialog("New Image...", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("New Image...", IJ.getTopComponentFrame());
 		gd.addStringField("Name:", name, 12);
 		gd.addChoice("Type:", types, types[type]);
 		gd.addChoice("Fill With:", fill, fill[fillWith]);

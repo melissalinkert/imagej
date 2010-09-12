@@ -2,7 +2,8 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.plugin.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** The plugin implements the Image/Stacks/Montage to Stack command.
 	It creates a w*h image stack from an wxh image montage.
@@ -13,7 +14,7 @@ public class StackMaker implements PlugIn {
 	private static int w=2, h=2, b=0;
 
 	public void run(String arg) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
 		if (imp.getStackSize()>1)
@@ -28,15 +29,15 @@ public class StackMaker implements PlugIn {
 		w = (int)gd.getNextNumber();
 		h = (int)gd.getNextNumber();
 		b = (int)gd.getNextNumber();
-		ImageStack stack = makeStack(imp.getProcessor(), w, h, b);
-		new ImagePlus("Stack", stack).show();
+		IjxImageStack stack = makeStack(imp.getProcessor(), w, h, b);
+		IJ.getFactory().newImagePlus("Stack", stack).show();
 	}
 	
-	public ImageStack makeStack(ImageProcessor ip, int w, int h, int b) {
+	public IjxImageStack makeStack(ImageProcessor ip, int w, int h, int b) {
 		int stackSize = w*h;
 		int width = ip.getWidth()/w;
 		int height = ip.getHeight()/h;
-		ImageStack stack = new ImageStack(width, height);
+		IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 		for (int y=0; y<h; y++)
 			for (int x=0; x<w; x++) {
 				ip.setRoi(x*width, y*height, width, height);

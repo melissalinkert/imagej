@@ -4,10 +4,10 @@ import ij.process.*;
 import ij.gui.*;
 import ij.io.*;
 import ij.plugin.Animator;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
-import java.util.*;
 import javax.imageio.ImageIO;
 
 /**
@@ -39,7 +39,7 @@ public class AVI_Writer implements PlugInFilter {
     private final static String[] COMPRESSION_STRINGS = new String[] {"Uncompressed", "PNG", "JPEG"};
     private final static int[] COMPRESSION_TYPES = new int[] {NO_COMPRESSION, PNG_COMPRESSION, JPEG_COMPRESSION};
 
-    private ImagePlus imp;
+    private IjxImagePlus imp;
     private RandomAccessFile raFile;
     private int             xDim,yDim;      //image size
     private int             zDim;           //number of movie frames (stack size)
@@ -54,7 +54,7 @@ public class AVI_Writer implements PlugInFilter {
                                 new long[5];//  remembered to write the sizes later, when they are known)
     private int             stackPointer;   //points to first free position in sizePointers stack
 
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         this.imp = imp;
         return DOES_ALL+NO_CHANGES;
     }
@@ -81,7 +81,7 @@ public class AVI_Writer implements PlugInFilter {
         IJ.showStatus("");
     }
 
-    private boolean showDialog(ImagePlus imp) {
+    private boolean showDialog(IjxImagePlus imp) {
     	String options = Macro.getOptions();
     	if (options!=null && options.indexOf("compression=")==-1)
     		Macro.setOptions("compression=Uncompressed "+options);
@@ -103,8 +103,8 @@ public class AVI_Writer implements PlugInFilter {
 		return true;
     }
 
-    /** Writes an ImagePlus (stack) as AVI file. */
-    public void writeImage (ImagePlus imp, String path, int compression, int jpegQuality)
+    /** Writes an IjxImagePlus (stack) as AVI file. */
+    public void writeImage (IjxImagePlus imp, String path, int compression, int jpegQuality)
             throws IOException {
         if (compression!=NO_COMPRESSION && compression!=JPEG_COMPRESSION && compression!=PNG_COMPRESSION)
             throw new IllegalArgumentException("Unsupported Compression 0x"+Integer.toHexString(compression));
@@ -145,7 +145,7 @@ public class AVI_Writer implements PlugInFilter {
 				isHyperstack = false;
 		}
 
-        if (imp.getType()==ImagePlus.COLOR_RGB || isComposite || biCompression==JPEG_COMPRESSION || isOverlay)
+        if (imp.getType()==IjxImagePlus.COLOR_RGB || isComposite || biCompression==JPEG_COMPRESSION || isOverlay)
             bytesPerPixel = 3;  //color and JPEG-compressed files
         else
             bytesPerPixel = 1;  //gray 8, 16, 32 bit and indexed color: all written as 8 bit
@@ -277,7 +277,7 @@ public class AVI_Writer implements PlugInFilter {
 					imp.setPositionWithoutUpdate(channel, z+1, frame);
 				else if (saveChannels)
 					imp.setPositionWithoutUpdate(z+1, slice, frame);
-				ImagePlus imp2 = imp;
+				IjxImagePlus imp2 = imp;
 				if (isOverlay) {
 					if (!(saveFrames||saveSlices||saveChannels))
 						imp.setSliceWithoutUpdate(z+1);
@@ -432,7 +432,7 @@ public class AVI_Writer implements PlugInFilter {
         raFile.write(lutWrite);
     }
 
-    private double getFrameRate(ImagePlus imp) {
+    private double getFrameRate(IjxImagePlus imp) {
         double rate = imp.getCalibration().fps;
         if (rate==0.0)
             rate = Animator.getFrameRate();

@@ -19,8 +19,8 @@ some basic methods to manipulate it.
 @see ShortProcessor
 @see FloatProcessor
 @see ColorProcessor
-@see ij.ImagePlus
-@see ij.ImageStack
+@see ij.IjxImagePlus
+@see ij.IjxImageStack
 */
 public abstract class ImageProcessor extends Object {
 
@@ -728,7 +728,7 @@ public abstract class ImageProcessor extends Object {
 		The example assumes <code>snapshot()</code> has been called, which is the case
 		for code executed in the <code>run()</code> method of plugins that implement the 
 		<code>PlugInFilter</code> interface.
-		@see ij.ImagePlus#getRoi
+		@see ij.IjxImagePlus#getRoi
 	*/
 	public void setRoi(Roi roi) {
 		if (roi==null)
@@ -1182,7 +1182,7 @@ public abstract class ImageProcessor extends Object {
 				ip = ip.convertToByte(false);
 				if (isInvertedLut()) ip.invert();
 			}
-			//new ij.ImagePlus("ip",ip).show();
+			//new ij.IjxImagePlus("ip",ip).show();
 			insert(ip, cxx, cy-h);
 			cy += h;
 			return;
@@ -1197,7 +1197,7 @@ public abstract class ImageProcessor extends Object {
 		ImageProcessor ip = new ColorProcessor(bi);
 		ImageProcessor textMask = ip.convertToByte(false);
 		byte[] mpixels = (byte[])textMask.getPixels();
-		//new ij.ImagePlus("textmask",textMask).show();
+		//new ij.IjxImagePlus("textmask",textMask).show();
 		textMask.invert();
 		if (cxx<width && cy-h<height) {
 			setMask(textMask);

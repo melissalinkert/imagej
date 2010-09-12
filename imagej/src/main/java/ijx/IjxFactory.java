@@ -54,7 +54,6 @@ public interface IjxFactory {
 
     IjxImageWindow newStackWindow(IjxImagePlus imp, IjxImageCanvas ic);
 
-
     IjxWindow newWindow();
 
     IjxDialog newDialog();

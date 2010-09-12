@@ -6,15 +6,15 @@ import ij.io.*;
 import ij.plugin.TextReader;
 import ij.plugin.frame.Recorder;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.util.*;
 import java.awt.event.*;
 import java.io.*;
 
 /** This plugin convolves images using user user defined kernels. */
 public class Convolver implements ExtendedPlugInFilter, DialogListener, ActionListener {
 
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int kw, kh;
 	boolean canceled;
 	float[] kernel;
@@ -31,7 +31,7 @@ public class Convolver implements ExtendedPlugInFilter, DialogListener, ActionLi
 	static String kernelText = "-1 -1 -1 -1 -1\n-1 -1 -1 -1 -1\n-1 -1 24 -1 -1\n-1 -1 -1 -1 -1\n-1 -1 -1 -1 -1\n";
 	static boolean normalizeFlag = true;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
  		this.imp = imp;
 		if (imp==null)
 			{IJ.noImage(); return DONE;}
@@ -56,8 +56,8 @@ public class Convolver implements ExtendedPlugInFilter, DialogListener, ActionLi
 		if (canceled) Undo.undo();
 	}
 	
-	public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
-		gd = new GenericDialog("Convolver...", IJ.getInstance());
+	public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
+		gd = new GenericDialog("Convolver...", IJ.getTopComponentFrame());
 		gd.addTextAreas(kernelText, null, 10, 30);
 		gd.addPanel(makeButtonPanel(gd));
 		gd.addCheckbox("Normalize Kernel", normalizeFlag);

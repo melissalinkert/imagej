@@ -11,6 +11,7 @@ import ij.util.*;
 import ij.text.TextWindow;
 import ij.plugin.filter.Analyzer;
 import ij.measure.Measurements;
+import ijx.IjxImagePlus;
 
 
 /** Obsolete; mostly replaced by the Plot class. */
@@ -120,9 +121,9 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 
 	/** Called by the constructor to generate the image the plot will be drawn on.
 		This is a static method because constructors cannot call instance methods. */
-	static ImagePlus createImage(String title, String xLabel, String yLabel, float[] xValues, float[] yValues) {
+	static IjxImagePlus createImage(String title, String xLabel, String yLabel, float[] xValues, float[] yValues) {
 		staticPlot = new Plot(title, xLabel, yLabel, xValues, yValues);
-		return new ImagePlus(title, staticPlot.getBlankProcessor());
+		return IJ.getFactory().newImagePlus(title, staticPlot.getBlankProcessor());
 	}
 	
 	/** Sets the x-axis and y-axis range. */
@@ -219,8 +220,8 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	}
 
 	/** Updates the graph X and Y values when the mouse is moved.
-		Overrides mouseMoved() in ImageWindow. 
-		@see ij.gui.ImageWindow#mouseMoved
+		Overrides mouseMoved() in IjxImageWindow. 
+		@see ij.gui.IjxImageWindow#mouseMoved
 	*/
 	public void mouseMoved(int x, int y) {
 		super.mouseMoved(x, y);
@@ -257,7 +258,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 		}
 		TextWindow tw = new TextWindow("Plot Values", headings, sb.toString(), 200, 400);
 		if (autoClose)
-			{imp.changes=false; close();}
+			{imp.setChanged(false); close();}
 	}
 	/** shows the data of the backing plot in a Textwindow with columns */
 	void showList(){
@@ -266,7 +267,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 		String data = createData();
 		TextWindow tw = new TextWindow("Plot Values", headings, data, 230, 400);
 		if (autoClose)
-			{imp.changes=false; close();}
+			{imp.setChanged(false); close();}
 	}
 	
 	/** creates the headings corresponding to the showlist funcion*/
@@ -372,7 +373,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 		pw.print(createData());
 		pw.close();
 		if (autoClose)
-			{imp.changes=false; close();}
+			{imp.setChanged(false); close();}
 	}
 		
 	void copyToClipboard() {
@@ -397,7 +398,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 		systemClipboard.setContents(contents, this);
 		IJ.showStatus(text.length() + " characters copied to Clipboard");
 		if (autoClose)
-			{imp.changes=false; close();}
+			{imp.setChanged(false); close();}
 	}
 	
 	void initDigits() {

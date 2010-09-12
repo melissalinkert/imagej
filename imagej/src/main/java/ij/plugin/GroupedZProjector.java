@@ -1,7 +1,7 @@
 package ij.plugin; 
 import ij.*; 
 import ij.gui.GenericDialog; 
-import ij.process.*;
+import ijx.IjxImagePlus;
 
 /** This plugin implements the Image>Stacks>Tools>Grouped Z Project command. */
 
@@ -10,7 +10,7 @@ public class GroupedZProjector implements PlugIn {
 	private int groupSize;
 
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		int size = imp.getStackSize();
 		if (size==1) {
 			IJ.error("Z Project", "This command requires a stack");
@@ -21,11 +21,11 @@ public class GroupedZProjector implements PlugIn {
 			return;
 		}
 		if (!showDialog(imp)) return;
-		ImagePlus imp2 = groupZProject(imp, method, groupSize);
+		IjxImagePlus imp2 = groupZProject(imp, method, groupSize);
 		if (imp!=null) imp2.show();
 	}
 	
-	public ImagePlus groupZProject(ImagePlus imp, int method, int groupSize) {
+	public IjxImagePlus groupZProject(IjxImagePlus imp, int method, int groupSize) {
 		if (method<0 || method>=ZProjector.METHODS.length)
 			return null;
 		imp.setDimensions(1, groupSize, imp.getStackSize()/groupSize);
@@ -37,7 +37,7 @@ public class GroupedZProjector implements PlugIn {
 		return zp.getProjection();
 	}
 	
-	boolean showDialog(ImagePlus imp) {
+	boolean showDialog(IjxImagePlus imp) {
 		int size = imp.getStackSize();
 		GenericDialog gd = new GenericDialog("Z Project");
 		gd.addChoice("Projection method", ZProjector.METHODS, ZProjector.METHODS[method]);

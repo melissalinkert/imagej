@@ -1,10 +1,8 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
-import ij.io.*;
 import ij.text.*;
 import ij.plugin.frame.Editor;
-import java.awt.*;
+import ijx.gui.IjxWindow;
 
 /** This plugin implements the File/Save As/Text command. What it does
 	is save the contents of TextWindows (e.g., "Log" and "Results"). */
@@ -15,7 +13,7 @@ public class TextWriter implements PlugIn {
 	}
 	
 	void saveText() {
-		Frame frame = WindowManager.getFrontWindow();
+		IjxWindow frame = WindowManager.getFrontWindow();
 		if (frame!=null && (frame instanceof TextWindow)) {
 			TextPanel tp = ((TextWindow)frame).getTextPanel();
 			tp.saveAs("");

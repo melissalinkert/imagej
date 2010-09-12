@@ -4,14 +4,14 @@ import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.plugin.ContrastEnhancer;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.util.*;
 
 
 /** This class implements the Process/FFT/Custom Filter command. */
 public class FFTCustomFilter implements  PlugInFilter, Measurements {
 
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private static int filterIndex = 1;
 	private int slice;
 	private int stackSize;	
@@ -23,7 +23,7 @@ public class FFTCustomFilter implements  PlugInFilter, Measurements {
 	private int originalHeight;
 	private Rectangle rect = new Rectangle();
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
  		this.imp = imp;
  		if (imp==null)
  			{IJ.noImage(); return DONE;}
@@ -135,7 +135,7 @@ public class FFTCustomFilter implements  PlugInFilter, Measurements {
 		}
 		String[] titles = new String[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			titles[i] = imp!=null?imp.getTitle():"";
 		}
 		if (filterIndex<0 || filterIndex>=titles.length)
@@ -150,7 +150,7 @@ public class FFTCustomFilter implements  PlugInFilter, Measurements {
 		filterIndex = gd.getNextChoiceIndex();
 		if (stackSize>1)
 			processStack = gd.getNextBoolean();
-		ImagePlus filterImp = WindowManager.getImage(wList[filterIndex]);
+		IjxImagePlus filterImp = WindowManager.getImage(wList[filterIndex]);
 		if (filterImp==imp) {
 			IJ.error("FFT", "The filter cannot be the same as the image being filtered.");
 			return null;
@@ -162,7 +162,7 @@ public class FFTCustomFilter implements  PlugInFilter, Measurements {
 		ImageProcessor filter = filterImp.getProcessor();		
 		filter =  filter.convertToByte(true);		
 		filter = resizeFilter(filter, size);
-		//new ImagePlus("Resized Filter", filter.duplicate()).show();
+		//IJ.getFactory().newImagePlus("Resized Filter", filter.duplicate()).show();
 		return filter;
 	}
 	

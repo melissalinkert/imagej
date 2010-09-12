@@ -575,8 +575,9 @@ public class TextPanel extends Panel implements AdjustmentListener,
 		clip.setContents(cont,this);
 		if (s.length()>0) {
 			IJ.showStatus((selEnd-selStart+1)+" lines copied to clipboard");
-			if (this.getParent() instanceof ImageJ)
-				Analyzer.setUnsavedMeasurements(false);
+            // @todo What is this for ????
+//			if (this.getParent() instanceof ImageJ)
+//				Analyzer.setUnsavedMeasurements(false);
 		}
 		return s.length();
 	}

@@ -3,8 +3,8 @@ import ij.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.plugin.frame.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.awt.image.*;
 import java.awt.geom.*;
 
 /** This class represents a polygon region of interest or polyline of interest. */
@@ -80,13 +80,13 @@ public class PolygonRoi extends Roi {
 	}
 
 	/** @deprecated */
-	public PolygonRoi(int[] xPoints, int[] yPoints, int nPoints, ImagePlus imp, int type) {
+	public PolygonRoi(int[] xPoints, int[] yPoints, int nPoints, IjxImagePlus imp, int type) {
 		this(xPoints, yPoints, nPoints, type);
 		setImage(imp);
 	}
 
 	/** Starts the process of creating a new user-generated polygon or polyline ROI. */
-	public PolygonRoi(int sx, int sy, ImagePlus imp) {
+	public PolygonRoi(int sx, int sy, IjxImagePlus imp) {
 		super(sx, sy, imp);
 		int tool = Toolbar.getToolId();
 		switch (tool) {

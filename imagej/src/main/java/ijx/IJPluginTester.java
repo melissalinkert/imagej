@@ -2,8 +2,6 @@ package ijx;
 
 
 import ij.IJ;
-import ij.ImageJ;
-import ij.ImagePlus;
 import ij.plugin.PlugIn;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
@@ -33,11 +31,11 @@ public class IJPluginTester {
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
-                ImageJ.main(null);  // launch ImageJ
+                ImageJX.main(null);  // launch ImageJ
                 // Load Image(s)...
                 for (int i = 0; i < imagesToLoad.length; i++) {
                     String img = imagesToLoad[i];
-                    ImagePlus imp = IJ.openImage(img);
+                    IjxImagePlus imp = IJ.openImage(img);
                     imp.show();
                 }
                 runUserPlugIn("Test", className, "", false);

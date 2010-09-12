@@ -50,7 +50,7 @@ Notes on best-fitting ellipse:
   of concentration, without altering the area of the profile. 
 
 public class Ellipse_Fitter implements PlugInFilter {
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		return DOES_ALL;
 	}
 	public void run(ImageProcessor ip) {

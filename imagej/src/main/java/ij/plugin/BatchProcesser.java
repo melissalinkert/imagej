@@ -2,8 +2,11 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import ij.util.Tools;
 import ij.io.OpenDialog;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.app.IjxApplication;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -35,7 +38,7 @@ import java.util.Vector;
 		private TextField inputDir, outputDir;
 		private GenericDialog gd;
 		private Thread thread;
-		private ImagePlus virtualStack;
+		private IjxImagePlus virtualStack;
 
 	public void run(String arg) {
 		if (arg.equals("stack")) {
@@ -77,8 +80,7 @@ import java.util.Vector;
 			error("There is no macro code in the text area");
 			return;
 		}
-		ImageJ ij = IJ.getInstance();
-		if (ij!=null) ij.getProgressBar().setBatchMode(true);
+		if (IJ.getTopComponent()!=null) IJ.getTopComponent().getProgressBar().setBatchMode(true);
 		IJ.resetEscape();
 		if (virtualStack!=null)
 			processVirtualStack(outputPath);
@@ -117,7 +119,7 @@ import java.util.Vector;
 	}
 	
 	void processVirtualStack(String outputPath) {
-		ImageStack stack = virtualStack.getStack();
+		IjxImageStack stack = virtualStack.getStack();
 		int n = stack.getSize();
 		int index = 0;
 		for (int i=1; i<=n; i++) {
@@ -125,7 +127,7 @@ import java.util.Vector;
 			IJ.showProgress(i, n);
 			ImageProcessor ip = stack.getProcessor(i);
 			if (ip==null) return;
-			ImagePlus imp = new ImagePlus("", ip);
+			IjxImagePlus imp = IJ.getFactory().newImagePlus("", ip);
 			if (!macro.equals("")) {
 				WindowManager.setTempCurrentImage(imp);
 				String str = IJ.runMacro("i="+(index++)+";"+macro, "");
@@ -165,7 +167,7 @@ import java.util.Vector;
 			if (list[i].startsWith(".")||list[i].endsWith(".avi")||list[i].endsWith(".AVI"))
 				continue;
 			IJ.showProgress(i+1, list.length);
-			ImagePlus imp = IJ.openImage(path);
+			IjxImagePlus imp = IJ.openImage(path);
 			if (imp==null) continue;
 			if (!macro.equals("")) {
 				WindowManager.setTempCurrentImage(imp);
@@ -275,11 +277,11 @@ import java.util.Vector;
 	}
 
 	String openMacroFromJar(String name) {
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		Class c = ij!=null?ij.getClass():(new ImageStack()).getClass();
 		String macro = null;
         try {
-			InputStream is = c .getResourceAsStream("/macros/"+name);
+			InputStream is = c.getResourceAsStream("/macros/"+name);
 			if (is==null) return null;
             InputStreamReader isr = new InputStreamReader(is);
             StringBuffer sb = new StringBuffer();
@@ -350,7 +352,7 @@ import java.util.Vector;
 			error("There is no macro code in the text area");
 			return;
 		}
-		ImagePlus imp = null;
+		IjxImagePlus imp = null;
 		if (virtualStack!=null)
 			imp = getVirtualStackImage();
 		else
@@ -360,27 +362,27 @@ import java.util.Vector;
 		String str = IJ.runMacro("i=0;"+macro, "");
 		Point loc = new Point(10, 30);
 		if (testImage!=0) {
-			ImagePlus imp2 = WindowManager.getImage(testImage);
+			IjxImagePlus imp2 = WindowManager.getImage(testImage);
 			if (imp2!=null) {
-				ImageWindow win = imp2.getWindow();
+				IjxImageWindow win = imp2.getWindow();
 				if (win!=null) loc = win.getLocation();
-				imp2.changes=false;
+				imp2.setChanged(false);
 				imp2.close();
 			}
 		}
 		imp.show();
-		ImageWindow iw = imp.getWindow();
+		IjxImageWindow iw = imp.getWindow();
 		if (iw!=null) iw.setLocation(loc);
 		testImage = imp.getID();
 	}
 	
-	ImagePlus getVirtualStackImage() {
-		ImagePlus imp = virtualStack.createImagePlus();
+	IjxImagePlus getVirtualStackImage() {
+		IjxImagePlus imp = virtualStack.createImagePlus();
 		imp.setProcessor("", virtualStack.getProcessor().duplicate());
 		return imp;
 	}
 
-	ImagePlus getFolderImage() {
+	IjxImagePlus getFolderImage() {
 		String inputPath = inputDir.getText();
 		inputPath = addSeparator(inputPath);
 		File f1 = new File(inputPath);

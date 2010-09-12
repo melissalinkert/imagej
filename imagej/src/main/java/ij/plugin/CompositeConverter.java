@@ -2,16 +2,17 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
-import java.awt.image.*;
-import ij.plugin.frame.ContrastAdjuster;
 
 /** This plugin imlements the Image/Color/Make Composite command. */
 public class CompositeConverter implements PlugIn {
 
 	public void run(String arg) {
 		String[] modes = {"Composite", "Color", "Grayscale"};
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		if (imp.isComposite()) {
 			CompositeImage ci = (CompositeImage)imp;
 			if (ci.getMode()!=CompositeImage.COMPOSITE) {
@@ -49,21 +50,21 @@ public class CompositeConverter implements PlugIn {
 			IJ.error("To create a composite, the current image must be\n a stack with at least 2 channels or be in RGB format.");
 	}
 	
-	void convertRGBToCompositeImage(ImagePlus imp) {
-			ImageWindow win = imp.getWindow();
+	void convertRGBToCompositeImage(IjxImagePlus imp) {
+			IjxImageWindow win = imp.getWindow();
 			Point loc = win!=null?win.getLocation():null;
-			ImagePlus imp2 = new CompositeImage(imp, CompositeImage.COMPOSITE);
-			if (loc!=null) ImageWindow.setNextLocation(loc);
+			IjxImagePlus imp2 = new CompositeImage(imp, CompositeImage.COMPOSITE);
+			if (loc!=null) WindowManager.setNextLocation(loc);
 			imp2.show();
 			imp.hide();
 	}
 
-	void convertRGBToCompositeStack(ImagePlus imp, String arg) {
+	void convertRGBToCompositeStack(IjxImagePlus imp, String arg) {
 		int width = imp.getWidth();
 		int height = imp.getHeight();
-		ImageStack stack1 = imp.getStack();
+		IjxImageStack stack1 = imp.getStack();
 		int n = stack1.getSize();
-		ImageStack stack2 = new ImageStack(width, height);
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
 		for (int i=0; i<n; i++) {
 			ColorProcessor ip = (ColorProcessor)stack1.getProcessor(1);
 			stack1.deleteSlice(1);
@@ -76,16 +77,16 @@ public class CompositeConverter implements PlugIn {
 			stack2.addSlice(null, B);
 		}
 		n *= 3;
-		imp.changes = false;
-		ImageWindow win = imp.getWindow();
+		imp.setChanged(false);
+		IjxImageWindow win = imp.getWindow();
 		Point loc = win!=null?win.getLocation():null;
-		ImagePlus imp2 = new ImagePlus(imp.getTitle(), stack2);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus(imp.getTitle(), stack2);
 		imp2.setDimensions(3, n/3, 1);
 		int mode = arg!=null && arg.equals("color")?CompositeImage.COLOR:CompositeImage.COMPOSITE;
  		imp2 = new CompositeImage(imp2, mode);
-		if (loc!=null) ImageWindow.setNextLocation(loc);
+		if (loc!=null) WindowManager.setNextLocation(loc);
 		imp2.show();
-		imp.changes = false;
+		imp.setChanged(false);
 		imp.close();
 	}
 

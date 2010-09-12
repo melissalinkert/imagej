@@ -6,7 +6,8 @@ import ij.process.*;
 import ij.gui.Roi;
 import ij.util.Tools;
 import ij.io.SaveDialog;
-import java.awt.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxWindow;
 import java.text.*;
 import java.util.Locale;
 import java.io.*;
@@ -66,7 +67,7 @@ public class ResultsTable implements Cloneable {
 		
 	/** Returns the "Results" TextWindow. */
 	public static TextWindow getResultsWindow() {
-		Frame f = WindowManager.getFrame("Results");
+		IjxWindow f = WindowManager.getFrame("Results");
 		if (f==null || !(f instanceof TextWindow))
 			return null;
 		else
@@ -552,7 +553,7 @@ public class ResultsTable implements Cloneable {
 			if (getCounter()>0)
 				Analyzer.setUnsavedMeasurements(true);
 		} else {
-			Frame frame = WindowManager.getFrame(windowTitle);
+			IjxWindow frame = WindowManager.getFrame(windowTitle);
 			TextWindow win;
 			if (frame!=null && frame instanceof TextWindow)
 				win = (TextWindow)frame;
@@ -574,7 +575,7 @@ public class ResultsTable implements Cloneable {
 		if (newWindow) tp.scrollToTop();
 	}
 	
-	public void update(int measurements, ImagePlus imp, Roi roi) {
+	public void update(int measurements, IjxImagePlus imp, Roi roi) {
 		if (roi==null && imp!=null) roi = imp.getRoi();
 		ResultsTable rt2 = new ResultsTable();
 		Analyzer analyzer = new Analyzer(imp, measurements, rt2);

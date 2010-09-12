@@ -1,8 +1,8 @@
 package ij.plugin.filter;
 import ij.*;
-import ij.plugin.*;
 import ij.process.*;
-import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /**
  * This plugin implements the Euclidean Distance Map (EDM), Watershed,
@@ -68,12 +68,12 @@ public class EDM implements ExtendedPlugInFilter {
     /** In old make16bitEDM this pixel value corresponds to a pixel distance of sqrt(5) */
     public static final int SQRT5 = 92; // ~ 41 * sqrt(5)
 
-    private ImagePlus imp;              //input
-    private ImagePlus outImp;           //output if a new window is desired
+    private IjxImagePlus imp;              //input
+    private IjxImagePlus outImp;           //output if a new window is desired
     private PlugInFilterRunner pfr;     //needed to extract the stack slice if needed
     private String command;             //for showing status
     private int outImageType;           //output type; BYTE_OVERWRITE, BYTE, SHORT or FLOAT
-    private ImageStack outStack;        //in case output should be a new stack
+    private IjxImageStack outStack;        //in case output should be a new stack
     private int processType;            //can be EDM, WATERSHED, UEP, VORONOI
     private MaximumFinder maxFinder = new MaximumFinder();    //we use only one MaximumFinder (nice progress bar)
     private double progressDone;        //for progress bar, fraction of work done so far
@@ -102,7 +102,7 @@ public class EDM implements ExtendedPlugInFilter {
     /** Prepare for processing; also called at the very end with argument 'final'
      *  to show any newly created output image.
      */
-    public int setup (String arg, ImagePlus imp) {
+    public int setup (String arg, IjxImagePlus imp) {
         if (arg.equals("final")) {
             showOutput();
             return DONE;
@@ -142,7 +142,7 @@ public class EDM implements ExtendedPlugInFilter {
      *  Asks the user in case of a stack and prepares a separate ouptut stack if required
      */
 
-    public int showDialog (ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog (IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         this.pfr = pfr;
         int width = imp.getWidth();
         int height= imp.getHeight();
@@ -150,7 +150,7 @@ public class EDM implements ExtendedPlugInFilter {
         //(if required) for writing into it in parallel threads
         flags = IJ.setupDialog(imp, flags);
         if ((flags&DOES_STACKS)!=0 && outImageType!=BYTE_OVERWRITE) {
-            outStack = new ImageStack(width, height, imp.getStackSize());
+            outStack = IJ.getFactory().newImageStack(width, height, imp.getStackSize());
             maxFinder.setNPasses(imp.getStackSize());
         }
         return flags;
@@ -209,7 +209,7 @@ public class EDM implements ExtendedPlugInFilter {
 
         if (outImageType != BYTE_OVERWRITE) {   //new output image
             if (outStack==null) {
-                outImp = new ImagePlus(TITLE_PREFIX[processType]+imp.getShortTitle(), outIp);
+                outImp = IJ.getFactory().newImagePlus(TITLE_PREFIX[processType]+imp.getShortTitle(), outIp);
             } else
                 outStack.setPixels(outIp.getPixels(), pfr.getSliceNumber());
         }
@@ -416,7 +416,7 @@ public class EDM implements ExtendedPlugInFilter {
     private void showOutput() {
         if (interrupted) return;
         if (outStack!=null) {
-            outImp = new ImagePlus(TITLE_PREFIX[processType]+imp.getShortTitle(), outStack);
+            outImp = IJ.getFactory().newImagePlus(TITLE_PREFIX[processType]+imp.getShortTitle(), outStack);
             int[] d = imp.getDimensions();
             outImp.setDimensions(d[2], d[3], d[4]);
             for (int i=1; i<=imp.getStackSize(); i++)

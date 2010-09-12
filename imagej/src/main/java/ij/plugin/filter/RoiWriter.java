@@ -1,12 +1,11 @@
 package ij.plugin.filter;
 
-import java.awt.*;
-import java.awt.image.*;
 import java.io.*;
 import ij.*;
 import ij.process.*;
 import ij.io.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
 
 /** Saves the current ROI outline to a file. RoiDecoder.java 
 	has a description of the file format.
@@ -14,9 +13,9 @@ import ij.gui.*;
 	@see ij.plugin.RoiReader
 */
 public class RoiWriter implements PlugInFilter {
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_ALL+ROI_REQUIRED+NO_CHANGES;
 	}
@@ -32,7 +31,7 @@ public class RoiWriter implements PlugInFilter {
 		}
 	}
 
-	public void saveRoi(ImagePlus imp) throws IOException{
+	public void saveRoi(IjxImagePlus imp) throws IOException{
 		Roi roi = imp.getRoi();
 		if (roi==null)
 			throw new IllegalArgumentException("ROI required");

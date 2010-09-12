@@ -3,6 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.plugin.frame.ThresholdAdjuster;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** Implements the Erode, Dilate, Open, Close, Outline, Skeletonize
@@ -23,7 +24,7 @@ public class Binary implements ExtendedPlugInFilter, DialogListener {
     String operationType = NO_OPERATION;  //for dialog; will be copied to 'arg' for actual previewing
 
     String arg;
-    ImagePlus imp;                  //null if only setting options with no preview possibility
+    IjxImagePlus imp;                  //null if only setting options with no preview possibility
     PlugInFilterRunner pfr;
     boolean doOptions;              //whether options dialog is required
     boolean previewing;
@@ -32,7 +33,7 @@ public class Binary implements ExtendedPlugInFilter, DialogListener {
     int flags = DOES_8G | DOES_8C | SUPPORTS_MASKING | PARALLELIZE_STACKS | KEEP_PREVIEW | KEEP_THRESHOLD;
     int nPasses;
 
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         this.arg = arg;
         IJ.register(Binary.class);
         doOptions = arg.equals("options");
@@ -45,7 +46,7 @@ public class Binary implements ExtendedPlugInFilter, DialogListener {
         return flags;
     }
 
-    public int showDialog (ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog (IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         if (doOptions) {
             this.imp = imp;
             this.pfr = pfr;
@@ -195,7 +196,7 @@ public class Binary implements ExtendedPlugInFilter, DialogListener {
                 ip2.fill();
             }
             ip2.insert(ip, 1, 1);
-            //new ImagePlus("ip2", ip2).show();
+            //IJ.getFactory().newImagePlus("ip2", ip2).show();
             return ip2;
         } else
             return ip;

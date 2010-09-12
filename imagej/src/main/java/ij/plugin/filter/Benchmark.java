@@ -1,20 +1,18 @@
 package ij.plugin.filter;
-import java.awt.*;
 import ij.*;
 import ij.process.*;
-import ij.gui.*;
-import ij.text.*;
+import ijx.IjxImagePlus;
 /** Implements the Plugins/Utilities/Run Benchmark command. 
 	results and additional benchmarks are available at 
 	"http://rsb.info.nih.gov/ij/plugins/benchmarks.html". */
 public class Benchmark implements PlugInFilter{
 
 	String arg;
-	ImagePlus imp;
+	IjxImagePlus imp;
 	boolean showUpdates= true;
 	int counter;
 	
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_ALL+NO_CHANGES+SNAPSHOT;
 	}
@@ -70,7 +68,7 @@ public class Benchmark implements PlugInFilter{
 		updateScreen(imp);
 	}
 	
-	void updateScreen(ImagePlus imp) {
+	void updateScreen(IjxImagePlus imp) {
 		if (showUpdates)
 			imp.updateAndDraw();
 		IJ.showStatus((counter++) + "/"+72);

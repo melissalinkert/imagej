@@ -4,14 +4,13 @@
  */
 package ijx.app;
 
-import ij.*;
+import ij.ImageJApplet;
 import ijx.IjxImagePlus;
-import java.awt.Font;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Properties;
 
@@ -30,8 +29,12 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
     /**
      * Plugins should call IJ.getVersion() to get the version string.
      */
-    String VERSION = "X 1.4";
-
+    String VERSION = "2.00a";
+    String BUILD = "";
+    String getVersion();
+	IjxImagePlus getClipboard();
+	void setClipboard(IjxImagePlus imp);
+	void resetClipboard();
     /**
      * Handle menu events.
      */
@@ -42,12 +45,6 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
      */
     void itemStateChanged(ItemEvent e);
 
-    /*    void keyPressed(KeyEvent e);
-    
-    void keyReleased(KeyEvent e);
-    
-    void keyTyped(KeyEvent e);
-   */ 
     
     boolean isHotkey();
     
@@ -92,4 +89,11 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
 
     void saveWindowLocations();
 
+    int getPort();
+    
+	ImageJApplet getApplet();
+
+    Image getIconImage();
+
+    Image createCompatibleImage(int w, int h);
 }

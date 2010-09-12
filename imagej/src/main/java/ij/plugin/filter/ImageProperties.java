@@ -8,9 +8,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
 
 public class ImageProperties implements PlugInFilter, TextListener {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	static final int NANOMETER=0, MICROMETER=1, MILLIMETER=2, CENTIMETER=3,
 		 METER=4, KILOMETER=5, INCH=6, FOOT=7, MILE=8, PIXEL=9, OTHER_UNIT=10;
 	int oldUnitIndex;
@@ -22,7 +23,7 @@ public class ImageProperties implements PlugInFilter, TextListener {
 	TextField pixelWidthField, pixelHeightField, pixelDepthField;
 	int textChangedCount;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_ALL+NO_CHANGES;
 	}
@@ -31,7 +32,7 @@ public class ImageProperties implements PlugInFilter, TextListener {
 		showDialog(imp);
 	}
 	
-	void showDialog(ImagePlus imp) {
+	void showDialog(IjxImagePlus imp) {
 		String options = Macro.getOptions();
 		if (options!=null ) {
 			String options2 = options.replaceAll(" depth=", " slices=");

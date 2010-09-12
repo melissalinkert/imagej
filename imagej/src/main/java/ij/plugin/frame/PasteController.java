@@ -5,6 +5,7 @@ import ij.*;
 import ij.plugin.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 
 /** Implements ImageJ's Paste Control window. */
 public class PasteController extends PlugInFrame implements PlugIn, ItemListener {
@@ -73,16 +74,17 @@ public class PasteController extends PlugInFrame implements PlugIn, ItemListener
 		Roi.setPasteMode(mode);
 		if (Recorder.record)
 			Recorder.record("setPasteMode", pasteMode.getSelectedItem());
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 	}
 	
     public void windowClosing(WindowEvent e) {
     	close();
 	}
 
-	public void close() {
+	public boolean close() {
 		super.close();
 		instance = null;
+        return true;
 	}
 	
 }

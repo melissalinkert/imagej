@@ -1,6 +1,5 @@
 package ij.plugin.filter;
 import java.awt.*;
-import java.util.Vector;
 import java.util.Properties;
 import ij.*;
 import ij.gui.*;
@@ -9,14 +8,16 @@ import ij.measure.*;
 import ij.text.*;
 import ij.plugin.MeasurementsWriter;
 import ij.plugin.Straightener;
-import ij.util.Tools;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.app.IjxApplication;
 
 /** This plugin implements ImageJ's Analyze/Measure and Analyze/Set Measurements commands. */
 public class Analyzer implements PlugInFilter, Measurements {
 	
 	private String arg;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private ResultsTable rt;
 	private int measurements;
 	private StringBuffer min,max,mean,sd;
@@ -40,7 +41,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 	private static ResultsTable systemRT = new ResultsTable();
 	private static int redirectTarget;
 	private static String redirectTitle = "";
-	private static ImagePlus redirectImage; // non-displayed images
+	private static IjxImagePlus redirectImage; // non-displayed images
 	static int firstParticle, lastParticle;
 	private static boolean summarized;
 	private static boolean switchingModes;
@@ -52,22 +53,22 @@ public class Analyzer implements PlugInFilter, Measurements {
 		measurements = systemMeasurements;
 	}
 	
-	/** Constructs a new Analyzer using the specified ImagePlus object
+	/** Constructs a new Analyzer using the specified IjxImagePlus object
 		and the current measurement options and default results table. */
-	public Analyzer(ImagePlus imp) {
+	public Analyzer(IjxImagePlus imp) {
 		this();
 		this.imp = imp;
 	}
 	
-	/** Construct a new Analyzer using an ImagePlus object and private
+	/** Construct a new Analyzer using an IjxImagePlus object and private
 		measurement options and results table. */
-	public Analyzer(ImagePlus imp, int measurements, ResultsTable rt) {
+	public Analyzer(IjxImagePlus imp, int measurements, ResultsTable rt) {
 		this.imp = imp;
 		this.measurements = measurements;
 		this.rt = rt;
 	}
 	
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		IJ.register(Analyzer.class);
@@ -99,11 +100,11 @@ public class Analyzer implements PlugInFilter, Measurements {
 			titles = new String[wList.length+1];
 			titles[0] = NONE;
 			for (int i=0; i<wList.length; i++) {
-				ImagePlus imp = WindowManager.getImage(wList[i]);
+				IjxImagePlus imp = WindowManager.getImage(wList[i]);
 				titles[i+1] = imp!=null?imp.getTitle():"";
 			}
 		}
-		ImagePlus tImp = WindowManager.getImage(redirectTarget);
+		IjxImagePlus tImp = WindowManager.getImage(redirectTarget);
 		String target = tImp!=null?tImp.getTitle():NONE;
 		String macroOptions = Macro.getOptions();
 		if (macroOptions!=null && macroOptions.indexOf("circularity ")!=-1)
@@ -111,7 +112,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 		if (macroOptions!=null && macroOptions.indexOf("slice ")!=-1)
 			Macro.setOptions(macroOptions.replaceAll("slice ", "stack "));
 
- 		GenericDialog gd = new GenericDialog("Set Measurements", IJ.getInstance());
+ 		GenericDialog gd = new GenericDialog("Set Measurements", IJ.getTopComponentFrame());
 		String[] labels = new String[18];
 		boolean[] states = new boolean[18];
 		labels[0]="Area"; states[0]=(systemMeasurements&AREA)!=0;
@@ -155,7 +156,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 		int index = gd.getNextChoiceIndex();
 		redirectTarget = index==0?0:wList[index-1];
 		redirectTitle = titles[index];
-		ImagePlus imp = WindowManager.getImage(redirectTarget);
+		IjxImagePlus imp = WindowManager.getImage(redirectTarget);
 		redirectImage = imp!=null && imp.getWindow()==null?imp:null;
 
 		int prec = (int)gd.getNextNumber();
@@ -238,7 +239,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 	
 	/** Set the "Redirect To" image. Pass 'null' as the 
 	    argument to disable redirected sampling. */
-	public static void setRedirectImage(ImagePlus imp) {
+	public static void setRedirectImage(IjxImagePlus imp) {
 		if (imp==null) {
 			redirectTarget = 0;
 			redirectTitle = null;
@@ -255,8 +256,8 @@ public class Analyzer implements PlugInFilter, Measurements {
 		menu of the Analyze/Set Measurements dialog or null
 		if "None" is selected, the image was not found or the 
 		image is not the same size as <code>currentImage</code>. */
-	public static ImagePlus getRedirectImage(ImagePlus currentImage) {
-		ImagePlus rImp = WindowManager.getImage(redirectTarget);
+	public static IjxImagePlus getRedirectImage(IjxImagePlus currentImage) {
+		IjxImagePlus rImp = WindowManager.getImage(redirectTarget);
 		if (rImp==null)
 			rImp = redirectImage;
 		if (rImp==null) {
@@ -276,7 +277,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 	}
 
 	ImageStatistics getRedirectStats(int measurements, Roi roi) {
-		ImagePlus redirectImp = getRedirectImage(imp);
+		IjxImagePlus redirectImp = getRedirectImage(imp);
 		if (redirectImp==null)
 			return null;
 		int depth = redirectImp.getStackSize();
@@ -595,7 +596,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 		String s = "";
 		if (imp!=null) {
 			if (redirectTarget!=0) {
-				ImagePlus rImp = WindowManager.getImage(redirectTarget);
+				IjxImagePlus rImp = WindowManager.getImage(redirectTarget);
 				if (rImp==null) rImp = redirectImage;
 				if (rImp!=null) s = rImp.getTitle();				
 			} else
@@ -608,7 +609,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 			if (roiName!=null)
 				s += ":"+roiName;
 			if (imp.getStackSize()>1) {
-				ImageStack stack = imp.getStack();
+				IjxImageStack stack = imp.getStack();
 				int currentSlice = imp.getCurrentSlice();
 				String label = stack.getShortSliceLabel(currentSlice);
 				String colon = s.equals("")?"":":";
@@ -795,11 +796,11 @@ public class Analyzer implements PlugInFilter, Measurements {
 		TextPanel tp = IJ.isResultsWindow()?IJ.getTextPanel():null;
 		int counter = systemRT.getCounter();
 		int lineCount = tp!=null?IJ.getTextPanel().getLineCount():0;
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		boolean macro = (IJ.macroRunning()&&!switchingModes) || Interpreter.isBatchMode();
 		switchingModes = false;
 		if (counter>0 && lineCount>0 && unsavedMeasurements && !macro && ij!=null && !ij.quitting()) {
-			YesNoCancelDialog d = new YesNoCancelDialog(ij, "ImageJ", "Save "+counter+" measurements?");
+			YesNoCancelDialog d = new YesNoCancelDialog(IJ.getTopComponentFrame(), "ImageJ", "Save "+counter+" measurements?");
 			if (d.cancelPressed())
 				return false;
 			else if (d.yesPressed()) {

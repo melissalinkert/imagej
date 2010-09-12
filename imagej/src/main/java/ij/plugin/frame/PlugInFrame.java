@@ -3,9 +3,11 @@ import java.awt.*;
 import java.awt.event.*;
 import ij.*;
 import ij.plugin.*;
+import ijx.app.IjxApplication;
+import ijx.plugin.frame.IjxPluginFrame;
 
 /**  This is a closeable window that plugins can extend. */
-public class PlugInFrame extends Frame implements PlugIn, WindowListener, FocusListener {
+public class PlugInFrame extends Frame implements IjxPluginFrame, PlugIn, WindowListener, FocusListener {
 
 	String title;
 	
@@ -13,10 +15,10 @@ public class PlugInFrame extends Frame implements PlugIn, WindowListener, FocusL
 		super(title);
 		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
 		this.title = title;
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		addWindowListener(this);
  		addFocusListener(this);
-		if (IJ.isLinux()) setBackground(ImageJ.backgroundColor);
+		if (IJ.isLinux()) setBackground(IJ.backgroundColor);
 		if (ij!=null) {
 			Image img = ij.getIconImage();
 			if (img!=null)
@@ -36,10 +38,11 @@ public class PlugInFrame extends Frame implements PlugIn, WindowListener, FocusL
     }
     
     /** Closes this window. */
-    public void close() {
+    public boolean close() {
 		setVisible(false);
 		dispose();
 		WindowManager.removeWindow(this);
+        return true;
     }
 
     public void windowActivated(WindowEvent e) {
@@ -61,4 +64,12 @@ public class PlugInFrame extends Frame implements PlugIn, WindowListener, FocusL
     public void windowDeiconified(WindowEvent e) {}
     public void windowDeactivated(WindowEvent e) {}
 	public void focusLost(FocusEvent e) {}
+
+    public boolean isClosed() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public boolean canClose() {
+        return true;
+    }
 }

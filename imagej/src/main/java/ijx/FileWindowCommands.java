@@ -7,8 +7,8 @@ import ij.plugin.frame.*;
 import ij.text.TextWindow;
 import ij.macro.Interpreter;
 import ijx.app.IjxApplication;
+import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxWindow;
-import java.awt.Frame;
 import java.io.File;
 import java.applet.Applet;
 
@@ -16,8 +16,6 @@ import java.applet.Applet;
 import ijx.sezpoz.MenuItem;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import javax.swing.KeyStroke;
 
 public class FileWindowCommands {
 
@@ -247,7 +245,7 @@ public class FileWindowCommands {
     static void close() {
         IjxImagePlus imp = WindowManager.getCurrentImage();
         IjxWindow frame = WindowManager.getFrontWindow();
-        if (frame == null || (Interpreter.isBatchMode() && frame instanceof ImageWindow)) {
+        if (frame == null || (Interpreter.isBatchMode() && frame instanceof IjxImageWindow)) {
             closeImage(imp);
         } else if (frame instanceof PlugInFrame) {
             ((PlugInFrame) frame).close();

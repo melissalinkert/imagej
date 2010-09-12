@@ -4,14 +4,11 @@ import ij.*;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
-import java.io.*;
-import java.awt.datatransfer.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.measure.Measurements;
-import ij.plugin.filter.Analyzer;
-import ij.text.TextWindow;
 import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 
 /** This plugin displays a calibration bar on the active image.
 	Bob Dougherty, OptiNav, Inc., 4/14/2002
@@ -45,8 +42,8 @@ public class CalibrationBar implements PlugInFilter {
     static int fontSize = 12;
     static int decimalPlaces = 0;
 
-    ImagePlus imp;
-    ImagePlus impOriginal;
+    IjxImagePlus imp;
+    IjxImagePlus impOriginal;
 
     LiveDialog gd;
 
@@ -73,13 +70,13 @@ public class CalibrationBar implements PlugInFilter {
     String boxOutlineColor = colors[8];
     String barOutlineColor = colors[3];
     
-    ImagePlus impData;
+    IjxImagePlus impData;
     ImageProcessor ip;
     String[] fieldNames = null;
     int insetPad;
     boolean decimalPlacesChanged;
 
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         if(imp!=null) {
             this.imp = imp;
             impData = imp;
@@ -90,13 +87,13 @@ public class CalibrationBar implements PlugInFilter {
     }
 
     public void run(ImageProcessor ipPassed) {
-        ImageCanvas ic = imp.getCanvas();
+        IjxImageCanvas ic = imp.getCanvas();
         double mag = (ic!=null)?ic.getMagnification():1.0;
         if (zoom<=1 && mag<1)
         	zoom = (double) 1.0/mag;
         ip = ipPassed.duplicate().convertToRGB();
         impOriginal = imp;
-        imp = new ImagePlus(imp.getTitle()+" with bar", ip);
+        imp = IJ.getFactory().newImagePlus(imp.getTitle()+" with bar", ip);
         imp.setCalibration(impData.getCalibration());
         if(impOriginal.getRoi()!=null)
             imp.setRoi(impOriginal.getRoi());
@@ -345,7 +342,7 @@ public class CalibrationBar implements PlugInFilter {
     	drawColorBar(imp, -1, -1);
     }
         
-    public void drawColorBar(ImagePlus imp, int x, int y) {
+    public void drawColorBar(IjxImagePlus imp, int x, int y) {
     	Roi roi = impOriginal.getRoi();
     	if (roi!=null)
     		impOriginal.killRoi();

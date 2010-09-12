@@ -1,12 +1,12 @@
 package ij.plugin.filter;
 import java.awt.*;
-import java.awt.image.*;
 import java.util.*;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.util.*;
+import ijx.IjxImagePlus;
 
 /**
 Calculate the so-called "capacity" fractal dimension.  The algorithm
@@ -38,16 +38,16 @@ public class FractalBoxCounter implements PlugInFilter {
 	int[] counts;
 	Rectangle roi;
 	int foreground;
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_8G+NO_CHANGES;
 	}
 
 	public void run(ImageProcessor ip) {
 
-		GenericDialog gd = new GenericDialog("Fractal Box Counter", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Fractal Box Counter", IJ.getTopComponentFrame());
 		gd.addStringField("Box Sizes:", sizes, 20);
 		gd.addCheckbox("Black Background", blackBackground);
 

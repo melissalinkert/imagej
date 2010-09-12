@@ -1,7 +1,8 @@
 package ij.plugin;
-import ij.*;
+import ij.IJ;
 import ij.measure.Measurements;
 import ij.plugin.filter.Analyzer;
+import ijx.IjxImagePlus;
 import java.io.*;
 
 /** This plugin implements the File/Batch/Measure command, 
@@ -18,7 +19,7 @@ import java.io.*;
 			if (list[i].startsWith(".")) continue;
 			String path = dir + list[i];
 			IJ.showProgress(i+1, list.length);
-			ImagePlus imp = !path.endsWith("/")?IJ.openImage(path):null;
+			IjxImagePlus imp = !path.endsWith("/")?IJ.openImage(path):null;
 			if (imp!=null) {
 				IJ.run(imp, "Measure", "");
 				imp.close();

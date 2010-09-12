@@ -5,13 +5,14 @@ import java.awt.image.*;
 import java.io.*;
 import ij.*;
 import ij.io.*;
+import ijx.IjxImagePlus;
 
 
 /** This plugin reads BMP files. If 'arg' is empty, it
         displays a file open dialog and opens and displays the 
         selected file. If 'arg' is a path, it opens the 
         specified file and the calling routine can display it using
-        "((ImagePlus)IJ.runPlugIn("ij.plugin.BMP_Reader", path)).show()".
+        "((IjxImagePlus)IJ.runPlugIn("ij.plugin.BMP_Reader", path)).show()".
         */
 public class BMP_Reader extends ImagePlus implements PlugIn {
 

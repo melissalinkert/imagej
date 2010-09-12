@@ -3,8 +3,9 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.Calibration;
-import ij.macro.Interpreter;
 import ij.io.FileInfo;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 
 /** Implements the Image/Stacks/Images to Stack" command. */
@@ -23,7 +24,7 @@ public class ImagesToStack implements PlugIn {
 	private int minSize, maxSize;
 	private Calibration cal2;
 	private int stackType;
-	private ImagePlus[] image;
+	private IjxImagePlus[] image;
 	private String name = "Stack";
 
 	public void run(String arg) {
@@ -39,9 +40,9 @@ public class ImagesToStack implements PlugIn {
 		}
 
 		int count = 0;
-		image = new ImagePlus[wList.length];
+		image = new IjxImagePlus[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			if (imp.getStackSize()==1)
 				image[count++] = imp;
 		}		
@@ -107,7 +108,7 @@ public class ImagesToStack implements PlugIn {
 		
 		double min = Double.MAX_VALUE;
 		double max = -Double.MAX_VALUE;
-		ImageStack stack = new ImageStack(width, height);
+		IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 		FileInfo fi = image[0].getOriginalFileInfo();
 		if (fi!=null && fi.directory==null) fi = null;
 		for (int i=0; i<count; i++) {
@@ -159,12 +160,12 @@ public class ImagesToStack implements PlugIn {
             	ip = ip.duplicate();
             stack.addSlice(label, ip);
             if (!keep) {
-				image[i].changes = false;
+				image[i].setChanged(false);
 				image[i].close();
 			}
 		}
 		if (stack.getSize()==0) return;
-		ImagePlus imp = new ImagePlus(name, stack);
+		IjxImagePlus imp = IJ.getFactory().newImagePlus(name, stack);
 		if (stackType==16 || stackType==32)
 			imp.getProcessor().setMinAndMax(min, max);
 		if (cal2!=null)
@@ -191,7 +192,7 @@ public class ImagesToStack implements PlugIn {
 		maxSize = 0;
 		for (int i=0; i<count; i++) {
 			if (exclude(image[i].getTitle())) continue;
-			if (image[i].getType()==ImagePlus.COLOR_256)
+			if (image[i].getType()==IjxImagePlus.COLOR_256)
 				stackType = rgb;
 			int type = image[i].getBitDepth();
 			if (type==24) type = rgb;

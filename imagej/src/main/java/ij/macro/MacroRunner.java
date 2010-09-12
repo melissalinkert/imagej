@@ -4,6 +4,7 @@ import ij.text.*;
 import ij.util.*;
 import java.io.*;
 import ij.plugin.frame.Editor;
+import ijx.IjxImagePlus;
 																																																																																																																																																					   
 
 /** This class runs macros in a separate thread. */
@@ -128,7 +129,7 @@ public class MacroRunner implements Runnable {
 			interp.abortMacro();
 			IJ.showStatus("");
 			IJ.showProgress(1.0);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.unlock();
 			String msg = e.getMessage();
 			if (e instanceof RuntimeException && msg!=null && e.getMessage().equals(Macro.MACRO_CANCELED))

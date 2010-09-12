@@ -4,6 +4,7 @@ import ij.process.*;
 import ij.gui.*;
 import ij.util.Tools;
 import ij.measure.Measurements;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** This plugin implements the Image/Stacks/Label command. */
@@ -12,7 +13,7 @@ public class StackLabeler implements ExtendedPlugInFilter, DialogListener {
 	private static final int NUMBER=0, ZERO_PADDED_NUMBER=1, MIN_SEC=2, HOUR_MIN_SEC=3, TEXT=4;
 	private static int format = (int)Prefs.get("label.format", NUMBER);
 	private int flags = DOES_ALL;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private static int x = 5;
 	private static int y = 20;
 	private static int fontSize = 18;
@@ -31,7 +32,7 @@ public class StackLabeler implements ExtendedPlugInFilter, DialogListener {
 	private boolean virtualStack; 
 	private int yoffset;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		if (imp!=null) {
 			virtualStack = imp.getStack().isVirtual();
 			if (virtualStack) useOverlay = true;
@@ -42,7 +43,7 @@ public class StackLabeler implements ExtendedPlugInFilter, DialogListener {
 		return flags;
 	}
 
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
 		ImageProcessor ip = imp.getProcessor();
 		Rectangle roi = ip.getRoi();
 		if (roi.width<ip.getWidth() || roi.height<ip.getHeight()) {

@@ -1,4 +1,5 @@
 package ij.gui;
+import ij.IJ;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -7,7 +8,7 @@ import javax.swing.*;
 public class HTMLDialog extends JDialog implements ActionListener {
 	
 	public HTMLDialog(String title, String message) {
-		super(ij.IJ.getInstance(), title, true);
+		super(IJ.getTopComponentFrame(), title, true);
 		ij.util.Java2.setSystemLookAndFeel();
 		Container container = getContentPane();
 		container.setLayout(new BorderLayout());

@@ -1,6 +1,6 @@
 package ijx.plugin.parameterized;
 
-import ij.ImagePlus;
+import ijx.IjxImagePlus;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,12 +54,12 @@ public class ParameterHandler {
         return getParameters(plugin, PlugInFunctions.all);
     }
 
-    public static Iterable<ImagePlus> getOutputImages(Runnable plugin) {
-        List<ImagePlus> result = new ArrayList<ImagePlus>();
+    public static Iterable<IjxImagePlus> getOutputImages(Runnable plugin) {
+        List<IjxImagePlus> result = new ArrayList<IjxImagePlus>();
         for (Field field : getOutputParameters(plugin)) {
-            if (field.getType() == ImagePlus.class) {
+            if (field.getType() == IjxImagePlus.class) {
                 try {
-                    result.add((ImagePlus) field.get(plugin));
+                    result.add((IjxImagePlus) field.get(plugin));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

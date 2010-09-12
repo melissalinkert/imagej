@@ -2,6 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.io.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.io.*;
 import java.awt.image.*;
@@ -71,9 +72,9 @@ public class LutLoader extends ImagePlus implements PlugIn {
 	}
 	
 	void showLut(FileInfo fi, boolean showImage) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
-			if (imp.getType()==ImagePlus.COLOR_RGB)
+			if (imp.getType()==IjxImagePlus.COLOR_RGB)
 				IJ.error("Color tables cannot be assiged to RGB Images.");
 			else {
 				ImageProcessor ip = imp.getChannelProcessor();
@@ -91,10 +92,10 @@ public class LutLoader extends ImagePlus implements PlugIn {
 	}
 	
 	void invertLut() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
-		if (imp.getType()==ImagePlus.COLOR_RGB)
+		if (imp.getType()==IjxImagePlus.COLOR_RGB)
 			{IJ.error("RGB images do not use LUTs"); return;}
 		if (imp.isComposite()) {
 			CompositeImage ci = (CompositeImage)imp;

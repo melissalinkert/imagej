@@ -1,13 +1,12 @@
 package ij.plugin;
 
-import java.awt.*;
-import java.awt.image.*;
-import java.util.Vector;
 import java.io.*;
 import ij.*;
 import ij.process.*;
 import ij.io.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 
 /** Writes the XY coordinates and pixel values of all non-background pixels
@@ -20,7 +19,7 @@ public class XYCoordinates implements PlugIn {
 	static boolean suppress;
 
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		ImageProcessor ip = imp.getProcessor();
 		int width = imp.getWidth();
 		int height = imp.getHeight();
@@ -94,7 +93,7 @@ public class XYCoordinates implements PlugIn {
 		float v;
 		int c,r,g,b;
 		int type = imp.getType();
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		for (int z=0; z<slices; z++) {
 			if (slices>1) ip = stack.getProcessor(z+1);
 			String zstr = slices>1?z+"\t":"";
@@ -103,7 +102,7 @@ public class XYCoordinates implements PlugIn {
 				for (int x=0; x<width; x++) {
 					v = ip.getPixelValue(x,y);
 					if (v!=background) {
-						if (type==ImagePlus.GRAY32)
+						if (type==IjxImagePlus.GRAY32)
 							pw.println(x+"\t"+(invertY?y:height-1-y)+"\t"+zstr+v);
 						else if (rgb) {
 							c = ip.getPixel(x,y);

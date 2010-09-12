@@ -6,6 +6,8 @@ import ij.util.Tools;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.frame.Recorder;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Vector;
@@ -25,7 +27,7 @@ public class Histogram implements PlugIn, TextListener {
 	private String defaultMin, defaultMax;
 
  	public void run(String arg) {
- 		ImagePlus imp = IJ.getImage();
+ 		IjxImagePlus imp = IJ.getImage();
  		int bitDepth = imp.getBitDepth();
  		if (bitDepth==32 || IJ.altKeyDown()) {
 			IJ.setKeyUp(KeyEvent.VK_ALT);
@@ -50,11 +52,11 @@ public class Histogram implements PlugIn, TextListener {
  			{xMin=0.0; xMax=0.0;}
  		int iyMax = (int)Tools.parseDouble(yMax, 0.0);
  		boolean customHistogram = (bitDepth==8||bitDepth==24) && (!(xMin==0.0&&xMax==0.0)||nBins!=256||iyMax>0);
- 		ImageWindow.centerNextImage();
+ 		WindowManager.setCenterNextImage(true);
  		if (stackHistogram || customHistogram) {
- 			ImagePlus imp2 = imp;
+ 			IjxImagePlus imp2 = imp;
  			if (customHistogram && !stackHistogram && imp.getStackSize()>1)
- 				imp2 = new ImagePlus("Temp", imp.getProcessor());
+ 				imp2 = IJ.getFactory().newImagePlus("Temp", imp.getProcessor());
 			stats = new StackStatistics(imp2, nBins, xMin, xMax);
 			stats.histYMax = iyMax;
 			new HistogramWindow("Histogram of "+imp.getShortTitle(), imp, stats);
@@ -62,7 +64,7 @@ public class Histogram implements PlugIn, TextListener {
 			new HistogramWindow("Histogram of "+imp.getShortTitle(), imp, nBins, xMin, xMax, iyMax);
 	}
 	
-	boolean showDialog(ImagePlus imp) {
+	boolean showDialog(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		double min = ip.getMin();
 		double max = ip.getMax();
@@ -121,7 +123,7 @@ public class Histogram implements PlugIn, TextListener {
 			checkbox.setState(false);
 	}
 	
-	int setupDialog(ImagePlus imp, int flags) {
+	int setupDialog(IjxImagePlus imp, int flags) {
 		int stackSize = imp.getStackSize();
 		if (stackSize>1) {
 			String macroOptions = Macro.getOptions();
@@ -131,7 +133,7 @@ public class Histogram implements PlugIn, TextListener {
 				else
 					return flags;
 			}
-			YesNoCancelDialog d = new YesNoCancelDialog(IJ.getInstance(),
+			YesNoCancelDialog d = new YesNoCancelDialog(IJ.getTopComponentFrame(),
 				"Histogram", "Include all "+stackSize+" images?");
 			if (d.cancelPressed())
 				return PlugInFilter.DONE;

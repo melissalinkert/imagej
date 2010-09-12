@@ -6,6 +6,7 @@ import ij.measure.*;
 import ij.util.*;
 import ij.io.*;
 import ij.plugin.TextReader;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.util.*;
 import java.awt.event.*;
@@ -21,7 +22,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 	private static final String CUSTOM = "Custom";
 	private static boolean showSettings;
 	private boolean global1, global2;
-    private ImagePlus imp;
+    private IjxImagePlus imp;
 	private int choiceIndex;
 	private String[] functions;
 	private	int nFits = CurveFitter.fitList.length;
@@ -39,7 +40,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 	private Button open, save;
 	private GenericDialog gd;
 	
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		IJ.register(Calibrator.class);
 		return DOES_ALL-DOES_RGB+NO_CHANGES;
@@ -52,7 +53,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 		if (choiceIndex==customIndex) {
 			showPlot(null, null, imp.getCalibration(), null);
 			return;
-		} else if (imp.getType()==ImagePlus.GRAY32) {
+		} else if (imp.getType()==IjxImagePlus.GRAY32) {
 			if (choiceIndex==0)
 				imp.getCalibration().setValueUnit(unit);
 			else
@@ -61,7 +62,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 			calibrate(imp);
 	}
 
-	public boolean showDialog(ImagePlus imp) {
+	public boolean showDialog(IjxImagePlus imp) {
 		String defaultChoice;
 		Calibration cal = imp.getCalibration();
 		functions = getFunctionList(cal.getFunction()==Calibration.CUSTOM);
@@ -121,11 +122,11 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 		return buttons;
 	}
 	
-	public void calibrate(ImagePlus imp) {
+	public void calibrate(IjxImagePlus imp) {
 		Calibration cal = imp.getCalibration();
 		Calibration calOrig = cal.copy();
 		int function = Calibration.NONE;
-		boolean is16Bits = imp.getType()==ImagePlus.GRAY16;
+		boolean is16Bits = imp.getType()==IjxImagePlus.GRAY16;
 		double[] parameters = null;
 		double[] x=null, y=null;
 		boolean zeroClip=false;
@@ -194,7 +195,7 @@ public class Calibrator implements PlugInFilter, Measurements, ActionListener {
 		}
 		int n = x.length;
 		double xmin=0.0,xmax;
-		if (imp.getType()==ImagePlus.GRAY16)
+		if (imp.getType()==IjxImagePlus.GRAY16)
 			xmax=65535.0; 
 		else
 			xmax=255.0;

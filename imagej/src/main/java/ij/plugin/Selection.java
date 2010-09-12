@@ -8,16 +8,18 @@ import ij.macro.Interpreter;
 import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.ThresholdToSelection;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxWindow;
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.util.Vector;
 //import java.awt.image.BufferedImage;
 
 
 
 /** This plugin implements the commands in the Edit/Section submenu. */
 public class Selection implements PlugIn, Measurements {
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private float[] kernel = {1f, 1f, 1f, 1f, 1f};
 	private float[] kernel3 = {1f, 1f, 1f};
 	private static String angle = "15"; // degrees
@@ -201,7 +203,7 @@ public class Selection implements PlugIn, Measurements {
 		return curvature;
 	}
 	
-	void drawEllipse(ImagePlus imp) {
+	void drawEllipse(IjxImagePlus imp) {
 		IJ.showStatus("Fitting ellipse");
 		Roi roi = imp.getRoi();
 		if (roi==null)
@@ -223,7 +225,7 @@ public class Selection implements PlugIn, Measurements {
 		IJ.showStatus("");
 	}
 
-	void convexHull(ImagePlus imp) {
+	void convexHull(IjxImagePlus imp) {
 		Roi roi = imp.getRoi();
 		int type = roi!=null?roi.getType():-1;
 		if (!(type==Roi.FREEROI||type==Roi.TRACED_ROI||type==Roi.POLYGON||type==Roi.POINT))
@@ -234,7 +236,7 @@ public class Selection implements PlugIn, Measurements {
 	}
 	
 	// Finds the index of the upper right point that is guaranteed to be on convex hull
-	int findFirstPoint(int[] xCoordinates, int[] yCoordinates, int n, ImagePlus imp) {
+	int findFirstPoint(int[] xCoordinates, int[] yCoordinates, int n, IjxImagePlus imp) {
 		int smallestY = imp.getHeight();
 		int x, y;
 		for (int i=0; i<n; i++) {
@@ -255,7 +257,7 @@ public class Selection implements PlugIn, Measurements {
 		return p1;
 	}
 	
-	void createMask(ImagePlus imp) {
+	void createMask(IjxImagePlus imp) {
 		Roi roi = imp.getRoi();
 		boolean useInvertingLut = Prefs.useInvertingLut;
 		Prefs.useInvertingLut = false;
@@ -264,15 +266,15 @@ public class Selection implements PlugIn, Measurements {
 			Prefs.useInvertingLut = useInvertingLut;
 			return;
 		}
-		ImagePlus maskImp = null;
-		Frame frame = WindowManager.getFrame("Mask");
-		if (frame!=null && (frame instanceof ImageWindow))
-			maskImp = ((ImageWindow)frame).getImagePlus();
+		IjxImagePlus maskImp = null;
+		IjxWindow frame = WindowManager.getFrame("Mask");
+		if (frame!=null && (frame instanceof IjxImageWindow))
+			maskImp = ((IjxImageWindow)frame).getImagePlus();
 		if (maskImp==null) {
 			ImageProcessor ip = new ByteProcessor(imp.getWidth(), imp.getHeight());
 			if (!Prefs.blackBackground)
 				ip.invertLut();
-			maskImp = new ImagePlus("Mask", ip);
+			maskImp = IJ.getFactory().newImagePlus("Mask", ip);
 			maskImp.show();
 		}
 		ImageProcessor ip = maskImp.getProcessor();
@@ -283,20 +285,20 @@ public class Selection implements PlugIn, Measurements {
 		Prefs.useInvertingLut = useInvertingLut;
 	}
 	
-	void createMaskFromThreshold(ImagePlus imp) {
+	void createMaskFromThreshold(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		if (ip.getMinThreshold()==ImageProcessor.NO_THRESHOLD)
 			{IJ.error("Create Mask", "Area selection or thresholded image required"); return;}
 		double t1 = ip.getMinThreshold();
 		double t2 = ip.getMaxThreshold();
 		IJ.run("Duplicate...", "title=mask");
-		ImagePlus imp2 = WindowManager.getCurrentImage();
+		IjxImagePlus imp2 = WindowManager.getCurrentImage();
 		ImageProcessor ip2 = imp2.getProcessor();
 		ip2.setThreshold(t1, t2, ImageProcessor.NO_LUT_UPDATE);
 		IJ.run("Convert to Mask");
 	}
 
-	void createSelectionFromMask(ImagePlus imp) {
+	void createSelectionFromMask(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		if (ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD) {
 			IJ.runPlugIn("ij.plugin.filter.ThresholdToSelection", "");
@@ -316,7 +318,7 @@ public class Selection implements PlugIn, Measurements {
 		IJ.runPlugIn("ij.plugin.filter.ThresholdToSelection", "");
 	}
 
-	void invert(ImagePlus imp) {
+	void invert(IjxImagePlus imp) {
 		Roi roi = imp.getRoi();
 		if (roi==null || !roi.isArea())
 			{IJ.error("Inverse", "Area selection required"); return;}
@@ -329,7 +331,7 @@ public class Selection implements PlugIn, Measurements {
 		imp.setRoi(s1.xor(s2));
 	}
 	
-	void lineToArea(ImagePlus imp) {
+	void lineToArea(IjxImagePlus imp) {
 		Roi roi = imp.getRoi();
 		if (roi==null || !roi.isLine())
 			{IJ.error("Line to Area", "Line selection required"); return;}
@@ -348,7 +350,7 @@ public class Selection implements PlugIn, Measurements {
 			//roi2.drawOverlay(g);
 			//ip2 = new ByteProcessor(bi);
 		}
-		//new ImagePlus("ip2", ip2.duplicate()).show();
+		//IJ.getFactory().newImagePlus("ip2", ip2.duplicate()).show();
 		ip2.setThreshold(255, 255, ImageProcessor.NO_LUT_UPDATE);
 		ThresholdToSelection tts = new ThresholdToSelection();
 		Roi roi2 = tts.convert(ip2);
@@ -356,10 +358,10 @@ public class Selection implements PlugIn, Measurements {
 		Roi.previousRoi = (Roi)roi.clone();
 	}
 	
-	void addToRoiManager(ImagePlus imp) {
+	void addToRoiManager(IjxImagePlus imp) {
 		if (IJ.macroRunning() &&  Interpreter.isBatchModeRoiManager())
 			IJ.error("run(\"Add to Manager\") may not work in batch mode macros");
-		Frame frame = WindowManager.getFrame("ROI Manager");
+		IjxWindow frame = WindowManager.getFrame("ROI Manager");
 		if (frame==null)
 			IJ.run("ROI Manager...");
 		if (imp==null) return;

@@ -2,6 +2,8 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.io.*;
+import ijx.IjxTopComponent;
+import java.awt.Component;
 import java.io.*;
 import java.awt.Point;
 import java.awt.datatransfer.*;
@@ -24,9 +26,9 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 	private boolean openAsVirtualStack;
 	
 	public void run(String arg) {
-		ImageJ ij = IJ.getInstance();
+		IjxTopComponent ij = IJ.getTopComponent();
 		ij.setDropTarget(null);
-		new DropTarget(ij, this);
+		new DropTarget((Component)ij, this);
 		new DropTarget(Toolbar.getInstance(), this);
 		new DropTarget(ij.getStatusBar(), this);
 	}  
@@ -131,7 +133,7 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 			if (IJ.debugMode) IJ.log("DragOver: "+e.getLocation());
 			Point loc = e.getLocation();
 			int buttonSize = Toolbar.getButtonSize();
-			int width = IJ.getInstance().getSize().width;
+			int width = IJ.getTopComponent().getSize().width;
 			openAsVirtualStack = width-loc.x<=buttonSize;
 			if (openAsVirtualStack)
 	    		IJ.showStatus("<<Open as Virtual Stack>>");

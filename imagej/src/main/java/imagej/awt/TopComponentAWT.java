@@ -10,7 +10,6 @@ import ij.Prefs;
 import ij.Undo;
 import ij.WindowManager;
 import ijx.app.IjxApplication;
-import ijx.IjxTopComponent;
 import ij.gui.ProgressBar;
 import ijx.IjxTopComponent;
 import java.awt.BorderLayout;
@@ -26,6 +25,7 @@ import java.awt.MenuBar;
 import java.awt.Panel;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.image.ImageProducer;
@@ -199,7 +199,7 @@ public class TopComponentAWT extends Frame implements IjxTopComponent {
   }
 
   @Override
-  public void close() {
+  public boolean close() {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -207,4 +207,20 @@ public class TopComponentAWT extends Frame implements IjxTopComponent {
   public boolean isClosed() {
     return windowClosed;
   }
+
+    public void setDropTarget(Object object) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void keyTyped(KeyEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void keyPressed(KeyEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void keyReleased(KeyEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }

@@ -1,21 +1,16 @@
 package ij.io;
 import ijx.IjxImagePlus;
-import java.awt.*;
 import java.io.*;
 import java.util.zip.*;
 import ij.*;
 import ij.process.*;
 import ij.measure.Calibration;
 import ij.plugin.filter.Analyzer;
-import ij.plugin.frame.Recorder;
 import ij.plugin.JpegWriter;
-import ij.plugin.Orthogonal_Views;
 import ij.gui.Roi;
 import ij.gui.Overlay;
-import ij.gui.ImageCanvas;
 import ijx.IjxImageStack;
 import ijx.gui.IjxImageCanvas;
-import javax.imageio.*;
 
 /** Saves images in tiff, gif, jpeg, raw, zip and text format. */
 public class FileSaver {
@@ -31,7 +26,7 @@ public class FileSaver {
 	private String name;
 	private String directory;
 
-	/** Constructs a FileSaver from an ImagePlus. */
+	/** Constructs a FileSaver from an IjxImagePlus. */
 	public FileSaver(IjxImagePlus imp) {
 		this.imp = imp;
 		fi = imp.getFileInfo();
@@ -129,8 +124,9 @@ public class FileSaver {
 		}
 		int n = overlay.size();
 		if (n==0) return null;
-		if (Orthogonal_Views.isOrthoViewsImage(imp))
-			return null;
+        // @todo re-enable this...
+//		if (Orthogonal_Views.isOrthoViewsImage(imp))
+//			return null;
 		byte[][] array = new byte[n][];
 		for (int i=0; i<overlay.size(); i++) {
 			Roi roi = overlay.get(i);
@@ -304,7 +300,7 @@ public class FileSaver {
 	*/
 	public boolean saveAsJpeg(String path) {
 		String err = JpegWriter.save(imp, path, jpegQuality);
-		if (err==null && !(imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32))
+		if (err==null && !(imp.getType()==IjxImagePlus.GRAY16 || imp.getType()==IjxImagePlus.GRAY32))
 			updateImp(fi, FileInfo.GIF_OR_JPG);
 		return true;
 	}
@@ -585,7 +581,7 @@ public class FileSaver {
 	public String getDescriptionString() {
 		Calibration cal = imp.getCalibration();
 		StringBuffer sb = new StringBuffer(100);
-		sb.append("ImageJ="+ImageJ.VERSION+"\n");
+		sb.append("ImageJ="+IJ.getVersion()+"\n");
 		if (fi.nImages>1 && fi.fileType!=FileInfo.RGB48)
 			sb.append("images="+fi.nImages+"\n");
 		int channels = imp.getNChannels();

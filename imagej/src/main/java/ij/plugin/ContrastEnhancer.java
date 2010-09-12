@@ -3,7 +3,8 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
-import java.awt.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** Implements ImageJ's Process/Enhance Contrast command. */
 public class ContrastEnhancer implements PlugIn, Measurements {
@@ -17,7 +18,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 	static boolean gEqualize, gNormalize;
 
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		stackSize = imp.getStackSize();
 		imp.trimProcessor();
 		if (!showDialog(imp))
@@ -37,7 +38,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		imp.updateAndDraw();
 	}
 
-	boolean showDialog(ImagePlus imp) {
+	boolean showDialog(IjxImagePlus imp) {
 		equalize=gEqualize; normalize=gNormalize;
 		int bitDepth = imp.getBitDepth();
 		boolean composite = imp.isComposite();
@@ -83,12 +84,12 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		return true;
 	}
  
-	public void stretchHistogram(ImagePlus imp, double saturated) {
+	public void stretchHistogram(IjxImagePlus imp, double saturated) {
 		ImageStatistics stats = null;
 		if (useStackHistogram)
 			stats = new StackStatistics(imp);
 		if (processStack) {
-			ImageStack stack = imp.getStack();
+			IjxImageStack stack = imp.getStack();
 			for (int i=1; i<=stackSize; i++) {
 				IJ.showProgress(i, stackSize);
 				ImageProcessor ip = stack.getProcessor(i);
@@ -111,7 +112,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 	
 	public void stretchHistogram(ImageProcessor ip, double saturated) {
 		useStackHistogram = false;
-		stretchHistogram(new ImagePlus("", ip), saturated);
+		stretchHistogram(IJ.getFactory().newImagePlus("", ip), saturated);
 	}
 
 	public void stretchHistogram(ImageProcessor ip, double saturated, ImageStatistics stats) {
@@ -244,7 +245,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		}
 	}
 
-	public void equalize(ImagePlus imp) {
+	public void equalize(IjxImagePlus imp) {
 		if (imp.getBitDepth()==32) {
 			IJ.showMessage("Contrast Enhancer", "Equalization of 32-bit images not supported.");
 			return;
@@ -253,7 +254,7 @@ public class ContrastEnhancer implements PlugIn, Measurements {
 		if (processStack) {
 			//int[] mask = imp.getMask();
 			//Rectangle rect = imp.get
-			ImageStack stack = imp.getStack();
+			IjxImageStack stack = imp.getStack();
 			for (int i=1; i<=stackSize; i++) {
 				IJ.showProgress(i, stackSize);
 				ImageProcessor ip = stack.getProcessor(i);

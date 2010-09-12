@@ -5,6 +5,7 @@ import java.awt.image.*;
 import ij.*;
 import ij.process.*;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
 
 /** Oval region of interest */
 public class OvalRoi extends Roi {
@@ -16,13 +17,13 @@ public class OvalRoi extends Roi {
 	}
 
 	/** Starts the process of creating a user-defined OvalRoi. */
-	public OvalRoi(int x, int y, ImagePlus imp) {
+	public OvalRoi(int x, int y, IjxImagePlus imp) {
 		super(x, y, imp);
 		type = OVAL;
 	}
 
 	/** @deprecated */
-		public OvalRoi(int x, int y, int width, int height, ImagePlus imp) {
+		public OvalRoi(int x, int y, int width, int height, IjxImagePlus imp) {
 		this(x, y, width, height);
 		setImage(imp);
 	}

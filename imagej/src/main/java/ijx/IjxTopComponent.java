@@ -9,9 +9,9 @@ import ijx.gui.IjxWindow;
 import ij.gui.ProgressBar;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.MenuBar;
 import java.awt.Panel;
 import java.awt.Point;
+import java.awt.event.KeyListener;
 
 import java.awt.event.MouseListener;
 import java.awt.event.WindowListener;
@@ -20,7 +20,7 @@ import java.awt.event.WindowListener;
  *
  * @author GBH
  */
-public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListener {
+public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListener, KeyListener {
 
 	String IJ_X="ij.x",IJ_Y="ij.y";
 
@@ -44,9 +44,14 @@ public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListene
     void showStatus(java.lang.String message);
     
     void finishAndShow();
+
+    public void setDropTarget(Object object);
+
     
 
-/*    void mouseClicked(MouseEvent e);
+/*  implementors also need to implement:
+
+    void mouseClicked(MouseEvent e);
 
     void mouseEntered(MouseEvent e);
 

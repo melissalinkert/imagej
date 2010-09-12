@@ -1,6 +1,7 @@
 package ij.plugin;
 import ij.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** This plugin implements the Edit/Options/Arrow Tool command. */
@@ -48,7 +49,7 @@ public class ArrowToolOptions implements PlugIn, DialogListener {
 		Arrow.setDefaultHeadSize(headSize2);
 		Arrow.setDefaultStyle(style2);
 		Arrow.setDefaultDoubleHeaded(doubleHeaded2);
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) return true;
 		Roi roi = imp.getRoi();
 		if (roi==null) return true;

@@ -1045,7 +1045,7 @@ public class ShapeRoi extends Roi {
 	/***                         Drawing and Image routines                        ****/
 	/**********************************************************************************/
 
-	/** Non-destructively draws the shape of this object on the associated ImagePlus. */
+	/** Non-destructively draws the shape of this object on the associated IjxImagePlus. */
 	public void draw(Graphics g) {
 		if (ic==null) return;
 		Color color =  strokeColor!=null? strokeColor:ROIColor;
@@ -1182,7 +1182,7 @@ public class ShapeRoi extends Roi {
 		int x = Integer.parseInt(sx);
 		int y = Integer.parseInt(sy);
 		int width = Integer.parseInt(swidth);
-		ImagePlus img = IJ.getImage();
+		IjxImagePlus img = IJ.getImage();
 		if (img==null) return;
 		Roi roi = img.getRoi();
 		if (roi!=null) {
@@ -1198,7 +1198,7 @@ public class ShapeRoi extends Roi {
 		int x = Integer.parseInt(sx);
 		int y = Integer.parseInt(sy);
 		int width = Integer.parseInt(swidth);
-		ImagePlus img = IJ.getImage();
+		IjxImagePlus img = IJ.getImage();
 		if (img==null) return;
 		Roi roi = img.getRoi();
 		if (roi!=null) {

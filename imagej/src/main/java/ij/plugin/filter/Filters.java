@@ -2,7 +2,8 @@ package ij.plugin.filter;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import java.awt.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin implements the Invert, Smooth, Sharpen, Find Edges, 
 	and Add Noise commands. */
@@ -10,11 +11,11 @@ public class Filters implements PlugInFilter {
 	
 	private static double sd = Prefs.getDouble(Prefs.NOISE_SD, 25.0);
 	private String arg;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private int slice;
 	private boolean canceled;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		if (imp!=null) {
@@ -23,7 +24,7 @@ public class Filters implements PlugInFilter {
 				imp.killRoi(); // ignore any line selection
 		}
 		int flags = IJ.setupDialog(imp, DOES_ALL-DOES_8C+SUPPORTS_MASKING);
-		if ((flags&PlugInFilter.DOES_STACKS)!=0 && imp.getType()==ImagePlus.GRAY16 && imp.getStackSize()>1 && arg.equals("invert")) {
+		if ((flags&PlugInFilter.DOES_STACKS)!=0 && imp.getType()==IjxImagePlus.GRAY16 && imp.getStackSize()>1 && arg.equals("invert")) {
 				invert16BitStack(imp);
 				return DONE;
 		}
@@ -84,11 +85,11 @@ public class Filters implements PlugInFilter {
         	 	
 	}
 	
-	void invert16BitStack(ImagePlus imp) {
+	void invert16BitStack(IjxImagePlus imp) {
 		imp.killRoi();
 		imp.getCalibration().disableDensityCalibration();
 		ImageStatistics stats = new StackStatistics(imp);
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int nslices = stack.getSize();
 		int min=(int)stats.min, range=(int)(stats.max-stats.min);
 		int n = imp.getWidth()*imp.getHeight();

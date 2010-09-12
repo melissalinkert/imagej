@@ -122,7 +122,7 @@ public class NewPlugin implements PlugIn {
 				text += "public class "+className+" implements PlugInFilter {\n";
 				text += "\tImagePlus imp;\n";
 				text += "\n";
-				text += "\tpublic int setup(String arg, ImagePlus imp) {\n";
+				text += "\tpublic int setup(String arg, IjxImagePlus imp) {\n";
 				text += "\t\tthis.imp = imp;\n";
 				text += "\t\treturn DOES_ALL;\n";
 				text += "\t}\n";

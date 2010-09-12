@@ -1,7 +1,6 @@
 package ijx.sezpoz;
 
 import ij.IJ;
-import ij.ImageJ;
 import ij.Menus;
 import ij.gui.GUI;
 import ij.plugin.ControlPanel;
@@ -84,7 +83,7 @@ public class TreeBuilder implements PlugIn {
     /** The "major" part of the JVM version string. */
     private static final String jvmversionMajor = jvmversion.substring(0, jvmversion.lastIndexOf('.'));
     /** The instance of ImageJ application we're running */
-    private static ImageJ ij = IJ.getInstance();
+    private static IjxApplication ij = IJ.getInstance();
     private Hashtable panels = new Hashtable();
     private Vector visiblePanels = new Vector();
     private Vector expandedNodes = new Vector();
@@ -974,7 +973,7 @@ class TreePanel implements
         GUI.center(pFrame);
         setVisible();
         IjxApplication ij = IJ.getInstance();
-        ij.addWindowListener(this);
+        IJ.getTopComponentFrame().addWindowListener(this);
         pFrame.addKeyListener(ij);
         pTree.addKeyListener(ij);
     }

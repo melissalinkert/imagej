@@ -21,7 +21,7 @@ public class TextReader implements PlugIn {
             IJ.showStatus("Opening: " + path);
             ImageProcessor ip = open(path);
             if (ip!=null)
-                new ImagePlus(name, ip).show();
+                IJ.getFactory().newImagePlus(name, ip).show();
         }
     }
     

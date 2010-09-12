@@ -5,13 +5,11 @@ import ijx.gui.IjxImageCanvas;
 import ijx.app.IjxApplication;
 import ijx.IjxImagePlus;
 import ij.*;
-import ij.measure.Calibration;
 import ijx.IjxImageStack;
 import java.awt.*;
-import java.awt.image.*;
 import java.awt.event.*;
 
-/** This class is an extended ImageWindow used to display image stacks. */
+/** This class is an extended IjxImageWindow used to display image stacks. */
 public class StackWindow extends ImageWindow implements IjxStackWindow {
     protected Scrollbar sliceSelector; // for backward compatibity with Image5D
     protected ScrollbarWithLabel cSelector, zSelector, tSelector;
@@ -50,7 +48,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
         thread.start();
     }
 
-    void addScrollbars(IjxImagePlus imp) {
+    public void addScrollbars(IjxImagePlus imp) {
         IjxImageStack s = imp.getStack();
         int stackSize = s.getSize();
         nSlices = stackSize;
@@ -160,6 +158,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
     public void actionPerformed(ActionEvent e) {
     }
 
+    @Override
     public void mouseWheelMoved(MouseWheelEvent event) {
         synchronized (this) {
             int rotation = event.getWheelRotation();
@@ -181,10 +180,12 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
         }
     }
 
+    @Override
     public boolean canClose() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    @Override
     public boolean close() {
         if (!super.close()) {
             return false;
@@ -237,6 +238,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
         }
     }
 
+    @Override
     public String createSubtitle() {
         String subtitle = super.createSubtitle();
         if (!hyperStack) {
@@ -316,14 +318,14 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
     }
 
     public void setAnimate(boolean b) {
-        if (running2 != b && animationSelector != null) {
+        if (super.isRunning2() != b && animationSelector != null) {
             animationSelector.updatePlayPauseIcon();
         }
-        running2 = b;
+        super.setRunning2(b);
     }
 
     public boolean getAnimate() {
-        return running2;
+        return super.isRunning2();
     }
 
     public int getNScrollbars() {
@@ -340,7 +342,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
         return n;
     }
 
-    void removeScrollbars() {
+    public void removeScrollbars() {
         if (cSelector != null) {
             remove(cSelector);
             cSelector.removeAdjustmentListener(this);

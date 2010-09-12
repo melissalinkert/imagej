@@ -3,6 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.macro.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** This plugin implements ImageJ's Process/Math submenu. */
@@ -11,7 +12,7 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	public static final String MACRO_KEY = "math.macro";
 	private int flags = DOES_ALL|SUPPORTS_MASKING|PARALLELIZE_STACKS|KEEP_PREVIEW;
 	private String arg;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private boolean canceled;	
 	private double lower=-1.0, upper=-1.0;
 	
@@ -30,7 +31,7 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 	private PlugInFilterRunner pfr;
 	private GenericDialog gd;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		IJ.register(ImageMath.class);
@@ -415,7 +416,7 @@ public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 		gd.showDialog();
 	}
 
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
 		this.pfr = pfr;
 	 	if (arg.equals("macro"))
 			getMacro(macro);

@@ -9,6 +9,8 @@ import ij.plugin.frame.Recorder;
 import ij.plugin.frame.Editor; 
 import ij.plugin.MacroInstaller;
 import ij.macro.Program;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 
 /** The ImageJ toolbar. */
 public class Toolbar extends Canvas implements MouseListener, MouseMotionListener, ItemListener, ActionListener {
@@ -80,7 +82,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	private static int arcSize = (int)Prefs.get(ARC_SIZE, 20);
 	private int lineType = LINE;
 	
-	private Color gray = ImageJ.backgroundColor;
+	private Color gray = IJ.backgroundColor;
 	private Color brighter = gray.brighter();
 	//private Color darker = gray.darker();
 	//private Color evenDarker = darker.darker();
@@ -709,7 +711,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 	}
 	
 	private static void setRoiColor(Color c) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) return;
 		Roi roi = imp.getRoi();
 		if (roi!=null && (roi.isDrawingTool())) {
@@ -750,7 +752,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 			Prefs.set(ARC_SIZE, arcSize);
 		}
 		repaintTool(RECTANGLE);
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		Roi roi = imp!=null?imp.getRoi():null;
 		if (roi!=null && roi.getType()==Roi.RECTANGLE)
 			roi.setRoundRectArcSize(roundRectMode?arcSize:0);
@@ -902,7 +904,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 				macroInstaller.runMacroTool(name+"Options");
 				return;
 			}
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			switch (current) {
 				case RECTANGLE:
 					if (roundRectMode)
@@ -913,7 +915,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 					break;
 				case MAGNIFIER:
 					if (imp!=null) {
-						ImageCanvas ic = imp.getCanvas();
+						IjxImageCanvas ic = imp.getCanvas();
 						if (ic!=null) ic.unzoom();
 					}
 					break;
@@ -1032,7 +1034,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 			roundRectMode = item==roundRectItem;
 			repaintTool(RECTANGLE);
 			showMessage(RECTANGLE);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			Roi roi = imp!=null?imp.getRoi():null;
 			if (roi!=null && roi.getType()==Roi.RECTANGLE)
 				roi.setRoundRectArcSize(roundRectMode?arcSize:0);
@@ -1242,7 +1244,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
 		brushEnabled = gd.getNextBoolean();
 		brushSize = (int)gd.getNextNumber();
 		repaintTool(OVAL);
-		ImagePlus img = WindowManager.getCurrentImage();
+		IjxImagePlus img = WindowManager.getCurrentImage();
 		Roi roi = img!=null?img.getRoi():null;
 		if (roi!=null && roi.getType()==Roi.OVAL && brushEnabled) img.killRoi();
 		Prefs.set(BRUSH_SIZE, brushSize);

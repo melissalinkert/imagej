@@ -3,7 +3,6 @@ import ij.*;
 import ij.gui.*;
 import ij.io.*;
 import ij.util.*;
-import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.lang.reflect.*;
@@ -29,7 +28,7 @@ public class Installer implements PlugIn {
 			IJ.error("No plugins found");
 			return;
 		}
-		GenericDialog gd = new GenericDialog("Install Plugin", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Install Plugin", IJ.getTopComponentFrame());
 		gd.addChoice("Plugin:", plugins, defaultPlugin);
 		gd.addChoice("Menu:", menus, menuStr);
 		gd.addStringField("Command:", command, 16);

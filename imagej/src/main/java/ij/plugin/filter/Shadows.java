@@ -2,15 +2,16 @@ package ij.plugin.filter;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** Implements the commands in the Process/Shadows submenu. */
 public class Shadows implements PlugInFilter {
 	
 	String arg;
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		if (imp!=null && imp.getStackSize()>1 && arg.equals("demo"))

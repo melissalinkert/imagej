@@ -1,7 +1,9 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
 
 /** This plugin implements the Image/Flatten, Plugins/Utilities/Capture Screen
@@ -9,7 +11,7 @@ import java.awt.*;
 public class ScreenGrabber implements PlugIn {
 
 	public void run(String arg) {
-		ImagePlus imp2 = null;
+		IjxImagePlus imp2 = null;
 		if (arg.equals("image") || arg.equals("flatten"))
 			imp2 = captureImage();
 		else
@@ -19,7 +21,7 @@ public class ScreenGrabber implements PlugIn {
 		/*
 		if (imp2==null) return;
 		if (arg.equals("flatten")) {
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp==null) return;
 			if (imp.isHyperStack() || imp.isComposite())
 				imp2.show();
@@ -33,34 +35,34 @@ public class ScreenGrabber implements PlugIn {
 		*/
 	}
     
-	/** Captures the entire screen and returns it as an ImagePlus. */
-	public ImagePlus captureScreen() {
-		ImagePlus imp = null;
+	/** Captures the entire screen and returns it as an IjxImagePlus. */
+	public IjxImagePlus captureScreen() {
+		IjxImagePlus imp = null;
 		try {
 			Robot robot = new Robot();
 			Dimension dimension = IJ.getScreenSize();
 			Rectangle r = new Rectangle(dimension);
 			Image img = robot.createScreenCapture(r);
-			if (img!=null) imp = new ImagePlus("Screen", img);
+			if (img!=null) imp = IJ.getFactory().newImagePlus("Screen", img);
 		} catch(Exception e) {}
 		return imp;
 	}
 
-	/** Captures the active image window and returns it as an ImagePlus. */
-	public ImagePlus captureImage() {
-		ImagePlus imp = IJ.getImage();
+	/** Captures the active image window and returns it as an IjxImagePlus. */
+	public IjxImagePlus captureImage() {
+		IjxImagePlus imp = IJ.getImage();
 		if (imp==null) {
 			IJ.noImage();
 			return null;
 		}
-		ImagePlus imp2 = null;
+		IjxImagePlus imp2 = null;
 		try {
-			ImageWindow win = imp.getWindow();
+			IjxImageWindow win = imp.getWindow();
 			if (win==null) return null;
 			win.toFront();
 			IJ.wait(500);
 			Point loc = win.getLocation();
-			ImageCanvas ic = win.getCanvas();
+			IjxImageCanvas ic = win.getCanvas();
 			Rectangle bounds = ic.getBounds();
 			loc.x += bounds.x;
 			loc.y += bounds.y;
@@ -69,7 +71,7 @@ public class ScreenGrabber implements PlugIn {
 			Image img = robot.createScreenCapture(r);
 			if (img!=null) {
 				String title = WindowManager.getUniqueName(imp.getTitle());
-				imp2 = new ImagePlus(title, img);
+				imp2 = IJ.getFactory().newImagePlus(title, img);
 			}
 		} catch(Exception e) {}
 		return imp2;

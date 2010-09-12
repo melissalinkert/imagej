@@ -4,6 +4,8 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
@@ -23,7 +25,7 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
  
 	public void run(String arg) {
 		boolean crop = arg.equals("crop");
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		ImageProcessor ip = imp.getProcessor();
 		Roi roi = imp.getRoi();
 		if (roi==null && crop) {
@@ -69,7 +71,7 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 				newWidth = (int)origWidth;
 				newHeight = (int)origHeight;
 			}
-			GenericDialog gd = new GenericDialog("Resize", IJ.getInstance());
+			GenericDialog gd = new GenericDialog("Resize", IJ.getTopComponentFrame());
 			gd.addNumericField("Width (pixels):", newWidth, 0);
 			gd.addNumericField("Height (pixels):", newHeight, 0);
 			if (imp.isHyperStack()) {
@@ -128,7 +130,7 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 		if (roi!=null || newWidth!=origWidth || newHeight!=origHeight) {
 			try {
 				StackProcessor sp = new StackProcessor(imp.getStack(), ip);
-				ImageStack s2 = sp.resize(newWidth, newHeight, averageWhenDownsizing);
+				IjxImageStack s2 = sp.resize(newWidth, newHeight, averageWhenDownsizing);
 				int newSize = s2.getSize();
 				if (s2.getWidth()>0 && newSize>0) {
 					if (restoreRoi)
@@ -152,23 +154,23 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 			} catch(OutOfMemoryError o) {
 				IJ.outOfMemory("Resize");
 			}
-			imp.changes = true;
+			imp.setChanged(true);
 		}
 		
-		ImagePlus imp2 = null;
+		IjxImagePlus imp2 = null;
 		if (z2>0 && z2!=z1)
 			imp2 = zScale(imp, z2, interpolationMethod+IN_PLACE);
 		if (t2>0 && t2!=t1)
 			imp2 = zScale(imp2!=null?imp2:imp, t2, interpolationMethod+IN_PLACE+SCALE_T);
 		if (imp2!=null && imp2!=imp) {
 			imp2.show();
-			imp.changes = false;
+			imp.setChanged(false);
 			imp.close();
 		}
 	}
 
-	public ImagePlus zScale(ImagePlus imp, int newDepth, int interpolationMethod) {
-		ImagePlus imp2 = null;
+	public IjxImagePlus zScale(IjxImagePlus imp, int newDepth, int interpolationMethod) {
+		IjxImagePlus imp2 = null;
 		if (imp.isHyperStack())
 			imp2 = zScaleHyperstack(imp, newDepth, interpolationMethod);
 		else {
@@ -202,7 +204,7 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 		return imp2;
 	}
 
-	private ImagePlus zScaleHyperstack(ImagePlus imp, int depth2, int interpolationMethod) {
+	private IjxImagePlus zScaleHyperstack(IjxImagePlus imp, int depth2, int interpolationMethod) {
 		boolean inPlace = (interpolationMethod&IN_PLACE)!=0;
 		boolean scaleT = (interpolationMethod&SCALE_T)!=0;
 		interpolationMethod = interpolationMethod&15;
@@ -222,13 +224,13 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 		if (scaleT) scale = (double)(depth2-1)/frames;
 		if (scale<=0.5 && interpolationMethod==ImageProcessor.NONE)
 			return shrinkHyperstack(imp, depth2, inPlace, scaleT);
-		ImageStack stack1 = imp.getStack();
+		IjxImageStack stack1 = imp.getStack();
 		int width = stack1.getWidth();
 		int height = stack1.getHeight();
-		ImagePlus imp2 = IJ.createImage(imp.getTitle(), bitDepth+"-bit", width, height, channels*slices2*frames2);
+		IjxImagePlus imp2 = IJ.createImage(imp.getTitle(), bitDepth+"-bit", width, height, channels*slices2*frames2);
 		if (imp2==null) return null;
 		imp2.setDimensions(channels, slices2, frames2);
-		ImageStack stack2 = imp2.getStack();
+		IjxImageStack stack2 = imp2.getStack();
 		ImageProcessor ip = imp.getProcessor();
 		int count = 0;
 		if (scaleT) {
@@ -290,7 +292,7 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 		return imp2;
 	}
 
-	private ImagePlus shrinkHyperstack(ImagePlus imp, int newDepth, boolean inPlace, boolean scaleT) {
+	private IjxImagePlus shrinkHyperstack(IjxImagePlus imp, int newDepth, boolean inPlace, boolean scaleT) {
 		int channels = imp.getNChannels();
 		int slices = imp.getNSlices();
 		int frames = imp.getNFrames();
@@ -298,8 +300,8 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 		if (scaleT) factor = frames/newDepth;
 		int zfactor = scaleT?1:factor;
 		int tfactor = scaleT?factor:1;
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = new ImageStack(imp.getWidth(), imp.getHeight());
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(imp.getWidth(), imp.getHeight());
 		boolean virtual = stack.isVirtual();
 		int slices2 = slices/zfactor + ((slices%zfactor)!=0?1:0);
 		int frames2 = frames/tfactor + ((frames%tfactor)!=0?1:0);
@@ -317,36 +319,36 @@ public class Resizer implements PlugIn, TextListener, ItemListener  {
 				}
 			}
 		}
-		ImagePlus imp2 = new ImagePlus(imp.getTitle(), stack2);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus(imp.getTitle(), stack2);
 		imp2.setDimensions(channels, slices2, frames2);
 		IJ.showProgress(1.0);
 		return imp2;
 	}
 
-	private ImagePlus shrinkZ(ImagePlus imp, int newDepth, boolean inPlace) {
-		ImageStack stack = imp.getStack();
+	private IjxImagePlus shrinkZ(IjxImagePlus imp, int newDepth, boolean inPlace) {
+		IjxImageStack stack = imp.getStack();
 		int factor = imp.getStackSize()/newDepth;
 		boolean virtual = stack.isVirtual();
 		int n = stack.getSize();
-		ImageStack stack2 = new ImageStack(stack.getWidth(), stack.getHeight());
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(stack.getWidth(), stack.getHeight());
 		for (int i=1; i<=n; i+=factor) {
 			if (virtual) IJ.showProgress(i, n);
 			ImageProcessor ip2 = stack.getProcessor(i);
 			if (!inPlace) ip2 = ip2.duplicate();
 			stack2.addSlice(stack.getSliceLabel(i), ip2);
 		}
-		return new ImagePlus(imp.getTitle(), stack2);
+		return IJ.getFactory().newImagePlus(imp.getTitle(), stack2);
 	}
 
-	private ImagePlus resizeZ(ImagePlus imp, int newDepth, int interpolationMethod) {
-		ImageStack stack1 = imp.getStack();
+	private IjxImagePlus resizeZ(IjxImagePlus imp, int newDepth, int interpolationMethod) {
+		IjxImageStack stack1 = imp.getStack();
 		int width = stack1.getWidth();
 		int height = stack1.getHeight();
 		int depth = stack1.getSize();
 		int bitDepth = imp.getBitDepth();
-		ImagePlus imp2 = IJ.createImage(imp.getTitle(), bitDepth+"-bit", width, height, newDepth);
+		IjxImagePlus imp2 = IJ.createImage(imp.getTitle(), bitDepth+"-bit", width, height, newDepth);
 		if (imp2==null) return null;
-		ImageStack stack2 = imp2.getStack();
+		IjxImageStack stack2 = imp2.getStack();
 		ImageProcessor ip = imp.getProcessor();
 		ImageProcessor xzPlane1 = ip.createProcessor(width, depth);
 		xzPlane1.setInterpolationMethod(interpolationMethod);

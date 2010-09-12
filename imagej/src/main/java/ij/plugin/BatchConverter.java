@@ -2,7 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import ij.util.Tools;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -43,8 +43,7 @@ import java.io.*;
 			return;
 		}
 		String[] list = (new File(inputPath)).list();
-		ImageJ ij = IJ.getInstance();
-		if (ij!=null) ij.getProgressBar().setBatchMode(true);
+		if (IJ.getTopComponent()!=null) IJ.getTopComponent().getProgressBar().setBatchMode(true);
 		IJ.resetEscape();
 		for (int i=0; i<list.length; i++) {
 			if (IJ.escapePressed()) break;
@@ -55,7 +54,7 @@ import java.io.*;
 			if (list[i].startsWith(".")||list[i].endsWith(".avi")||list[i].endsWith(".AVI"))
 				continue;
 			IJ.showProgress(i+1, list.length);
-			ImagePlus imp = IJ.openImage(path);
+			IjxImagePlus imp = IJ.openImage(path);
 			if (imp==null) continue;
 			//if (height!=0) {
 			//	double aspectRatio = (double)imp.getWidth()/imp.getHeight();

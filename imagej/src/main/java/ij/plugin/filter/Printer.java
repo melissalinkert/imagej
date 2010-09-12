@@ -3,13 +3,13 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.util.Properties;
 import java.awt.print.*;
 
 /** This plugin implements the File/Page Setup and File/Print commands. */
 public class Printer implements PlugInFilter, Printable {
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private static double scaling = 100.0;
 	private static boolean drawBorder;
 	private static boolean center = true;
@@ -19,7 +19,7 @@ public class Printer implements PlugInFilter, Printable {
 	private static boolean actualSize;
 	private static int fontSize = 12;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		if (arg.equals("setup"))
 			{pageSetup(); return DONE;}
 		this.imp = imp;
@@ -32,7 +32,7 @@ public class Printer implements PlugInFilter, Printable {
 	}
 	
 	void pageSetup() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		Roi roi = imp!=null?imp.getRoi():null;
 		boolean isRoi = roi!=null && roi.isArea();
 		GenericDialog gd = new GenericDialog("Page Setup");
@@ -66,7 +66,7 @@ public class Printer implements PlugInFilter, Printable {
 		}
 	}
 
-	void print(ImagePlus imp) {
+	void print(IjxImagePlus imp) {
 		PrinterJob pj = PrinterJob.getPrinterJob();
 		pj.setPrintable(this);
 		//pj.pageDialog(pj.defaultPage());
@@ -82,7 +82,7 @@ public class Printer implements PlugInFilter, Printable {
 	public int print(Graphics g, PageFormat pf, int pageIndex) {
 		if (pageIndex != 0) return NO_SUCH_PAGE;
 		Roi roi = imp.getRoi();
-		ImagePlus imp2 = imp;
+		IjxImagePlus imp2 = imp;
 		if (imp2.getOverlay()!=null && !imp2.getHideOverlay()) {
 			imp2.killRoi();
 			imp2 = imp2.flatten();
@@ -93,7 +93,7 @@ public class Printer implements PlugInFilter, Printable {
 			ip = ip.crop();
 		if (rotate)
 			ip = ip.rotateLeft();
-		//new ImagePlus("ip", ip.duplicate()).show();
+		//IJ.getFactory().newImagePlus("ip", ip.duplicate()).show();
 		int width = ip.getWidth();
 		int height = ip.getHeight();
 		int margin = 0;

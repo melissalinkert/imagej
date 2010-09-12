@@ -3,6 +3,8 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 import java.awt.*;
 
 /** This plugin implements ImageJ's Fill, Clear, Clear Outside and Draw commands. */
@@ -10,12 +12,12 @@ public class Filler implements PlugInFilter, Measurements {
 	
 	String arg;
 	Roi roi;
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int sliceCount;
 	ImageProcessor mask;
 	boolean isTextRoi;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		if (imp!=null)
@@ -118,7 +120,7 @@ public class Filler implements PlugInFilter, Measurements {
 			drawParticleLabels(ip);
 		else {
 			ip.setColor(Toolbar.getForegroundColor());
-			ImageCanvas ic = imp.getCanvas();
+			IjxImageCanvas ic = imp.getCanvas();
 			if (ic!=null) {
 				double mag = ic.getMagnification();
 				if (mag<1.0) {
@@ -157,7 +159,7 @@ public class Filler implements PlugInFilter, Measurements {
 			drawLabel(imp, ip, count, roi.getBounds());
 	}
 
-	public void drawLabel(ImagePlus imp, ImageProcessor ip, int count, Rectangle r) {
+	public void drawLabel(IjxImagePlus imp, ImageProcessor ip, int count, Rectangle r) {
 		Color foreground = Toolbar.getForegroundColor();
 		Color background = Toolbar.getBackgroundColor();
 		if (foreground.equals(background)) {
@@ -165,7 +167,7 @@ public class Filler implements PlugInFilter, Measurements {
 			background = Color.white;
 		}
 		int size = 9;
-		ImageCanvas ic = imp.getCanvas();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic!=null) {
 			double mag = ic.getMagnification();
 			if (mag<1.0)

@@ -2,6 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.io.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.io.*;
 import java.awt.image.*;
@@ -12,7 +13,7 @@ import javax.imageio.ImageIO;
 	as RGB PNGs. All other image types are saved as 8-bit PNGs. With 8-bit images,
 	the value of the transparent index can be set in Edit/Options/Input-Output. */
 public class PNG_Writer implements PlugIn {
-    ImagePlus imp;
+    IjxImagePlus imp;
 
     public void run(String path) {
         imp = WindowManager.getCurrentImage();
@@ -39,7 +40,7 @@ public class PNG_Writer implements PlugIn {
         IJ.showStatus("");
     }
 
-	public void writeImage(ImagePlus imp, String path, int transparentIndex) throws Exception {
+	public void writeImage(IjxImagePlus imp, String path, int transparentIndex) throws Exception {
 		if (transparentIndex>=0 && transparentIndex<=255 && imp.getBitDepth()==8)
 			writeImageWithTransparency(imp, path, transparentIndex);
 		else if (imp.getOverlay()!=null && !imp.getHideOverlay())
@@ -50,7 +51,7 @@ public class PNG_Writer implements PlugIn {
 			ImageIO.write(imp.getBufferedImage(), "png", new File(path));
 	}
     
-	void writeImageWithTransparency(ImagePlus imp, String path, int transparentIndex) throws Exception {
+	void writeImageWithTransparency(IjxImagePlus imp, String path, int transparentIndex) throws Exception {
 		int width = imp.getWidth();
 		int  height = imp.getHeight();
 		ImageProcessor ip = imp.getProcessor();
@@ -71,7 +72,7 @@ public class PNG_Writer implements PlugIn {
 		ImageIO.write(bi, "png", new File(path));
 	}
 
-    void write16gs(ImagePlus imp, String path) throws Exception {
+    void write16gs(IjxImagePlus imp, String path) throws Exception {
         //IJ.showMessage("PNG Writer", "Writing " + imp.getBitDepth() + "bits\n \n");
 		int width = imp.getWidth();
 		int  height = imp.getHeight();

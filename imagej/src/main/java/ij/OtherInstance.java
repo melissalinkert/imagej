@@ -62,7 +62,7 @@ public class OtherInstance {
 	public static String getStubPath() {
 		return System.getProperty("java.io.tmpdir") + "/ImageJ-"
 			+ System.getProperty("user.name") + "-"
-			+ ImageJ.getPort() + ".stub";
+			+ IJ.getInstance().getPort() + ".stub";
 	}
 
 	public static void makeFilePrivate(String path) {

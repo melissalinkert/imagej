@@ -5,13 +5,12 @@ import java.util.*;
 import java.io.*;
 import ij.*;
 import ij.plugin.*;
-import ij.plugin.frame.*;
-import ij.text.*;
 import ij.gui.*;
 import ij.util.*;
 import ij.io.*;
 import ij.process.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
 
 /** ImageJ plugin that does curve fitting using the modified CurveFitter class.
  *  Includes simplex settings dialog option.
@@ -167,7 +166,7 @@ public class Fitter extends PlugInFrame implements PlugIn, ItemListener, ActionL
 			IJ.error("No function available");
 			return;
 		}
-		ImagePlus img = WindowManager.getCurrentImage();
+		IjxImagePlus img = WindowManager.getCurrentImage();
 		if (img==null) {
 			IJ.noImage();
 			return;
@@ -190,7 +189,7 @@ public class Fitter extends PlugInFrame implements PlugIn, ItemListener, ActionL
 			}
 		}
 		ImageProcessor ip2 = new FloatProcessor(width, height, data, ip.getColorModel());
-		new ImagePlus(img.getTitle()+"-transformed", ip2).show();
+		IJ.getFactory().newImagePlus(img.getTitle()+"-transformed", ip2).show();
 	}
 
 	double getNum(StringTokenizer st) {

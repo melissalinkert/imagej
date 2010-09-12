@@ -52,7 +52,7 @@ public class CompositeImage extends ImagePlus {
 		int channels = imp.getNChannels();
 		bitDepth = getBitDepth();
 		if (IJ.debugMode) IJ.log("CompositeImage: "+imp+" "+mode+" "+channels);
-		ImageStack stack2;
+		IjxImageStack stack2;
 		boolean isRGB = imp.getBitDepth()==24;
 		if (isRGB) {
 			if (imp.getImageStackSize()>1)
@@ -128,7 +128,7 @@ public class CompositeImage extends ImagePlus {
 			return getProcessor();
 	}
 
-	void setup(int channels, ImageStack stack2) {
+	void setup(int channels, IjxImageStack stack2) {
 		setupLuts(channels);
 		if (mode==COMPOSITE) {
 			cip = new ImageProcessor[channels];
@@ -171,7 +171,7 @@ public class CompositeImage extends ImagePlus {
 	
 	public void resetDisplayRanges() {
 		int channels = getNChannels();
-		ImageStack stack2 = getImageStack();
+		IjxImageStack stack2 = getImageStack();
 		if (lut==null || channels!=lut.length || channels>stack2.getSize() || channels>MAX_CHANNELS)
 			return;
 		for (int i=0; i<channels; ++i) {
@@ -371,7 +371,7 @@ public class CompositeImage extends ImagePlus {
 		byte[] b = new byte[size];
 		((ColorProcessor)ip).getRGB(r, g, b);
         // @todo use factory
-		IjxImageStack stack =  (IjxImageStack) new ImageStack(w, h);
+		IjxImageStack stack =  (IjxImageStack) IJ.getFactory().newImageStack(w, h);
 		stack.addSlice("Red", r);	
 		stack.addSlice("Green", g);	
 		stack.addSlice("Blue", b);

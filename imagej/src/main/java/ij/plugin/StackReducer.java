@@ -3,11 +3,12 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.measure.Calibration;
-import java.awt.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin implements the Image/Stacks/Misc/Reduce command. */
 public class StackReducer implements PlugIn {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	private static int factor = 2;
 	private boolean hyperstack, reduceSlices;
 
@@ -15,7 +16,7 @@ public class StackReducer implements PlugIn {
 		imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{IJ.noImage(); return;}
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int size = stack.getSize();
 		if (size==1 || (imp.getNChannels()==size&&imp.isComposite()))
 			{IJ.error("Stack or hyperstack required"); return;}
@@ -27,7 +28,7 @@ public class StackReducer implements PlugIn {
 			reduceStack(imp, factor);
 	}
 
-	public boolean showDialog(ImageStack stack) {
+	public boolean showDialog(IjxImageStack stack) {
 		hyperstack = imp.isHyperStack();
 		boolean showCheckbox = false;
 		if (hyperstack && imp.getNSlices()>1 && imp.getNFrames()>1)
@@ -47,11 +48,11 @@ public class StackReducer implements PlugIn {
 		return true;
 	}
 	
-	public void reduceStack(ImagePlus imp, int factor) {
-		ImageStack stack = imp.getStack();
+	public void reduceStack(IjxImagePlus imp, int factor) {
+		IjxImageStack stack = imp.getStack();
 		boolean virtual = stack.isVirtual();
 		int n = stack.getSize();
-		ImageStack stack2 = new ImageStack(stack.getWidth(), stack.getHeight());
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(stack.getWidth(), stack.getHeight());
 		for (int i=1; i<=n; i+=factor) {
 			if (virtual) IJ.showProgress(i, n);
 			stack2.addSlice(stack.getSliceLabel(i), stack.getProcessor(i));
@@ -65,14 +66,14 @@ public class StackReducer implements PlugIn {
 		if (cal.scaled()) cal.pixelDepth *= factor;
 	}
 	
-	public void reduceHyperstack(ImagePlus imp, int factor, boolean reduceSlices) {
+	public void reduceHyperstack(IjxImagePlus imp, int factor, boolean reduceSlices) {
 		int channels = imp.getNChannels();
 		int slices = imp.getNSlices();
 		int frames = imp.getNFrames();
 		int zfactor = reduceSlices?factor:1;
 		int tfactor = reduceSlices?1:factor;
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = new ImageStack(imp.getWidth(), imp.getHeight());
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(imp.getWidth(), imp.getHeight());
 		boolean virtual = stack.isVirtual();
 		int slices2 = slices/zfactor + ((slices%zfactor)!=0?1:0);
 		int frames2 = frames/tfactor + ((frames%tfactor)!=0?1:0);

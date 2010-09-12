@@ -5,15 +5,16 @@ import ij.process.*;
 import ij.measure.*;
 import ij.util.Tools;
 import ij.io.FileOpener;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.event.*;
 
 /** Implements the Analyze/Set Scale command. */
 public class ScaleDialog implements PlugInFilter {
 
-    private ImagePlus imp;
+    private IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		IJ.register(ScaleDialog.class);
 		return DOES_ALL+NO_CHANGES;

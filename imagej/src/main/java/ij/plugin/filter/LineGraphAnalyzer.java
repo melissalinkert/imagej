@@ -3,15 +3,15 @@ import java.awt.Color;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.plugin.filter.ParticleAnalyzer;
 import ij.measure.*;
 import ij.util.*;
+import ijx.IjxImagePlus;
 
 /** Implements ImageJ's Analyze/Tools/Analyze Line Graph command. */
 public class LineGraphAnalyzer implements PlugInFilter, Measurements  {
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_8G+NO_CHANGES;
 	}
@@ -22,7 +22,7 @@ public class LineGraphAnalyzer implements PlugInFilter, Measurements  {
 	
 	/** Uses ImageJ's particle analyzer to extract a set
 		of coordinate pairs from a digitized line graph. */
-	public void analyze(ImagePlus imp) {
+	public void analyze(IjxImagePlus imp) {
 		ByteProcessor ip = (ByteProcessor)imp.getProcessor();
 		ImageProcessor ip2 = ip.crop();
 		int width = ip2.getWidth();
@@ -33,7 +33,7 @@ public class LineGraphAnalyzer implements PlugInFilter, Measurements  {
 			ip2.lineTo(i,height-1);
 		}
 		ip2 = ip2.rotateRight();
-		ImagePlus imp2 = imp.createImagePlus();
+		IjxImagePlus imp2 = imp.createImagePlus();
 		ip2.setThreshold(ip.getMinThreshold(), ip.getMaxThreshold(), ImageProcessor.NO_LUT_UPDATE);
 		imp2.setProcessor("Temp", ip2);
 		Calibration cal = imp2.getCalibration();

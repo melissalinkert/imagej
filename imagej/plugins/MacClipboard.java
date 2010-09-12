@@ -9,7 +9,7 @@ import ij.process.*;
 	
 /** This plugin uses QuickTime for Java to open PICT images on the Mac system 
      clipboard. Only needed on Macs running 32-bit Java and OS X 10.5 and earlier. */
-public class MacClipboard extends ImagePlus implements PlugIn {
+public class MacClipboard extends IjxImagePlus implements PlugIn {
 	static java.awt.datatransfer.Clipboard clipboard;
 	
 	public void run(String arg) {
@@ -34,7 +34,7 @@ public class MacClipboard extends ImagePlus implements PlugIn {
     	Image img = getMacImage(t);
     	if (img!=null) {
 			WindowManager.checkForDuplicateName = true;          
-			new ImagePlus("Clipboard", img).show();
+			IJ.getFactory().newImagePlus("Clipboard", img).show();
 		}
 		return img;
     }

@@ -1,5 +1,6 @@
 package ij.gui;
 import ij.IJ;
+import ijx.gui.IjxStackWindow;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -12,15 +13,15 @@ import java.awt.geom.*;
 public class ScrollbarWithLabel extends Panel implements Adjustable, AdjustmentListener {
 	Scrollbar bar;
 	private Icon icon;
-	private StackWindow stackWindow;
+	private IjxStackWindow IjxStackWindow;
 	transient AdjustmentListener adjustmentListener;
 	
 	public ScrollbarWithLabel() {
 	}
 
-	public ScrollbarWithLabel(StackWindow stackWindow, int value, int visible, int minimum, int maximum, char label) {
+	public ScrollbarWithLabel(IjxStackWindow IjxStackWindow, int value, int visible, int minimum, int maximum, char label) {
 		super(new BorderLayout(2, 0));
-		this.stackWindow = stackWindow;
+		this.IjxStackWindow = IjxStackWindow;
 		bar = new Scrollbar(Scrollbar.HORIZONTAL, value, visible, minimum, maximum);
 		icon = new Icon(label);
 		add(icon, BorderLayout.WEST);
@@ -179,7 +180,7 @@ public class ScrollbarWithLabel extends Panel implements Adjustable, AdjustmentL
 		}
 
 		private void drawPlayPauseButton(Graphics2D g) {
-			if (stackWindow.getAnimate()) {
+			if (IjxStackWindow.getAnimate()) {
 				g.setColor(Color.black);
 				g.setStroke(stroke);
 				g.drawLine(3, 3, 3, 11);

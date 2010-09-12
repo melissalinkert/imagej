@@ -4,13 +4,14 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.Calibration;
 import ij.macro.Interpreter;
-import ij.io.FileInfo;
-import java.awt.Dimension;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 
 
 /** Implements the AddSlice, DeleteSlice and "Stack to Images" commands. */
 public class StackEditor implements PlugIn {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int nSlices, width, height;
 	static boolean deleteFrames;
 
@@ -32,7 +33,7 @@ public class StackEditor implements PlugIn {
 		if (imp.isDisplayedHyperStack()) return;
  		if (!imp.lock()) return;
 		int id = 0;
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		if (stack.getSize()==1) {
 			String label = stack.getSliceLabel(1);
 			if (label!=null && label.indexOf("\n")!=-1)
@@ -60,7 +61,7 @@ public class StackEditor implements PlugIn {
 			return;
 		}
 		if (!imp.lock()) return;
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int n = imp.getCurrentSlice();
  		stack.deleteSlice(n);
  		if (stack.getSize()==1) {
@@ -93,7 +94,7 @@ public class StackEditor implements PlugIn {
 		} else
 			return;
 		if (!imp.lock()) return;
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		if (deleteFrames) { // delete time point
 			for (int z=slices; z>=1; z--) {
 				int index = imp.getStackIndex(channels, z, t1);
@@ -119,12 +120,12 @@ public class StackEditor implements PlugIn {
 		(new ImagesToStack()).run("");
 	}
 
-	public void convertStackToImages(ImagePlus imp) {
+	public void convertStackToImages(IjxImagePlus imp) {
 		if (nSlices<2)
 			{IJ.error("\"Convert Stack to Images\" requires a stack"); return;}
 		if (!imp.lock())
 			return;
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int size = stack.getSize();
 		if (size>30 && !IJ.isMacro()) {
 			boolean ok = IJ.showMessageWithCancel("Convert to Images?",
@@ -147,15 +148,15 @@ public class StackEditor implements PlugIn {
 					ip.setMinAndMax(lut.min, lut.max);
 				}
 			}
-			ImagePlus imp2 = new ImagePlus(title, ip);
+			IjxImagePlus imp2 = IJ.getFactory().newImagePlus(title, ip);
 			imp2.setCalibration(cal);
 			String info = stack.getSliceLabel(i);
 			if (info!=null && !info.equals(label))
 				imp2.setProperty("Info", info);
 			imp2.show();
 		}
-		imp.changes = false;
-		ImageWindow win = imp.getWindow();
+		imp.setChanged(false);
+		IjxImageWindow win = imp.getWindow();
 		if (win!=null)
 			win.close();
 		else if (Interpreter.isBatchMode())
@@ -163,7 +164,7 @@ public class StackEditor implements PlugIn {
 		imp.unlock();
 	}
 
-	String getTitle(ImagePlus imp, int n) {
+	String getTitle(IjxImagePlus imp, int n) {
 		String digits = "00000000"+n;
 		return imp.getShortTitle()+"-"+digits.substring(digits.length()-4,digits.length());
 	}

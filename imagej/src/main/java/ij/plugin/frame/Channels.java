@@ -2,6 +2,7 @@ package ij.plugin.frame;
 import ij.*;
 import ij.plugin.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -120,7 +121,7 @@ public class Channels extends PlugInFrame implements PlugIn, ItemListener, Actio
 	}
 
 	CompositeImage getImage() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null || !imp.isComposite())
 			return null;
 		else
@@ -128,7 +129,7 @@ public class Channels extends PlugInFrame implements PlugIn, ItemListener, Actio
 	}
 
 	public void itemStateChanged(ItemEvent e) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) return;
 		if (!imp.isComposite()) {
 			int channels = imp.getNChannels();
@@ -208,10 +209,11 @@ public class Channels extends PlugInFrame implements PlugIn, ItemListener, Actio
 		return instance;
 	}
 		
-	public void close() {
+	public boolean close() {
 		super.close();
 		instance = null;
 		location = getLocation();
+        return true;
 	}
 	
 	public void windowClosing(WindowEvent e) {

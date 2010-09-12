@@ -1,9 +1,9 @@
 package ij.plugin;
-import java.awt.*;
-import java.io.*;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin, which implements the Image>Stacks>Insert 
 	command, inserts an image or stack into a stack. */
@@ -25,7 +25,7 @@ public class StackInserter implements PlugIn {
 		}
 		String[] titles = new String[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			if (imp!=null)
 				titles[i] = imp.getTitle();
 			else
@@ -47,8 +47,8 @@ public class StackInserter implements PlugIn {
 		y = (int)gd.getNextNumber();
 		String title1 = titles[index1];
 		String title2 = titles[index2];
-		ImagePlus imp1 = WindowManager.getImage(wList[index1]);
-		ImagePlus imp2 = WindowManager.getImage(wList[index2]);
+		IjxImagePlus imp1 = WindowManager.getImage(wList[index1]);
+		IjxImagePlus imp2 = WindowManager.getImage(wList[index2]);
 		if (imp1.getType()!= imp2.getType()) {
 			IJ.showMessage("Stack Inserter", "The source and destination must be the same type.");
 			return;
@@ -64,9 +64,9 @@ public class StackInserter implements PlugIn {
 		insert(imp1, imp2, x, y);
 	}
 	
-	void insert(ImagePlus imp1, ImagePlus imp2, int x, int y) {
-		ImageStack stack1 = imp1.getStack();
-		ImageStack stack2 = imp2.getStack();
+	void insert(IjxImagePlus imp1, IjxImagePlus imp2, int x, int y) {
+		IjxImageStack stack1 = imp1.getStack();
+		IjxImageStack stack2 = imp2.getStack();
 		int size1 = stack1.getSize();
 		int size2 = stack2.getSize();
 		ImageProcessor ip1, ip2;

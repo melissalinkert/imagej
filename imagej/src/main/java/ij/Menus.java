@@ -2,11 +2,8 @@ package ij;
 import ijx.IjxMenus;
 import ijx.app.IjxApplication;
 import ijx.IjxTopComponent;
-import ijx.IjxImagePlus;
 import ij.process.*;
 import ij.util.*;
-import ij.gui.ImageWindow;
-import ijx.gui.IjxWindow;
 import ij.plugin.MacroInstaller;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
@@ -14,7 +11,6 @@ import ijx.gui.IjxWindow;
 import java.applet.Applet;
 import java.awt.*;
 import java.awt.image.*;
-import java.awt.event.*;
 import java.util.*;
 import java.io.*;
 import java.awt.event.*;
@@ -24,7 +20,6 @@ import java.net.URL;
 import java.net.JarURLConnection;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.jar.JarInputStream;
 
 /**
 This class installs and updates ImageJ's menus. Note that menu labels,
@@ -80,14 +75,14 @@ public class Menus implements IjxMenus {
     private static IjxTopComponent topComponent;
 	private static IjxApplication ijApp;
 		
-	Menus(IjxTopComponent tc, IjxApplication _ijApp, Applet appletInstance) {
+	public Menus(IjxTopComponent tc, IjxApplication _ijApp, Applet appletInstance) {
 		topComponent = tc;
         ijApp = _ijApp;
 		applet = (ImageJApplet) appletInstance;
 		instance = this;
 	}
 
-	String addMenuBar() {
+	public String addMenuBar() {
 		error = null;
 		pluginsTable = new Hashtable();
 		shortcuts = new Hashtable();
@@ -1022,7 +1017,7 @@ public class Menus implements IjxMenus {
 		nPlugins++;
 	}
 	
-	void installPopupMenu(IjxApplication ijApp) {
+	public void installPopupMenu(IjxApplication ijApp) {
 		String s;
 		int count = 0;
 		MenuItem mi;
@@ -1454,7 +1449,7 @@ public class Menus implements IjxMenus {
 		return code;
 	}
 	
-	void installStartupMacroSet() {
+	public void installStartupMacroSet() {
 		if (applet!=null) {
 			String docBase = ""+applet.getDocumentBase();
 			if (!docBase.endsWith("/")) {

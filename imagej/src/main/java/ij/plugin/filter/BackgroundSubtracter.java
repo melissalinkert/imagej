@@ -2,8 +2,8 @@ package ij.plugin.filter;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.measure.*;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 
@@ -63,7 +63,7 @@ public class BackgroundSubtracter implements ExtendedPlugInFilter, DialogListene
     private int pass;
     private int flags = DOES_ALL|FINAL_PROCESSING|KEEP_PREVIEW|PARALLELIZE_STACKS;
 
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         if (arg.equals("final")) {
             imp.getProcessor().resetMinAndMax();
             return DONE;
@@ -71,7 +71,7 @@ public class BackgroundSubtracter implements ExtendedPlugInFilter, DialogListene
             return flags;
     }
 
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         isRGB = imp.getProcessor() instanceof ColorProcessor;
         String options = Macro.getOptions();
         if  (options!=null)
@@ -264,7 +264,7 @@ public class BackgroundSubtracter implements ExtendedPlugInFilter, DialogListene
             filter3x3(fp, MEAN);                    //smoothing to remove noise
             pass++;
             //IJ.log("shiftBy="+shiftBy);
-            //new ImagePlus("preprocessed",fp.duplicate()).show();        
+            //IJ.getFactory().newImagePlus("preprocessed",fp.duplicate()).show();        
         }
         if (correctCorners)
             correctCorners(fp, coeff2, cache, nextPoint);   //modify corner data, avoids subtracting corner particles
@@ -497,7 +497,7 @@ public class BackgroundSubtracter implements ExtendedPlugInFilter, DialogListene
         if (pixels[width-1] > corners[1]/3) pixels[width-1] = corners[1]/3;
         if (pixels[(height-1)*width] > corners[2]/3) pixels[(height-1)*width] = corners[2]/3;
         if (pixels[width*height-1] > corners[3]/3) pixels[width*height-1] = corners[3]/3;
-        //new ImagePlus("corner corrected",fp.duplicate()).show();
+        //IJ.getFactory().newImagePlus("corner corrected",fp.duplicate()).show();
     } //void correctCorners
 
     //  R O L L   B A L L   S E C T I O N
@@ -556,7 +556,7 @@ public class BackgroundSubtracter implements ExtendedPlugInFilter, DialogListene
                 sPixels[xSmall+ySmall*sWidth] = min; // each point in small image is minimum of its neighborhood
             }
         }
-        //new ImagePlus("smallImage", smallImage).show();
+        //IJ.getFactory().newImagePlus("smallImage", smallImage).show();
         return smallImage;
     }
 
@@ -627,7 +627,7 @@ public class BackgroundSubtracter implements ExtendedPlugInFilter, DialogListene
             }
         }
         
-        //new ImagePlus("bg rolled", fp.duplicate()).show();
+        //IJ.getFactory().newImagePlus("bg rolled", fp.duplicate()).show();
     }
     
     /** Uses bilinear interpolation to find the points in the full-scale background

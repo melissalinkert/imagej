@@ -1,14 +1,11 @@
 package ij.plugin.frame;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.*;
 import ij.*;
 import ij.plugin.*;
-import ij.process.*;
 import ij.gui.*;
-import ij.measure.*;
-import ij.plugin.frame.Recorder;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
 
 /** Adjusts the width of line selections.  */
 public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
@@ -116,7 +113,7 @@ public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
 	}
 	
 	private static void updateRoi() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
 			Roi roi = imp.getRoi();
 			if (roi!=null && roi.isLine())
@@ -135,7 +132,7 @@ public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
 	}
 	
 	boolean isSplineFit() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) return false;
 		Roi roi = imp.getRoi();
 		if (roi==null) return false;
@@ -149,11 +146,12 @@ public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
 	}
 
     /** Overrides close() in PlugInFrame. */
-    public void close() {
+    public boolean close() {
     	super.close();
 		instance = null;
 		done = true;
 		synchronized(this) {notify();}
+        return true;
 	}
 
     public void windowActivated(WindowEvent e) {
@@ -163,7 +161,7 @@ public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
 
 	public void itemStateChanged(ItemEvent e) {
 		boolean selected = e.getStateChange()==ItemEvent.SELECTED;
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			{checkbox.setState(false); return;};
 		Roi roi = imp.getRoi();

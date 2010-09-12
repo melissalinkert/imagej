@@ -3,6 +3,7 @@ import ij.*;
 import ij.io.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.io.*;
 import java.awt.*;
 
@@ -35,12 +36,12 @@ public class RoiReader implements PlugIn {
 		RoiDecoder rd = new RoiDecoder(path);
 		Roi roi = rd.getRoi();
 		Rectangle r = roi.getBounds();
-		ImagePlus img = WindowManager.getCurrentImage();
+		IjxImagePlus img = WindowManager.getCurrentImage();
 		if (img==null || img.getWidth()<(r.x+r.width) || img.getHeight()<(r.y+r.height)) {
 			ImageProcessor ip =  new ByteProcessor(r.x+r.width+10, r.y+r.height+10);
 			ip.setColor(Color.white);
 			ip.fill();
-			img = new ImagePlus(name, ip);
+			img = IJ.getFactory().newImagePlus(name, ip);
 			img.show();
 		}
 		img.setRoi(roi);

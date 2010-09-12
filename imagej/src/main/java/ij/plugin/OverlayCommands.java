@@ -1,9 +1,11 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
 import ij.gui.*;
 import ij.plugin.frame.RoiManager;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
+import ijx.gui.IjxWindow;
 import java.awt.*;
 
 /** This plugin implements the commands in the Image/Overlay menu. */
@@ -30,7 +32,7 @@ public class OverlayCommands implements PlugIn {
 	}
 			
 	void addSelection() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		String macroOptions = Macro.getOptions();
 		if (macroOptions!=null && IJ.macroRunning() && macroOptions.indexOf("remove")!=-1) {
 			imp.setOverlay(null);
@@ -85,7 +87,7 @@ public class OverlayCommands implements PlugIn {
 	}
 	
 	void addImage() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		int[] wList = WindowManager.getIDList();
 		if (wList==null || wList.length<2) {
 			IJ.error("Add Image...", "The command requires at least two open images.");
@@ -93,7 +95,7 @@ public class OverlayCommands implements PlugIn {
 		}
 		String[] titles = new String[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp2 = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp2 = WindowManager.getImage(wList[i]);
 			titles[i] = imp2!=null?imp2.getTitle():"";
 		}
 		int x=0, y=0;
@@ -104,8 +106,8 @@ public class OverlayCommands implements PlugIn {
 		}
 		int index = 0;
 		if (wList.length==2) {
-			ImagePlus i1 = WindowManager.getImage(wList[0]);
-			ImagePlus i2 = WindowManager.getImage(wList[1]);
+			IjxImagePlus i1 = WindowManager.getImage(wList[0]);
+			IjxImagePlus i2 = WindowManager.getImage(wList[1]);
 			if (i2.getWidth()<i1.getWidth() && i2.getHeight()<i1.getHeight())
 				index = 1;
 		} else if (imp.getID()==wList[0])
@@ -125,10 +127,10 @@ public class OverlayCommands implements PlugIn {
 		y = (int)gd.getNextNumber();
 		double opacity = gd.getNextNumber()/100.0;
 		createImageRoi = gd.getNextBoolean();
-		ImagePlus overlay = WindowManager.getImage(wList[index]);
+		IjxImagePlus overlay = WindowManager.getImage(wList[index]);
 		if (wList.length==2) {
-			ImagePlus i1 = WindowManager.getImage(wList[0]);
-			ImagePlus i2 = WindowManager.getImage(wList[1]);
+			IjxImagePlus i1 = WindowManager.getImage(wList[0]);
+			IjxImagePlus i2 = WindowManager.getImage(wList[1]);
 			if (i2.getWidth()<i1.getWidth() && i2.getHeight()<i1.getHeight()) {
 				imp = i1;
 				overlay = i2;
@@ -161,35 +163,35 @@ public class OverlayCommands implements PlugIn {
 	}
 
 	void hide() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		imp.setHideOverlay(true);
 		RoiManager rm = RoiManager.getInstance();
 		if (rm!=null) rm.runCommand("show none");
 	}
 
 	void show() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		imp.setHideOverlay(false);
 		RoiManager rm = RoiManager.getInstance();
 		if (rm!=null) rm.runCommand("show all");
 	}
 
 	void remove() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) imp.setOverlay(null);
 		RoiManager rm = RoiManager.getInstance();
 		if (rm!=null) rm.runCommand("show none");
 	}
 
 	void flatten() {
-		ImagePlus imp = IJ.getImage();
-		ImagePlus imp2 = imp.flatten();
+		IjxImagePlus imp = IJ.getImage();
+		IjxImagePlus imp2 = imp.flatten();
 		imp2.setTitle(WindowManager.getUniqueName(imp.getTitle()));
 		imp2.show();
 	}
 	
 	void fromRoiManager() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		RoiManager rm = RoiManager.getInstance();
 		if (rm==null) {
 			IJ.error("ROI Manager is not open");
@@ -204,14 +206,14 @@ public class OverlayCommands implements PlugIn {
 		for (int i=0; i<rois.length; i++)
 			overlay.add((Roi)rois[i].clone());
 		imp.setOverlay(overlay);
-		ImageCanvas ic = imp.getCanvas();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic!=null) ic.setShowAllROIs(false);
 		rm.setEditMode(imp, false);
 		imp.killRoi();
 	}
 	
 	void toRoiManager() {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		Overlay overlay = imp.getOverlay();
 		if (overlay==null) {
 			IJ.error("Overlay required");
@@ -222,7 +224,7 @@ public class OverlayCommands implements PlugIn {
 			if (Macro.getOptions()!=null && Interpreter.isBatchMode())
 				rm = Interpreter.getBatchModeRoiManager();
 			if (rm==null) {
-				Frame frame = WindowManager.getFrame("ROI Manager");
+				IjxWindow frame = WindowManager.getFrame("ROI Manager");
 				if (frame==null)
 					IJ.run("ROI Manager...");
 				frame = WindowManager.getFrame("ROI Manager");

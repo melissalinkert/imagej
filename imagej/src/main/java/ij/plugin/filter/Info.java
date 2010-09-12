@@ -1,6 +1,5 @@
 package ij.plugin.filter;
 import java.awt.*;
-import java.util.*;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
@@ -8,12 +7,15 @@ import ij.text.*;
 import ij.measure.*;
 import ij.io.*;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageCanvas;
 
 /** This plugin implements the Image/Show Info command. */
 public class Info implements PlugInFilter {
-    private ImagePlus imp;
+    private IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_ALL+NO_CHANGES;
 	}
@@ -26,10 +28,10 @@ public class Info implements PlugInFilter {
 			showInfo(info, 300, 300);
 	}
 
-	public String getImageInfo(ImagePlus imp, ImageProcessor ip) {
+	public String getImageInfo(IjxImagePlus imp, ImageProcessor ip) {
 		String infoProperty = null;
 		if (imp.getStackSize()>1) {
-			ImageStack stack = imp.getStack();
+			IjxImageStack stack = imp.getStack();
 			String label = stack.getSliceLabel(imp.getCurrentSlice());
 			if (label!=null && label.indexOf('\n')>0)
 				infoProperty = label;
@@ -43,7 +45,7 @@ public class Info implements PlugInFilter {
 			return info;		
 	}
 
-	String getInfo(ImagePlus imp, ImageProcessor ip) {
+	String getInfo(IjxImagePlus imp, ImageProcessor ip) {
 		String s = new String("\n");
 		s += "Title: " + imp.getTitle() + "\n";
 		Calibration cal = imp.getCalibration();
@@ -80,7 +82,7 @@ public class Info implements PlugInFilter {
 	    s += "Coordinate origin:  " + d2s(cal.xOrigin)+","+d2s(cal.yOrigin)+zOrigin+"\n";
 	    int type = imp.getType();
     	switch (type) {
-	    	case ImagePlus.GRAY8:
+	    	case IjxImagePlus.GRAY8:
 	    		s += "Bits per pixel: 8 ";
 	    		String lut = "LUT";
 	    		if (imp.getProcessor().isColorLut())
@@ -92,8 +94,8 @@ public class Info implements PlugInFilter {
 	    		s += "(" + lut + ")\n";
 				s += "Display range: "+(int)ip.getMin()+"-"+(int)ip.getMax()+"\n";
 	    		break;
-	    	case ImagePlus.GRAY16: case ImagePlus.GRAY32:
-	    		if (type==ImagePlus.GRAY16) {
+	    	case IjxImagePlus.GRAY16: case IjxImagePlus.GRAY32:
+	    		if (type==IjxImagePlus.GRAY16) {
 	    			String sign = cal.isSigned16Bit()?"signed":"unsigned";
 	    			s += "Bits per pixel: 16 ("+sign+")\n";
 	    		} else
@@ -107,17 +109,17 @@ public class Info implements PlugInFilter {
 	    		}
 		    	s += IJ.d2s(min,digits) + " - " + IJ.d2s(max,digits) + "\n";
 	    		break;
-	    	case ImagePlus.COLOR_256:
+	    	case IjxImagePlus.COLOR_256:
 	    		s += "Bits per pixel: 8 (color LUT)\n";
 	    		break;
-	    	case ImagePlus.COLOR_RGB:
+	    	case IjxImagePlus.COLOR_RGB:
 	    		s += "Bits per pixel: 32 (RGB)\n";
 	    		break;
     	}
 		double interval = cal.frameInterval;	
 		double fps = cal.fps;	
     	if (stackSize>1) {
-    		ImageStack stack = imp.getStack();
+    		IjxImageStack stack = imp.getStack();
     		int slice = imp.getCurrentSlice();
     		String number = slice + "/" + stackSize;
     		String label = stack.getShortSliceLabel(slice);
@@ -164,7 +166,7 @@ public class Info implements PlugInFilter {
 			}
 			s += "Threshold: "+IJ.d2s(lower,dp)+"-"+IJ.d2s(upper,dp)+"\n";
 		}
-		ImageCanvas ic = imp.getCanvas();
+		IjxImageCanvas ic = imp.getCanvas();
     	double mag = ic!=null?ic.getMagnification():1.0;
     	if (mag!=1.0)
 			s += "Magnification: " + mag + "\n";
@@ -252,12 +254,12 @@ public class Info implements PlugInFilter {
 	}
 
 	// returns a Y coordinate based on the "Invert Y Coodinates" flag
-	int yy(int y, ImagePlus imp) {
+	int yy(int y, IjxImagePlus imp) {
 		return Analyzer.updateY(y, imp.getHeight());
 	}
 
 	// returns a Y coordinate based on the "Invert Y Coodinates" flag
-	double yy(double y, ImagePlus imp) {
+	double yy(double y, IjxImagePlus imp) {
 		return Analyzer.updateY(y, imp.getHeight());
 	}
 

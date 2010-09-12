@@ -2,7 +2,8 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /**
  * This plugin extracts selected images from a stack to make a new substack.
@@ -31,7 +32,7 @@ import ij.measure.*;
 public class SubstackMaker implements PlugIn {
 		
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		if (imp.isHyperStack() || imp.isComposite()) {
 			IJ.error("Make Substack", "This command does not currently work with hyperstacks.");
 			return;
@@ -39,12 +40,12 @@ public class SubstackMaker implements PlugIn {
 		String userInput = showDialog();
 		if (userInput==null)
 			return;
-		ImagePlus imp2 = makeSubstack(imp, userInput);
+		IjxImagePlus imp2 = makeSubstack(imp, userInput);
 		if (imp2!=null)
 			imp2.show();
 	}
 
-	public ImagePlus makeSubstack(ImagePlus imp, String userInput) {
+	public IjxImagePlus makeSubstack(IjxImagePlus imp, String userInput) {
 		String stackTitle = "Substack ("+userInput+")";
 		if (stackTitle.length()>25) {
 			int idxA = stackTitle.indexOf(",",18);
@@ -55,7 +56,7 @@ public class SubstackMaker implements PlugIn {
 				stackTitle = strA + ", ... " + strB;
 			}
 		}
-		ImagePlus imp2 = null;
+		IjxImagePlus imp2 = null;
 		try {
 			int idx1 = userInput.indexOf("-");
 			if (idx1>=1) {									// input displayed in range
@@ -117,9 +118,9 @@ public class SubstackMaker implements PlugIn {
 	}
 
 	// extract specific slices
-	ImagePlus stackList(ImagePlus imp, int count, int[] numList, String stackTitle) throws Exception {
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = null;
+	IjxImagePlus stackList(IjxImagePlus imp, int count, int[] numList, String stackTitle) throws Exception {
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = null;
 		Roi roi = imp.getRoi();
 		for (int i=0; i<count; i++) {
 			int currSlice = numList[i];
@@ -127,19 +128,19 @@ public class SubstackMaker implements PlugIn {
 			ip2.setRoi(roi);
 			ip2 = ip2.crop();
 			if (stack2==null)
-				stack2 = new ImageStack(ip2.getWidth(), ip2.getHeight());
+				stack2 = IJ.getFactory().newImageStack(ip2.getWidth(), ip2.getHeight());
 			stack2.addSlice(stack.getSliceLabel(currSlice), ip2);
 		}
-		ImagePlus impSubstack = imp.createImagePlus();
+		IjxImagePlus impSubstack = imp.createImagePlus();
 		impSubstack.setStack(stackTitle, stack2);
 		impSubstack.setCalibration(imp.getCalibration());
 		return impSubstack;
 	}
 	
 	// extract range of slices
-	ImagePlus stackRange(ImagePlus imp, int first, int last, int inc, String title) throws Exception {		int width = imp.getWidth();
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = null;
+	IjxImagePlus stackRange(IjxImagePlus imp, int first, int last, int inc, String title) throws Exception {		int width = imp.getWidth();
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = null;
 		Roi roi = imp.getRoi();
 		for (int i= first; i<= last; i+=inc) {
 			//IJ.log(first+" "+last+" "+inc+" "+i);
@@ -147,10 +148,10 @@ public class SubstackMaker implements PlugIn {
 			ip2.setRoi(roi);
 			ip2 = ip2.crop();
 			if (stack2==null)
-				stack2 = new ImageStack(ip2.getWidth(), ip2.getHeight());
+				stack2 = IJ.getFactory().newImageStack(ip2.getWidth(), ip2.getHeight());
 			stack2.addSlice(stack.getSliceLabel(i), ip2);
 		}
-		ImagePlus substack = imp.createImagePlus();
+		IjxImagePlus substack = imp.createImagePlus();
 		substack.setStack(title, stack2);
 		substack.setCalibration(imp.getCalibration());
 		return substack;

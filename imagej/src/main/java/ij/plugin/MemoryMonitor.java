@@ -3,9 +3,10 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
-import java.awt.image.*;
-import java.awt.event.*;
 
 /**	This plugin continuously plots ImageJ's memory
 	utilization. It could also be used as a starting
@@ -21,7 +22,7 @@ public class MemoryMonitor implements PlugIn {
 	long fps, startTime, elapsedTime;
 	ImageProcessor ip;
 	int frames;
-	ImageCanvas ic;
+	IjxImageCanvas ic;
 	double[] mem;
 	int index;
 	long value;
@@ -42,17 +43,17 @@ public class MemoryMonitor implements PlugIn {
 		ip.setFont(new Font("SansSerif",Font.PLAIN,12));
 		ip.setAntialiasedText(true);
 		ip.snapshot();
-		ImagePlus imp = new ImagePlus("Memory", ip);
-		ImageWindow.centerNextImage();
+		IjxImagePlus imp = IJ.getFactory().newImagePlus("Memory", ip);
+		WindowManager.setCenterNextImage(true);
 		imp.show();
 		imp.lock();
-		ImageWindow win = imp.getWindow();
+		IjxImageWindow win = imp.getWindow();
 		ic = win.getCanvas();
 		mem = new double[width+1];
 		Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 		startTime = System.currentTimeMillis();
-		win.running = true;
-       	while (win.running) {
+		win.setRunning(true);
+       	while (win.isRunning()) {
 			updatePixels();
          	showValue();
 			imp.updateAndDraw();

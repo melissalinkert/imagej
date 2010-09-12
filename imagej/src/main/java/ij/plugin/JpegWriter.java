@@ -1,7 +1,7 @@
 package ij.plugin;
 import ij.*;
-import ij.process.*;
 import ij.io.FileSaver;
+import ijx.IjxImagePlus;
 import java.awt.image.*;
 import java.awt.*;
 import java.io.*;
@@ -15,7 +15,7 @@ public class JpegWriter implements PlugIn {
 	public static final int DEFAULT_QUALITY = 75;
 
 	public void run(String arg) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) return;
 		imp.startTiming();
 		saveAsJpeg(imp,arg,FileSaver.getJpegQuality());
@@ -23,14 +23,14 @@ public class JpegWriter implements PlugIn {
 	}
 
 	/** Thread-safe method. */
-	public static String save(ImagePlus imp, String path, int quality) {
+	public static String save(IjxImagePlus imp, String path, int quality) {
 		imp.startTiming();
 		String error = (new JpegWriter()).saveAsJpeg(imp, path, quality);
 		IJ.showTime(imp, imp.getStartTime(), "JpegWriter: ");
 		return error;
 	}
 
-	String saveAsJpeg(ImagePlus imp, String path, int quality) {
+	String saveAsJpeg(IjxImagePlus imp, String path, int quality) {
 		int width = imp.getWidth();
 		int height = imp.getHeight();
 		int biType = BufferedImage.TYPE_INT_RGB;

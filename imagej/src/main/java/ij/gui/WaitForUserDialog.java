@@ -1,5 +1,6 @@
 package ij.gui;
 import ij.*;
+import ijx.gui.IjxWindow;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.*;
@@ -17,7 +18,7 @@ public class WaitForUserDialog extends Dialog implements ActionListener, KeyList
 	private boolean escPressed;
 	
 	public WaitForUserDialog(String title, String text) {
-		super(getFrame(), title, false);
+		super((Frame)getFrame(), title, false);
 		label = new MultiLineLabel(text, 175);
 		if (!IJ.isLinux()) label.setFont(new Font("SansSerif", Font.PLAIN, 14));
         GridBagLayout gridbag = new GridBagLayout(); //set up the layout
@@ -61,9 +62,9 @@ public class WaitForUserDialog extends Dialog implements ActionListener, KeyList
 		}
 	}
 	
-	static Frame getFrame() {
-		Frame win = WindowManager.getCurrentWindow();
-		if (win==null) win = IJ.getInstance();
+	static IjxWindow getFrame() {
+		IjxWindow win = WindowManager.getCurrentWindow();
+		if (win==null) win = IJ.getTopComponent();
 		return win;
 	}
 

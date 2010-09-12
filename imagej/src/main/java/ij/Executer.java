@@ -30,7 +30,7 @@ public class Executer implements Runnable {
 
 	/** Create an Executer that runs the specified menu command
 		in a separate thread using the active image image. */
-	public Executer(String cmd, ImagePlus ignored) {
+	public Executer(String cmd, IjxImagePlus ignored) {
 		if (cmd.startsWith("Repeat")) {
 			command = previousCommand;
 			IJ.setKeyUp(KeyEvent.VK_SHIFT);		

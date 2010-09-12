@@ -6,6 +6,8 @@ import ij.process.*;
 import ij.util.*;
 import ij.measure.*;
 import ij.plugin.Straightener;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 
 /** Creates a density profile plot of a rectangular selection or line selection. */
 public class ProfilePlot {
@@ -17,7 +19,7 @@ public class ProfilePlot {
     private static double fixedMin = Prefs.getDouble("pp.min",0.0);
     private static double fixedMax = Prefs.getDouble("pp.max",0.0);
     
-	protected ImagePlus imp;
+	protected IjxImagePlus imp;
 	protected double[] profile;
 	protected double magnification;
 	protected double xInc;
@@ -29,11 +31,11 @@ public class ProfilePlot {
 	public ProfilePlot() {
 	}
 
-	public ProfilePlot(ImagePlus imp) {
+	public ProfilePlot(IjxImagePlus imp) {
 		this(imp, false);
 	}
 
-	public ProfilePlot(ImagePlus imp, boolean averageHorizontally) {
+	public ProfilePlot(IjxImagePlus imp, boolean averageHorizontally) {
 		this.imp = imp;
 		Roi roi = imp.getRoi();
 		if (roi==null) {
@@ -64,7 +66,7 @@ public class ProfilePlot {
 		else
 			profile = getColumnAverageProfile(roi.getBounds(), ip);
 		ip.setCalibrationTable(null);
-		ImageCanvas ic = imp.getCanvas();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic!=null)
 			magnification = ic.getMagnification();
 		else
@@ -121,7 +123,7 @@ public class ProfilePlot {
 		plot.show();
 	}
 	
-	String getShortTitle(ImagePlus imp) {
+	String getShortTitle(IjxImagePlus imp) {
 		String title = imp.getTitle();
 		int index = title.lastIndexOf('.');
 		if (index>0 && (title.length()-index)<=5)
@@ -278,7 +280,7 @@ public class ProfilePlot {
 		return values;
 	}
 
-	double[] getWideLineProfile(ImagePlus imp, int lineWidth) {
+	double[] getWideLineProfile(IjxImagePlus imp, int lineWidth) {
 		Roi roi = (Roi)imp.getRoi().clone();
 		ImageProcessor ip2 = (new Straightener()).straightenLine(imp, lineWidth);
 		int width = ip2.getWidth();

@@ -110,7 +110,7 @@ public class SaveDialog {
 		}
 		if (defaultName!=null)
 			fc.setSelectedFile(new File(defaultName));
-		int returnVal = fc.showSaveDialog(IJ.getInstance());
+		int returnVal = fc.showSaveDialog(IJ.getTopComponentFrame());
 		if (returnVal!=JFileChooser.APPROVE_OPTION)
 			{Macro.abort(); return;}
 		File f = fc.getSelectedFile();
@@ -146,7 +146,7 @@ public class SaveDialog {
 					}
 					if (defaultName!=null)
 						fc.setSelectedFile(new File(defaultName));
-					int returnVal = fc.showSaveDialog(IJ.getInstance());
+					int returnVal = fc.showSaveDialog(IJ.getTopComponentFrame());
 					if (returnVal!=JFileChooser.APPROVE_OPTION)
 						{Macro.abort(); return;}
 					File f = fc.getSelectedFile();
@@ -172,7 +172,7 @@ public class SaveDialog {
 
 	// Save using FileDialog
 	void save(String title, String defaultDir, String defaultName) {
-		ImageJ ij = IJ.getInstance();
+		Frame ij = IJ.getTopComponentFrame();
 		Frame parent = ij!=null?ij:new Frame();
 		FileDialog fd = new FileDialog(parent, title, FileDialog.SAVE);
 		if (defaultName!=null)

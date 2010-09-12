@@ -4,8 +4,8 @@ import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.plugin.ContrastEnhancer;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.util.*;
 
 /** 
 This class implements the Process/FFT/Bandpass Filter command. It is based on 
@@ -18,7 +18,7 @@ Joachim Walter's FFT Filter plugin at "http://rsb.info.nih.gov/ij/plugins/fft-fi
 */
 public class FFTFilter implements  PlugInFilter, Measurements {
 
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private String arg;
 	private static int filterIndex = 1;
 	private FHT fht;
@@ -36,7 +36,7 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 	private static boolean displayFilter;
 	private static boolean processStack;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
  		this.imp = imp;
  		if (imp==null)
@@ -102,26 +102,26 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 		fht.setShowProgress(false);
 		fht.transform();
 		IJ.showProgress(9,20);
-		//new ImagePlus("after fht",ip2.crop()).show();	
+		//IJ.getFactory().newImagePlus("after fht",ip2.crop()).show();	
 
 		// filter out large and small structures
 		showStatus("Filter in frequency domain");
 		filterLargeSmall(fht, filterLarge, filterSmall, choiceIndex, sharpness);
-		//new ImagePlus("filter",ip2.crop()).show();
+		//IJ.getFactory().newImagePlus("filter",ip2.crop()).show();
 		IJ.showProgress(11,20);
 
 		// transform backward
 		showStatus("Inverse transform");
 		fht.inverseTransform();
 		IJ.showProgress(19,20);
-		//new ImagePlus("after inverse",ip2).show();	
+		//IJ.getFactory().newImagePlus("after inverse",ip2).show();	
 		
 		// crop to original size and do scaling if selected
 		showStatus("Crop and convert to original type");
 		fht.setRoi(fitRect);
 		ip2 = fht.crop();
 		if (doScaling) {
-			ImagePlus imp2 = new ImagePlus(imp.getTitle()+"-filtered", ip2);
+			IjxImagePlus imp2 = IJ.getFactory().newImagePlus(imp.getTitle()+"-filtered", ip2);
 			new ContrastEnhancer().stretchHistogram(imp2, saturate?1.0:0.0);
 			ip2 = imp2.getProcessor();
 		}
@@ -400,11 +400,11 @@ public class FFTFilter implements  PlugInFilter, Measurements {
 		if (displayFilter && slice==1) {
 			FHT f = new FHT(new FloatProcessor(maxN, maxN, filter, null));
 			f.swapQuadrants();
-			new ImagePlus("Filter", f).show();
+			IJ.getFactory().newImagePlus("Filter", f).show();
 		}
 	}	
 
-	boolean showBandpassDialog(ImagePlus imp) {
+	boolean showBandpassDialog(IjxImagePlus imp) {
 		GenericDialog gd = new GenericDialog("FFT Bandpass Filter");
 		gd.addNumericField("Filter_Large Structures Down to", filterLargeDia, 0, 4, "pixels");
 		gd.addNumericField("Filter_Small Structures Up to", filterSmallDia, 0, 4, "pixels");

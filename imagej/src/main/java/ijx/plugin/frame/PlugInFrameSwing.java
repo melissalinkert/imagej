@@ -34,10 +34,11 @@ public class PlugInFrameSwing extends javax.swing.JFrame implements IjxPluginFra
     }
     
     /** Closes this window. */
-    public void close() {
+    public boolean close() {
 		setVisible(false);
 		dispose();
 		WindowManager.removeWindow(this);
+        return true;
     }
     public boolean canClose() {
 		close();

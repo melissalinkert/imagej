@@ -1,20 +1,19 @@
 package ij.plugin.filter;
 
 import java.awt.*;
-import java.awt.image.*;
-import java.util.Vector;
 import java.io.*;
 import ij.*;
 import ij.process.*;
 import ij.io.*;
 import ij.gui.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
 
 /** Saves the XY coordinates of the current ROI boundary. */
 public class XYWriter implements PlugInFilter {
-	ImagePlus imp;
+	IjxImagePlus imp;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return DOES_ALL+ROI_REQUIRED+NO_CHANGES;
 	}
@@ -27,7 +26,7 @@ public class XYWriter implements PlugInFilter {
 		}
 	}
 
-	public void saveXYCoordinates(ImagePlus imp) {
+	public void saveXYCoordinates(IjxImagePlus imp) {
 		Roi roi = imp.getRoi();
 		if (roi==null)
 			throw new IllegalArgumentException("ROI required");

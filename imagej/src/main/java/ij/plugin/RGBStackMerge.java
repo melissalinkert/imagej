@@ -2,13 +2,15 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.image.*;
 
 public class RGBStackMerge implements PlugIn {
 
 	private static boolean createComposite = true;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private byte[] blank;
  
 	/** Merges one, two or three 8-bit or RGB stacks into a single RGB stack. */
@@ -27,7 +29,7 @@ public class RGBStackMerge implements PlugIn {
 
 		String[] titles = new String[wList.length+1];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			titles[i] = imp!=null?imp.getTitle():"";
 		}
 		String none = "*None*";
@@ -53,7 +55,7 @@ public class RGBStackMerge implements PlugIn {
 		createComposite = gd.getNextBoolean();
 		boolean keep = gd.getNextBoolean();
 
-		ImagePlus[] images = new ImagePlus[4];
+		IjxImagePlus[] images = new IjxImagePlus[4];
 		int stackSize = 0;
 		int width = 0;
 		int height = 0;
@@ -81,7 +83,7 @@ public class RGBStackMerge implements PlugIn {
 		
 		boolean mergeHyperstacks = false;
 		for (int i=0; i<4; i++) {
-			ImagePlus img = images[i];
+			IjxImagePlus img = images[i];
 			if (img==null) continue;
 			if (img.getStackSize()!=stackSize) {
 				error("The source stacks must have the same number of images.");
@@ -127,7 +129,7 @@ public class RGBStackMerge implements PlugIn {
 			}
 		}
 
-		ImageStack[] stacks = new ImageStack[4];
+		IjxImageStack[] stacks = new IjxImageStack[4];
 		stacks[0] = images[0]!=null?images[0].getStack():null;
 		stacks[1]  = images[1]!=null?images[1].getStack():null;
 		stacks[2]  = images[2]!=null?images[2].getStack():null;
@@ -135,7 +137,7 @@ public class RGBStackMerge implements PlugIn {
 		String options = Macro.getOptions();
 		if	(options!=null && options.indexOf("gray=")==-1)
 			stacks[3] = null; // ensure compatibility with old macros
-		ImagePlus imp2;
+		IjxImagePlus imp2;
 		boolean fourChannelRGB = !createComposite && stacks[3]!=null;
 		if (fourChannelRGB)
 			createComposite = true;
@@ -153,15 +155,15 @@ public class RGBStackMerge implements PlugIn {
 			imp2 = createComposite(width, height, stackSize, stacks, keep);
 			if (imp2==null) return;
 		} else {
-			ImageStack rgb = mergeStacks(width, height, stackSize, stacks[0], stacks[1], stacks[2], keep);
-			imp2 = new ImagePlus("RGB", rgb);
+			IjxImageStack rgb = mergeStacks(width, height, stackSize, stacks[0], stacks[1], stacks[2], keep);
+			imp2 = IJ.getFactory().newImagePlus("RGB", rgb);
 		}
 		if (images[0]!=null)
 			imp2.setCalibration(images[0].getCalibration());
 		if (!keep) {
 			for (int i=0; i<4; i++) {
 				if (images[i]!=null) {
-					images[i].changes = false;
+					images[i].setChanged(false);
 					images[i].close();
 				}
 			}
@@ -171,29 +173,29 @@ public class RGBStackMerge implements PlugIn {
 		imp2.show();
 	 }
 	
-	public ImagePlus mergeHyperstacks(ImagePlus[] images, boolean keep) {
+	public IjxImagePlus mergeHyperstacks(IjxImagePlus[] images, boolean keep) {
 		int n = images.length;
 		int channels = 0;
 		for (int i=0; i<n; i++) {
 			if (images[i]!=null) channels++;
 		}
 		if (channels<2) return null;
-		ImagePlus[] images2 = new ImagePlus[channels];
+		IjxImagePlus[] images2 = new IjxImagePlus[channels];
 		int j = 0;
 		for (int i=0; i<n; i++) {
 			if (images[i]!=null)
 				images2[j++] = images[i];
 		}
 		images = images2;
-		ImageStack[] stacks = new ImageStack[channels];
+		IjxImageStack[] stacks = new IjxImageStack[channels];
 		for (int i=0; i<channels; i++)
 			stacks[i] = images[i].getStack();
-		ImagePlus imp = images[0];
+		IjxImagePlus imp = images[0];
 		int w = imp.getWidth();
 		int h = imp.getHeight();
 		int slices = imp.getNSlices();
 		int frames = imp.getNFrames();
-		ImageStack stack2 = new ImageStack(w, h);
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(w, h);
 		//IJ.log("mergeHyperstacks: "+w+" "+h+" "+channels+" "+slices+" "+frames);
 		int[] index = new int[channels];
 		for (int t=0; t<frames; t++) {
@@ -214,7 +216,7 @@ public class RGBStackMerge implements PlugIn {
 			title = title.substring(3);
 		else
 			title = "Merged";
-		ImagePlus imp2 = new ImagePlus(title, stack2);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus(title, stack2);
 		imp2.setDimensions(channels, slices, frames);
 		imp2 = new CompositeImage(imp2, CompositeImage.COMPOSITE);
 		for (int c=0; c<channels; c++) {
@@ -227,8 +229,8 @@ public class RGBStackMerge implements PlugIn {
 		return imp2;
 	}
 
-	public ImagePlus createComposite(int w, int h, int d, ImageStack[] stacks, boolean keep) {
-		ImageStack composite = new ImageStack(w, h);
+	public IjxImagePlus createComposite(int w, int h, int d, IjxImageStack[] stacks, boolean keep) {
+		IjxImageStack composite = IJ.getFactory().newImageStack(w, h);
 		int n = stacks.length;
 		int[] index = new int[n];
 		int channels = 0;
@@ -258,7 +260,7 @@ public class RGBStackMerge implements PlugIn {
 				}
 			}
 		}
-		ImagePlus imp2 = new ImagePlus("Composite", composite);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus("Composite", composite);
 		imp2.setDimensions(channels, d, 1);
 		imp2 = new CompositeImage(imp2, CompositeImage.COMPOSITE);
 		if (customColors) {
@@ -281,8 +283,8 @@ public class RGBStackMerge implements PlugIn {
 		return imp2;
 	}
 
-	public ImageStack mergeStacks(int w, int h, int d, ImageStack red, ImageStack green, ImageStack blue, boolean keep) {
-		ImageStack rgb = new ImageStack(w, h);
+	public IjxImageStack mergeStacks(int w, int h, int d, IjxImageStack red, IjxImageStack green, IjxImageStack blue, boolean keep) {
+		IjxImageStack rgb = IJ.getFactory().newImageStack(w, h);
 		int inc = d/10;
 		if (inc<1) inc = 1;
 		ColorProcessor cp;
@@ -320,7 +322,7 @@ public class RGBStackMerge implements PlugIn {
 		return rgb;
 	}
 	
-	 byte[] getPixels(ImageStack stack, int slice, int color) {
+	 byte[] getPixels(IjxImageStack stack, int slice, int color) {
 		 if (stack==null)
 			return blank;
 		Object pixels = stack.getPixels(slice);

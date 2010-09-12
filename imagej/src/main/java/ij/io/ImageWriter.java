@@ -253,7 +253,7 @@ public class ImageWriter {
 		The OutputStream is not closed. The fi.pixels field
 		must contain the image data. If fi.nImages>1
 		then fi.pixels must be a 2D array, for example an
- 		array of images returned by ImageStack.getImageArray()).
+ 		array of images returned by IjxImageStack.getImageArray()).
  		The fi.offset field is ignored. */
 	public void write(OutputStream out) throws IOException {
 		if (fi.pixels==null && fi.virtualStack==null)

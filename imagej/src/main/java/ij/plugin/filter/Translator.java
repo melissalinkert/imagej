@@ -2,8 +2,8 @@ package ij.plugin.filter;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
-import java.awt.geom.*;
 
 
 /** This plugin implements the Image/Translate command. */
@@ -11,13 +11,13 @@ public class Translator implements ExtendedPlugInFilter, DialogListener {
 	private int flags = DOES_ALL|PARALLELIZE_STACKS;
 	private static double xOffset = 15;
 	private static double yOffset = 15;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private GenericDialog gd;
 	private PlugInFilterRunner pfr;
 	private static int interpolationMethod = ImageProcessor.NONE;
 	private String[] methods = ImageProcessor.getInterpolationMethods();
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		return flags;
 	}
@@ -27,7 +27,7 @@ public class Translator implements ExtendedPlugInFilter, DialogListener {
 		ip.translate(xOffset, yOffset);
 	}
 
-	public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+	public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
 		this.pfr = pfr;
 		int digits = xOffset==(int)xOffset&&yOffset==(int)yOffset?1:3;
 		gd = new GenericDialog("Translate");

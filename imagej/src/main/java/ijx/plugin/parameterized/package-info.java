@@ -37,7 +37,7 @@ Supported input parameter types:
  String
 
 Output parameter types:
-ImagePlus
+IjxImagePlus
 
  Added:
  implements Callable<Map<String, Object>>

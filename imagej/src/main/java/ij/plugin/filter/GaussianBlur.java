@@ -3,7 +3,7 @@ import ij.*;
 import ij.gui.GenericDialog;
 import ij.gui.DialogListener;
 import ij.process.*;
-import ij.measure.Calibration;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** This plug-in filter uses convolution with a Gaussian function for smoothing.
@@ -36,7 +36,7 @@ public class GaussianBlur implements ExtendedPlugInFilter, DialogListener {
     private static boolean sigmaScaled = false;
     /** The flags specifying the capabilities and needs */
     private int flags = DOES_ALL|SUPPORTS_MASKING|PARALLELIZE_STACKS|KEEP_PREVIEW;
-    private ImagePlus imp;              // The ImagePlus of the setup call, needed to get the spatial calibration
+    private IjxImagePlus imp;              // The IjxImagePlus of the setup call, needed to get the spatial calibration
     private boolean hasScale = false;   // whether the image has an x&y scale
     private int nPasses = 1;            // The number of passes (filter directions * color channels * stack slices)
 	private int nChannels = 1;        // The number of color channels
@@ -48,11 +48,11 @@ public class GaussianBlur implements ExtendedPlugInFilter, DialogListener {
 
     /** Method to return types supported
      * @param arg unused
-     * @param imp The ImagePlus, used to get the spatial calibration
+     * @param imp The IjxImagePlus, used to get the spatial calibration
      * @return Code describing supported formats etc.
      * (see ij.plugin.filter.PlugInFilter & ExtendedPlugInFilter)
      */
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         this.imp = imp;
         if (imp!=null && imp.getRoi()!=null) {
             Rectangle roiRect = imp.getRoi().getBoundingRect();
@@ -64,7 +64,7 @@ public class GaussianBlur implements ExtendedPlugInFilter, DialogListener {
     
     /** Ask the user for the parameters
      */
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         String options = Macro.getOptions();
         boolean oldMacro = false;
 		nChannels = imp.getProcessor().getNChannels();
@@ -102,7 +102,7 @@ public class GaussianBlur implements ExtendedPlugInFilter, DialogListener {
     }
 
     /** Set the number of passes of the blur1Direction method. If called by the
-     *  PlugInFilterRunner of ImageJ, an ImagePlus is known and conversion of RGB images
+     *  PlugInFilterRunner of ImageJ, an IjxImagePlus is known and conversion of RGB images
      *  to float as well as the two filter directions are taken into account.
      *  Otherwise, the caller should set nPasses to the number of 1-dimensional
      *  filter operations required.

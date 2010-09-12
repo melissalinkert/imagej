@@ -2,34 +2,36 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin, which concatenates two images or stacks, implements the Image/Stacks/Concatenate command.
 	The images or stacks must have same width, height and data type. */
 public class Concatenator implements PlugIn {
 
-	ImagePlus imp1, imp2;
+	IjxImagePlus imp1, imp2;
 	static boolean keep;
 	static String title = "Concatenated Stacks";
 
 	public void run(String arg) {
 		if (showDialog()) {
-			ImagePlus imp3 = concatenate(imp1, imp2, keep);
+			IjxImagePlus imp3 = concatenate(imp1, imp2, keep);
 			if (imp3!=null) imp3.show();
 		}
 	}
 	
-	public ImagePlus concatenate(ImagePlus imp1, ImagePlus imp2, boolean keep) {
+	public IjxImagePlus concatenate(IjxImagePlus imp1, IjxImagePlus imp2, boolean keep) {
 		if (imp1.getType()!=imp2.getType() || imp1.isHyperStack() || imp2.isHyperStack())
 			{error(); return null;}
 		int width = imp1.getWidth();
 		int height = imp1.getHeight();
 		if (width!=imp2.getWidth() || height!=imp2.getHeight())
 			{error(); return null;}
-		ImageStack stack1 = imp1.getStack();
-		ImageStack stack2 = imp2.getStack();
+		IjxImageStack stack1 = imp1.getStack();
+		IjxImageStack stack2 = imp2.getStack();
 		int size1 = stack1.getSize();
 		int size2 = stack2.getSize();
-		ImageStack stack3 = imp1.createEmptyStack();
+		IjxImageStack stack3 = imp1.createEmptyStack();
 		int slice = 1;
 		for (int i=1; i<=size1; i++) {
 			ImageProcessor ip = stack1.getProcessor(slice);
@@ -52,13 +54,13 @@ public class Concatenator implements PlugIn {
 				stack2.deleteSlice(slice);
 			stack3.addSlice(label, ip);
 		}
-		ImagePlus imp3 = new ImagePlus(title, stack3);
+		IjxImagePlus imp3 = IJ.getFactory().newImagePlus(title, stack3);
 		imp3.setCalibration(imp1.getCalibration());
 		if (!keep) {
-			imp1.changes = false;
+			imp1.setChanged(false);
 			if (imp1.getWindow()!=null) imp1.getWindow().close();
 			if (imp1!=imp2) {
-				imp2.changes = false;
+				imp2.setChanged(false);
 				if (imp2.getWindow()!=null) imp2.getWindow().close();
 			}
 		}
@@ -74,7 +76,7 @@ public class Concatenator implements PlugIn {
 
 		String[] titles = new String[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			titles[i] = imp!=null?imp.getTitle():"";
 		}
 

@@ -9,6 +9,7 @@ import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.util.Tools;
 import ij.macro.*;
+import ijx.IjxImagePlus;
 
 
 /**
@@ -84,7 +85,8 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
     	this requires that the first word of each label be unique. */
 	public GenericDialog(String title) {
 		this(title, WindowManager.getCurrentImage()!=null?
-			(Frame)WindowManager.getCurrentImage().getWindow():IJ.getInstance()!=null?IJ.getInstance():new Frame());
+			(Frame)WindowManager.getCurrentImage().getWindow():
+            IJ.getTopComponentFrame()!=null?IJ.getTopComponentFrame():new Frame());
 	}
 
     /** Creates a new GenericDialog using the specified title and parent frame. */
@@ -315,7 +317,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
     public void addPreviewCheckbox(PlugInFilterRunner pfr) {
         if (previewCheckbox != null)
         	return;
-    	ImagePlus imp = WindowManager.getCurrentImage();
+    	IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null && imp.isComposite() && ((CompositeImage)imp).getMode()==CompositeImage.COMPOSITE)
 			return;
         this.pfr = pfr;
@@ -331,7 +333,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
     public void addPreviewCheckbox(PlugInFilterRunner pfr, String label) {
         if (previewCheckbox!=null)
         	return;
-    	//ImagePlus imp = WindowManager.getCurrentImage();
+    	//IjxImagePlus imp = WindowManager.getCurrentImage();
 		//if (imp!=null && imp.isComposite() && ((CompositeImage)imp).getMode()==CompositeImage.COMPOSITE)
 		//	return;
         previewLabel = label;

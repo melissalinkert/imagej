@@ -2,6 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.io.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.io.*;
 import java.awt.image.*;
@@ -41,7 +42,7 @@ public class BMP_Writer implements PlugIn {
  //--- File section
  private FileOutputStream fo;
  private BufferedOutputStream bfo;
- ImagePlus imp;
+ IjxImagePlus imp;
 
  public void run(String path) {
    IJ.showProgress(0);
@@ -60,7 +61,7 @@ public class BMP_Writer implements PlugIn {
    IJ.showStatus("");
  }
 
- void writeImage(ImagePlus imp, String path) throws Exception {
+ void writeImage(IjxImagePlus imp, String path) throws Exception {
    if(imp.getBitDepth()==24)
      biBitCount = 24;
    else {

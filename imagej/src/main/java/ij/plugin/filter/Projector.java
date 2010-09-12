@@ -6,6 +6,8 @@ import ij.plugin.ZProjector;
 import ij.measure.Calibration;
 import ij.plugin.RGBStackMerge;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.image.*;
 
@@ -41,9 +43,9 @@ public class Projector implements PlugInFilter {
 	private static boolean debugMode;
 	private int transparencyLower = 1;
 	private int transparencyUpper = 255;	
-	ImagePlus imp;
-	ImageStack stack;
-	ImageStack stack2;
+	IjxImagePlus imp;
+	IjxImageStack stack;
+	IjxImageStack stack2;
 	int width, height, imageWidth;
 	int left, right, top, bottom;
 	byte[] projArray, opaArray, brightCueArray;
@@ -54,7 +56,7 @@ public class Projector implements PlugInFilter {
 	boolean done;
 	boolean batchMode = Interpreter.isBatchMode();
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		if (imp!=null && imp.isHyperStack()) {
 				IJ.error("3D Project", "Hyperstacks are currently not supported. Convert to\nRGB using Image>Type>RGB Color and try again.");
@@ -71,7 +73,7 @@ public class Projector implements PlugInFilter {
 		if (!showDialog())
 			return;
 		imp.startTiming();
-		isRGB = imp.getType()==ImagePlus.COLOR_RGB;
+		isRGB = imp.getType()==IjxImagePlus.COLOR_RGB;
 		if (interpolate && sliceInterval>1.0) {
 			imp = zScale(imp);
 			if (imp==null) return;
@@ -130,12 +132,12 @@ public class Projector implements PlugInFilter {
 		return true;
     	}
     	
-    public void doRGBProjections(ImagePlus imp) {
+    public void doRGBProjections(IjxImagePlus imp) {
         RGBStackSplitter splitter = new RGBStackSplitter();
         splitter.split(imp.getStack(), true);
-        ImagePlus red = new ImagePlus("Red", splitter.red);
-        ImagePlus green = new ImagePlus("Green", splitter.green);
-        ImagePlus blue = new ImagePlus("Blue", splitter.blue);
+        IjxImagePlus red = IJ.getFactory().newImagePlus("Red", splitter.red);
+        IjxImagePlus green = IJ.getFactory().newImagePlus("Green", splitter.green);
+        IjxImagePlus blue = IJ.getFactory().newImagePlus("Blue", splitter.blue);
         Calibration cal = imp.getCalibration();
         Roi roi = imp.getRoi();
         if (roi!=null)
@@ -155,11 +157,11 @@ public class Projector implements PlugInFilter {
         blue.hide();
         int w = red.getWidth(), h = red.getHeight(), d = red.getStackSize();
         RGBStackMerge merge = new RGBStackMerge();
-        ImageStack stack = merge.mergeStacks(w, h, d, red.getStack(), green.getStack(), blue.getStack(), true);
-        new ImagePlus("Projection of  "+imp.getShortTitle(), stack).show();
+        IjxImageStack stack = merge.mergeStacks(w, h, d, red.getStack(), green.getStack(), blue.getStack(), true);
+        IJ.getFactory().newImagePlus("Projection of  "+imp.getShortTitle(), stack).show();
     }
 
-	public ImagePlus doProjections(ImagePlus imp) {
+	public IjxImagePlus doProjections(IjxImagePlus imp) {
 		int nSlices;				// number of slices in volume
 		int projwidth, projheight;	//dimensions of projection image
 		int xcenter, ycenter, zcenter;	//coordinates of center of volume of rotation
@@ -245,7 +247,7 @@ public class Projector implements PlugInFilter {
 				);
 			return null;
 		}
-		ImagePlus projections = new ImagePlus("Projections of "+imp.getShortTitle(), stack2);
+		IjxImagePlus projections = IJ.getFactory().newImagePlus("Projections of "+imp.getShortTitle(), stack2);
 		projections.setCalibration(imp.getCalibration());
 		projections.show();
 		
@@ -330,17 +332,17 @@ public class Projector implements PlugInFilter {
  		if (!batchMode) IJ.showProgress(1.0);
  
 		if (debugMode) {
-			if (projArray!=null) new ImagePlus("projArray", new ByteProcessor(projwidth, projheight, projArray, null)).show();
-			if (opaArray!=null) new ImagePlus("opaArray", new ByteProcessor(projwidth, projheight, opaArray, null)).show();
-			if (brightCueArray!=null) new ImagePlus("brightCueArray", new ByteProcessor(projwidth, projheight, brightCueArray, null)).show();
-			if (zBuffer!=null) new ImagePlus("zBuffer", new ShortProcessor(projwidth, projheight, zBuffer, null)).show();
-			if (cueZBuffer!=null) new ImagePlus("cueZBuffer", new ShortProcessor(projwidth, projheight, cueZBuffer, null)).show();
-			if (countBuffer!=null) new ImagePlus("countBuffer", new ShortProcessor(projwidth, projheight, countBuffer, null)).show();
+			if (projArray!=null) IJ.getFactory().newImagePlus("projArray", new ByteProcessor(projwidth, projheight, projArray, null)).show();
+			if (opaArray!=null) IJ.getFactory().newImagePlus("opaArray", new ByteProcessor(projwidth, projheight, opaArray, null)).show();
+			if (brightCueArray!=null) IJ.getFactory().newImagePlus("brightCueArray", new ByteProcessor(projwidth, projheight, brightCueArray, null)).show();
+			if (zBuffer!=null) IJ.getFactory().newImagePlus("zBuffer", new ShortProcessor(projwidth, projheight, zBuffer, null)).show();
+			if (cueZBuffer!=null) IJ.getFactory().newImagePlus("cueZBuffer", new ShortProcessor(projwidth, projheight, cueZBuffer, null)).show();
+			if (countBuffer!=null) IJ.getFactory().newImagePlus("countBuffer", new ShortProcessor(projwidth, projheight, countBuffer, null)).show();
 			if (sumBuffer!=null) {
 				float[] tmp = new float[projwidth*projheight];
 				for (int i=0; i<projwidth*projheight; i++)
 					tmp[i] = sumBuffer[i];
-				new ImagePlus("sumBuffer", new FloatProcessor(projwidth, projheight, tmp, null)).show();
+				IJ.getFactory().newImagePlus("sumBuffer", new FloatProcessor(projwidth, projheight, tmp, null)).show();
 			}
 		}
 
@@ -353,7 +355,7 @@ public class Projector implements PlugInFilter {
 		int projsize = projwidth*projheight;
 		ColorModel cm = imp.getProcessor().getColorModel();
 		if (isRGB) cm = null;
-		stack2 = new ImageStack(projwidth, projheight, cm);
+		stack2 = IJ.getFactory().newImageStack(projwidth, projheight, cm);
 		projArray = new byte[projsize];
 		for (int i=0; i<nProjections; i++)
 			stack2.addSlice(null, new byte[projsize]);
@@ -681,14 +683,14 @@ public class Projector implements PlugInFilter {
 				} //for i (all pixels in row)
 			} // for j (all rows of BoundRect)
 		} // for k (all slices)
-		//new ImagePlus("f", new FloatProcessor(projwidth,projheight,f,null)).show();
+		//IJ.getFactory().newImagePlus("f", new FloatProcessor(projwidth,projheight,f,null)).show();
 	} // end doOneProjectionZ()
 
-	ImagePlus zScale(ImagePlus imp) {
+	IjxImagePlus zScale(IjxImagePlus imp) {
 		IJ.showStatus("Z Scaling...");
-		ImageStack stack1 = imp.getStack();
+		IjxImageStack stack1 = imp.getStack();
 		int depth1 = stack1.getSize();
-		ImagePlus imp2 = null;
+		IjxImagePlus imp2 = null;
 		String title = imp.getTitle();
 		ImageProcessor ip = imp.getProcessor();
 		ColorModel cm = ip.getColorModel();
@@ -700,7 +702,7 @@ public class Projector implements PlugInFilter {
 		int depth2 = (int)(stack1.getSize()*sliceInterval+0.5);
 		imp2 = NewImage.createImage(title, width2, height2, depth2, isRGB?24:8, NewImage.FILL_BLACK);
 		if (imp2==null || depth2!=imp2.getStackSize()) return null;
-		ImageStack stack2 = imp2.getStack();
+		IjxImageStack stack2 = imp2.getStack();
 		ImageProcessor xzPlane1 = ip.createProcessor(width2, depth1);
 		xzPlane1.setInterpolate(true);
 		ImageProcessor xzPlane2;		
@@ -713,7 +715,7 @@ public class Projector implements PlugInFilter {
 					getByteRow(stack1, r.x, r.y+y, z, width1, width2, line);
 				xzPlane1.putRow(0, z, line, width2);
 			}
-			//if (y==r.y) new ImagePlus("xzPlane", xzPlane1).show();
+			//if (y==r.y) IJ.getFactory().newImagePlus("xzPlane", xzPlane1).show();
 			xzPlane2 = xzPlane1.resize(width2, depth2);
 			for (int z=0; z<depth2; z++) {
 				xzPlane2.getRow(0, z, line, width2);
@@ -731,28 +733,28 @@ public class Projector implements PlugInFilter {
 		return imp2;
 	}
 
-	public void getByteRow(ImageStack stack, int x, int y, int z, int width1, int width2, int[] line) {
+	public void getByteRow(IjxImageStack stack, int x, int y, int z, int width1, int width2, int[] line) {
 		byte[] pixels = (byte[])stack.getPixels(z+1);
 		int j = x + y*width1;
 		for (int i=0; i<width2; i++)
 			line[i] = pixels[j++]&255;
 	}
 
-	public void putByteRow(ImageStack stack, int y, int z, int width, int[] line) {
+	public void putByteRow(IjxImageStack stack, int y, int z, int width, int[] line) {
 		byte[] pixels = (byte[])stack.getPixels(z+1);
 		int j = y*width;
 		for (int i=0; i<width; i++)
 			pixels[j++] = (byte)line[i];
 	}
 
-	public void getRGBRow(ImageStack stack, int x, int y, int z, int width1, int width2, int[] line) {
+	public void getRGBRow(IjxImageStack stack, int x, int y, int z, int width1, int width2, int[] line) {
 		int[] pixels = (int[])stack.getPixels(z+1);
 		int j = x + y*width1;
 		for (int i=0; i<width2; i++)
 			line[i] = pixels[j++];
 	}
 
-	public void putRGBRow(ImageStack stack, int y, int z, int width, int[] line) {
+	public void putRGBRow(IjxImageStack stack, int y, int z, int width, int[] line) {
 		int[] pixels = (int[])stack.getPixels(z+1);
 		int j = y*width;
 		for (int i=0; i<width; i++)

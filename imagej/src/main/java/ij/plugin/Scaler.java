@@ -4,13 +4,15 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 
 /** This plugin implements the Image/Scale command. */
 public class Scaler implements PlugIn, TextListener, FocusListener {
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private static String xstr = "0.5";
 	private static String ystr = "0.5";
 	private String zstr = "1.0";
@@ -62,15 +64,15 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 		IJ.showProgress(1.0);
 	}
 	
-	void createNewStack(ImagePlus imp, ImageProcessor ip) {
+	void createNewStack(IjxImagePlus imp, ImageProcessor ip) {
 		int nSlices = imp.getStackSize();
 		int w=imp.getWidth(), h=imp.getHeight();
-		ImagePlus imp2 = imp.createImagePlus();
+		IjxImagePlus imp2 = imp.createImagePlus();
 		if (newWidth!=w || newHeight!=h) {
 			Rectangle r = ip.getRoi();
 			boolean crop = r.width!=imp.getWidth() || r.height!=imp.getHeight();
-			ImageStack stack1 = imp.getStack();
-			ImageStack stack2 = new ImageStack(newWidth, newHeight);
+			IjxImageStack stack1 = imp.getStack();
+			IjxImageStack stack2 = IJ.getFactory().newImageStack(newWidth, newHeight);
 			ImageProcessor ip1, ip2;
 			int method = interpolationMethod;
 			if (w==1 || h==1)
@@ -110,14 +112,14 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 			imp2 = (new Resizer()).zScale(imp2, newDepth, interpolationMethod);
 		if (imp2!=null) {
 			imp2.show();
-			imp2.changes = true;
+			imp2.setChanged(true);
 		}
 	}
 
 	void scale(ImageProcessor ip) {
 		if (newWindow) {
 			Rectangle r = ip.getRoi();
-			ImagePlus imp2 = imp.createImagePlus();
+			IjxImagePlus imp2 = imp.createImagePlus();
 			imp2.setProcessor(title, ip.resize(newWidth, newHeight, averageWhenDownsizing));
 			Calibration cal = imp2.getCalibration();
 			if (cal.scaled()) {
@@ -127,7 +129,7 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 			imp2.show();
 			imp.trimProcessor();
 			imp2.trimProcessor();
-			imp2.changes = true;
+			imp2.setChanged(true);
 		} else {
 			if (processStack && imp.getStackSize()>1) {
 				Undo.reset();
@@ -142,7 +144,7 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 			}
 			imp.killRoi();
 			imp.updateAndDraw();
-			imp.changes = true;
+			imp.setChanged(true);
 		}
 	}
 	

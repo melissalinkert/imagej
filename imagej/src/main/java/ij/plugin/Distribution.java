@@ -2,9 +2,9 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.plugin.PlugIn;
 import ij.measure.*;
 import ij.util.Tools;
+import ijx.IjxImagePlus;
 import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -105,7 +105,7 @@ public class Distribution implements PlugIn, TextListener {
 		}
 
 		ImageProcessor ip = new FloatProcessor(count, 1, data, null);
-		ImagePlus imp = new ImagePlus("", ip);
+		IjxImagePlus imp = IJ.getFactory().newImagePlus("", ip);
 		ImageStatistics stats = new StackStatistics(imp, nBins, nMin, nMax);
 		int maxCount = 0;
 		for (int i=0; i<stats.histogram.length; i++) {

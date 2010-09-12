@@ -1,6 +1,9 @@
 package ij;
 import ij.process.*;
 import ij.io.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import java.awt.Rectangle;
 import java.io.*;
 import java.awt.image.ColorModel;
 
@@ -43,18 +46,22 @@ public class VirtualStack extends ImageStack {
 	}
 
    /** Does nothing. */
+    @Override
 	public void addSlice(String sliceLabel, Object pixels) {
 	}
 
 	/** Does nothing.. */
+    @Override
 	public void addSlice(String sliceLabel, ImageProcessor ip) {
 	}
 	
 	/** Does noting. */
+    @Override
 	public void addSlice(String sliceLabel, ImageProcessor ip, int n) {
 	}
 
 	/** Deletes the specified slice, were 1<=n<=nslices. */
+    @Override
 	public void deleteSlice(int n) {
 		if (n<1 || n>nSlices)
 			throw new IllegalArgumentException("Argument out of range: "+n);
@@ -67,12 +74,14 @@ public class VirtualStack extends ImageStack {
 		}
 	
 	/** Deletes the last slice in the stack. */
+    @Override
 	public void deleteLastSlice() {
 		if (nSlices>0)
 			deleteSlice(nSlices);
 	}
 	   
    /** Returns the pixel array for the specified slice, were 1<=n<=nslices. */
+    @Override
 	public Object getPixels(int n) {
 		ImageProcessor ip = getProcessor(n);
 		if (ip!=null)
@@ -83,15 +92,17 @@ public class VirtualStack extends ImageStack {
 	
 	 /** Assigns a pixel array to the specified slice,
 		were 1<=n<=nslices. */
+    @Override
 	public void setPixels(Object pixels, int n) {
 	}
 
    /** Returns an ImageProcessor for the specified slice,
 		were 1<=n<=nslices. Returns null if the stack is empty.
 	*/
+    @Override
 	public ImageProcessor getProcessor(int n) {
 		//IJ.log("getProcessor: "+n+"  "+names[n-1]+"  "+bitDepth);
-		ImagePlus imp = new Opener().openImage(path, names[n-1]);
+		IjxImagePlus imp = new Opener().openImage(path, names[n-1]);
 		if (imp!=null) {
 			int w = imp.getWidth();
 			int h = imp.getHeight();
@@ -123,11 +134,13 @@ public class VirtualStack extends ImageStack {
 	}
 
 	 /** Returns the number of slices in this stack. */
+    @Override
 	public int getSize() {
 		return nSlices;
 	}
 
 	/** Returns the label of the Nth image. */
+    @Override
 	public String getSliceLabel(int n) {
 		String label = labels[n-1];
 		if (label==null)
@@ -139,20 +152,24 @@ public class VirtualStack extends ImageStack {
 	}
 	
 	/** Returns null. */
+    @Override
 	public Object[] getImageArray() {
 		return null;
 	}
 
    /** Does nothing. */
+    @Override
 	public void setSliceLabel(String label, int n) {
 	}
 
 	/** Always return true. */
+    @Override
 	public boolean isVirtual() {
 		return true;
 	}
 
    /** Does nothing. */
+    @Override
 	public void trim() {
 	}
 	

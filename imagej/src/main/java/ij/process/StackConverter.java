@@ -5,13 +5,15 @@ import java.awt.image.*;
 import ij.*;
 import ij.gui.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This class does stack type conversions. */
 public class StackConverter {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int type, nSlices, width, height;
 
-	public StackConverter(ImagePlus imp) {
+	public StackConverter(IjxImagePlus imp) {
 		this.imp = imp;
 		type = imp.getType();
 		nSlices = imp.getStackSize();
@@ -23,25 +25,25 @@ public class StackConverter {
 	
 	/** Converts this Stack to 8-bit grayscale. */
 	public void convertToGray8() {
-		ImageStack stack1 = imp.getStack();
+		IjxImageStack stack1 = imp.getStack();
 		int currentSlice =  imp.getCurrentSlice();
 		ImageProcessor ip = imp.getProcessor();
 		boolean colorLut = ip.isColorLut();
 		boolean pseudoColorLut = colorLut && ip.isPseudoColorLut();
-		if (type==ImagePlus.GRAY8 && pseudoColorLut) {
+		if (type==IjxImagePlus.GRAY8 && pseudoColorLut) {
 			boolean invertedLut = ip.isInvertedLut();
 			ip.setColorModel(LookUpTable.createGrayscaleColorModel(invertedLut));
 			stack1.setColorModel(ip.getColorModel());
 	    	imp.updateAndDraw();
 			return;
 		}
-		if (type==ImagePlus.COLOR_RGB || type==ImagePlus.COLOR_256 || colorLut) {
+		if (type==IjxImagePlus.COLOR_RGB || type==IjxImagePlus.COLOR_256 || colorLut) {
 			convertRGBToGray8();
 			imp.setSlice(currentSlice);
 			return;
 		}
 		
-		ImageStack stack2 = new ImageStack(width, height);
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
 		Image img;
 		String label;
 		double min = ip.getMin();
@@ -78,8 +80,8 @@ public class StackConverter {
 
 	/** Converts an RGB or 8-bit color stack to 8-bit grayscale. */
 	void convertRGBToGray8() {
-		ImageStack stack1 = imp.getStack();
-		ImageStack stack2 = new ImageStack(width, height);
+		IjxImageStack stack1 = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
 		ImageProcessor ip;
 		Image img;
 		String label;
@@ -104,16 +106,16 @@ public class StackConverter {
 
 	/** Converts this Stack to 16-bit grayscale. */
 	public void convertToGray16() {
-		if (type==ImagePlus.GRAY16)
+		if (type==IjxImagePlus.GRAY16)
 			return;
-		if (!(type==ImagePlus.GRAY8 || type==ImagePlus.GRAY32))
+		if (!(type==IjxImagePlus.GRAY8 || type==IjxImagePlus.GRAY32))
 			throw new IllegalArgumentException("Unsupported conversion");
-		ImageStack stack1 = imp.getStack();
-		ImageStack stack2 = new ImageStack(width, height);
+		IjxImageStack stack1 = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
 		String label;
 	    int inc = nSlices/20;
 	    if (inc<1) inc = 1;
-	    boolean scale = type==ImagePlus.GRAY32 && ImageConverter.getDoScaling();
+	    boolean scale = type==IjxImagePlus.GRAY32 && ImageConverter.getDoScaling();
 	    ImageProcessor ip1, ip2;
 		for(int i=1; i<=nSlices; i++) {
 			label = stack1.getSliceLabel(1);
@@ -132,12 +134,12 @@ public class StackConverter {
 
 	/** Converts this Stack to 32-bit (float) grayscale. */
 	public void convertToGray32() {
-		if (type==ImagePlus.GRAY32)
+		if (type==IjxImagePlus.GRAY32)
 			return;
-		if (!(type==ImagePlus.GRAY8||type==ImagePlus.GRAY16))
+		if (!(type==IjxImagePlus.GRAY8||type==IjxImagePlus.GRAY16))
 			throw new IllegalArgumentException("Unsupported conversion");
-		ImageStack stack1 = imp.getStack();
-		ImageStack stack2 = new ImageStack(width, height);
+		IjxImageStack stack1 = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
 		String label;
 	    int inc = nSlices/20;
 	    if (inc<1) inc = 1;
@@ -164,8 +166,8 @@ public class StackConverter {
 	public void convertToRGB() {
 		if (imp.isComposite())
 			throw new IllegalArgumentException("Use Image>Color>Stack to RGB");
-		ImageStack stack1 = imp.getStack();
-		ImageStack stack2 = new ImageStack(width, height);
+		IjxImageStack stack1 = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
 		String label;
 	    int inc = nSlices/20;
 	    if (inc<1) inc = 1;
@@ -189,7 +191,7 @@ public class StackConverter {
 	/** Converts the stack (which must be RGB) to a 
 		3 channel (red, green and blue) hyperstack. */
 	public void convertToRGBHyperstack() {
-		if (type!=ImagePlus.COLOR_RGB)
+		if (type!=IjxImagePlus.COLOR_RGB)
 			throw new IllegalArgumentException("RGB stack required");
 		new ij.plugin.CompositeConverter().run("composite");
 	}
@@ -197,10 +199,10 @@ public class StackConverter {
 	/** Converts the stack (which must be RGB) to a 3 channel 
 		(hue, saturation and brightness) hyperstack. */
 	public void convertToHSBHyperstack() {
-		if (type!=ImagePlus.COLOR_RGB)
+		if (type!=IjxImagePlus.COLOR_RGB)
 			throw new IllegalArgumentException("RGB stack required");
-		ImageStack stack1 = imp.getStack();
-		ImageStack stack2 = new ImageStack(width,height);
+		IjxImageStack stack1 = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width,height);
 		int nSlices = stack1.getSize();
 		Calibration cal = imp.getCalibration();
 		int inc = nSlices/20;
@@ -208,7 +210,7 @@ public class StackConverter {
 		for(int i=1; i<=nSlices; i++) {
 			String label = stack1.getSliceLabel(i);
 			ColorProcessor cp = (ColorProcessor)stack1.getProcessor(i);
-			ImageStack stackHSB = cp.getHSBStack();
+			IjxImageStack stackHSB = cp.getHSBStack();
 			stack2.addSlice(label,stackHSB.getProcessor(1));
 			stack2.addSlice(label,stackHSB.getProcessor(2));
 			stack2.addSlice(label,stackHSB.getProcessor(3));
@@ -229,16 +231,16 @@ public class StackConverter {
 	/** Converts the stack to 8-bits indexed color. 'nColors' must
 		be greater than 1 and less than or equal to 256. */
 	public void convertToIndexedColor(int nColors) {
-		if (type!=ImagePlus.COLOR_RGB)
+		if (type!=IjxImagePlus.COLOR_RGB)
 			throw new IllegalArgumentException("RGB stack required");
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int size = stack.getSize();
 		ImageProcessor montage = new ColorProcessor(width*size, height);
         for (int i=0; i<size; i++)
             montage.insert(stack.getProcessor(i+1), i*width, 0);
         MedianCut mc = new MedianCut((ColorProcessor)montage);
         montage = mc.convertToByte(nColors);
-        ImageStack stack2 = new ImageStack(width, height);
+        IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height);
         for (int i=0; i<size; i++) {
             montage.setRoi(i*width, 0, width, height);
             stack2.addSlice(null, montage.crop());

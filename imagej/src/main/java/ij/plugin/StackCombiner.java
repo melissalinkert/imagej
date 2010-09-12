@@ -2,6 +2,8 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 
 /**
@@ -13,8 +15,8 @@ import java.awt.*;
 	Unused areas in the combined stack are filled with the background color.
 */
 public class StackCombiner implements PlugIn {
-		ImagePlus imp1;
-		ImagePlus imp2;
+		IjxImagePlus imp1;
+		IjxImagePlus imp2;
 		static boolean vertical;
 
 	public void run(String arg) {
@@ -22,17 +24,17 @@ public class StackCombiner implements PlugIn {
 			return;
 		if (imp1.getType()!=imp2.getType() || imp1.isHyperStack() || imp2.isHyperStack())
 			{error(); return;}
-		ImageStack stack1 = imp1.getStack();
-		ImageStack stack2 = imp2.getStack();
-		ImageStack stack3 = vertical?combineVertically(stack1, stack2):combineHorizontally(stack1, stack2);
-		imp1.changes = false;
+		IjxImageStack stack1 = imp1.getStack();
+		IjxImageStack stack2 = imp2.getStack();
+		IjxImageStack stack3 = vertical?combineVertically(stack1, stack2):combineHorizontally(stack1, stack2);
+		imp1.setChanged(false);
 		imp1.close();
-		imp2.changes = false;
+		imp2.setChanged(false);
 		imp2.close();
-		new ImagePlus("Combined Stacks", stack3).show();
+		IJ.getFactory().newImagePlus("Combined Stacks", stack3).show();
 	}
 	
-	public ImageStack combineHorizontally(ImageStack stack1, ImageStack stack2) {
+	public IjxImageStack combineHorizontally(IjxImageStack stack1, IjxImageStack stack2) {
 		int d1 = stack1.getSize();
 		int d2 = stack2.getSize();
 		int d3 = Math.max(d1, d2);
@@ -42,7 +44,7 @@ public class StackCombiner implements PlugIn {
 		int h2 = stack2.getHeight();
 		int w3 = w1 + w2;
 		int h3 = Math.max(h1, h2);
-		ImageStack stack3 = new ImageStack(w3, h3, stack1.getColorModel());
+		IjxImageStack stack3 = IJ.getFactory().newImageStack(w3, h3, stack1.getColorModel());
 		ImageProcessor ip = stack1.getProcessor(1);
 		ImageProcessor ip1, ip2, ip3;
 		Color background = Toolbar.getBackgroundColor();
@@ -67,7 +69,7 @@ public class StackCombiner implements PlugIn {
 		return stack3;
 	}
 	
-	public ImageStack combineVertically(ImageStack stack1, ImageStack stack2) {
+	public IjxImageStack combineVertically(IjxImageStack stack1, IjxImageStack stack2) {
 		int d1 = stack1.getSize();
 		int d2 = stack2.getSize();
 		int d3 = Math.max(d1, d2);
@@ -77,7 +79,7 @@ public class StackCombiner implements PlugIn {
 		int h2 = stack2.getHeight();
 		int w3 = Math.max(w1, w2);
 		int h3 = h1 + h2;
-		ImageStack stack3 = new ImageStack(w3, h3, stack1.getColorModel());
+		IjxImageStack stack3 = IJ.getFactory().newImageStack(w3, h3, stack1.getColorModel());
 		ImageProcessor ip = stack1.getProcessor(1);
 		ImageProcessor ip1, ip2, ip3;
  		Color background = Toolbar.getBackgroundColor();
@@ -110,7 +112,7 @@ public class StackCombiner implements PlugIn {
 		}
 		String[] titles = new String[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			titles[i] = imp!=null?imp.getTitle():"";
 		}
 		GenericDialog gd = new GenericDialog("Combiner");

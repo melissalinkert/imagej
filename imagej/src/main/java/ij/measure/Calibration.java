@@ -1,6 +1,7 @@
 package ij.measure;
 import ij.*;
 import ij.plugin.filter.Analyzer;
+import ijx.IjxImagePlus;
 
 /** Calibration objects contain an image's spatial and density calibration data. */
    
@@ -76,7 +77,7 @@ public class Calibration implements Cloneable {
 	private boolean invertY;
 
 	/** Constructs a new Calibration object using the default values. */ 
-	public Calibration(ImagePlus imp) {
+	public Calibration(IjxImagePlus imp) {
 		if (imp!=null) {
 			bitDepth = imp.getBitDepth();
 			invertedLut = imp.isInvertedLut();
@@ -217,7 +218,7 @@ public class Calibration implements Cloneable {
  	}
 
  	/** Disables the density calibation if the specified image has a differenent bit depth. */
- 	public void setImage(ImagePlus imp) {
+ 	public void setImage(IjxImagePlus imp) {
  		if (imp==null)
  			return;
  		int type = imp.getType();
@@ -225,10 +226,10 @@ public class Calibration implements Cloneable {
  		if (newBitDepth==16 && imp.getLocalCalibration().isSigned16Bit()) {
 			double[] coeff = new double[2]; coeff[0] = -32768.0; coeff[1] = 1.0;
  			setFunction(Calibration.STRAIGHT_LINE, coeff, DEFAULT_VALUE_UNIT);
-		} else if (newBitDepth!=bitDepth || type==ImagePlus.GRAY32 || type==ImagePlus.COLOR_RGB) {
+		} else if (newBitDepth!=bitDepth || type==IjxImagePlus.GRAY32 || type==IjxImagePlus.COLOR_RGB) {
 			String saveUnit = valueUnit;
 			disableDensityCalibration();
-			if (type==ImagePlus.GRAY32) valueUnit = saveUnit;
+			if (type==IjxImagePlus.GRAY32) valueUnit = saveUnit;
 		}
  		bitDepth = newBitDepth;
  	}

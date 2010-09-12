@@ -7,6 +7,8 @@ import ij.process.*;
 import ij.gui.*;
 import ij.util.Tools;
 import ij.plugin.frame.Recorder;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin implements the Image/Duplicate command.
 <pre>
@@ -25,7 +27,7 @@ public class Duplicator implements PlugIn, TextListener {
 	private TextField rangeField;
 
 	public void run(String arg) {
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		int stackSize = imp.getStackSize();
 		String title = imp.getTitle();
 		String newTitle = WindowManager.getUniqueName(title);
@@ -33,7 +35,7 @@ public class Duplicator implements PlugIn, TextListener {
 			newTitle = showDialog(imp, "Duplicate...", "Title: ", newTitle);
 		if (newTitle==null)
 			return;
-		ImagePlus imp2;
+		IjxImagePlus imp2;
 		Roi roi = imp.getRoi();
 		if (duplicateSubstack && (first>1||last<stackSize))
 			imp2 = run(imp, first, last);
@@ -47,8 +49,8 @@ public class Duplicator implements PlugIn, TextListener {
 			imp2.restoreRoi();
 	}
                 
-	/** Returns a copy of the image, stack or hyperstack contained in the specified ImagePlus. */
-	public ImagePlus run(ImagePlus imp) {
+	/** Returns a copy of the image, stack or hyperstack contained in the specified IjxImagePlus. */
+	public IjxImagePlus run(IjxImagePlus imp) {
    		if (Recorder.record) Recorder.recordCall("imp = new Duplicator().run(imp);");
 		if (imp.getStackSize()==1)
 			return duplicateImage(imp);
@@ -58,15 +60,15 @@ public class Duplicator implements PlugIn, TextListener {
 			rect = roi.getBounds();
 		int width = rect!=null?rect.width:imp.getWidth();
 		int height = rect!=null?rect.height:imp.getHeight();
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = new ImageStack(width, height, imp.getProcessor().getColorModel());
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height, imp.getProcessor().getColorModel());
 		for (int i=1; i<=stack.getSize(); i++) {
 			ImageProcessor ip2 = stack.getProcessor(i);
 			ip2.setRoi(rect);
 			ip2 = ip2.crop();
 			stack2.addSlice(stack.getSliceLabel(i), ip2);
 		}
-		ImagePlus imp2 = imp.createImagePlus();
+		IjxImagePlus imp2 = imp.createImagePlus();
 		imp2.setStack("DUP_"+imp.getTitle(), stack2);
 		int[] dim = imp.getDimensions();
 		imp2.setDimensions(dim[2], dim[3], dim[4]);
@@ -81,15 +83,15 @@ public class Duplicator implements PlugIn, TextListener {
 		return imp2;
 	}
 	
-	ImagePlus duplicateImage(ImagePlus imp) {
+	IjxImagePlus duplicateImage(IjxImagePlus imp) {
 		ImageProcessor ip2 = imp.getProcessor().crop();
-		ImagePlus imp2 = imp.createImagePlus();
+		IjxImagePlus imp2 = imp.createImagePlus();
 		imp2.setProcessor("DUP_"+imp.getTitle(), ip2);
 		String info = (String)imp.getProperty("Info");
 		if (info!=null)
 			imp2.setProperty("Info", info);
 		if (imp.getStackSize()>1) {
-			ImageStack stack = imp.getStack();
+			IjxImageStack stack = imp.getStack();
 			String label = stack.getSliceLabel(imp.getCurrentSlice());
 			if (label!=null && label.indexOf('\n')>0)
 				imp2.setProperty("Info", label);
@@ -104,22 +106,22 @@ public class Duplicator implements PlugIn, TextListener {
 	}
 	
 	/** Returns a new stack containing a subrange of the specified stack. */
-	public ImagePlus run(ImagePlus imp, int firstSlice, int lastSlice) {
+	public IjxImagePlus run(IjxImagePlus imp, int firstSlice, int lastSlice) {
 		Rectangle rect = null;
 		Roi roi = imp.getRoi();
 		if (roi!=null && roi.isArea())
 			rect = roi.getBounds();
 		int width = rect!=null?rect.width:imp.getWidth();
 		int height = rect!=null?rect.height:imp.getHeight();
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = new ImageStack(width, height, imp.getProcessor().getColorModel());
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height, imp.getProcessor().getColorModel());
 		for (int i=firstSlice; i<=lastSlice; i++) {
 			ImageProcessor ip2 = stack.getProcessor(i);
 			ip2.setRoi(rect);
 			ip2 = ip2.crop();
 			stack2.addSlice(stack.getSliceLabel(i), ip2);
 		}
-		ImagePlus imp2 = imp.createImagePlus();
+		IjxImagePlus imp2 = imp.createImagePlus();
 		imp2.setStack("DUP_"+imp.getTitle(), stack2);
 		int size = stack2.getSize();
 		boolean tseries = imp.getNFrames()==imp.getStackSize();
@@ -131,7 +133,7 @@ public class Duplicator implements PlugIn, TextListener {
 		return imp2;
 	}
 
-	String showDialog(ImagePlus imp, String title, String prompt, String defaultString) {
+	String showDialog(IjxImagePlus imp, String title, String prompt, String defaultString) {
 		int stackSize = imp.getStackSize();
 		duplicateSubstack = stackSize>1 && (stackSize==imp.getNSlices()||stackSize==imp.getNFrames());
 		GenericDialog gd = new GenericDialog(title);

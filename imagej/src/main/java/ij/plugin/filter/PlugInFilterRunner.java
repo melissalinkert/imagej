@@ -3,16 +3,16 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*; 
 import ij.plugin.filter.PlugInFilter.*;
-import ij.plugin.filter.*;
-import ij.measure.Calibration;
-import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
 import java.util.Hashtable;
 
 public class PlugInFilterRunner implements Runnable, DialogListener {
     private String command;                     // the command, can be but need not be the name of the PlugInFilter
     private Object theFilter;                   // the instance of the PlugInFilter
-    private ImagePlus imp;
+    private IjxImagePlus imp;
     private int flags;                          // the flags returned by the PlugInFilter
     private boolean snapshotDone;       // whether the ImageProcessor has a snapshot already
     private boolean previewCheckboxOn;          // the state of the preview checkbox (true = on)
@@ -153,13 +153,13 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
             IJ.showTime(imp, imp.getStartTime()-previewTime, command + ": ", doStack?slices:1);
         IJ.showProgress(1.0);
         if (ipChanged) {
-            imp.changes = true;
+            imp.setChanged(true);
             imp.updateAndDraw();
         }
-        ImageWindow win = imp.getWindow();
+        IjxImageWindow win = imp.getWindow();
         if (win!=null) {
-            win.running = false;
-            win.running2 = false;
+            win.setRunning(false);
+            win.setRunning2(false);
         }
         imp.unlock();
     }
@@ -170,7 +170,7 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
      * @param endSlice   Slice number of the last slice to be processed
      */
     private void processStack(int firstSlice, int endSlice) {
-        ImageStack stack = imp.getStack();
+        IjxImageStack stack = imp.getStack();
         ImageProcessor ip = stack.getProcessor(firstSlice);
         prepareProcessor(ip, imp);
         ip.setLineWidth(Line.getWidth());       //in contrast to imp.getProcessor, stack.getProcessor does not do this
@@ -189,7 +189,7 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
 
     /** prepare an ImageProcessor by setting roi and CalibrationTable.
      */
-	private void prepareProcessor(ImageProcessor ip, ImagePlus imp) {
+	private void prepareProcessor(ImageProcessor ip, IjxImagePlus imp) {
 		ImageProcessor mask = imp.getMask();
 		Roi roi = imp.getRoi();
 		if (roi!=null && roi.isArea())
@@ -254,10 +254,10 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
             ip.reset(ip.getMask());  //restore image outside irregular roi
    }
 
-    /** test whether an ImagePlus can be processed based on the flags specified
+    /** test whether an IjxImagePlus can be processed based on the flags specified
      *  and display an error message if not.
      */
-    private boolean checkImagePlus(ImagePlus imp, int flags, String cmd) {
+    private boolean checkImagePlus(IjxImagePlus imp, int flags, String cmd) {
         boolean imageRequired = (flags&PlugInFilter.NO_IMAGE_REQUIRED)==0;
         if (imageRequired && imp==null)
             {IJ.noImage(); return false;}
@@ -266,23 +266,23 @@ public class PlugInFilterRunner implements Runnable, DialogListener {
 				{wrongType(flags, cmd); return false;}
             int type = imp.getType();
             switch (type) {
-                case ImagePlus.GRAY8:
+                case IjxImagePlus.GRAY8:
                     if ((flags&PlugInFilter.DOES_8G)==0)
                     {wrongType(flags, cmd); return false;}
                     break;
-                case ImagePlus.COLOR_256:
+                case IjxImagePlus.COLOR_256:
                     if ((flags&PlugInFilter.DOES_8C)==0)
                     {wrongType(flags, cmd); return false;}
                     break;
-                case ImagePlus.GRAY16:
+                case IjxImagePlus.GRAY16:
                     if ((flags&PlugInFilter.DOES_16)==0)
                     {wrongType(flags, cmd); return false;}
                     break;
-                case ImagePlus.GRAY32:
+                case IjxImagePlus.GRAY32:
                     if ((flags&PlugInFilter.DOES_32)==0)
                     {wrongType(flags, cmd); return false;}
                     break;
-                case ImagePlus.COLOR_RGB:
+                case IjxImagePlus.COLOR_RGB:
                     if ((flags&PlugInFilter.DOES_RGB)==0)
                     {wrongType(flags, cmd); return false;}
                     break;

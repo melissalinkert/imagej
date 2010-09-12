@@ -97,7 +97,7 @@ import javax.swing.filechooser.*;
 			fc.setCurrentDirectory(fdir);
 		if (fileName!=null)
 			fc.setSelectedFile(new File(fileName));
-		int returnVal = fc.showOpenDialog(IJ.getInstance());
+		int returnVal = fc.showOpenDialog(IJ.getTopComponentFrame());
 		if (returnVal!=JFileChooser.APPROVE_OPTION)
 			{Macro.abort(); return;}
 		File file = fc.getSelectedFile();
@@ -121,7 +121,7 @@ import javax.swing.filechooser.*;
 					fc.setCurrentDirectory(fdir);
 				if (fileName!=null)
 					fc.setSelectedFile(new File(fileName));
-				int returnVal = fc.showOpenDialog(IJ.getInstance());
+				int returnVal = fc.showOpenDialog(IJ.getTopComponentFrame());
 				if (returnVal!=JFileChooser.APPROVE_OPTION)
 					{Macro.abort(); return;}
 				File file = fc.getSelectedFile();
@@ -136,7 +136,7 @@ import javax.swing.filechooser.*;
 	
 	// Uses the AWT FileDialog class to display the dialog box
 	void open(String title, String path, String fileName) {
-		Frame parent = IJ.getInstance();
+		Frame parent = IJ.getTopComponentFrame();
 		if (parent==null) {
 			if (sharedFrame==null) sharedFrame = new Frame();
 			parent = sharedFrame;

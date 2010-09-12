@@ -6,7 +6,7 @@ import ij.process.*;
 
 /**
 This class represents an expandable array of images.
-@see ImagePlus
+@see IjxImagePlus
 */
 
 public class ImageStack implements IjxImageStack {

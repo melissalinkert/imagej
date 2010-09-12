@@ -5,6 +5,7 @@ import ij.io.*;
 import ij.measure.*;
 import ij.plugin.filter.*;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
@@ -27,7 +28,7 @@ public class Macro {
 			return true;
 		}
 		Opener o = new Opener();
-		ImagePlus img = o.openImage(path);
+		IjxImagePlus img = o.openImage(path);
 		if (img==null)
 			return false;
 		img.show();	
@@ -35,7 +36,7 @@ public class Macro {
 	}
 
 	public static boolean saveAs(String path) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			return false;
 		FileSaver fs = new FileSaver(imp);

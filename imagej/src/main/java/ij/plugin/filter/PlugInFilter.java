@@ -1,6 +1,6 @@
 package ij.plugin.filter;
-import ij.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 
 /** ImageJ plugins that process an image should implement this interface.
  *  For filters that have a dialog asking for options or parameters as well
@@ -20,7 +20,7 @@ public interface PlugInFilter {
         the setup method will be called again, this time with
         arg = "final" after all other processing is done.
      */
-	public int setup(String arg, ImagePlus imp);
+	public int setup(String arg, IjxImagePlus imp);
 
 	/** Filters use this method to process the image. If the
 	 	SUPPORTS_STACKS flag was set, it is called for each slice in

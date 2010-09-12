@@ -5,10 +5,9 @@ import java.util.*;
 import ij.*;
 import ij.gui.*;
 import ij.io.*;
-import ij.util.*;
 import ij.plugin.frame.Editor;
-import ij.text.TextWindow;
-import java.awt.event.KeyEvent;
+import ijx.IjxImagePlus;
+import ijx.app.IjxApplication;
 
 /** Compiles and runs plugins using the javac compiler. */
 public class Compiler implements PlugIn, FilenameFilter {
@@ -268,12 +267,12 @@ class PlugInExecuter implements Runnable {
 		try {
 			IJ.resetEscape();
 			IJ.runPlugIn("ij.plugin.ClassChecker", "");
-			ImageJ ij = IJ.getInstance();
+			IjxApplication ij = IJ.getInstance();
 			if (ij!=null) ij.runUserPlugIn(plugin, plugin, "", true);
 		} catch(Throwable e) {
 			IJ.showStatus("");
 			IJ.showProgress(1.0);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.unlock();
 			String msg = e.getMessage();
 			if (e instanceof RuntimeException && msg!=null && e.getMessage().equals(Macro.MACRO_CANCELED))

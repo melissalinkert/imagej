@@ -3,7 +3,6 @@ package ij;
 import ijx.gui.IjxImageWindow;
 import ijx.app.IjxApplication;
 import ijx.IjxImagePlus;
-import ij.plugin.Converter;
 import ij.plugin.frame.Recorder;
 import ij.macro.Interpreter;
 import ij.text.TextWindow;
@@ -25,6 +24,8 @@ public class WindowManager {
     private static IjxImageWindow currentWindow;			 // active image window
     private static IjxWindow frontWindow;
     private static Hashtable tempImageTable = new Hashtable();
+    private static boolean centerOnScreen;
+    private static Point nextLocation;
 
     private WindowManager() {
     }
@@ -62,13 +63,14 @@ public class WindowManager {
         }
     }
 
-    /** Returns the active ImageWindow. */
+    /** Returns the active IjxImageWindow. */
     public static IjxWindow getCurrentWindow() {
-        //if (IJ.debugMode) IJ.write("ImageWindow.getCurrentWindow");
+        //if (IJ.debugMode) IJ.write("IjxImageWindow.getCurrentWindow");
         return currentWindow;
     }
 
-    static int getCurrentIndex() {
+    // GBH: made public for Ijx
+    public static int getCurrentIndex() {
         return imageList.indexOf(currentWindow);
     }
 
@@ -94,9 +96,8 @@ public class WindowManager {
         return null;
     }
 
-    /** Makes the specified image temporarily the active
-    image for this thread. Call again with a null
-    argument to revert to the previous active image. */
+    /** Makes the specified image temporarily the active image for this thread.
+     * Call again with a null argument to revert to the previous active image. */
     public static void setTempCurrentImage(IjxImagePlus img) {
         //IJ.log("setTempImage: "+(img!=null?img.getTitle():"null ")+Thread.currentThread().hashCode());
         if (img == null) {
@@ -118,7 +119,7 @@ public class WindowManager {
         }
     }
 
-    /** Returns the active ImagePlus. */
+    /** Returns the active IjxImagePlus. */
     private static IjxImagePlus getActiveImage() {
         if (currentWindow != null) {
             if (currentWindow instanceof IjxImageWindow) {
@@ -185,12 +186,12 @@ public class WindowManager {
         return list;
     }
 
-    /** For IDs less than zero, returns the ImagePlus with the specified ID.
+    /** For IDs less than zero, returns the IjxImagePlus with the specified ID.
     Returns null if no open window has a matching ID or no images are open.
-    For IDs greater than zero, returns the Nth ImagePlus. Returns null if
+    For IDs greater than zero, returns the Nth IjxImagePlus. Returns null if
     the ID is zero. */
     public synchronized static IjxImagePlus getImage(int imageID) {
-        //if (IJ.debugMode) IJ.write("ImageWindow.getImage");
+        //if (IJ.debugMode) IJ.write("IjxImageWindow.getImage");
         if (imageID > 0) {
             imageID = getNthImageID(imageID);
         }
@@ -218,7 +219,7 @@ public class WindowManager {
     }
 
     /** Returns the ID of the Nth open image. Returns zero if n<=0
-    or n greater than the number of open image windows. */
+    or n greater than the number of open image windows. **/
     public synchronized static int getNthImageID(int n) {
         if (n <= 0) {
             return 0;
@@ -340,7 +341,7 @@ public class WindowManager {
             removeImageWindow((IjxImageWindow) win);
         } else {
             int index = nonImageList.indexOf(win);
-      IjxApplication ij = IJ.getInstance();
+            IjxApplication ij = IJ.getInstance();
             if (index >= 0) {
                 //if (ij!=null && !ij.quitting())
                 Menus.removeWindowMenuItem(index);
@@ -534,5 +535,23 @@ public class WindowManager {
             }
             IJ.log(" ");
         }
+    }
+
+    /** Causes the next image to be opened to be centered on the screen
+    and displayed without informational text above the image. */
+    public static void setCenterNextImage(boolean b) {
+        centerOnScreen = b;
+    }
+
+    public static boolean isCenterNextImage() {
+        return centerOnScreen;
+    }
+
+    /** Causes the next image to be displayed at the specified location. */
+    public static void setNextLocation(Point loc) {
+        nextLocation = loc;
+    }
+    public static Point getNextLocation() {
+        return nextLocation;
     }
 }

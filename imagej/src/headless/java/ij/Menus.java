@@ -1,7 +1,7 @@
 package ij;
 import ij.process.*;
 import ij.util.*;
-import ij.gui.ImageWindow;
+import ij.gui.IjxImageWindow;
 import ij.plugin.MacroInstaller;
 import java.awt.*;
 import java.awt.image.*;
@@ -649,27 +649,27 @@ public class Menus {
 	
 	/** Updates the Image/Type and Window menus. */
 	public static void updateMenus() {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null)
 			return;
     	int type = imp.getType();
      	if (imp.getStackSize()>1) {
-    		ImageStack stack = imp.getStack();
+    		IjxImageStack stack = imp.getStack();
     		if (stack.isRGB()) type = RGB_STACK;
     		else if (stack.isHSB()) type = HSB_STACK;
     	}
-    	if (type==ImagePlus.GRAY8) {
+    	if (type==IjxImagePlus.GRAY8) {
 			ImageProcessor ip = imp.getProcessor();
     		if (ip!=null && ip.getMinThreshold()==ImageProcessor.NO_THRESHOLD && ip.isColorLut()) {
-    			type = ImagePlus.COLOR_256;
+    			type = IjxImagePlus.COLOR_256;
 	    		if (!ip.isPseudoColorLut())
-	    			imp.setType(ImagePlus.COLOR_256);
+	    			imp.setType(IjxImagePlus.COLOR_256);
     		}
     	}
 
 	}
 	
-	static boolean isColorLut(ImagePlus imp) {
+	static boolean isColorLut(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
     	IndexColorModel cm = (IndexColorModel)ip.getColorModel();
     	if (cm==null) return false;
@@ -745,16 +745,16 @@ public class Menus {
 	}
 
 	/** Adds one image to the end of the Window menu. */
-	static synchronized void addWindowMenuItem(ImagePlus imp) {
+	static synchronized void addWindowMenuItem(IjxImagePlus imp) {
 		//IJ.log("addWindowMenuItem: "+imp);
 		if (ij==null) return;
 		String name = imp.getTitle();
 		int size = (imp.getWidth()*imp.getHeight()*imp.getStackSize())/1024;
 		switch (imp.getType()) {
-			case ImagePlus.GRAY32: case ImagePlus.COLOR_RGB: // 32-bit
+			case IjxImagePlus.GRAY32: case IjxImagePlus.COLOR_RGB: // 32-bit
 				size *=4;
 				break;
-			case ImagePlus.GRAY16:  // 16-bit
+			case IjxImagePlus.GRAY16:  // 16-bit
 				size *= 2;
 				break;
 			default: // 8-bit

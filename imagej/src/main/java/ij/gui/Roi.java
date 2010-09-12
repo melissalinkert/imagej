@@ -10,6 +10,8 @@ import ij.measure.*;
 import ij.plugin.frame.Recorder;
 import ij.plugin.filter.Analyzer;
 import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 
 /** A rectangular region of interest and superclass for the other ROI classes. */
 public class Roi extends Object implements Cloneable, java.io.Serializable {
@@ -37,12 +39,12 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	
 	protected int type;
 	protected int xMax, yMax;
-	protected ImagePlus imp;
+	protected IjxImagePlus imp;
 	private int imageID;
-	protected ImageCanvas ic;
+	protected IjxImageCanvas ic;
 	protected int oldX, oldY, oldWidth, oldHeight;
 	protected int clipX, clipY, clipWidth, clipHeight;
-	protected ImagePlus clipboard;
+	protected IjxImagePlus clipboard;
 	protected boolean constrain; // to be square
 	protected boolean center;
 	protected boolean aspect;
@@ -106,13 +108,13 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 
 	/** Starts the process of creating a user-defined rectangular Roi,
 		where sx and sy are the starting screen coordinates. */
-	public Roi(int sx, int sy, ImagePlus imp) {
+	public Roi(int sx, int sy, IjxImagePlus imp) {
 		this(sx, sy, imp, 0);
 	}
 	
 	/** Starts the process of creating a user-defined rectangular Roi,
 		where sx and sy are the starting screen coordinates. */
-	public Roi(int sx, int sy, ImagePlus imp, int arcSize) {
+	public Roi(int sx, int sy, IjxImagePlus imp, int arcSize) {
 		setImage(imp);
 		int ox=sx, oy=sy;
 		if (ic!=null) {
@@ -141,7 +143,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	}
 
 	/** @deprecated */
-	public Roi(int x, int y, int width, int height, ImagePlus imp) {
+	public Roi(int x, int y, int width, int height, IjxImagePlus imp) {
 		this(x, y, width, height);
 		setImage(imp);
 	}
@@ -154,7 +156,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		oldX = x; oldY = y; oldWidth=0; oldHeight=0;
 	}
 	
-	public void setImage(ImagePlus imp) {
+	public void setImage(IjxImagePlus imp) {
 		this.imp = imp;
 		cachedMask = null;
 		if (imp==null) {
@@ -169,7 +171,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		}
 	}
 	
-	ImagePlus getImage() {
+	IjxImagePlus getImage() {
 		return imp;
 	}
 	
@@ -1034,7 +1036,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		if (state!=CONSTRUCTING && (type==RECTANGLE||type==POINT) && width<=25 && height<=25) {
 			ImageProcessor ip = imp.getProcessor();
 			double v = ip.getPixelValue(x,y);
-			int digits = (imp.getType()==ImagePlus.GRAY8||imp.getType()==ImagePlus.GRAY16)?0:2;
+			int digits = (imp.getType()==IjxImagePlus.GRAY8||imp.getType()==IjxImagePlus.GRAY16)?0:2;
 			value = ", value="+IJ.d2s(v,digits);
 		} else
 			value = "";
@@ -1056,7 +1058,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 			return null;
 	}
 	
-	public void startPaste(ImagePlus clipboard) {
+	public void startPaste(IjxImagePlus clipboard) {
 		IJ.showStatus("Pasting...");
 		this.clipboard = clipboard;
 		imp.getProcessor().snapshot();
@@ -1129,7 +1131,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	 * overrides the global color set by the static setColor() method.
 	 * @see #getStrokeColor()
 	 * @see #setStrokeWidth(int)
-	 * @see ij.ImagePlus#setOverlay(ij.gui.Overlay)
+	 * @see ij.IjxImagePlus#setOverlay(ij.gui.Overlay)
 	 */
 	public void setStrokeColor(Color c) {
 		 strokeColor = c;
@@ -1143,7 +1145,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	}
 
 	/** Sets the color used to fill ROIs when they are in an overlay.
-	 * @see ij.ImagePlus#setOverlay(ij.gui.Overlay)
+	 * @see ij.IjxImagePlus#setOverlay(ij.gui.Overlay)
 	 */
 	public void setFillColor(Color color) {
 		fillColor = color;
@@ -1209,7 +1211,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	/** Sets the width of the lines used to draw this ROI when
 	 * it is part of an Overlay list or ROI Manager "Show All" list.
 	 * @see #setStrokeColor(Color)
-	 * @see ij.ImagePlus#setOverlay(ij.gui.Overlay)
+	 * @see ij.IjxImagePlus#setOverlay(ij.gui.Overlay)
 	 */
 	public void setStrokeWidth(float width) {
 		//this.stroke = new BasicStroke(width);
@@ -1261,7 +1263,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	public static void setPasteMode(int transferMode) {
 		if (transferMode==pasteMode) return;
 		pasteMode = transferMode;
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null)
 			imp.updateAndDraw();
 	}
@@ -1270,7 +1272,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	public void setRoundRectArcSize(int size) {
 		arcSize = size;
 		if (arcSize<0) arcSize = 0;
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null && this==imp.getRoi())
 			imp.updateAndDraw();
 	}

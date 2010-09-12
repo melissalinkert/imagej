@@ -1,12 +1,10 @@
 package ijx.plugin.parameterized;
 
-import ij.ImagePlus;
 import ij.WindowManager;
-
 import ij.gui.GenericDialog;
+import ijx.IjxImagePlus;
 
 import java.lang.reflect.Field;
-
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +34,7 @@ public class PlugInFunctions extends ParameterHandler {
             return;
         }
         plugin.run();
-        for (ImagePlus image : PlugInFunctions.getOutputImages(plugin)) {
+        for (IjxImagePlus image : PlugInFunctions.getOutputImages(plugin)) {
             if (image != null) {
                 image.show();
             }
@@ -157,9 +155,9 @@ public class PlugInFunctions extends ParameterHandler {
                     createNumericInputWidget(field, dialog, plugin);
                 } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                     dialog.addCheckbox(getLabel(field), (Boolean) field.get(plugin));
-                } else if (field.getType() == ImagePlus.class) {
+                } else if (field.getType() == IjxImagePlus.class) {
                     if (WindowManager.getCurrentImage() != null) {
-                        ImagePlus ip = WindowManager.getCurrentImage();
+                        IjxImagePlus ip = WindowManager.getCurrentImage();
                         field.set(plugin, ip);
                     }
                 } else {
@@ -216,8 +214,8 @@ public class PlugInFunctions extends ParameterHandler {
                     field.set(plugin, (double) dialog.getNextNumber());
                 } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                     field.set(plugin, (boolean) dialog.getNextBoolean());
-                } else if (field.getType() == ImagePlus.class) {
-                    //((ImagePlus) field.get(plugin)).show();
+                } else if (field.getType() == IjxImagePlus.class) {
+                    //((IjxImagePlus) field.get(plugin)).show();
                 } else {
                     System.out.println("skipped  " + field.getName());
                     //throw new RuntimeException("TODO!");

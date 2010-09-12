@@ -13,13 +13,15 @@ package ij.plugin;
 import ij.*;
 import ij.io.*;
 import ij.gui.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageWindow;
 import java.io.File;
 
 public class NextImageOpener implements PlugIn {
 
 	boolean forward = true; // default browse direction is forward
 	boolean closeCurrent = true; //default behavior is to close current window
-	ImagePlus imp0;
+	IjxImagePlus imp0;
 	
 	public void run(String arg) {
 		/* get changes to defaults */
@@ -55,7 +57,7 @@ public class NextImageOpener implements PlugIn {
 		}
 	}
 	
-	String getName(ImagePlus imp) {
+	String getName(IjxImagePlus imp) {
 		String name = imp.getTitle();
 		FileInfo fi = imp.getOriginalFileInfo();
 		if (fi!=null && fi.fileName!=null)
@@ -64,17 +66,17 @@ public class NextImageOpener implements PlugIn {
 	}
 	
 	String open(String nextPath) {
-		ImagePlus imp2 = IJ.openImage(nextPath);
+		IjxImagePlus imp2 = IJ.openImage(nextPath);
 		if (imp2==null) return null;
 		String newTitle = imp2.getTitle();
-		if (imp0.changes) {
+		if (imp0.isChanged()) {
 			String msg;
 			String name = imp0.getTitle();
 			if (name.length()>22)
 				msg = "Save changes to\n" + "\"" + name + "\"?";
 			else
 				msg = "Save changes to \"" + name + "\"?";
-			YesNoCancelDialog d = new YesNoCancelDialog(imp0.getWindow(), "ImageJ", msg);
+			YesNoCancelDialog d = new YesNoCancelDialog(IJ.getTopComponentFrame(), "ImageJ", msg);
 			if (d.cancelPressed())
 				return "Canceled";
 			else if (d.yesPressed()) {
@@ -82,7 +84,7 @@ public class NextImageOpener implements PlugIn {
 				if (!fs.save())
 					return "Canceled";
 			}
-			imp0.changes = false;
+			imp0.setChanged(false);
 		}
 		if (imp2.isComposite() || imp2.isHyperStack()) {
 			imp2.show();
@@ -93,7 +95,7 @@ public class NextImageOpener implements PlugIn {
 			imp0.setCalibration(imp2.getCalibration());
 			imp0.setFileInfo(imp2.getOriginalFileInfo());
 			imp0.setProperty ("Info", imp2.getProperty ("Info"));
-			ImageWindow win = imp0.getWindow();
+			IjxImageWindow win = imp0.getWindow();
 			if (win!=null) win.repaint();
 		}
 		return "ok";

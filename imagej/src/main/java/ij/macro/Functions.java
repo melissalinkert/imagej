@@ -9,6 +9,12 @@ import ij.plugin.frame.*;
 import ij.text.*;
 import ij.io.*;
 import ij.util.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.app.IjxApplication;
+import ijx.gui.IjxImageCanvas;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxWindow;
 import java.awt.*;
 import java.awt.image.*;
 import java.util.*;
@@ -26,7 +32,7 @@ public class Functions implements MacroConstants, Measurements {
 	Program pgm;
     boolean updateNeeded;
     boolean autoUpdate = true;
-    ImagePlus defaultImp;
+    IjxImagePlus defaultImp;
     ImageProcessor defaultIP;
     int imageType;
     boolean colorSet, fontSet;
@@ -604,7 +610,7 @@ public class Functions implements MacroConstants, Measurements {
 	
 	void setColor(double value) {
 		ImageProcessor ip = getProcessor();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		switch (imp.getBitDepth()) {
 			case 8:
 				if (value<0 || value>255)
@@ -693,7 +699,7 @@ public class Functions implements MacroConstants, Measurements {
 		if (arcSize<1)
 			IJ.makeRectangle(x, y, w, h);
 		else {
-			ImagePlus imp = getImage();
+			IjxImagePlus imp = getImage();
 			imp.setRoi(new Roi(x,y,w,h,arcSize));
 		}
 		Roi roi = getImage().getRoi();
@@ -702,7 +708,7 @@ public class Functions implements MacroConstants, Measurements {
 		resetImage();
 	}
 	
-	ImagePlus getImage() {
+	IjxImagePlus getImage() {
 		if (defaultImp==null)
 			defaultImp = IJ.getImage();
 		if (defaultImp==null)
@@ -742,7 +748,7 @@ public class Functions implements MacroConstants, Measurements {
 		if (interp.token==',') {
 			double a3 = interp.getExpression();
 			interp.getRightParen();
-			if (getType()==ImagePlus.GRAY32)
+			if (getType()==IjxImagePlus.GRAY32)
 				getProcessor().putPixelValue(a1, (int)a2, a3);
 			else
 				getProcessor().putPixel(a1, (int)a2, (int)a3);
@@ -762,7 +768,7 @@ public class Functions implements MacroConstants, Measurements {
 		if (interp.token==',') {
 			int a2 = (int)interp.getExpression();
 			interp.getRightParen();
-			if (getType()==ImagePlus.GRAY32)
+			if (getType()==IjxImagePlus.GRAY32)
 				value = ip.getPixelValue(a1, a2);
 			else
 				value = ip.getPixel(a1, a2);
@@ -775,8 +781,8 @@ public class Functions implements MacroConstants, Measurements {
 	
 	void setZCoordinate() {
 		int z = (int)getArg();
-		ImagePlus imp = getImage();
-		ImageStack stack = imp.getStack();
+		IjxImagePlus imp = getImage();
+		IjxImageStack stack = imp.getStack();
 		int size = stack.getSize();
 		if (z<0 || z>=size)
 			interp.error("Z coordinate ("+z+") is out of 0-"+(size-1)+ " range");
@@ -840,7 +846,7 @@ public class Functions implements MacroConstants, Measurements {
 				updateNeeded = true;
 				break;
 			case FILL: 
-				ImagePlus imp = getImage();
+				IjxImagePlus imp = getImage();
 				Roi roi = imp.getRoi();
 				if (!colorSet) setForegroundColor(ip);
 				if (roi==null) {
@@ -855,7 +861,7 @@ public class Functions implements MacroConstants, Measurements {
 		}
 	}
 
-	void updateAndDraw(ImagePlus imp) {
+	void updateAndDraw(IjxImagePlus imp) {
 		if (autoUpdate)
 			imp.updateChannelAndDraw();
 		else
@@ -864,7 +870,7 @@ public class Functions implements MacroConstants, Measurements {
 	
 	void updateDisplay() {
 		if (updateNeeded && WindowManager.getImageCount()>0) {
-			ImagePlus imp = getImage();
+			IjxImagePlus imp = getImage();
 			imp.updateAndDraw();
 			updateNeeded = false;
 		}
@@ -908,7 +914,7 @@ public class Functions implements MacroConstants, Measurements {
 		double darg1 = getFirstArg();
 		double darg2 = getNextArg();
 		double darg3 = getLastArg();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		ImageProcessor ip = getProcessor();
 		Roi roi = imp.getRoi();
 		ImageProcessor mask = null;
@@ -925,7 +931,7 @@ public class Functions implements MacroConstants, Measurements {
 			Rectangle r = roi.getBounds();
 			xmin=r.x; ymin=r.y; xmax=r.x+r.width; ymax=r.y+r.height;
 		}
-		boolean isFloat = getType()==ImagePlus.GRAY32;
+		boolean isFloat = getType()==IjxImagePlus.GRAY32;
 		if (imp.getBitDepth()==24) {
 			darg1 = (int)darg1&0xffffff;
 			darg2 = (int)darg2&0xffffff;
@@ -943,7 +949,7 @@ public class Functions implements MacroConstants, Measurements {
 			}
 		}
 		if (mask!=null) ip.reset(mask);
-		if (imp.getType()==ImagePlus.GRAY16 || imp.getType()==ImagePlus.GRAY32)
+		if (imp.getType()==IjxImagePlus.GRAY16 || imp.getType()==IjxImagePlus.GRAY32)
 			ip.resetMinAndMax();
 		imp.updateAndDraw();
 		updateNeeded = false;
@@ -1084,7 +1090,7 @@ public class Functions implements MacroConstants, Measurements {
 		String title = interp.macroName!=null?interp.macroName:"";
 		if (title.endsWith(" Options"))
 			title = title.substring(0, title.length()-8);
-		YesNoCancelDialog d = new YesNoCancelDialog(IJ.getInstance(), title, prompt);
+		YesNoCancelDialog d = new YesNoCancelDialog(IJ.getTopComponentFrame(), title, prompt);
 		if (d.cancelPressed()) {
 			interp.done = true;
 			return 0.0;
@@ -1165,7 +1171,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable xCoordinates = getFirstArrayVariable();
 		Variable yCoordinates = getLastArrayVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Roi roi = imp.getRoi();
 		if (roi==null)
 			interp.error("Selection required");
@@ -1190,7 +1196,7 @@ public class Functions implements MacroConstants, Measurements {
 	
 	Variable[] getProfile() {
 		interp.getParens();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		if (imp.getRoi()==null)
 			interp.error("Selection required");
 		ProfilePlot pp = new ProfilePlot(imp, IJ.altKeyDown());
@@ -1326,11 +1332,11 @@ public class Functions implements MacroConstants, Measurements {
 			else if (key.equals("micrometer.abbreviation"))
 				return "\u00B5m";
 			else if (key.equals("image.subtitle")) {
-				ImagePlus imp = getImage();
-				ImageWindow win = imp.getWindow();
+				IjxImagePlus imp = getImage();
+				IjxImageWindow win = imp.getWindow();
 				return win!=null?win.createSubtitle():"";
 			} else if (key.equals("slice.label")) {
-				ImagePlus imp = getImage();
+				IjxImagePlus imp = getImage();
 				if (imp.getStackSize()==1) return "";
 				String label = imp.getStack().getShortSliceLabel(imp.getCurrentSlice());
 				return label!=null?label:"";
@@ -1353,7 +1359,7 @@ public class Functions implements MacroConstants, Measurements {
 				if (fi!=null && fi.directory!=null) dir= fi.directory;
 				return dir;
 			} else if (key.equals("selection.name")||key.equals("roi.name")) {
-				ImagePlus imp = getImage();
+				IjxImagePlus imp = getImage();
 				Roi roi = imp.getRoi();
 				String name = roi!=null?roi.getName():null;
 				return name!=null?name:"";
@@ -1377,7 +1383,7 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	String getDicomTag(String tag) {
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		String metadata = null;
 		if (imp.getStackSize()==1) {
 			metadata = (String)imp.getProperty("Label");
@@ -1396,7 +1402,7 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	String getWindowContents() {
-		Frame frame = WindowManager.getFrontWindow();
+		IjxWindow frame = WindowManager.getFrontWindow();
 		if (frame!=null && frame instanceof TextWindow) {
 			TextPanel tp = ((TextWindow)frame).getTextPanel();
 			return tp.getText();			
@@ -1409,7 +1415,7 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	String getImageInfo() {		
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Info infoPlugin = new Info();
 		return infoPlugin.getImageInfo(imp, getProcessor());
 	}
@@ -1423,7 +1429,7 @@ public class Functions implements MacroConstants, Measurements {
 	double getSelectionType() {
 		interp.getParens();
 		double type = -1;
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Roi roi = imp.getRoi();
 		if (roi!=null)
 			type = roi.getType();
@@ -1488,8 +1494,8 @@ public class Functions implements MacroConstants, Measurements {
 		Variable y = getNextVariable();
 		Variable z = getNextVariable();
 		Variable flags = getLastVariable();
-		ImagePlus imp = getImage();
-		ImageCanvas ic = imp.getCanvas();
+		IjxImagePlus imp = getImage();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic==null) return;
 		Point p = ic.getCursorLoc();
 		x.setValue(p.x);
@@ -1506,7 +1512,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable vy2 = getNextVariable();
 		Variable lineWidth = getLastVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		double x1=-1, y1=-1, x2=-1, y2=-1;
 		Roi roi = imp.getRoi();
 		if (roi!=null && roi.getType()==Roi.LINE) {
@@ -1526,7 +1532,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable depth = getNextVariable();
 		Variable unit = getLastVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Calibration cal = imp.getCalibration();
 		width.setValue(cal.pixelWidth);
 		height.setValue(cal.pixelHeight);
@@ -1544,7 +1550,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable counts = getNextArrayVariable();
 		interp.getComma();
 		int nBins = (int)interp.getExpression();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		double histMin=0.0, histMax=0.0;
 		boolean setMinMax = false;
 		int bitDepth = imp.getBitDepth();
@@ -1599,7 +1605,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable greens = getNextArrayVariable();
 		Variable blues = getLastArrayVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		IndexColorModel cm = null;
 		if (imp.isComposite())
 			cm = ((CompositeImage)imp).getChannelLut();
@@ -1629,7 +1635,7 @@ public class Functions implements MacroConstants, Measurements {
 		if (greens.length!=length || blues.length!=length)
 			interp.error("Arrays are not the same length");
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		if (imp.getBitDepth()==24)
 			interp.error("Non-RGB image expected");
 		ImageProcessor ip = getProcessor();
@@ -1654,7 +1660,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable lower = getFirstVariable();
 		Variable upper = getLastVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		ImageProcessor ip = getProcessor();
 		double t1 = ip.getMinThreshold();
 		double t2 = ip.getMaxThreshold();
@@ -1720,7 +1726,7 @@ public class Functions implements MacroConstants, Measurements {
 		if (y.length!=n)
 			interp.error("Arrays are not the same length");
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		int[] xcoord = new int[n];
 		int[] ycoord = new int[n];
 		int height = imp.getHeight();
@@ -1818,8 +1824,8 @@ public class Functions implements MacroConstants, Measurements {
 		Variable yvar = getLastArrayVariable();
 		float[] xvalues = new float[0];
 		float[] yvalues = new float[0];
-		ImagePlus imp = getImage();
-		ImageWindow win = imp.getWindow();
+		IjxImagePlus imp = getImage();
+		IjxImageWindow win = imp.getWindow();
 		if (imp.getProperty("XValues")!=null) {
 			xvalues = (float[])imp.getProperty("XValues");
 			yvalues = (float[])imp.getProperty("YValues");
@@ -1882,8 +1888,8 @@ public class Functions implements MacroConstants, Measurements {
 
 	void updatePlot() {
 		if (plot!=null) {
-			ImagePlus plotImage = WindowManager.getImage(plotID);
-			ImageWindow win = plotImage!=null?plotImage.getWindow():null;
+			IjxImagePlus plotImage = WindowManager.getImage(plotID);
+			IjxImageWindow win = plotImage!=null?plotImage.getWindow():null;
 			if (win!=null)
 				((PlotWindow)win).drawPlot(plot);
 			else {
@@ -1942,7 +1948,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable width = getNextVariable();
 		Variable height = getLastVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Roi roi = imp.getRoi();
 		if (roi!=null) {
 			Rectangle r = roi.getBounds();
@@ -1999,7 +2005,7 @@ public class Functions implements MacroConstants, Measurements {
 
 	double isActive() {
 		int id = (int)getArg();
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null || imp.getID()!=id)
 			return 0.0; //false
 		else
@@ -2016,7 +2022,7 @@ public class Functions implements MacroConstants, Measurements {
 				return 1.0;
 			else if (Interpreter.isBatchMode() && Interpreter.imageTable!=null) {
 				for (Enumeration en=Interpreter.imageTable.elements(); en.hasMoreElements();) {
-					ImagePlus imp = (ImagePlus)en.nextElement();
+					IjxImagePlus imp = (IjxImagePlus)en.nextElement();
 					if (imp!=null && imp.getTitle().equals(title))
 						return 1.0;
 				}
@@ -2059,8 +2065,9 @@ public class Functions implements MacroConstants, Measurements {
 	}
 	
 	void showProgress() {
-		ImageJ ij = IJ.getInstance();
-		ij.gui.ProgressBar progressBar = ij!=null?ij.getProgressBar():null;
+		IjxApplication ij = IJ.getInstance();
+		ij.gui.ProgressBar progressBar = ij!=null?
+            IJ.getTopComponent().getProgressBar():null;
 		interp.getLeftParen();
 		double arg1 = interp.getExpression();
 		if (interp.nextToken()==',') {
@@ -2157,12 +2164,12 @@ public class Functions implements MacroConstants, Measurements {
 	void abortPluginOrMacro() {
 		Interpreter.abortPrevious();
 		IJ.setKeyDown(KeyEvent.VK_ESCAPE);
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
-			ImageWindow win = imp.getWindow();
+			IjxImageWindow win = imp.getWindow();
 			if (win!=null) {
-				win.running = false;
-				win.running2 = false;
+				win.setRunning(false);
+				win.setRunning2(false);
 			}
 		}
 		//Macro.abort();
@@ -2292,7 +2299,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable min = getFirstVariable();
 		Variable max = getLastVariable();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		double v1 = imp.getDisplayRangeMin();
 		double v2 = imp.getDisplayRangeMax();
 		Calibration cal = imp.getCalibration();
@@ -2319,10 +2326,10 @@ public class Functions implements MacroConstants, Measurements {
 		if (Interpreter.isBatchMode()) {
 			if (Interpreter.imageTable!=null) {
 				for (Enumeration en=Interpreter.imageTable.elements(); en.hasMoreElements();) {
-					ImagePlus imp = (ImagePlus)en.nextElement();
+					IjxImagePlus imp = (IjxImagePlus)en.nextElement();
 					if (imp!=null) {
 						if (imp.getTitle().equals(title)) {
-							ImagePlus imp2 = WindowManager.getCurrentImage();
+							IjxImagePlus imp2 = WindowManager.getCurrentImage();
 							if (imp2!=null && imp2!=imp) imp2.saveRoi();
 							WindowManager.setTempCurrentImage(imp);
 							return;
@@ -2345,7 +2352,7 @@ public class Functions implements MacroConstants, Measurements {
 			int[] wList = WindowManager.getIDList();
 			int len = wList!=null?wList.length:0;
 			for (int i=0; i<len; i++) {
-				ImagePlus imp = WindowManager.getImage(wList[i]);
+				IjxImagePlus imp = WindowManager.getImage(wList[i]);
 				if (imp!=null) {
 					if (imp.getTitle().equals(title)) {
 						IJ.selectWindow(imp.getID());
@@ -2360,10 +2367,10 @@ public class Functions implements MacroConstants, Measurements {
 
 	void close() {
 		interp.getParens();
-		ImagePlus imp = getImage();
-		ImageWindow win = imp.getWindow();
+		IjxImagePlus imp = getImage();
+		IjxImageWindow win = imp.getWindow();
 		if (win!=null) {
-			imp.changes = false;
+			imp.setChanged(false);
 			win.close();
 		} else {
 			imp.saveRoi();
@@ -2391,13 +2398,13 @@ public class Functions implements MacroConstants, Measurements {
 		if (enterBatchMode)  { // true
 			if (interp.isBatchMode()) return;
 			interp.setBatchMode(true);
-			ImagePlus tmp = WindowManager.getTempCurrentImage();
+			IjxImagePlus tmp = WindowManager.getTempCurrentImage();
 			if (tmp!=null)
 				Interpreter.addBatchModeImage(tmp);
 			return;
 		}
 		IJ.showProgress(0, 0);
-		ImagePlus imp2 = WindowManager.getCurrentImage();
+		IjxImagePlus imp2 = WindowManager.getCurrentImage();
 		WindowManager.setTempCurrentImage(null);
 		roiManager = null;
 		if (sarg==null) {  //false
@@ -2408,16 +2415,16 @@ public class Functions implements MacroConstants, Measurements {
 			if (v==null) return;
 			interp.setBatchMode(false);
 			for (int i=0; i<v.size(); i++) {
-				imp2 = (ImagePlus)v.elementAt(i);
+				imp2 = (IjxImagePlus)v.elementAt(i);
 				if (imp2!=null) 
 					displayBatchModeImage(imp2);
 			}
 		}
 	}
 	
-	void displayBatchModeImage(ImagePlus imp2) {
+	void displayBatchModeImage(IjxImagePlus imp2) {
 		if (imp2!=null) {
-			ImageWindow win = imp2.getWindow();
+			IjxImageWindow win = imp2.getWindow();
 			if (win==null)
 				imp2.show();
 			else {
@@ -2439,12 +2446,12 @@ public class Functions implements MacroConstants, Measurements {
 		}
 		interp.getRightParen();
 		if (width==0&&height==0) {
-			Frame frame = WindowManager.getFrontWindow();
+			IjxWindow frame = WindowManager.getFrontWindow();
 			if (frame!=null)
 				frame.setLocation(x, y);
 		} else {
-			ImagePlus imp = getImage();
-			ImageWindow win = imp.getWindow();
+			IjxImagePlus imp = getImage();
+			IjxImageWindow win = imp.getWindow();
 			if (win!=null)
 				win.setLocationAndSize(x, y, width, height);
 		}
@@ -2452,7 +2459,7 @@ public class Functions implements MacroConstants, Measurements {
 	
 	void setSlice() {
 		int n = (int)getArg();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		int nSlices = imp.getStackSize();
 		if (n==1 && nSlices==1)
 			return;
@@ -2491,8 +2498,8 @@ public class Functions implements MacroConstants, Measurements {
 
 	double getZoom() {
 		interp.getParens();
-		ImagePlus imp = getImage();
-		ImageCanvas ic = imp.getCanvas();
+		IjxImagePlus imp = getImage();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic==null)
 			{interp.error("Image not displayed"); return 0.0;}
 		else
@@ -2507,7 +2514,7 @@ public class Functions implements MacroConstants, Measurements {
 				mString = getString();
 			interp.getRightParen();
 		}
-		ImagePlus img = getImage();
+		IjxImagePlus img = getImage();
 		ImageProcessor ip = getProcessor();
 		if (ip instanceof ColorProcessor)
 			interp.error("Non-RGB image expected");
@@ -2584,7 +2591,7 @@ public class Functions implements MacroConstants, Measurements {
 		String title = s.substring(1, s.length()-1);
 		String s2 = getLastString();
 		boolean isCommand = s2.startsWith("\\");
-		Frame frame = WindowManager.getFrame(title);
+		IjxWindow frame = WindowManager.getFrame(title);
 		if (frame==null) {
 			if (isCommand) {
 				interp.done = true;
@@ -2742,7 +2749,7 @@ public class Functions implements MacroConstants, Measurements {
 		}
 		if (interp.token!=')') interp.error("')' expected");
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Calibration cal = calibrated?imp.getCalibration():null;
 		ImageProcessor ip = getProcessor();
 		ImageStatistics stats = null;
@@ -2844,7 +2851,7 @@ public class Functions implements MacroConstants, Measurements {
 		double depth = getNextArg();
 		String unit = getLastString();
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Calibration cal = imp.getCalibration();
 		cal.pixelWidth = width;
 		cal.pixelHeight = height;
@@ -2858,9 +2865,9 @@ public class Functions implements MacroConstants, Measurements {
 		Variable v2 = getNextVariable();
 		Variable v3 = getNextVariable();
 		Variable v4 = getLastVariable();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		int x=0, y=0, w=0, h=0;
-		ImageWindow win = imp.getWindow();
+		IjxImageWindow win = imp.getWindow();
 		if (win!=null) {
 			Point loc = win.getLocation();
 			Dimension size = win.getSize();
@@ -3012,7 +3019,7 @@ public class Functions implements MacroConstants, Measurements {
 			}
 		} else
 			isInfo = arg1.startsWith("info") || arg1.startsWith("Info");
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		if (isInfo)
 			imp.setProperty("Info", metadata);
 		else {
@@ -3038,7 +3045,7 @@ public class Functions implements MacroConstants, Measurements {
 			noArg = false;
 		} else
 			interp.getParens();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		String metadata = null;
 		if (type.indexOf("label")!=-1) {
 			if (imp.getStackSize()==1) {
@@ -3053,8 +3060,8 @@ public class Functions implements MacroConstants, Measurements {
 		return metadata;
 	}
 
-	ImagePlus getImageArg() {
-		ImagePlus img = null;
+	IjxImagePlus getImageArg() {
+		IjxImagePlus img = null;
 		if (isStringArg()) {
 			String title = getString();
 			img = WindowManager.getImage(title);
@@ -3069,9 +3076,9 @@ public class Functions implements MacroConstants, Measurements {
 	void imageCalculator() {
 		String operator = getFirstString();
 		interp.getComma();
-		ImagePlus img1 = getImageArg();
+		IjxImagePlus img1 = getImageArg();
 		interp.getComma();
-		ImagePlus img2 = getImageArg();
+		IjxImagePlus img2 = getImageArg();
 		interp.getRightParen();
 		ImageCalculator ic = new ImageCalculator();
 		ic.calculate(operator, img1, img2);
@@ -3106,7 +3113,7 @@ public class Functions implements MacroConstants, Measurements {
 			interp.error("Fewer than 3 points");
 		if (n==max && interp.token!=')')
 			interp.error("More than "+max+" points");
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Roi previousRoi = imp.getRoi();
 		if (shiftKeyDown||altKeyDown) imp.saveRoi();
 		imp.setRoi(new PolygonRoi(x, y, n, Roi.POLYGON));
@@ -3472,18 +3479,18 @@ public class Functions implements MacroConstants, Measurements {
 		interp.getRightParen();
 		arg1 = arg1.toLowerCase(Locale.US);
 		if (arg1.equals("disablepopupmenu")) {
-			ImageCanvas ic = getImage().getCanvas();
+			IjxImageCanvas ic = getImage().getCanvas();
 			if (ic!=null) ic.disablePopupMenu(state);
 		} else if (arg1.startsWith("show all")) {
-			ImagePlus img = getImage();
-			ImageCanvas ic = img.getCanvas();
+			IjxImagePlus img = getImage();
+			IjxImageCanvas ic = img.getCanvas();
 			if (ic!=null) {
 				boolean previousState = ic.getShowAllROIs();
 				ic.setShowAllROIs(state);
 				if (state!=previousState) img.draw();
 			}
 		} else if (arg1.equals("changes"))
-			getImage().changes = state;
+			getImage().setChanged(state);
 		else if (arg1.equals("debugmode"))
 			IJ.debugMode = state;
 		else if (arg1.equals("openusingplugins"))
@@ -3545,7 +3552,7 @@ public class Functions implements MacroConstants, Measurements {
 		int x = (int)Math.round(getFirstArg());
 		int y = (int)Math.round(getLastArg());
 		resetImage();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Roi roi = imp.getRoi();
 		if (roi==null)
 			interp.error("Selection required");
@@ -3574,7 +3581,7 @@ public class Functions implements MacroConstants, Measurements {
 		else if (arg.indexOf("caps")!=-1)
 			state = getCapsLockState();
 		else if (arg.indexOf("changes")!=-1)
-			state = getImage().changes;
+			state = getImage().isChanged();
 		else if (arg.indexOf("binary")!=-1)
 			state = getProcessor().isBinary();
 		else
@@ -3602,10 +3609,10 @@ public class Functions implements MacroConstants, Measurements {
 				array[i] = new Variable(0, 0.0, (String)v.elementAt(i));
 			return array;
 		} else if (key.equals("window.titles")) {
-			Frame[] list = WindowManager.getNonImageWindows();
+			IjxWindow[] list = WindowManager.getNonImageWindows();
 			Variable[] array = new Variable[list.length];
 			for (int i=0; i<list.length; i++) {
-				Frame frame = list[i];
+				IjxWindow frame = list[i];
 				array[i] = new Variable(0, 0.0, frame.getTitle());
 			}
 			return array;
@@ -3710,7 +3717,7 @@ public class Functions implements MacroConstants, Measurements {
 		Variable channels = getNextVariable();
 		Variable slices = getNextVariable();
 		Variable frames = getLastVariable();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		int[] dim = imp.getDimensions();
 		width.setValue(dim[0]);
 		height.setValue(dim[1]);
@@ -3836,7 +3843,7 @@ public class Functions implements MacroConstants, Measurements {
 			return getImage().isHyperStack()?1.0:0.0;
 		else if (name.equals("getDimensions"))
 			{getDimensions(); return Double.NaN;}
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		if (name.equals("setPosition"))
 			{setPosition(imp); return Double.NaN;}
 		if (name.equals("getPosition"))
@@ -3877,7 +3884,7 @@ public class Functions implements MacroConstants, Measurements {
 		return Double.NaN;
 	}
 	
-	void getStackStatistics(ImagePlus imp, boolean calibrated) {
+	void getStackStatistics(IjxImagePlus imp, boolean calibrated) {
 		Variable count = getFirstVariable();
 		Variable mean=null, min=null, max=null, std=null, hist=null;
 		int params = AREA+MEAN+MIN_MAX;
@@ -3913,7 +3920,7 @@ public class Functions implements MacroConstants, Measurements {
 		}
 	}
 	
-	void setActiveChannels(ImagePlus imp, String channels) {
+	void setActiveChannels(IjxImagePlus imp, String channels) {
 		if (!imp.isComposite())
 			interp.error("Composite image required");
 		boolean[] active = ((CompositeImage)imp).getActiveChannels();
@@ -3926,7 +3933,7 @@ public class Functions implements MacroConstants, Measurements {
 		imp.updateAndDraw();
 	}
 
-	void getActiveChannels(ImagePlus imp) {
+	void getActiveChannels(IjxImagePlus imp) {
 		if (!imp.isComposite())
 			interp.error("Composite image required");
 		boolean[] active = ((CompositeImage)imp).getActiveChannels();
@@ -3943,7 +3950,7 @@ public class Functions implements MacroConstants, Measurements {
 		channels.setString(new String(chars));
 	}
 
-	void setDisplayMode(ImagePlus imp, String mode) {
+	void setDisplayMode(IjxImagePlus imp, String mode) {
 		mode = mode.toLowerCase(Locale.US);
 		if (!imp.isComposite())
 			interp.error("Composite image required");
@@ -3960,10 +3967,10 @@ public class Functions implements MacroConstants, Measurements {
 		imp.updateAndDraw();
 	}
 	
-	void swapStackImages(ImagePlus imp) {
+	void swapStackImages(IjxImagePlus imp) {
 		int n1 = (int)getFirstArg();
 		int n2 = (int)getLastArg();
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int size = stack.getSize();
 		if (n1<1||n1>size||n2<1||n2>size)
 			interp.error("Argument out of range");
@@ -3987,7 +3994,7 @@ public class Functions implements MacroConstants, Measurements {
 			imp.setStack(null, stack);
 	}
 
-	void getDisplayMode(ImagePlus imp) {
+	void getDisplayMode(IjxImagePlus imp) {
 		Variable v = getVariableArg();
 		String mode = "";
 		if (imp.isComposite())
@@ -3995,7 +4002,7 @@ public class Functions implements MacroConstants, Measurements {
 		v.setString(mode);
 	}
 
-	void getPosition(ImagePlus imp) {
+	void getPosition(IjxImagePlus imp) {
 		Variable channel = getFirstVariable();
 		Variable slice = getNextVariable();
 		Variable frame = getLastVariable();
@@ -4009,7 +4016,7 @@ public class Functions implements MacroConstants, Measurements {
 		frame.setValue(t);
 	}
 
-	void setPosition(ImagePlus img) {
+	void setPosition(IjxImagePlus img) {
 		int channel = (int)getFirstArg();
 		int slice = (int)getNextArg();
 		int frame = (int)getLastArg();
@@ -4019,7 +4026,7 @@ public class Functions implements MacroConstants, Measurements {
 			img.setPosition(channel, slice, frame);
 	}
 
-	void setDimensions(ImagePlus img) {
+	void setDimensions(IjxImagePlus img) {
 		int c = (int)getFirstArg();
 		int z = (int)getNextArg();
 		int t = (int)getLastArg();
@@ -4137,7 +4144,7 @@ public class Functions implements MacroConstants, Measurements {
 	void setMeasurements() {
 		interp.getParens();
 		props.clear();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		int measurements = AREA+MEAN+STD_DEV+MODE+MIN_MAX+
 			CENTROID+CENTER_OF_MASS+PERIMETER+RECT+
 			ELLIPSE+SHAPE_DESCRIPTORS+FERET+INTEGRATED_DENSITY+
@@ -4185,7 +4192,7 @@ public class Functions implements MacroConstants, Measurements {
 		String text = getFirstString();
 		int x = (int)getNextArg();
 		int y = (int)getLastArg();
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		Font font = this.font;
 		if (font==null) font = imp.getProcessor().getFont();
 		Roi roi = new TextRoi(x, y, text, font);
@@ -4541,7 +4548,7 @@ public class Functions implements MacroConstants, Measurements {
 			||interp.token==PREDEFINED_FUNCTION||interp.token==USER_FUNCTION))
 			interp.error("Function name expected: ");
 		String name = interp.tokenString;
-		ImagePlus imp = getImage();
+		IjxImagePlus imp = getImage();
 		if (name.equals("lineTo"))
 			return overlayLineTo();
 		else if (name.equals("moveTo"))
@@ -4619,7 +4626,7 @@ public class Functions implements MacroConstants, Measurements {
 		return Double.NaN;
 	}
 	
-	double overlayDrawRectOrEllipse(ImagePlus imp, boolean ellipse) {
+	double overlayDrawRectOrEllipse(IjxImagePlus imp, boolean ellipse) {
 		addDrawingToOverlay(imp);
 		float x = (float)Math.round(getFirstArg());
 		float y = (float)Math.round(getNextArg());
@@ -4635,7 +4642,7 @@ public class Functions implements MacroConstants, Measurements {
 		return Double.NaN;
 	}
 
-	double overlayDrawString(ImagePlus imp) {
+	double overlayDrawString(IjxImagePlus imp) {
 		addDrawingToOverlay(imp);
 		String text = getFirstString();
 		int x = (int)getNextArg();
@@ -4647,20 +4654,20 @@ public class Functions implements MacroConstants, Measurements {
 		return Double.NaN;
 	}
 	
-	double addDrawing(ImagePlus imp) {
+	double addDrawing(IjxImagePlus imp) {
 		interp.getParens();
 		addDrawingToOverlay(imp);
 		return Double.NaN;
 	}
 	
-	void addDrawingToOverlay(ImagePlus imp) {
+	void addDrawingToOverlay(IjxImagePlus imp) {
 		if (overlayPath==null) return;
 		Roi roi = new ShapeRoi(overlayPath);
 		overlayPath = null;
 		addRoi(imp, roi);
 	}
 
-	void addRoi(ImagePlus imp, Roi roi){
+	void addRoi(IjxImagePlus imp, Roi roi){
 		Overlay overlay = imp.getOverlay();
 		if (overlay==null) {
 			if (offscreenOverlay==null)
@@ -4673,7 +4680,7 @@ public class Functions implements MacroConstants, Measurements {
 		overlay.add(roi);
 	}
 	
-	double showOverlay(ImagePlus imp) {
+	double showOverlay(IjxImagePlus imp) {
 		interp.getParens();
 		addDrawingToOverlay(imp);
 		if (offscreenOverlay!=null) {
@@ -4684,13 +4691,13 @@ public class Functions implements MacroConstants, Measurements {
 		return Double.NaN;
 	}
 	
-	double hideOverlay(ImagePlus imp) {
+	double hideOverlay(IjxImagePlus imp) {
 		interp.getParens();
 		IJ.run(imp, "Hide Overlay", "");
 		return Double.NaN;
 	}
 
-	double removeOverlay(ImagePlus imp) {
+	double removeOverlay(IjxImagePlus imp) {
 		interp.getParens();
 		imp.setOverlay(null);
 		offscreenOverlay = null;

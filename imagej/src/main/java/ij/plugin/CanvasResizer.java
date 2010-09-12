@@ -1,9 +1,9 @@
 package ij.plugin;
 import ij.*;
-import ij.plugin.filter.*;
 import ij.process.*;
 import ij.gui.*;
-import java.awt.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** This plugin implements the Image/Adjust/Canvas Size command.
 	It changes the canvas size of an image or stack without resizing the image.
@@ -17,11 +17,11 @@ public class CanvasResizer implements PlugIn {
 		int wOld, hOld, wNew, hNew;
 		boolean fIsStack = false;
 
-		ImagePlus imp = IJ.getImage();
+		IjxImagePlus imp = IJ.getImage();
 		wOld = imp.getWidth();
 		hOld = imp.getHeight();
 
-		ImageStack stackOld = imp.getStack();
+		IjxImageStack stackOld = imp.getStack();
 		if ((stackOld != null) && (stackOld.getSize() > 1))
 			fIsStack = true;
 
@@ -77,7 +77,7 @@ public class CanvasResizer implements PlugIn {
 		}
 		
 		if (fIsStack) {
-			ImageStack stackNew = expandStack(stackOld, wNew, hNew, xOff, yOff);
+			IjxImageStack stackNew = expandStack(stackOld, wNew, hNew, xOff, yOff);
 			imp.setStack(null, stackNew);
 		} else {
 			if (!IJ.macroRunning())
@@ -89,12 +89,12 @@ public class CanvasResizer implements PlugIn {
 		}
 	}
 	
-	public ImageStack expandStack(ImageStack stackOld, int wNew, int hNew, int xOff, int yOff) {
+	public IjxImageStack expandStack(IjxImageStack stackOld, int wNew, int hNew, int xOff, int yOff) {
 		int nFrames = stackOld.getSize();
 		ImageProcessor ipOld = stackOld.getProcessor(1);
 		java.awt.Color colorBack = Toolbar.getBackgroundColor();
 		
-		ImageStack stackNew = new ImageStack(wNew, hNew, stackOld.getColorModel());
+		IjxImageStack stackNew = IJ.getFactory().newImageStack(wNew, hNew, stackOld.getColorModel());
 		ImageProcessor ipNew;
 		
 		for (int i=1; i<=nFrames; i++) {

@@ -1,9 +1,8 @@
 package ij.plugin;
 import ij.*;
 import ij.process.*;
-import ij.gui.*;
 import ij.io.*;
-import java.awt.*;
+import ijx.IjxImagePlus;
 import java.io.*;
 import java.util.Properties;
 
@@ -65,9 +64,9 @@ public class FileInfoVirtualStack extends VirtualStack implements PlugIn {
 		}
 		nImages = info.length;
 		FileOpener fo = new FileOpener(info[0] );
-		ImagePlus imp = fo.open(false);
+		IjxImagePlus imp = fo.open(false);
 		Properties props = fo.decodeDescriptionString(fi);
-		ImagePlus imp2 = new ImagePlus(fi.fileName, this);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus(fi.fileName, this);
 		imp2.setFileInfo(fi);
 		if (imp!=null && props!=null) {
 			imp2.setCalibration(imp.getCalibration());
@@ -133,7 +132,7 @@ public class FileInfoVirtualStack extends VirtualStack implements PlugIn {
 		if (IJ.debugMode) IJ.log("FileInfoVirtualStack.getProcessor: "+n);
 		info[n-1].nImages = 1; // why is this needed?
 		FileOpener fo = new FileOpener(info[n-1]);
-		ImagePlus imp = fo.open(false);
+		IjxImagePlus imp = fo.open(false);
 		if (imp!=null)
 			return imp.getProcessor();
 		else

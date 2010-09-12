@@ -1,11 +1,13 @@
 package ij.plugin;
 import ij.*;
 import ij.process.*;
-import ij.gui.*;
 import java.awt.*;
-import ij.io.*;
+import ijx.IjxImagePlus;
+import ijx.ImageJX;
+import ijx.app.IjxApplication;
+import ijx.gui.IjxImageWindow;
 import java.net.URL;
-import java.awt.image.*;
+import javax.swing.ImageIcon;
 
 /** This plugin implements the Help/About ImageJ command by opening
 	the about.jpg in ij.jar, scaling it 400% and adding some text. */
@@ -17,7 +19,7 @@ import java.awt.image.*;
 		int lines = 7;
 		String[] text = new String[lines];
 		int k = 0;
-		text[k++] = "ImageJA "+ImageJ.VERSION;
+		text[k++] = "ImageJA "+ImageJX.VERSION;
 		text[k++] = "http://imageja.sourceforge.net/";
 		text[k++] = "Based on ImageJ";
 		text[k++] = IJ.URL;
@@ -25,14 +27,17 @@ import java.awt.image.*;
 		text[k++] = IJ.freeMemory();
 		text[k++] = "ImageJA is in the public domain";
 		ImageProcessor ip = null;
-		ImageJ ij = IJ.getInstance();
-		URL url = ij .getClass() .getResource("/aboutja.jpg");
+
+		IjxApplication ij = IJ.getInstance();
+		URL url = ij.getClass().getResource("/aboutja.jpg");
+
 		if (url!=null) {
 			Image img = null;
-			try {img = ij.createImage((ImageProducer)url.getContent());}
+			try {img = new ImageIcon(url).getImage();}
+                    //IJ.createImage((ImageProducer)url.getContent());}
 			catch(Exception e) {}
 			if (img!=null) {
-				ImagePlus imp = new ImagePlus("", img);
+				IjxImagePlus imp = IJ.getFactory().newImagePlus("", img);
 				ip = imp.getProcessor();
 			}
 		}
@@ -68,8 +73,8 @@ import java.awt.image.*;
 			ip.drawString(text[5], x(text[5],ip,max), y);
 		}
 		ip.drawString(text[6], ip.getWidth()-ip.getStringWidth(text[6])-10, ip.getHeight()-3);
-		ImageWindow.centerNextImage();
-		new ImagePlus("About ImageJA", ip).show();
+		WindowManager.setCenterNextImage(true);
+		IJ.getFactory().newImagePlus("About ImageJA", ip).show();
 	}
 
 	int x(String text, ImageProcessor ip, int max) {

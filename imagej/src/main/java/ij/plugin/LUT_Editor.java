@@ -5,19 +5,18 @@ import ij.gui.*;
 import ij.plugin.frame.Recorder;
 import java.awt.*;
 import java.awt.image.*;
-import ij.util.*;
 import ij.measure.*;
-import java.util.Vector;
+import ijx.IjxImagePlus;
 import java.awt.event.*;
 
 public class LUT_Editor implements PlugIn, ActionListener{
-    private ImagePlus imp;
+    private IjxImagePlus imp;
     Button openButton, saveButton, resizeButton, invertButton;
     ColorPanel colorPanel;
     int bitDepth;
 
     public void run(String args) {
-     	ImagePlus imp = WindowManager.getCurrentImage();
+     	IjxImagePlus imp = WindowManager.getCurrentImage();
     	if (imp==null) {
     		IJ.showMessage("LUT Editor", "No images are open");
     		return;
@@ -94,7 +93,7 @@ class ColorPanel extends Panel implements MouseListener, MouseMotionListener{
      Color b;
      ColorProcessor cp;
      IndexColorModel origin;
-     private ImagePlus imp;
+     private IjxImagePlus imp;
      private int[] xSize = new int[256], redY, greenY, blueY;
      private int mapSize, x, y, initialC = -1, finalC = -1;
      private byte[] reds, greens, blues;
@@ -103,11 +102,11 @@ class ColorPanel extends Panel implements MouseListener, MouseMotionListener{
      private static String scaleMethod = choices[1];
      private int bitDepth;
      
-     ColorPanel(ImagePlus imp) {
+     ColorPanel(IjxImagePlus imp) {
          setup(imp);
      }
      
-     public void setup(ImagePlus imp) {
+     public void setup(IjxImagePlus imp) {
         if (imp==null) {
            IJ.noImage();
            return;

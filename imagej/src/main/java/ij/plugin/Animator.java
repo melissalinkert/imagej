@@ -1,16 +1,19 @@
 package ij.plugin;
 import ij.*;
 import ij.gui.*;
-import ij.process.*;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxStackWindow;
 
 /** This plugin animates stacks. */
 public class Animator implements PlugIn {
 
 	private static double animationRate = Prefs.getDouble(Prefs.FPS, 7.0);
 	private static int firstFrame=0, lastFrame=0;
-	private ImagePlus imp;
-	private StackWindow swin;
+	private IjxImagePlus imp;
+	private IjxStackWindow swin;
 	private int slice;
 	private int nSlices;	
 	/** Set 'arg' to "set" to display a dialog that allows the user to specify the
@@ -25,8 +28,8 @@ public class Animator implements PlugIn {
     	nSlices = imp.getStackSize();
 		if (nSlices<2)
 			{IJ.error("Stack required."); return;}
-		ImageWindow win = imp.getWindow();
-		if (win==null || !(win instanceof StackWindow)) {
+		IjxImageWindow win = imp.getWindow();
+		if (win==null || !(win instanceof IjxStackWindow)) {
 			if (arg.equals("next"))
 				imp.setSlice(imp.getCurrentSlice()+1);
 			else if (arg.equals("previous"))
@@ -34,8 +37,8 @@ public class Animator implements PlugIn {
 			if (win!=null) imp.updateStatusbarValue();
 			return;
 		}
-		swin = (StackWindow)win;
-		ImageStack stack = imp.getStack();
+		swin = (IjxStackWindow)win;
+		IjxImageStack stack = imp.getStack();
 		slice = imp.getCurrentSlice();
 		IJ.register(Animator.class);
 		

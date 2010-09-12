@@ -21,99 +21,106 @@ import java.awt.event.WindowStateListener;
  **/
 public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelListener, WindowListener, WindowStateListener {
 
-  int MIN_HEIGHT = 32;
-  int MIN_WIDTH = 128;
+    int MIN_HEIGHT = 32;
+    int MIN_WIDTH = 128;
 
-  public boolean isRunning();
+    public boolean isRunning();
 
-  public void setRunning(boolean b);
+    public void setRunning(boolean b);
 
-  public boolean isRunning2();
+    public boolean isRunning2();
 
-  public void setRunning2(boolean b);
+    public void setRunning2(boolean b);
 
-  Component add(Component comp);
+    Component add(Component comp);
 
-  /**
-   * Removes this window from the window list and disposes of it.
-   * Returns false if the user cancels the "save changes" dialog.
-   */
+    /**
+     * Removes this window from the window list and disposes of it.
+     * Returns false if the user cancels the "save changes" dialog.
+     */
 //    void close();
 //
 //    boolean canClose();
-  /**
-   * Copies the current ROI to the clipboard. The entire
-   * image is copied if there is no ROI.
-   */
-  void copy(boolean cut);
+    /**
+     * Copies the current ROI to the clipboard. The entire
+     * image is copied if there is no ROI.
+     */
+    void copy(boolean cut);
 
-  /**
-   * Creates the subtitle.
-   */
-  String createSubtitle();
+    /**
+     * Creates the subtitle.
+     */
+    String createSubtitle();
 
-  /**
-   * Draws the subtitle.
-   */
-  void drawInfo(Graphics g);
+    /**
+     * Draws the subtitle.
+     */
+    void drawInfo(Graphics g);
 
-  IjxImageCanvas getCanvas();
+    IjxImageCanvas getCanvas();
 
-  IjxImagePlus getImagePlus();
+    IjxImagePlus getImagePlus();
 
-  void updateImage(IjxImagePlus imp);
+    void updateImage(IjxImagePlus imp);
 
-  double getInitialMagnification();
+    double getInitialMagnification();
 
-  /**
-   * Override Container getInsets() to make room for some text above the image.
-   */
-  Insets getInsets();
+    /**
+     * Override Container getInsets() to make room for some text above the image.
+     */
+    Insets getInsets();
 
-  Rectangle getMaximumBounds();
+    Rectangle getMaxWindow(int xloc, int yloc);
 
-  void setBounds(Rectangle r);
+    Rectangle getMaximumBounds();
 
-  void setMaximizedBounds(Rectangle r);
+    void setBounds(Rectangle r);
 
-  void setMaxBoundsTime(long currentTimeMillis);
+    void setMaximizedBounds(Rectangle r);
 
-  long getMaxBoundsTime();
+    void setMaxBoundsTime(long time);
 
-  /**
-   * Has this window been closed?
-   */
-  //boolean isClosed();
-  
-  void maximize();
+    /**
+     * Has this window been closed?
+     */
+    //boolean isClosed();
+    void maximize();
 
-  void minimize();
+    void minimize();
 
-  /**
-   * This method is called by ImageCanvas.mouseMoved(MouseEvent).
-   * @see ij.gui.ImageCanvas#mouseMoved
-   */
-  void mouseMoved(int x, int y);
+    /**
+     * This method is called by ImageCanvas.mouseMoved(MouseEvent).
+     * @see ij.gui.ImageCanvas#mouseMoved
+     */
+    void mouseMoved(int x, int y);
 
-  //void mouseWheelMoved(MouseWheelEvent event);
-  void paint(Graphics g);
+    //void mouseWheelMoved(MouseWheelEvent event);
+    void paint(Graphics g);
 
-  void repaint();
+    void repaint();
 
-  void pack();
+    void pack();
 
-  void paste();
+    void paste();
 
-  /**
-   * Moves and resizes this window. Changes the
-   * magnification so the image fills the window.
-   */
-  void setLocationAndSize(int x, int y, int width, int height);
+    void show();
 
-  void setForeground(java.awt.Color c);
+    /**
+     * Moves and resizes this window. Changes the
+     * magnification so the image fills the window.
+     */
+    void setLocationAndSize(int x, int y, int width, int height);
 
-  void setBackground(java.awt.Color c);
+    void setForeground(java.awt.Color c);
 
+    void setBackground(java.awt.Color c);
+
+    public long getMaxBoundsTime();
+
+    public void setSize(int w, int h);
+
+    public void validate();
+    
 //    String toString();
 //
 //    void focusGained(FocusEvent e);

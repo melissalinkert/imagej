@@ -1,6 +1,7 @@
 package ij.gui;
 import ij.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.geom.*;
 
@@ -34,7 +35,7 @@ public class Arrow extends Line {
 		doubleHeaded = defaultDoubleHeaded;
 	}
 
-	public Arrow(int sx, int sy, ImagePlus imp) {
+	public Arrow(int sx, int sy, IjxImagePlus imp) {
 		super(sx, sy, imp);
 		setStrokeWidth(defaultWidth);
 		style = defaultStyle;

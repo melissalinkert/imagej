@@ -1,12 +1,10 @@
 package ij.plugin;
 import java.awt.*;
-import java.awt.event.*;
 import java.util.*;
 import ij.*;
 import ij.gui.*;
-import ij.process.*;
-import ij.util.Tools;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
 
 /**
  *      This plugin implements the Edit/Selection/Specify command.<p>
@@ -40,7 +38,7 @@ public class SpecifyROI implements PlugIn, DialogListener {
     static double prevPixelWidth = 1.0;
     int iSlice;
     boolean bAbort;
-    ImagePlus imp;
+    IjxImagePlus imp;
     Vector fields, checkboxes;
     int stackSize;
 

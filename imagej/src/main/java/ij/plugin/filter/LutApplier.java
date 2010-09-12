@@ -1,23 +1,22 @@
 package ij.plugin.filter;
 import ij.*;
-import ij.gui.*;
 import ij.process.*;
-import ij.measure.*;
-import ij.util.*;
 import ij.plugin.frame.ContrastAdjuster;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxWindow;
 import java.awt.*;
-import java.util.*;
 
 /** This plugin implements the Image/Lookup Tables/Apply LUT command. */
 public class LutApplier implements PlugInFilter {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int min, max;
 	boolean canceled;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		int baseOptions = DOES_8G+DOES_8C+DOES_RGB+SUPPORTS_MASKING;
-		if (imp!=null && imp.getType()==ImagePlus.COLOR_RGB)
+		if (imp!=null && imp.getType()==IjxImagePlus.COLOR_RGB)
 			return baseOptions+NO_UNDO;
 		else
 			return baseOptions;
@@ -27,7 +26,7 @@ public class LutApplier implements PlugInFilter {
 		apply(imp, ip);
 	}
 	
-	void apply(ImagePlus imp, ImageProcessor ip) {
+	void apply(IjxImagePlus imp, ImageProcessor ip) {
         if (ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD) {
             imp.unlock();
 			IJ.runPlugIn("ij.plugin.Thresholder", "skip");
@@ -42,7 +41,7 @@ public class LutApplier implements PlugInFilter {
                 +"Image>Adjust>Threshold.");
 				return;
 		}
-		if (imp.getType()==ImagePlus.COLOR_RGB) {
+		if (imp.getType()==IjxImagePlus.COLOR_RGB) {
 			if (imp.getStackSize()>1)
 				applyRGBStack(imp);
 			else {
@@ -66,7 +65,7 @@ public class LutApplier implements PlugInFilter {
 				table[i] = (int)(((double)(i-min)/(max-min))*255);
 		}
 		if (imp.getStackSize()>1) {
-			ImageStack stack = imp.getStack();
+			IjxImageStack stack = imp.getStack();
 			
 			int flags = IJ.setupDialog(imp, 0);
 			if (flags==PlugInFilter.DONE)
@@ -82,14 +81,14 @@ public class LutApplier implements PlugInFilter {
 	}
 	
 	void resetContrastAdjuster() {
-        Frame frame = WindowManager.getFrame("B&C");
+        IjxWindow frame = WindowManager.getFrame("B&C");
         if (frame==null)
             frame = WindowManager.getFrame("W&L");
         if (frame!=null && (frame instanceof ContrastAdjuster))
             ((ContrastAdjuster)frame).updateAndDraw();
 	}
 
-	void applyRGBStack(ImagePlus imp) {
+	void applyRGBStack(IjxImagePlus imp) {
 		int current = imp.getCurrentSlice();
 		int n = imp.getStackSize();
 		if (!IJ.showMessageWithCancel("Update Entire Stack?",

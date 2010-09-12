@@ -3,16 +3,18 @@ import ij.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.plugin.filter.Analyzer;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 
 /** Statistics, including the histogram, of a stack. */
 public class StackStatistics extends ImageStatistics {
 	
-	public StackStatistics(ImagePlus imp) {
+	public StackStatistics(IjxImagePlus imp) {
 		this(imp, 256, 0.0, 0.0);
 	}
 
-	public StackStatistics(ImagePlus imp, int nBins, double histMin, double histMax) {
+	public StackStatistics(IjxImagePlus imp, int nBins, double histMin, double histMax) {
 		int bits = imp.getBitDepth();
 		if ((bits==8||bits==24) && nBins==256 && histMin==0.0 && histMax==256.0)
 			sum8BitHistograms(imp);
@@ -22,7 +24,7 @@ public class StackStatistics extends ImageStatistics {
 			doCalculations(imp, nBins, histMin, histMax);
 	}
 
-    void doCalculations(ImagePlus imp,  int bins, double histogramMin, double histogramMax) {
+    void doCalculations(IjxImagePlus imp,  int bins, double histogramMin, double histogramMax) {
         ImageProcessor ip = imp.getProcessor();
 		boolean limitToThreshold = (Analyzer.getMeasurements()&LIMIT)!=0;
 		double minThreshold = -Float.MAX_VALUE;
@@ -35,7 +37,7 @@ public class StackStatistics extends ImageStatistics {
     	nBins = bins;
     	histMin = histogramMin;
     	histMax = histogramMax;
-        ImageStack stack = imp.getStack();
+        IjxImageStack stack = imp.getStack();
         int size = stack.getSize();
         ip.setRoi(imp.getRoi());
         byte[] mask = ip.getMaskArray();
@@ -148,7 +150,7 @@ public class StackStatistics extends ImageStatistics {
         IJ.showProgress(1.0);
     }
     
-	void sum8BitHistograms(ImagePlus imp) {
+	void sum8BitHistograms(IjxImagePlus imp) {
 		Calibration cal = imp.getCalibration();
 		boolean limitToThreshold = (Analyzer.getMeasurements()&LIMIT)!=0;
 		int minThreshold = 0;
@@ -158,7 +160,7 @@ public class StackStatistics extends ImageStatistics {
 			minThreshold = (int)ip.getMinThreshold();
 			maxThreshold = (int)ip.getMaxThreshold();
 		}
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		Roi roi = imp.getRoi();
 		histogram = new int[256];
 		int n = stack.getSize();
@@ -177,7 +179,7 @@ public class StackStatistics extends ImageStatistics {
 		IJ.showProgress(1.0);
 	}
 
-	void sum16BitHistograms(ImagePlus imp) {
+	void sum16BitHistograms(IjxImagePlus imp) {
 		Calibration cal = imp.getCalibration();
 		boolean limitToThreshold = (Analyzer.getMeasurements()&LIMIT)!=0;
 		int minThreshold = 0;
@@ -187,7 +189,7 @@ public class StackStatistics extends ImageStatistics {
 			minThreshold = (int)ip.getMinThreshold();
 			maxThreshold = (int)ip.getMaxThreshold();
 		}
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		Roi roi = imp.getRoi();
 		int[] hist16 = new int[65536];
 		int n = stack.getSize();

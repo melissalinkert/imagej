@@ -26,11 +26,11 @@ public class SocketListener implements Runnable {
 		BufferedReader is;
 		Socket clientSocket;
 		try {
-			serverSocket = new ServerSocket(ImageJ.getPort());
+			serverSocket = new ServerSocket(IJ.getInstance().getPort());
 			while (true) {
 				clientSocket = serverSocket.accept();
 				try {
-					if (IJ.debugMode) IJ.log("SocketServer: waiting on port "+ImageJ.getPort());
+					if (IJ.debugMode) IJ.log("SocketServer: waiting on port "+IJ.getInstance().getPort());
 					is = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 					String cmd = is.readLine();
 					if (IJ. debugMode) IJ.log("SocketServer: command: \""+ cmd+"\"");

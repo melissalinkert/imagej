@@ -3,7 +3,8 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.io.*;
-import java.awt.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.io.*;
 import java.util.*;
 
@@ -35,27 +36,27 @@ public class ListVirtualStack extends VirtualStack implements PlugIn {
 			IJ.error("Stack From List", "The first file on the list does not exist:\n \n"+list[0]);
 			return;
 		}
-		ImagePlus imp = IJ.openImage(list[0]);
+		IjxImagePlus imp = IJ.openImage(list[0]);
 		if (imp==null) return;
 		imageWidth = imp.getWidth();
 		imageHeight = imp.getHeight();
 		setBitDepth(imp.getBitDepth());
-		ImageStack stack = this;
+		IjxImageStack stack = this;
 		if (!showDialog(imp)) return;
 		if (!virtual)
 			stack = convertToRealStack(imp);
-		ImagePlus imp2 = new ImagePlus(name, stack);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus(name, stack);
 		imp2.setCalibration(imp.getCalibration());
 		imp2.show();
 	}
 	
-	boolean showDialog(ImagePlus imp) {
+	boolean showDialog(IjxImagePlus imp) {
 		double bytesPerPixel = 1;
 		switch (imp.getType()) {
-			case ImagePlus.GRAY16:
+			case IjxImagePlus.GRAY16:
 				bytesPerPixel=2; break;
-			case ImagePlus.COLOR_RGB:
-			case ImagePlus.GRAY32:
+			case IjxImagePlus.COLOR_RGB:
+			case IjxImagePlus.GRAY32:
 				bytesPerPixel=4; break;
 		}
 		double size = (imageWidth*imageHeight*bytesPerPixel)/(1024.0*1024.0);
@@ -71,8 +72,8 @@ public class ListVirtualStack extends VirtualStack implements PlugIn {
 		return true;
 	}
 	
-	ImageStack convertToRealStack(ImagePlus imp) {
-		ImageStack stack2 = new ImageStack(imageWidth, imageHeight, imp.getProcessor().getColorModel());
+	IjxImageStack convertToRealStack(IjxImagePlus imp) {
+		IjxImageStack stack2 = IJ.getFactory().newImageStack(imageWidth, imageHeight, imp.getProcessor().getColorModel());
 		int n = this.getSize();
 		for (int i=1; i<=this.getSize(); i++) {
 			IJ.showProgress(i, n);
@@ -124,7 +125,7 @@ public class ListVirtualStack extends VirtualStack implements PlugIn {
 	public ImageProcessor getProcessor(int n) {
 		if (n<1 || n>nImages)
 			throw new IllegalArgumentException("Argument out of range: "+n);
-		ImagePlus imp = IJ.openImage(list[n-1]);
+		IjxImagePlus imp = IJ.openImage(list[n-1]);
 		if (imp!=null) {
 			labels[n-1] = (new File(list[n-1])).getName()+"\n"+(String)imp.getProperty("Info");
 			ImageProcessor ip =  imp.getProcessor();

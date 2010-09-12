@@ -4,6 +4,7 @@ import ij.gui.*;
 import ij.process.*;
 import ij.io.*;
 import ij.plugin.filter.*;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Vector;
@@ -46,7 +47,7 @@ public class Colors implements PlugIn, ItemListener {
 			if (bc2!=bc) Toolbar.setBackgroundColor(bc);
 			if (sc2!=sc) {
 				Roi.setColor(sc);
-				ImagePlus imp = WindowManager.getCurrentImage();
+				IjxImagePlus imp = WindowManager.getCurrentImage();
 				if (imp!=null && imp.getRoi()!=null) imp.draw();
 			}
 			return;
@@ -61,7 +62,7 @@ public class Colors implements PlugIn, ItemListener {
 		if (bc2!=bc) Toolbar.setBackgroundColor(bc2);
 		if (sc2!=sc) {
 			Roi.setColor(sc2);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.draw();
 			Toolbar.getInstance().repaint();
 		}
@@ -160,7 +161,7 @@ public class Colors implements PlugIn, ItemListener {
 			Toolbar.setBackgroundColor(color);
 		else if (choice==schoice) {
 			Roi.setColor(color);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null && imp.getRoi()!=null) imp.draw();
 			Toolbar.getInstance().repaint();
 		}
@@ -185,7 +186,7 @@ public class Colors implements PlugIn, ItemListener {
 		if (gd.wasCanceled()) {
 			if (sc2!=sc) {
 				Roi.setColor(sc);
-				ImagePlus imp = WindowManager.getCurrentImage();
+				IjxImagePlus imp = WindowManager.getCurrentImage();
 				if (imp!=null && imp.getRoi()!=null) imp.draw();
 				Toolbar.getInstance().repaint();
 			}
@@ -203,12 +204,12 @@ public class Colors implements PlugIn, ItemListener {
 		if (Prefs.pointAutoNextSlice&&!Prefs.pointAddToManager)
 			Prefs.pointAutoMeasure = true;
 		if (Prefs.noPointLabels!=saveNoPointLabels) {
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.draw();
 		}
 		if (sc2!=sc) {
 			Roi.setColor(sc2);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.draw();
 			Toolbar.getInstance().repaint();
 		}

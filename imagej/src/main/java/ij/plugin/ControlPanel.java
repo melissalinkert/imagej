@@ -4,19 +4,13 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import java.util.*;
-import java.net.*;
-import java.net.URL;
 import javax.swing.*;
 import javax.swing.tree.*;
 import javax.swing.event.*;
 import ij.*;
 import ij.gui.*;
-import ij.io.*;
-import ij.plugin.*;
-import ij.plugin.filter.*;
-import ij.plugin.frame.PlugInFrame;
 import ij.util.*;
-import ij.text.TextWindow;
+import ijx.IjxTopComponent;
 
 /**ControlPanel.
  *
@@ -40,7 +34,6 @@ public class ControlPanel implements PlugIn {
 	private static final char sep=fileSeparator.charAt(0);
 
 	/** The instance of ImageJ application we're running */
-	private static ImageJ ij=IJ.getInstance();
 
 	private Hashtable panels = new Hashtable();
 	private Vector visiblePanels = new Vector();
@@ -878,7 +871,7 @@ class TreePanel implements
 		if (pFrame.getLocation().x==0)
 			GUI.center(pFrame);
 		setVisible();
-		ImageJ ij = IJ.getInstance();
+		IjxTopComponent ij = IJ.getTopComponent();
 		//ij.addWindowListener(this);
 		pFrame.addKeyListener(ij);
 		pTree.addKeyListener(ij);

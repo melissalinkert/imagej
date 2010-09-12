@@ -9,6 +9,7 @@ import ij.gui.*;
 import ij.plugin.filter.Analyzer;
 import ij.measure.ResultsTable;
 import ij.macro.Interpreter;
+import ijx.app.IjxApplication;
 import ijx.gui.IjxWindow;
 
 /** Uses a TextPanel to displays text in a window.
@@ -51,7 +52,7 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 	public TextWindow(String title, String headings, String data, int width, int height) {
 		super(title);
 		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
-		if (IJ.isLinux()) setBackground(ImageJ.backgroundColor);
+		if (IJ.isLinux()) setBackground(IJ.backgroundColor);
 		textPanel = new TextPanel(title);
 		textPanel.setTitle(title);
 		add("Center", textPanel);
@@ -59,7 +60,7 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 		if (data!=null && !data.equals(""))
 			textPanel.append(data);
 		addKeyListener(textPanel);
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		if (ij!=null) {
 			Image img = ij.getIconImage();
 			if (img!=null)
@@ -234,8 +235,9 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
         setFont();
 	}
 
-	public void close() {
+	public boolean close() {
 		close(true);
+        return true;
 	}
 	
 	/** Closes this TextWindow. Display a "save changes" dialog
@@ -272,7 +274,7 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 	boolean saveContents() {
 		int lineCount = textPanel.getLineCount();
 		if (!textPanel.unsavedLines) lineCount = 0;
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		boolean macro = IJ.macroRunning() || Interpreter.isBatchMode();
 		if (lineCount>0 && !macro && ij!=null && !ij.quitting()) {
 			YesNoCancelDialog d = new YesNoCancelDialog(this, getTitle(), "Save "+lineCount+" measurements?");
@@ -313,5 +315,13 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 	}
 
 	public void focusLost(FocusEvent e) {}
+
+    public boolean isClosed() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public boolean canClose() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
 }

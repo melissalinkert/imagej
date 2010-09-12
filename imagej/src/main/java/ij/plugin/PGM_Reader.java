@@ -3,6 +3,7 @@ package ij.plugin;
 import ij.*;
 import ij.io.*;
 import ij.process.*;
+import ijx.IjxImageStack;
 import java.io.*;
 
 /**
@@ -78,7 +79,7 @@ public class PGM_Reader extends ImagePlus implements PlugIn {
         String path = directory + name;
 
         IJ.showStatus("Opening: " + path);
-        ImageStack stack;
+        IjxImageStack stack;
         try {
             stack = openFile(path);
         }
@@ -96,7 +97,7 @@ public class PGM_Reader extends ImagePlus implements PlugIn {
         if (arg.equals("")) show();
     }
 
-    public ImageStack openFile(String path) throws IOException {
+    public IjxImageStack openFile(String path) throws IOException {
         InputStream is = new BufferedInputStream(new FileInputStream(path));
         try {
 			StreamTokenizer tok = new StreamTokenizer(is); //deprecated, but it works
@@ -114,12 +115,12 @@ public class PGM_Reader extends ImagePlus implements PlugIn {
 			if (!isColor && sixteenBits) { // 16-bit grayscale
 				if (rawBits) {
 					ImageProcessor ip = open16bitRawImage(is, width, height);
-					ImageStack stack = new ImageStack(width, height);
+					IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 					stack.addSlice("", ip);
 					return stack;
 				} else {
 					ImageProcessor ip = open16bitAsciiImage(tok, width, height);
-					ImageStack stack = new ImageStack(width, height);
+					IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 					stack.addSlice("", ip);
 					return stack;
 				}
@@ -145,7 +146,7 @@ public class PGM_Reader extends ImagePlus implements PlugIn {
 					} else
 						pixels[i] = (byte) (0xff & (255 * (int) (0xff & pixels[i]) / maxValue));
 				}
-				ImageStack stack = new ImageStack(width, height);
+				IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 				stack.addSlice("", ip);
 				return stack;
 			}
@@ -167,7 +168,7 @@ public class PGM_Reader extends ImagePlus implements PlugIn {
 					b = (b * 255 / maxValue);
 					pixels[i] = 0xFF000000 | r | g | b;
 				}
-				ImageStack stack = new ImageStack(width, height);
+				IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 				stack.addSlice("", ip);
 				return stack;
 			}
@@ -199,7 +200,7 @@ public class PGM_Reader extends ImagePlus implements PlugIn {
 					blue[i] = (short)(pixels[i*3+2]&0xffffff);
 				}
 			}
-			ImageStack stack = new ImageStack(width, height);
+			IjxImageStack stack = IJ.getFactory().newImageStack(width, height);
 			stack.addSlice("red", new ShortProcessor(width, height, red, null));
 			stack.addSlice("green", new ShortProcessor(width, height, green, null));
 			stack.addSlice("blue", new ShortProcessor(width, height, blue, null));

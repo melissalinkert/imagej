@@ -2,9 +2,9 @@ package ij.plugin;
 import ij.*;
 import ij.io.*;
 import ij.macro.*;
-import ij.text.*;
-import ij.util.*;
 import ij.plugin.frame.Editor;
+import ijx.IjxImagePlus;
+import ijx.app.IjxApplication;
 import java.io.*;
 import java.lang.reflect.*;
 
@@ -96,7 +96,7 @@ public class Macro_Runner implements PlugIn {
 			interp.abortMacro();
 			IJ.showStatus("");
 			IJ.showProgress(1.0);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.unlock();
 			String msg = e.getMessage();
 			if (e instanceof RuntimeException && msg!=null && e.getMessage().equals(Macro.MACRO_CANCELED))
@@ -140,9 +140,9 @@ public class Macro_Runner implements PlugIn {
 	}
 
 	public String runMacroFromIJJar(String name, String arg) {
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		//if (ij==null) return null;
-		Class c = ij!=null?ij.getClass():(new ImageStack()).getClass();
+		Class c = ij!=null?ij.getClass():(IJ.getFactory().newImageStack()).getClass();
 		name = name.substring(7);
 		String macro = null;
         try {

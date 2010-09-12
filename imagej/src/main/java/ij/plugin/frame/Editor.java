@@ -6,12 +6,12 @@ import java.util.*;
 import java.awt.datatransfer.*;																																																																																													
 import ij.*;
 import ij.gui.*;
-import ij.util.Tools;
 import ij.text.*;
 import ij.macro.*;
 import ij.plugin.MacroInstaller;
-import ij.plugin.NewPlugin;
 import ij.io.SaveDialog;
+import ijx.IjxImagePlus;
+import ijx.app.IjxApplication;
 
 /** This is a simple TextArea based editor for editing and compiling plugins. */
 public class Editor extends PlugInFrame implements ActionListener, ItemListener,
@@ -524,7 +524,7 @@ public class Editor extends PlugInFrame implements ActionListener, ItemListener,
 	}
 
 	void copyToInfo() { 
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) {
 			IJ.noImage();
 			return;
@@ -707,9 +707,9 @@ public class Editor extends PlugInFrame implements ActionListener, ItemListener,
 	}
 
 	/** Overrides close() in PlugInFrame. */
-	public void close() {
+	public boolean close() {
 		boolean okayToClose = true;
-		ImageJ ij = IJ.getInstance();
+		IjxApplication ij = IJ.getInstance();
 		if (!getTitle().equals("Errors") && changes && !IJ.isMacro() && ij!=null && !ij.quitting()) {
 			String msg = "Save changes to \"" + getTitle() + "\"?";
 			YesNoCancelDialog d = new YesNoCancelDialog(this, "Editor", msg);
@@ -725,6 +725,7 @@ public class Editor extends PlugInFrame implements ActionListener, ItemListener,
 			nWindows--;
 			instance = null;
 		}
+        return true;
 	}
 
 	public void saveAs() {

@@ -4,9 +4,10 @@ import java.util.*;
 import ij.*;
 import ij.process.*;
 import ij.util.*;
-import ij.plugin.filter.Analyzer;
 import ij.macro.Interpreter;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageWindow;
 
 
 /** This class is an image that line graphs can be drawn on. */
@@ -629,10 +630,10 @@ public class Plot {
 		return ip;
 	}
 	
-	/** Returns the plot as an ImagePlus. */
-	public ImagePlus getImagePlus() {
+	/** Returns the plot as an IjxImagePlus. */
+	public IjxImagePlus getImagePlus() {
 		draw();
-		ImagePlus img = new ImagePlus(title, ip);
+		IjxImagePlus img = IJ.getFactory().newImagePlus(title, ip);
 		Calibration cal = img.getCalibration();
 		cal.xOrigin = LEFT_MARGIN;
 		cal.yOrigin = TOP_MARGIN+frameHeight+yMin*yScale;
@@ -650,14 +651,14 @@ public class Plot {
 			ip.invert();
 		}
 		if ((IJ.macroRunning() && IJ.getInstance()==null) || Interpreter.isBatchMode()) {
-			ImagePlus imp = new ImagePlus(title, ip);
+			IjxImagePlus imp = IJ.getFactory().newImagePlus(title, ip);
 			WindowManager.setTempCurrentImage(imp);
 			imp.setProperty("XValues", xValues); //Allows values to be retrieved by 
 			imp.setProperty("YValues", yValues); // by Plot.getValues() macro function
 			Interpreter.addBatchModeImage(imp);
 			return null;
 		}
-		ImageWindow.centerNextImage();
+		WindowManager.setCenterNextImage(true);
 		return new PlotWindow(this);
 	}
 	

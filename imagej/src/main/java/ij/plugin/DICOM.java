@@ -7,12 +7,13 @@ import ij.io.*;
 import ij.process.*;
 import ij.util.Tools;
 import ij.measure.Calibration;
+import ijx.IjxImagePlus;
 
 /** This plugin decodes DICOM files. If 'arg' is empty, it
 	displays a file open dialog and opens and displays the 
 	image selected by the user. If 'arg' is a path, it opens the 
 	specified image and the calling routine can display it using
-	"((ImagePlus)IJ.runPlugIn("ij.plugin.DICOM", path)).show()".
+	"((IjxImagePlus)IJ.runPlugIn("ij.plugin.DICOM", path)).show()".
 	*/
 
 /* RAK (Richard Kirk, rak@cre.canon.co.uk) changes 14/7/99
@@ -103,7 +104,7 @@ public class DICOM extends ImagePlus implements PlugIn {
 		}
 		if (fi!=null && fi.width>0 && fi.height>0 && fi.offset>0) {
 			FileOpener fo = new FileOpener(fi);
-			ImagePlus imp = fo.open(false);
+			IjxImagePlus imp = fo.open(false);
 			ImageProcessor ip = imp.getProcessor();
 			if (Prefs.openDicomsAsFloat) {
 				ip = ip.convertToFloat();
@@ -166,7 +167,7 @@ public class DICOM extends ImagePlus implements PlugIn {
 	}
 	
 	/** Convert 16-bit signed to unsigned if all pixels>=0. */
-	void convertToUnsigned(ImagePlus imp, FileInfo fi) {
+	void convertToUnsigned(IjxImagePlus imp, FileInfo fi) {
 		ImageProcessor ip = imp.getProcessor();
 		short[] pixels = (short[])ip.getPixels();
 		int min = Integer.MAX_VALUE;

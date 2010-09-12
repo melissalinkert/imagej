@@ -5,7 +5,9 @@ import ij.process.*;
 import ij.plugin.filter.*;
 import ij.measure.Calibration;
 import ij.plugin.frame.Recorder;
-import ij.macro.Interpreter;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 
 /** This plugin implements the Process/Image Calculator command.
 <pre>
@@ -37,13 +39,13 @@ public class ImageCalculator implements PlugIn {
 		IJ.register(ImageCalculator.class);
 		String[] titles = new String[wList.length];
 		for (int i=0; i<wList.length; i++) {
-			ImagePlus imp = WindowManager.getImage(wList[i]);
+			IjxImagePlus imp = WindowManager.getImage(wList[i]);
 			if (imp!=null)
 				titles[i] = imp.getTitle();
 			else
 				titles[i] = "";
 		}
-		GenericDialog gd = new GenericDialog("Image Calculator", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Image Calculator", IJ.getTopComponentFrame());
 		String defaultItem;
 		if (title1.equals(""))
 			defaultItem = titles[0];
@@ -71,9 +73,9 @@ public class ImageCalculator implements PlugIn {
 		createWindow = gd.getNextBoolean();
 		floatResult = gd.getNextBoolean();		
 		title2 = titles[index2];
-		ImagePlus img1 = WindowManager.getImage(wList[index1]);
-		ImagePlus img2 = WindowManager.getImage(wList[index2]);
-		ImagePlus img3 = calculate(img1, img2, false);
+		IjxImagePlus img1 = WindowManager.getImage(wList[index1]);
+		IjxImagePlus img2 = WindowManager.getImage(wList[index2]);
+		IjxImagePlus img3 = calculate(img1, img2, false);
 		if (img3!=null) img3.show();
 	}
 	
@@ -84,11 +86,11 @@ public class ImageCalculator implements PlugIn {
 	to be 32-bit floating-point and "stack" causes the entire stack to be processed. For example
 	<pre>
        ImageCalculator ic = new ImageCalculator();
-       ImagePlus imp3 = ic.calculate("divide create 32-bit", imp1, imp2);
+       IjxImagePlus imp3 = ic.calculate("divide create 32-bit", imp1, imp2);
      </pre>
       divides 'imp1' by 'imp2' and returns the result as a new 32-bit image.
 	*/
-	public ImagePlus run(String params, ImagePlus img1, ImagePlus img2) {
+	public IjxImagePlus run(String params, IjxImagePlus img1, IjxImagePlus img2) {
 		if (img1==null || img2==null || params==null) return null;
 		operator = getOperator(params);
 		if (operator==-1)
@@ -101,9 +103,9 @@ public class ImageCalculator implements PlugIn {
 	
 	/**
 	* @deprecated
-	* replaced by run(String,ImagePlus,ImagePlus)
+	* replaced by run(String,IjxImagePlus,IjxImagePlus)
 	*/
-	public void calculate(String params, ImagePlus img1, ImagePlus img2) {
+	public void calculate(String params, IjxImagePlus img1, IjxImagePlus img2) {
 		if (img1==null || img2==null || params==null) return;
 		operator = getOperator(params);
 		if (operator==-1)
@@ -111,7 +113,7 @@ public class ImageCalculator implements PlugIn {
 		createWindow = params.indexOf("create")!=-1;
 		floatResult= params.indexOf("32")!=-1 || params.indexOf("float")!=-1;
 		processStack = params.indexOf("stack")!=-1;
-		ImagePlus img3 = calculate(img1, img2, true);
+		IjxImagePlus img3 = calculate(img1, img2, true);
 		if (img3!=null) img3.show();
 	}
 	
@@ -131,8 +133,8 @@ public class ImageCalculator implements PlugIn {
 		return op;
 	}
 		
-	ImagePlus calculate(ImagePlus img1, ImagePlus img2, boolean apiCall) {
-		ImagePlus img3 = null;
+	IjxImagePlus calculate(IjxImagePlus img1, IjxImagePlus img2, boolean apiCall) {
+		IjxImagePlus img3 = null;
 		if (img1.getCalibration().isSigned16Bit() || img2.getCalibration().isSigned16Bit())
 			floatResult = true;
 		if (floatResult)
@@ -173,8 +175,8 @@ public class ImageCalculator implements PlugIn {
 	}
 
 	/** img1 = img2 op img2 (e.g. img1 = img2/img1) */
-	ImagePlus doStackOperation(ImagePlus img1, ImagePlus img2) {
-		ImagePlus img3 = null;
+	IjxImagePlus doStackOperation(IjxImagePlus img1, IjxImagePlus img2) {
+		IjxImagePlus img3 = null;
 		int size1 = img1.getStackSize();
 		int size2 = img2.getStackSize();
 		if (size1>1 && size2>1 && size1!=size2) {
@@ -190,11 +192,11 @@ public class ImageCalculator implements PlugIn {
 			img3 = img1;
 		}
 		int mode = getBlitterMode();
-		ImageWindow win = img1.getWindow();
+		IjxImageWindow win = img1.getWindow();
 		if (win!=null)
 			WindowManager.setCurrentWindow(win);
 		Undo.reset();
-		ImageStack stack1 = img1.getStack();
+		IjxImageStack stack1 = img1.getStack();
 		StackProcessor sp = new StackProcessor(stack1, img1.getProcessor());
 		try {
 			if (size2==1)
@@ -207,7 +209,7 @@ public class ImageCalculator implements PlugIn {
 			return null;
 		}
 		img1.setStack(null, stack1);
-		if (img1.getType()!=ImagePlus.GRAY8) {
+		if (img1.getType()!=IjxImagePlus.GRAY8) {
 			img1.getProcessor().resetMinAndMax();
 		}
 		if (img3==null)
@@ -215,8 +217,8 @@ public class ImageCalculator implements PlugIn {
 		return img3;
 	}
 
-	ImagePlus doOperation(ImagePlus img1, ImagePlus img2) {
-		ImagePlus img3 = null;
+	IjxImagePlus doOperation(IjxImagePlus img1, IjxImagePlus img2) {
+		IjxImagePlus img3 = null;
 		int mode = getBlitterMode();
 		ImageProcessor ip1 = img1.getProcessor();
 		ImageProcessor ip2 = img2.getProcessor();
@@ -225,7 +227,7 @@ public class ImageCalculator implements PlugIn {
 		if (createWindow)
 			ip1 = createNewImage(ip1, ip2);
 		else {
-			ImageWindow win = img1.getWindow();
+			IjxImageWindow win = img1.getWindow();
 			if (win!=null)
 				WindowManager.setCurrentWindow(win);
 			ip1.snapshot();
@@ -242,7 +244,7 @@ public class ImageCalculator implements PlugIn {
 		if (!(ip1 instanceof ByteProcessor))
 			ip1.resetMinAndMax();
 		if (createWindow) {
-			img3 = new ImagePlus("Result of "+img1.getTitle(), ip1);
+			img3 = IJ.getFactory().newImagePlus("Result of "+img1.getTitle(), ip1);
 			img3.setCalibration(cal1);
 		} else
 			img1.updateAndDraw();
@@ -281,13 +283,13 @@ public class ImageCalculator implements PlugIn {
 		return mode;
 	}
 	
-	ImagePlus duplicateStack(ImagePlus img1) {
+	IjxImagePlus duplicateStack(IjxImagePlus img1) {
 		Calibration cal = img1.getCalibration();
-		ImageStack stack1 = img1.getStack();
+		IjxImageStack stack1 = img1.getStack();
 		int width = stack1.getWidth();
 		int height = stack1.getHeight();
 		int n = stack1.getSize();
-		ImageStack stack2 = img1.createEmptyStack();
+		IjxImageStack stack2 = img1.createEmptyStack();
 		try {
 			for (int i=1; i<=n; i++) {
 				ImageProcessor ip1 = stack1.getProcessor(i);
@@ -305,7 +307,7 @@ public class ImageCalculator implements PlugIn {
 			stack2 = null;
 			return null;
 		}
-		ImagePlus img3 = new ImagePlus("Result of "+img1.getTitle(), stack2);
+		IjxImagePlus img3 = IJ.getFactory().newImagePlus("Result of "+img1.getTitle(), stack2);
 		img3.setCalibration(cal);
 		if (img3.getStackSize()==n) {
 			int[] dim = img1.getDimensions();

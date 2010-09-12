@@ -1,6 +1,5 @@
 package ij.plugin.filter;
-import ij.*;
-import ij.process.*;
+import ijx.IjxImagePlus;
 
 /** ImageJ plugins that process an image may implement this interface.
  *  In addition to the features of PlugInFilter, it is better suited
@@ -50,7 +49,7 @@ public interface ExtendedPlugInFilter extends PlugInFilter {
      * of the flags specified in interfaces <code>PlugInFilter</code> and
      * <code>ExtendedPlugInFilter</code>.
      */
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr);
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr);
 
     /**
      * This method is called by ImageJ to inform the plugin-filter

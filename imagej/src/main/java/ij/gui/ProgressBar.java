@@ -1,4 +1,5 @@
 package ij.gui;
+import ij.IJ;
 import ij.macro.Interpreter;
 import java.awt.*;
 import java.awt.image.*;
@@ -17,7 +18,7 @@ public class ProgressBar extends Canvas {
 	
 	private Color barColor = Color.gray;
 	private Color fillColor = new Color(204,204,255);
-	private Color backgroundColor = ij.ImageJ.backgroundColor;
+	private Color backgroundColor = IJ.backgroundColor;
 	private Color frameBrighter = backgroundColor.brighter();
 	private Color frameDarker = backgroundColor.darker();
 

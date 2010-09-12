@@ -1,16 +1,16 @@
 package ij;
 
-import ij.ImagePlus;
 
 import ij.gui.ImageCanvas;
 import ij.gui.MenuCanvas;
 import ij.gui.ScrollbarWithLabel;
-import ij.gui.StackWindow;
 
 import ij.io.PluginClassLoader;
 import ijx.IjxImagePlus;
 import ijx.IjxTopComponent;
+import ijx.ImageJX;
 import ijx.app.IjxApplication;
+import ijx.gui.IjxStackWindow;
 
 import java.applet.Applet;
 import java.awt.BorderLayout;
@@ -122,13 +122,13 @@ public class ImageJApplet extends Applet {
             if (c instanceof ImageCanvas) {
                 image = ((ImageCanvas) c).getImage();
 
-                if (image.getWindow() instanceof StackWindow) {
-                    StackWindow stackWindow = (StackWindow) image.getWindow();
+                if (image.getWindow() instanceof IjxStackWindow) {
+                    IjxStackWindow IjxStackWindow = (IjxStackWindow) image.getWindow();
                     GridBagConstraints b = new GridBagConstraints();
 
-                    scrollC = stackWindow.getCSelector();
-                    scrollZ = stackWindow.getZSelector();
-                    scrollT = stackWindow.getTSelector();
+                    scrollC = IjxStackWindow.getCSelector();
+                    scrollZ = IjxStackWindow.getZSelector();
+                    scrollT = IjxStackWindow.getTSelector();
 
                     if (scrollC != null) {
                         b.fill = GridBagConstraints.HORIZONTAL;
@@ -195,14 +195,14 @@ public class ImageJApplet extends Applet {
     public void init() {
         IjxTopComponent ij = IJ.getTopComponent();
         if (ij == null || (ij != null && !ij.isVisible())) {
-            new ImageJ(this);
+            new ImageJX(this);
         }
         for (int i = 1; i <= 9; i++) {
             String url = getURLParameter("url" + i);
             if (url == null) {
                 break;
             }
-            ImagePlus imp = new ImagePlus(url);
+            IjxImagePlus imp = IJ.getFactory().newImagePlus(url);
             if (imp != null) {
                 imp.show();
             }

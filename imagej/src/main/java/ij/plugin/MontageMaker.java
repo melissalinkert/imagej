@@ -3,9 +3,9 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
-import java.awt.image.*;
-import java.awt.event.*;
 
 /** Implements the Image/Stacks/Make Montage command. */
 public class MontageMaker implements PlugIn {
@@ -19,7 +19,7 @@ public class MontageMaker implements PlugIn {
 	private static int fontSize = 12;
 
 	public void run(String arg) {
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null || imp.getStackSize()==1)
 			{IJ.error("Stack required"); return;}
 		if (imp.isHyperStack()) {
@@ -37,7 +37,7 @@ public class MontageMaker implements PlugIn {
 			int mode = ci.getMode();
 			if (mode==CompositeImage.COMPOSITE)
 				ci.setMode(CompositeImage.COLOR);
-			ImageStack stack = new ImageStack(imp.getWidth(), imp.getHeight());
+			IjxImageStack stack = IJ.getFactory().newImageStack(imp.getWidth(), imp.getHeight());
 			for (int c=1; c<=channels; c++) {
 				imp.setPositionWithoutUpdate(c, imp.getSlice(), imp.getFrame());
 				Image img = imp.getImage();
@@ -46,7 +46,7 @@ public class MontageMaker implements PlugIn {
 			if (ci.getMode()!=mode)
 				ci.setMode(mode);
 			imp.setPosition(channel, imp.getSlice(), imp.getFrame());
-			imp = new ImagePlus(imp.getTitle(), stack);
+			imp = IJ.getFactory().newImagePlus(imp.getTitle(), stack);
 		}
 		makeMontage(imp);
 		imp.updateImage();
@@ -54,7 +54,7 @@ public class MontageMaker implements PlugIn {
 		IJ.register(MontageMaker.class);
 	}
 	
-	public void makeMontage(ImagePlus imp) {
+	public void makeMontage(IjxImagePlus imp) {
 			int nSlices = imp.getStackSize();
 			if (columns==0 || !(imp.getID()==saveID || nSlices==saveStackSize)) {
 				columns = (int)Math.sqrt(nSlices);
@@ -72,7 +72,7 @@ public class MontageMaker implements PlugIn {
 			}
 			saveStackSize = nSlices;
 			
-			GenericDialog gd = new GenericDialog("Make Montage", IJ.getInstance());
+			GenericDialog gd = new GenericDialog("Make Montage", IJ.getTopComponentFrame());
 			gd.addNumericField("Columns:", columns, 0);
 			gd.addNumericField("Rows:", rows, 0);
 			gd.addNumericField("Scale Factor:", scale, 2);
@@ -106,18 +106,18 @@ public class MontageMaker implements PlugIn {
 			}
 			label = gd.getNextBoolean();
 			useForegroundColor = gd.getNextBoolean();
-			ImagePlus imp2 = makeMontage2(imp, columns, rows, scale, first, last, inc, borderWidth, label);
+			IjxImagePlus imp2 = makeMontage2(imp, columns, rows, scale, first, last, inc, borderWidth, label);
 			imp2.show();
 	}
 	
 	/** Creates a montage and displays it. */
-	public void makeMontage(ImagePlus imp, int columns, int rows, double scale, int first, int last, int inc, int borderWidth, boolean labels) {
-		ImagePlus imp2 = makeMontage2(imp, columns, rows, scale, first, last, inc, borderWidth, labels);
+	public void makeMontage(IjxImagePlus imp, int columns, int rows, double scale, int first, int last, int inc, int borderWidth, boolean labels) {
+		IjxImagePlus imp2 = makeMontage2(imp, columns, rows, scale, first, last, inc, borderWidth, labels);
 		imp2.show();
 	}
 
-	/** Creates a montage and returns it as an ImagePlus. */
-	public ImagePlus makeMontage2(ImagePlus imp, int columns, int rows, double scale, int first, int last, int inc, int borderWidth, boolean labels) {
+	/** Creates a montage and returns it as an IjxImagePlus. */
+	public IjxImagePlus makeMontage2(IjxImagePlus imp, int columns, int rows, double scale, int first, int last, int inc, int borderWidth, boolean labels) {
 		int stackWidth = imp.getWidth();
 		int stackHeight = imp.getHeight();
 		int nSlices = imp.getStackSize();
@@ -153,7 +153,7 @@ public class MontageMaker implements PlugIn {
 		Dimension screen = IJ.getScreenSize();
 		montage.setFont(new Font("SansSerif", Font.PLAIN, fontSize));
 		montage.setAntialiasedText(true);
-		ImageStack stack = imp.getStack();
+		IjxImageStack stack = imp.getStack();
 		int x = 0;
 		int y = 0;
 		ImageProcessor aSlice;
@@ -181,7 +181,7 @@ public class MontageMaker implements PlugIn {
 			drawBorder(montage, w2, w2, montageWidth-w2, montageHeight-w2, borderWidth);
 		}
 		IJ.showProgress(1.0);
-		ImagePlus imp2 = new ImagePlus("Montage", montage);
+		IjxImagePlus imp2 = IJ.getFactory().newImagePlus("Montage", montage);
 		imp2.setCalibration(imp.getCalibration());
 		Calibration cal = imp2.getCalibration();
 		if (cal.scaled()) {

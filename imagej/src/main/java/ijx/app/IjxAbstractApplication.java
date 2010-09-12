@@ -22,6 +22,10 @@ import ijx.MenusIjx;
 import ijx.gui.IjxImageWindow;
 import java.awt.Dimension;
 import java.awt.Event;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Image;
 import java.awt.Menu;
 import java.awt.MenuComponent;
 import java.awt.MenuItem;
@@ -33,9 +37,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.URL;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
+import javax.swing.ImageIcon;
 import javax.swing.JMenuItem;
 
 /**
@@ -47,16 +53,32 @@ public class IjxAbstractApplication implements IjxApplication {
     protected static int port = DEFAULT_PORT;
     protected static String[] arguments;
     private boolean firstTime = true;
-    protected java.applet.Applet applet; // null if not running as an applet
-    private Vector classes = new Vector();
-    private boolean exitWhenQuitting;
-    private boolean quitting;
-    private long keyPressedTime, actionPerformedTime;
-    private String lastKeyCommand;
+    protected ImageJApplet applet; // null if not running as an applet
+    protected Vector classes = new Vector();
+    protected boolean exitWhenQuitting;
+    protected boolean quitting;
+    protected long keyPressedTime, actionPerformedTime;
+    protected String lastKeyCommand;
     boolean hotkey;
     protected IjxTopComponent topComponent;
     protected boolean embedded;
+    protected static String title = "ImageJA";
+    protected static String iconPath;
+    protected static boolean prefsLoaded;
+    private static IjxImagePlus clipboard;
 
+
+    /** Returns the internal clipboard or null if the internal clipboard is empty. */
+	public  IjxImagePlus getClipboard() {
+		return clipboard;
+	}
+	public  void setClipboard(IjxImagePlus imp) {
+		clipboard = imp;
+	}
+	/** Clears the internal clipboard. */
+	public void resetClipboard() {
+		clipboard = null;
+	}
 //	/** Creates a new ImageJ frame that runs as an application. */
 //	public ImageJ() {
 //		this(null, STANDALONE);
@@ -558,7 +580,7 @@ public class IjxAbstractApplication implements IjxApplication {
     Returns the port that ImageJ checks on startup to see if another instance is running.
     @see ij.SocketListener
      */
-    public static int getPort() {
+    public int getPort() {
         return port;
     }
 
@@ -642,5 +664,32 @@ public class IjxAbstractApplication implements IjxApplication {
             Prefs.set(TextWindow.WIDTH_KEY, d.width);
             Prefs.set(TextWindow.HEIGHT_KEY, d.height);
         }
+    }
+    public String getVersion() {
+        return VERSION;
+    }
+
+    public ImageJApplet getApplet() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public Image getIconImage() {
+		URL url = this.getClass().getResource("/microscope.gif");
+		if (url==null) return null;
+		Image img = new ImageIcon(url).getImage();
+           //createImage((ImageProducer)url.getContent());
+		if (img!=null) return img;
+        return null;
+    }
+
+    // @todo Move to ImageUtils, or some such.
+    public Image createCompatibleImage(int w, int h) {
+        GraphicsEnvironment environment =
+                GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice device = environment.getDefaultScreenDevice();
+        GraphicsConfiguration config = device.getDefaultConfiguration();
+        // Create an image that does not support transparency (Opaque)
+        return config.createCompatibleImage(w, h);
+        //Transparency.OPAQUE);
     }
 }

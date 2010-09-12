@@ -3,8 +3,7 @@ import ij.*;
 import ij.gui.GenericDialog;
 import ij.gui.DialogListener;
 import ij.process.*;
-import ij.plugin.filter.GaussianBlur;
-import ij.measure.Measurements;
+import ijx.IjxImagePlus;
 import java.awt.*;
 
 /** This plugin-filter implements ImageJ's Unsharp Mask command.
@@ -28,7 +27,7 @@ public class UnsharpMask implements ExtendedPlugInFilter, DialogListener {
      * @return Code describing supported formats etc.
      * (see ij.plugin.filter.PlugInFilter & ExtendedPlugInFilter)
      */
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         return flags;
     }
     
@@ -57,7 +56,7 @@ public class UnsharpMask implements ExtendedPlugInFilter, DialogListener {
     }
 
     /** Ask the user for the parameters */
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         String options = Macro.getOptions();
         boolean oldMacro = false;    //for old macros, "gaussian radius" was 2.5 sigma
         if  (options!=null) {

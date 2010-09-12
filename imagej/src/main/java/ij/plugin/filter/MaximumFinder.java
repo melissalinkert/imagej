@@ -1,9 +1,10 @@
 package ij.plugin.filter;
-import ij.plugin.filter.*;
 import ij.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
 import java.util.*;
 
@@ -65,7 +66,7 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
     private static boolean useMinThreshold;
     /** whether to find darkest points on light background */
     private static boolean lightBackground;
-    private ImagePlus imp;                          // the ImagePlus of the setup call
+    private IjxImagePlus imp;                          // the IjxImagePlus of the setup call
     private int flags = DOES_ALL|NO_CHANGES|NO_UNDO;// the flags (see interfaces PlugInFilter & ExtendedPlugInFilter)
     private boolean   thresholded;                  // whether the input image has a threshold
     private boolean   roiSaved;                     // whether the filter has changed the roi and saved the original roi
@@ -104,13 +105,13 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
      * @return      Code describing supported formats etc.
      * (see ij.plugin.filter.PlugInFilter & ExtendedPlugInFilter)
      */
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         this.imp = imp;
         noPointLabels = Prefs.noPointLabels;
         return flags;
     }
 
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         ImageProcessor ip = imp.getProcessor();
         ip.resetBinaryThreshold(); // remove invisible threshold set by MakeBinary and Convert to Mask
         thresholded = ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD;
@@ -225,7 +226,7 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
         outname += resultName;
         if (WindowManager.getImage(outname)!=null)
             outname = WindowManager.getUniqueName(outname);
-        ImagePlus maxImp = new ImagePlus(outname, outIp);
+        IjxImagePlus maxImp = IJ.getFactory().newImagePlus(outname, outIp);
         Calibration cal = imp.getCalibration().copy();
         cal.disableDensityCalibration();
         maxImp.setCalibration(cal);             //keep the spatial calibration
@@ -259,7 +260,7 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
         float globalMin = Float.MAX_VALUE;
         float globalMax = -Float.MAX_VALUE;
         for (int y=roi.y; y<roi.y+roi.height; y++) {         //find local minimum/maximum now
-            for (int x=roi.x; x<roi.x+roi.width; x++) {      //ImageStatistics won't work if we have no ImagePlus
+            for (int x=roi.x; x<roi.x+roi.width; x++) {      //ImageStatistics won't work if we have no IjxImagePlus
                 float v = ip.getPixelValue(x, y);
                 if (globalMin>v) globalMin = v;
                 if (globalMax<v) globalMax = v;
@@ -276,7 +277,7 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
         if (Thread.currentThread().isInterrupted()) return null;
         IJ.showStatus("Analyzing  maxima...");
         analyzeAndMarkMaxima(ip, typeP, maxPoints, excludeEdgesNow, isEDM, globalMin, tolerance);
-        //new ImagePlus("Pixel types",typeP.duplicate()).show();
+        //IJ.getFactory().newImagePlus("Pixel types",typeP.duplicate()).show();
         if (outputType==POINT_SELECTION || outputType==LIST || outputType==COUNT)
             return null;
         
@@ -286,10 +287,10 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
             // Segmentation required, convert to 8bit (also for 8-bit images, since the calibration
             // may have a negative slope). outIp has background 0, maximum areas 255
             outIp = make8bit(ip, typeP, isEDM, globalMin, globalMax, threshold);
-            //if (IJ.debugMode) new ImagePlus("pixel types precleanup", typeP.duplicate()).show();
+            //if (IJ.debugMode) IJ.getFactory().newImagePlus("pixel types precleanup", typeP.duplicate()).show();
             cleanupMaxima(outIp, typeP, maxPoints);     //eliminate all the small maxima (i.e. those outside MAX_AREA)
-            //if (IJ.debugMode) new ImagePlus("pixel types postcleanup", typeP).show();
-            //if (IJ.debugMode) new ImagePlus("pre-watershed", outIp.duplicate()).show();
+            //if (IJ.debugMode) IJ.getFactory().newImagePlus("pixel types postcleanup", typeP).show();
+            //if (IJ.debugMode) IJ.getFactory().newImagePlus("pre-watershed", outIp.duplicate()).show();
             if (!watershedSegment(outIp))               //do watershed segmentation
                 return null;                            //if user-cancelled, return
             if (!isEDM) cleanupExtraLines(outIp);       //eliminate lines due to local minima (none in EDM)
@@ -766,14 +767,14 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
     /** after watershed, set all pixels in the background and segmentation lines to 0
      */
     private void watershedPostProcess(ImageProcessor ip) {
-        //new ImagePlus("before postprocess",ip.duplicate()).show();
+        //IJ.getFactory().newImagePlus("before postprocess",ip.duplicate()).show();
         byte[] pixels = (byte[])ip.getPixels();
         int size = ip.getWidth()*ip.getHeight();
         for (int i=0; i<size; i++) {
            if ((pixels[i]&255)<255)
                 pixels[i] = (byte)0;
         }
-        //new ImagePlus("after postprocess",ip.duplicate()).show();
+        //IJ.getFactory().newImagePlus("after postprocess",ip.duplicate()).show();
     }
 
     /** delete particles corresponding to edge maxima
@@ -829,13 +830,13 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
      * later. On output, all particles will be set to 255, segmentation lines remain at their
      * old value.
      * @param ip  The byteProcessor containing the image, with size given by the class variables width and height
-     * @return    false if canceled by the user (note: can be cancelled only if called by "run" with a known ImagePlus)
+     * @return    false if canceled by the user (note: can be cancelled only if called by "run" with a known IjxImagePlus)
      */    
     private boolean watershedSegment(ByteProcessor ip) {
         boolean debug = IJ.debugMode;
-        ImageStack movie=null;
+        IjxImageStack movie=null;
         if (debug) {
-            movie = new ImageStack(ip.getWidth(), ip.getHeight());
+            movie = IJ.getFactory().newImageStack(ip.getWidth(), ip.getHeight());
             movie.addSlice("pre-watershed EDM", ip.duplicate());
         }
         byte[] pixels = (byte[])ip.getPixels();
@@ -936,7 +937,7 @@ public class MaximumFinder implements ExtendedPlugInFilter, DialogListener {
                 movie.addSlice("level "+level, ip.duplicate());
         }
         if (debug)
-            new ImagePlus("Segmentation Movie", movie).show();
+            IJ.getFactory().newImagePlus("Segmentation Movie", movie).show();
         return true;
     } // boolean watershedSegment
 

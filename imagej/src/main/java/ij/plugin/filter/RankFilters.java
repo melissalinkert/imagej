@@ -4,8 +4,9 @@ import ij.gui.GenericDialog;
 import ij.gui.DialogListener;
 import ij.process.*;
 import ij.plugin.ContrastEnhancer;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
-import java.awt.event.*;
 
 /** This plugin implements the Mean, Minimum, Maximum, Variance, Median,
  *  Remove Outliers and Despeckle commands. */
@@ -21,7 +22,7 @@ public class RankFilters implements ExtendedPlugInFilter, DialogListener {
     // F u r t h e r   c l a s s   v a r i a b l e s
     int flags = DOES_ALL|SUPPORTS_MASKING|CONVERT_TO_FLOAT|SNAPSHOT|KEEP_PREVIEW|
             PARALLELIZE_STACKS;
-    private ImagePlus imp;
+    private IjxImagePlus imp;
     private int nPasses = 1;            // The number of passes (color channels * stack slices)
     private int pass;                   // Current pass
     protected int kRadius;              // kernel radius. Size is (2*kRadius+1)^2
@@ -32,10 +33,10 @@ public class RankFilters implements ExtendedPlugInFilter, DialogListener {
      * of the filter.
      *
      * @param arg   Defines type of filter operation
-     * @param imp   The ImagePlus to be processed
+     * @param imp   The IjxImagePlus to be processed
      * @return      Flags specifying further action of the PlugInFilterRunner
      */    
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         this.imp = imp;
             if (arg.equals("mean"))
                 filterType = MEAN;
@@ -61,14 +62,14 @@ public class RankFilters implements ExtendedPlugInFilter, DialogListener {
         return flags;
     }
 
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
         if (filterType == DESPECKLE) {
             filterType = MEDIAN;
             makeKernel(1.0);
         } else {
             GenericDialog gd = new GenericDialog(command+"...");
             gd.addNumericField("Radius", radius, 1, 6, "pixels");
-            int digits = imp.getType() == ImagePlus.GRAY32 ? 2 : 0;
+            int digits = imp.getType() == IjxImagePlus.GRAY32 ? 2 : 0;
             if(filterType == OUTLIERS) {
                 gd.addNumericField("Threshold", threshold, digits);
                 gd.addChoice("Which Outliers", outlierStrings, outlierStrings[whichOutliers]);
@@ -400,7 +401,7 @@ public class RankFilters implements ExtendedPlugInFilter, DialogListener {
 
     void showMasks() {
         int w=150, h=150;
-        ImageStack stack = new ImageStack(w, h);
+        IjxImageStack stack = IJ.getFactory().newImageStack(w, h);
         //for (double r=0.1; r<3; r+=0.01) {
         for (double r=0.5; r<50; r+=0.5) {
             ImageProcessor ip = new FloatProcessor(w,h,new int[w*h]);
@@ -411,7 +412,7 @@ public class RankFilters implements ExtendedPlugInFilter, DialogListener {
                     pixels[p] = 1f;
             stack.addSlice("radius="+r+", size="+(2*kRadius+1), ip);
         }
-        new ImagePlus("Masks", stack).show();
+        IJ.getFactory().newImagePlus("Masks", stack).show();
     }
 
     /** This method is called by ImageJ to set the number of calls to run(ip)

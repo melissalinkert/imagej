@@ -4,24 +4,22 @@
  */
 package imagej.awt;
 
-import ij.ImagePlus;
-import ij.ImageStack;
 import ijx.IjxFactory;
+import ijx.IjxImageStack;
 import ijx.IjxImagePlus;
-import ij.gui.WindowAWT;
 import ijx.gui.IjxDialog;
 import ijx.gui.IjxGenericDialog;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
-import ijx.gui.IjxStackWindow;
 import ijx.gui.IjxWindow;
+import ij.ImagePlus;
+import ij.ImageStack;
 import ij.gui.ImageCanvas;
 import ij.gui.ImageWindow;
 import ij.gui.StackWindow;
 import ijx.plugin.frame.IjxPluginFrame;
 import ij.plugin.frame.PlugInFrame;
 import ij.process.ImageProcessor;
-import ijx.IjxImageStack;
 import java.awt.Image;
 import java.awt.image.ColorModel;
 
@@ -52,7 +50,7 @@ public class FactoryAWT implements IjxFactory {
   }
 
   public IjxImagePlus newImagePlus(String title, IjxImageStack stack) {
-    return new ImagePlus(title, (ImageStack) stack);
+    return new ImagePlus(title, (IjxImageStack) stack);
   }
 
   public IjxImagePlus[] newImagePlusArray(int n) {
@@ -68,19 +66,19 @@ public class FactoryAWT implements IjxFactory {
     return new ImageStack();
   }
 
-  public ImageStack newImageStack(int width, int height) {
+  public IjxImageStack newImageStack(int width, int height) {
     return new ImageStack(width, height);
   }
 
-  public ImageStack newImageStack(int width, int height, int size) {
+  public IjxImageStack newImageStack(int width, int height, int size) {
     return new ImageStack(width, height, size);
   }
 
-  public ImageStack newImageStack(int width, int height, ColorModel cm) {
+  public IjxImageStack newImageStack(int width, int height, ColorModel cm) {
     return new ImageStack(width, height, cm);
   }
 
-  public ImageStack[] newImageStackArray(int n) {
+  public IjxImageStack[] newImageStackArray(int n) {
     return new ImageStack[n];
   }
 
@@ -120,7 +118,7 @@ public class FactoryAWT implements IjxFactory {
   }
 
   public IjxPluginFrame newPluginFrame(String title) {
-    return new PlugInFrame(title);
+    return (IjxPluginFrame) new PlugInFrame(title);
   }
 
 }

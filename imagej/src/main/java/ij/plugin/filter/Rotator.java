@@ -2,6 +2,8 @@ package ij.plugin.filter;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.IjxImagePlus;
+import ijx.gui.IjxImageCanvas;
 import java.awt.*;
 import java.awt.geom.*;
 
@@ -13,7 +15,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 	private static boolean fillWithBackground;
 	private static boolean enlarge;
 	private static int gridLines = 1;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private int bitDepth;
 	private boolean canEnlarge;
 	private boolean isEnlarged;
@@ -22,7 +24,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 	private String[] methods = ImageProcessor.getInterpolationMethods();
 	private static int interpolationMethod = ImageProcessor.BILINEAR;
 
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.imp = imp;
 		if (imp!=null) {
 			bitDepth = imp.getBitDepth();
@@ -60,7 +62,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 		if (!gd.wasOKed())
 			drawGridLines(gridLines);
 		if (isEnlarged && imp.getStackSize()==1) {
-			imp.changes = true;
+			imp.setChanged(true);
 			imp.updateAndDraw();
 			Undo.setup(Undo.COMPOUND_FILTER_DONE, imp);
 		}
@@ -83,7 +85,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 
 
 	void drawGridLines(int lines) {
-		ImageCanvas ic = imp.getCanvas();
+		IjxImageCanvas ic = imp.getCanvas();
 		if (ic==null) return;
 		if (lines==0) {ic.setDisplayList(null); return;}
 		GeneralPath path = new GeneralPath();
@@ -102,7 +104,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 		ic.setDisplayList(path, null, null);
 	}
 	
-	public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+	public int showDialog(IjxImagePlus imp, String command, PlugInFilterRunner pfr) {
 		this.pfr = pfr;
 		String macroOptions = Macro.getOptions();
 		if (macroOptions!=null) {
@@ -112,7 +114,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 				macroOptions = macroOptions+" interpolation=None";
 			Macro.setOptions(macroOptions);
 		}
-		gd = new GenericDialog("Rotate", IJ.getInstance());
+		gd = new GenericDialog("Rotate", IJ.getTopComponentFrame());
 		gd.addNumericField("Angle (degrees):", angle, (int)angle==angle?1:2);
 		gd.addNumericField("Grid Lines:", gridLines, 0);
 		gd.addChoice("Interpolation:", methods, methods[interpolationMethod]);

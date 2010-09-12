@@ -7,8 +7,9 @@ import ij.plugin.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
-import ij.plugin.frame.Recorder;
 import ij.plugin.filter.*;
+import ijx.IjxImagePlus;
+import ijx.app.IjxApplication;
 
 /** Adjusts the lower and upper threshold levels of the active image. This
 	class is multi-threaded to provide a more responsive user interface. */
@@ -45,7 +46,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 	int previousImageType;
 	double previousMin, previousMax;
 	int previousSlice;
-	ImageJ ij;
+	IjxApplication ij;
 	double minThreshold, maxThreshold;  // 0-255
 	Scrollbar minSlider, maxSlider;
 	Label label1, label2;
@@ -60,7 +61,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 
 	public ThresholdAdjuster() {
 		super("Threshold");
-		ImagePlus cimp = WindowManager.getCurrentImage();
+		IjxImagePlus cimp = WindowManager.getCurrentImage();
 		if (cimp!=null && cimp.getBitDepth()==24) {
 			IJ.run(cimp, "Color Threshold...", "");
 			return;
@@ -77,7 +78,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		setLutColor(mode);
 		IJ.register(PasteController.class);
 
-		ij = IJ.getInstance();
+		//ij = IJ.getInstance();
 		Font font = new Font("SansSerif", Font.PLAIN, 10);
 		GridBagLayout gridbag = new GridBagLayout();
 		GridBagConstraints c = new GridBagConstraints();
@@ -212,7 +213,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		thread = new Thread(this, "ThresholdAdjuster");
 		//thread.setPriority(thread.getPriority()-1);
 		thread.start();
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
 			useExistingTheshold = isThresholded(imp);
 			setup(imp);
@@ -269,14 +270,14 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		notify();
 	}
 
-	ImageProcessor setup(ImagePlus imp) {
+	ImageProcessor setup(IjxImagePlus imp) {
 		ImageProcessor ip;
 		int type = imp.getType();
-		if (type==ImagePlus.COLOR_RGB || (imp.isComposite()&&((CompositeImage)imp).getMode()==CompositeImage.COMPOSITE))
+		if (type==IjxImagePlus.COLOR_RGB || (imp.isComposite()&&((CompositeImage)imp).getMode()==CompositeImage.COMPOSITE))
 			return null;
 		ip = imp.getProcessor();
 		boolean minMaxChange = false;		
-        boolean not8Bits = type==ImagePlus.GRAY16 || type==ImagePlus.GRAY32;
+        boolean not8Bits = type==IjxImagePlus.GRAY16 || type==IjxImagePlus.GRAY32;
 		int slice = imp.getCurrentSlice();
 		if (not8Bits) {
 			if (ip.getMin()==plot.stackMin && ip.getMax()==plot.stackMax)
@@ -394,7 +395,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		plot.repaint();
 	}
 	
-	void updateLabels(ImagePlus imp, ImageProcessor ip) {
+	void updateLabels(IjxImagePlus imp, ImageProcessor ip) {
 		double min = ip.getMinThreshold();
 		double max = ip.getMaxThreshold();
 		if (min==ImageProcessor.NO_THRESHOLD) {
@@ -422,13 +423,13 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 	}
 	
 	/** Restore image outside non-rectangular roi. */
-  	void doMasking(ImagePlus imp, ImageProcessor ip) {
+  	void doMasking(IjxImagePlus imp, ImageProcessor ip) {
 		ImageProcessor mask = imp.getMask();
 		if (mask!=null)
 			ip.reset(mask);
 	}
 
-	void adjustMinThreshold(ImagePlus imp, ImageProcessor ip, double value) {
+	void adjustMinThreshold(IjxImagePlus imp, ImageProcessor ip, double value) {
 		if (IJ.altKeyDown() || IJ.shiftKeyDown() ) {
 			double width = maxThreshold-minThreshold;
 			if (width<1.0) width = 1.0;
@@ -451,7 +452,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		scaleUpAndSet(ip, minThreshold, maxThreshold);
 	}
 
-	void adjustMaxThreshold(ImagePlus imp, ImageProcessor ip, int cvalue) {
+	void adjustMaxThreshold(IjxImagePlus imp, ImageProcessor ip, int cvalue) {
 		maxThreshold = cvalue;
 		if (minThreshold>maxThreshold) {
 			minThreshold = maxThreshold;
@@ -462,7 +463,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		IJ.setKeyUp(KeyEvent.VK_SHIFT);
 	}
 
-	void reset(ImagePlus imp, ImageProcessor ip) {
+	void reset(IjxImagePlus imp, ImageProcessor ip) {
 		boolean useStackMinAndMax = false;
 		if (!(ip instanceof ByteProcessor)) {
 			ip.resetMinAndMax();
@@ -479,7 +480,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		}
 	}
 
-	void doSet(ImagePlus imp, ImageProcessor ip) {
+	void doSet(IjxImagePlus imp, ImageProcessor ip) {
 		double level1 = ip.getMinThreshold();
 		double level2 = ip.getMaxThreshold();
 		if (level1==ImageProcessor.NO_THRESHOLD) {
@@ -538,18 +539,18 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		}
 	}
 
-	void changeState(ImagePlus imp, ImageProcessor ip) {
+	void changeState(IjxImagePlus imp, ImageProcessor ip) {
 		scaleUpAndSet(ip, minThreshold, maxThreshold);
 		updateScrollBars();
 	}
 
-	void autoThreshold(ImagePlus imp, ImageProcessor ip) {
+	void autoThreshold(IjxImagePlus imp, ImageProcessor ip) {
 		ip.resetThreshold();
 		previousImageID = 0;
 		setup(imp);
  	}
  	
- 	void apply(ImagePlus imp) {
+ 	void apply(IjxImagePlus imp) {
  		try {
  			if (imp.getBitDepth()==32) {
 				GenericDialog gd = new GenericDialog("NaN Backround");
@@ -593,7 +594,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 	}
 
 	void doUpdate() {
-		ImagePlus imp;
+		IjxImagePlus imp;
 		ImageProcessor ip;
 		int action;
 		int min = minValue;
@@ -652,19 +653,20 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 	}
 
     /** Overrides close() in PlugInFrame. */
-    public void close() {
+    public boolean close() {
     	super.close();
 		instance = null;
 		done = true;
 		synchronized(this) {
 			notify();
 		}
+        return true;
 	}
 
     public void windowActivated(WindowEvent e) {
     	super.windowActivated(e);
     	plot.requestFocus();
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null) {
 			if (!firstActivation) {
 				previousImageID = 0;
@@ -675,7 +677,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		}
 	}
 	
-	boolean isThresholded(ImagePlus imp) {
+	boolean isThresholded(IjxImagePlus imp) {
 		ImageProcessor ip = imp.getProcessor();
 		return ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD && ip.isColorLut();
 	}
@@ -684,7 +686,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
     public static void update() {
 		if (instance!=null) {
 			ThresholdAdjuster ta = ((ThresholdAdjuster)instance);
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null && ta.previousImageID==imp.getID()) {
 				ta.previousImageID = 0;
 				ta.setup(imp);
@@ -719,7 +721,7 @@ class ThresholdPlot extends Canvas implements Measurements, MouseListener {
         return new Dimension(WIDTH+1, HEIGHT+1);
     }
     
-	ImageStatistics setHistogram(ImagePlus imp, boolean useStackMinAndMax) {
+	ImageStatistics setHistogram(IjxImagePlus imp, boolean useStackMinAndMax) {
 		ImageProcessor ip = imp.getProcessor();
 		ImageStatistics stats = null;
 		if (!(ip instanceof ByteProcessor)) {

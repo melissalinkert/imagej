@@ -4,7 +4,6 @@ import ij.Command;
 import ij.CommandListener;
 import ij.CommandListenerPlus;
 import ij.IJ;
-import ij.ImagePlus;
 import ij.Macro;
 import ij.Menus;
 import ij.WindowManager;
@@ -42,7 +41,7 @@ public class ExecuterIjx implements Runnable {
 
     /** Create an Executer that runs the specified menu command
     in a separate thread using the active image image. */
-    public ExecuterIjx(String cmd, ImagePlus ignored) {
+    public ExecuterIjx(String cmd, IjxImagePlus ignored) {
         if (cmd.startsWith("Repeat")) {
             command = previousCommand;
             IJ.setKeyUp(KeyEvent.VK_SHIFT);
@@ -98,7 +97,7 @@ public class ExecuterIjx implements Runnable {
         } catch (Throwable e) {
             IJ.showStatus("");
             IJ.showProgress(1, 1);
-            ImagePlus imp = WindowManager.getCurrentImage();
+            IjxImagePlus imp = WindowManager.getCurrentImage();
             if (imp != null) {
                 imp.unlock();
             }

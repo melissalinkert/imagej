@@ -1,15 +1,15 @@
 package ij.plugin.filter;
-import ij.*;
 import ij.process.*;
 import ij.io.*;
+import ijx.IjxImagePlus;
 
 
 /** This plugin saves an image in tiff, gif, jpeg, bmp, png, text or raw format. */
 public class Writer implements PlugInFilter {
 	private String arg;
-    private ImagePlus imp;
+    private IjxImagePlus imp;
     
-	public int setup(String arg, ImagePlus imp) {
+	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
 		this.imp = imp;
 		return DOES_ALL+NO_CHANGES;

@@ -2,13 +2,13 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
-import ij.measure.Calibration;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 import java.awt.*;
-import java.util.Vector;
 
 /** Implements the Image/HyperStacks/Reduce Dimensionality command. */
 public class HyperStackReducer implements PlugIn, DialogListener {
-	ImagePlus imp;
+	IjxImagePlus imp;
 	int channels1, slices1, frames1;
 	int channels2, slices2, frames2;
 	double imageSize;
@@ -19,7 +19,7 @@ public class HyperStackReducer implements PlugIn, DialogListener {
 	}
 
 	/** Constructs a HyperStackReducer using the specified source image. */
-	public HyperStackReducer(ImagePlus imp) {
+	public HyperStackReducer(IjxImagePlus imp) {
 		this.imp = imp;
 	}
 
@@ -43,7 +43,7 @@ public class HyperStackReducer implements PlugIn, DialogListener {
 			return;
 		//IJ.log("HyperStackReducer-2: "+keep+" "+channels2+" "+slices2+" "+frames2);
 		String title2 = keep?WindowManager.getUniqueName(imp.getTitle()):imp.getTitle();
-		ImagePlus imp2 = null;
+		IjxImagePlus imp2 = null;
 		if (keep) {
 			imp2 = IJ.createImage(title2, imp.getBitDepth()+"-bit", width, height, channels2*slices2*frames2);
 			if (imp2==null) return;
@@ -60,12 +60,12 @@ public class HyperStackReducer implements PlugIn, DialogListener {
 		imp2.show();
 		//IJ.log("HyperStackReducer-4");
 		if (!keep) {
-			imp.changes = false;
+			imp.setChanged(false);
 			imp.close();
 		}
 	}
 
-	public void reduce(ImagePlus imp2) {
+	public void reduce(IjxImagePlus imp2) {
 		int channels = imp2.getNChannels();
 		int slices = imp2.getNSlices();
 		int frames = imp2.getNFrames();
@@ -74,8 +74,8 @@ public class HyperStackReducer implements PlugIn, DialogListener {
 		int t1 = imp.getFrame();
 		int i = 1;
 		int n = channels*slices*frames;
-		ImageStack stack = imp.getStack();
-		ImageStack stack2 = imp2.getStack();
+		IjxImageStack stack = imp.getStack();
+		IjxImageStack stack2 = imp2.getStack();
 		for (int c=1; c<=channels; c++) {
 			if (channels==1) c = c1;
 			LUT lut = imp.isComposite()?((CompositeImage)imp).getChannelLut():null;

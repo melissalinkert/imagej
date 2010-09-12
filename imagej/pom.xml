@@ -188,4 +188,9 @@
     </repository>
   </repositories>
 
+  <properties>
+    <netbeans.hint.license>bsd</netbeans.hint.license>
+  </properties>
+
+
 </project>

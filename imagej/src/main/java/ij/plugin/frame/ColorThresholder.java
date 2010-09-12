@@ -4,10 +4,12 @@ import ij.process.*;
 import ij.gui.*;
 import java.awt.*;
 import java.awt.image.*;
-import java.util.*;
 import java.awt.event.*;
 import ij.measure.*;
 import ij.plugin.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.app.IjxApplication;
 
 /*	This plugin isolates pixels in an RGB image or stack according to a range of Hue.
 	Original PassBand2 by Bob Dougherty. Some code borrowed from ThresholdAdjuster by Wayne Rasband.
@@ -60,7 +62,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 	private CheckboxGroup filterTypeH, filterTypeS, filterTypeB, colourMode;
 	private int previousImageID = -1;
 	private int previousSlice = -1;
-	private ImageJ ij;
+	private IjxApplication ij;
 	private int minHue = 0, minSat = 0, minBri = 0;
 	private int maxHue = 255, maxSat = 255, maxBri = 255;
 	private Scrollbar minSlider, maxSlider, minSlider2, maxSlider2, minSlider3, maxSlider3;
@@ -70,11 +72,11 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 	private byte[] fillMask;
 	private ImageProcessor fillMaskIP;
 	private int[] restore;
-	private ImagePlus imp;
+	private IjxImagePlus imp;
 	private ImageProcessor ip;
 
 	private int numSlices;
-	private ImageStack stack;
+	private IjxImageStack stack;
 	private int width, height, numPixels;
 
 	public ColorThresholder() {
@@ -87,7 +89,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		WindowManager.addWindow(this);
 		instance = this;
 
-		ij = IJ.getInstance();
+		//ij = IJ.getInstance();
 		Font font = new Font("SansSerif", Font.PLAIN, 10);
 		GridBagLayout gridbag = new GridBagLayout();
 		GridBagConstraints c = new GridBagConstraints();
@@ -614,7 +616,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		ImageProcessor mask = roi.getMask(); 
 
 		Rectangle r = roi.getBoundingRect();
-		//new ImagePlus("Mask", ipm).show(); // display the mask
+		//IJ.getFactory().newImagePlus("Mask", ipm).show(); // display the mask
 
 		ImageProcessor ip = imp.getProcessor();
 
@@ -771,10 +773,10 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		return true;
 	}
 
-	ImageProcessor setup(ImagePlus imp) {
+	ImageProcessor setup(IjxImagePlus imp) {
 		ImageProcessor ip;
 		int type = imp.getType();
-		if (type!=ImagePlus.COLOR_RGB)
+		if (type!=IjxImagePlus.COLOR_RGB)
 			return null;
 		ip = imp.getProcessor();
 		int id = imp.getID();
@@ -834,15 +836,15 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 			//This is just for a hue histogram for the plot.  Do not show it.
 			//ByteProcessor bpHue = new ByteProcessor(width,height,h,cm);
 			ByteProcessor bpHue = new ByteProcessor(width,height,hSource,cm);
-			ImagePlus impHue = new ImagePlus("Hue",bpHue);
+			IjxImagePlus impHue = IJ.getFactory().newImagePlus("Hue",bpHue);
 			//impHue.show();
 
 			ByteProcessor bpSat = new ByteProcessor(width,height,sSource,cm);
-			ImagePlus impSat = new ImagePlus("Sat",bpSat);
+			IjxImagePlus impSat = IJ.getFactory().newImagePlus("Sat",bpSat);
 			//impSat.show();
 
 			ByteProcessor bpBri = new ByteProcessor(width,height,bSource,cm);
-			ImagePlus impBri = new ImagePlus("Bri",bpBri);
+			IjxImagePlus impBri = IJ.getFactory().newImagePlus("Bri",bpBri);
 			//impBri.show();
 
 			plot.setHistogram(impHue, 0);
@@ -960,7 +962,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		}
 	}
 
-	void apply(ImagePlus imp, ImageProcessor ip) {
+	void apply(IjxImagePlus imp, ImageProcessor ip) {
 		Color col = Prefs.blackBackground?Color.black:Color.white;
 		ip.setColor(col);
 		byte fill = (byte)255;
@@ -1078,7 +1080,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		}
 	}
 
-	void reset(ImagePlus imp, ImageProcessor ip) {
+	void reset(IjxImagePlus imp, ImageProcessor ip) {
 		//Assign the pixels of ip to the data in the restore array, while
 		//taking care to not give the address the restore array to the
 		//image processor.
@@ -1100,13 +1102,14 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		close();
 	}
 
-	public void close() {
+	public boolean close() {
 		super.close();
 		instance = null;
 		done = true;
 		synchronized(this) {
 			notify();
 		}
+        return true;
 	}
 
 
@@ -1242,7 +1245,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 			return new Dimension(WIDTH+1, HEIGHT+1);
 		}
 	
-		void setHistogram(ImagePlus imp, int j) {
+		void setHistogram(IjxImagePlus imp, int j) {
 			ImageProcessor ip = imp.getProcessor();
 			ImageStatistics stats = ImageStatistics.getStatistics(ip, AREA+MODE, null);
 			int maxCount2 = 0;

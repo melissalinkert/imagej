@@ -4,6 +4,9 @@ import ij.process.*;
 import ij.gui.*;
 import java.awt.*;
 import ij.measure.*;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 import java.awt.event.*;
 
 /**	This plugin implements the Analyze/Tools/Draw Scale Bar command.
@@ -28,7 +31,7 @@ public class ScaleBar implements PlugIn {
     static int defaultFontSize = 14;
     static int fontSize;
     static boolean labelAll;
-    ImagePlus imp;
+    IjxImagePlus imp;
     double imageWidth;
     double mag;
     int xloc, yloc;
@@ -47,15 +50,15 @@ public class ScaleBar implements PlugIn {
             IJ.noImage();
      }
 
-    void labelSlices(ImagePlus imp) {
-        ImageStack stack = imp.getStack();
+    void labelSlices(IjxImagePlus imp) {
+        IjxImageStack stack = imp.getStack();
         String units = getUnits(imp);
         for (int i=1; i<=stack.getSize(); i++)
             drawScaleBar(stack.getProcessor(i), units);
         imp.setStack(stack);
     }
 
-    boolean showDialog(ImagePlus imp) {
+    boolean showDialog(IjxImagePlus imp) {
         Roi roi = imp.getRoi();
         if (roi!=null) {
             Rectangle r = roi.getBounds();
@@ -68,7 +71,7 @@ public class ScaleBar implements PlugIn {
             location = locations[UPPER_RIGHT];
 
         Calibration cal = imp.getCalibration();
-        ImageWindow win = imp.getWindow();
+        IjxImageWindow win = imp.getWindow();
         mag = (win!=null)?win.getCanvas().getMagnification():1.0;
         if (mag>1.0)
             mag = 1.0;
@@ -133,7 +136,7 @@ public class ScaleBar implements PlugIn {
          return true;
     }
 
-    void drawScaleBar(ImagePlus imp) {
+    void drawScaleBar(IjxImagePlus imp) {
           if (!updateLocation())
             return;
         Undo.setup(Undo.FILTER, imp);
@@ -141,7 +144,7 @@ public class ScaleBar implements PlugIn {
         imp.updateAndDraw();
     }
     
-    String getUnits(ImagePlus imp) {
+    String getUnits(IjxImagePlus imp) {
         String units = imp.getCalibration().getUnits();
         if (units.equals("microns"))
             units = IJ.micronSymbol+"m";

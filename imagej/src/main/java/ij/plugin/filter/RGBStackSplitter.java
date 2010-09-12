@@ -1,20 +1,20 @@
 package ij.plugin.filter;
 import ij.*;
 import ij.process.*;
-import ij.gui.*;
 import ij.measure.Calibration;
 import ij.plugin.HyperStackReducer;
-import java.awt.*;
 import ij.io.FileInfo;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
 
 /** Splits an RGB image or stack into three 8-bit grayscale images or stacks. */
 public class RGBStackSplitter implements PlugInFilter {
-    ImagePlus imp;
-    /** These are the three stacks created by the split(ImageStack) method. */
-    public ImageStack red, green, blue;
+    IjxImagePlus imp;
+    /** These are the three stacks created by the split(IjxImageStack) method. */
+    public IjxImageStack red, green, blue;
 
 
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(String arg, IjxImagePlus imp) {
         this.imp = imp;
         if (imp!=null && imp.isComposite()) {
         	splitChannels(imp);
@@ -32,25 +32,25 @@ public class RGBStackSplitter implements PlugInFilter {
     }
 
     /** Splits the specified RGB image or stack into three 8-bit grayscale images or stacks. */
-    public void split(ImagePlus imp) {
+    public void split(IjxImagePlus imp) {
     	boolean keepSource = IJ.altKeyDown();
         String title = imp.getTitle();
         Calibration cal = imp.getCalibration();
         FileInfo fi = imp.getOriginalFileInfo();
         split(imp.getStack(), keepSource);
         if (!keepSource)
-            {imp.unlock(); imp.changes=false; imp.close();}
-        ImagePlus rImp = new ImagePlus(title+" (red)",red);
+            {imp.unlock(); imp.setChanged(false); imp.close();}
+        IjxImagePlus rImp = IJ.getFactory().newImagePlus(title+" (red)",red);
         rImp.setCalibration(cal);
         rImp.setFileInfo(fi);
         rImp.show();
         if (IJ.isMacOSX()) IJ.wait(500);
-        ImagePlus gImp = new ImagePlus(title+" (green)",green);
+        IjxImagePlus gImp = IJ.getFactory().newImagePlus(title+" (green)",green);
         gImp.setCalibration(cal);
         rImp.setFileInfo(fi);
         gImp.show();
         if (IJ.isMacOSX()) IJ.wait(500);
-        ImagePlus bImp = new ImagePlus(title+" (blue)",blue);
+        IjxImagePlus bImp = IJ.getFactory().newImagePlus(title+" (blue)",blue);
         bImp.setCalibration(cal);
         bImp.setFileInfo(fi);
         bImp.show();
@@ -58,12 +58,12 @@ public class RGBStackSplitter implements PlugInFilter {
 
     /** Splits the specified RGB stack into three 8-bit grayscale stacks. 
     	Deletes the source stack if keepSource is false. */
-    public void split(ImageStack rgb, boolean keepSource) {
+    public void split(IjxImageStack rgb, boolean keepSource) {
          int w = rgb.getWidth();
          int h = rgb.getHeight();
-         red = new ImageStack(w,h);
-         green = new ImageStack(w,h);
-         blue = new ImageStack(w,h);
+         red = IJ.getFactory().newImageStack(w,h);
+         green = IJ.getFactory().newImageStack(w,h);
+         blue = IJ.getFactory().newImageStack(w,h);
          byte[] r,g,b;
          ColorProcessor cp;
          int slice = 1;
@@ -86,8 +86,8 @@ public class RGBStackSplitter implements PlugInFilter {
         }
     }
 
-	public static ImagePlus[] splitChannelsToArray(
-		ImagePlus imp,
+	public static IjxImagePlus[] splitChannelsToArray(
+		IjxImagePlus imp,
 		boolean closeAfter) {
 
 		if(!imp.isComposite()) {
@@ -105,12 +105,12 @@ public class RGBStackSplitter implements PlugInFilter {
 		int bitDepth = imp.getBitDepth();
 		int size = slices*frames;
 		FileInfo fi = imp.getOriginalFileInfo();
-		ImagePlus[] result=new ImagePlus[channels];
+		IjxImagePlus[] result=new IjxImagePlus[channels];
 		HyperStackReducer reducer = new HyperStackReducer(imp);
 		for (int c=1; c<=channels; c++) {
-			ImageStack stack2 = new ImageStack(width, height, size); // create empty stack
-			stack2.setPixels(imp.getProcessor().getPixels(), 1); // can't create ImagePlus will null 1st image
-			ImagePlus imp2 = new ImagePlus("C"+c+"-"+imp.getTitle(), stack2);
+			IjxImageStack stack2 = IJ.getFactory().newImageStack(width, height, size); // create empty stack
+			stack2.setPixels(imp.getProcessor().getPixels(), 1); // can't create IjxImagePlus will null 1st image
+			IjxImagePlus imp2 = IJ.getFactory().newImagePlus("C"+c+"-"+imp.getTitle(), stack2);
 			stack2.setPixels(null, 1);
 			imp.setPosition(c, 1, 1);
 			imp2.setDimensions(1, slices, frames);
@@ -121,14 +121,14 @@ public class RGBStackSplitter implements PlugInFilter {
 			imp2.setFileInfo(fi);
 			result[c - 1] = imp2;
 		}
-		imp.changes = false;
+		imp.setChanged(false);
 		if (closeAfter)
 			imp.close();
 		return result;
 	}
 
-	void splitChannels(ImagePlus imp) {
-		ImagePlus[] a=splitChannelsToArray(imp,true);
+	void splitChannels(IjxImagePlus imp) {
+		IjxImagePlus[] a=splitChannelsToArray(imp,true);
 		for(int i=0;i<a.length;++i)
 			a[i].show();
 	}

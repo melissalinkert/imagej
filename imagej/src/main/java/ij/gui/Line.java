@@ -3,6 +3,7 @@ import ij.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.plugin.Straightener;
+import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.KeyEvent;
@@ -46,7 +47,7 @@ public class Line extends Roi {
 		selection. 'sx' and 'sy' are screen coordinates that specify
 		the start of the line. The user will determine the end of the line
 		interactively using rubber banding. */
-	public Line(int sx, int sy, ImagePlus imp) {
+	public Line(int sx, int sy, IjxImagePlus imp) {
 		super(sx, sy, imp);
 		startxd = ic.offScreenXD(sx);
 		startyd = ic.offScreenYD(sy);
@@ -61,7 +62,7 @@ public class Line extends Roi {
 	* @deprecated
 	* replaced by Line(int, int, int, int)
 	*/
-	public Line(int ox1, int oy1, int ox2, int oy2, ImagePlus imp) {
+	public Line(int ox1, int oy1, int ox2, int oy2, IjxImagePlus imp) {
 		this(ox1, oy1, ox2, oy2);
 		setImage(imp);
 	}
@@ -436,7 +437,7 @@ public boolean contains(int x, int y) {
 		if (w<1) w = 1;
 		int max = 500;
 		if (w>max) {
-			ImagePlus imp2 = WindowManager.getCurrentImage();
+			IjxImagePlus imp2 = WindowManager.getCurrentImage();
 			if (imp2!=null) {
 				max = Math.max(max, imp2.getWidth());
 				max = Math.max(max, imp2.getHeight());

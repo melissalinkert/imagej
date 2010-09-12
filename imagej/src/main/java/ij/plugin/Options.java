@@ -3,8 +3,10 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.io.*;
-import ij.plugin.filter.*;
 import ij.plugin.frame.LineWidthAdjuster;
+import ijx.IjxImagePlus;
+import ijx.IjxImageStack;
+import ijx.gui.IjxImageWindow;
 import java.awt.*;
 
 /** This plugin implements most of the commands
@@ -29,7 +31,7 @@ public class Options implements PlugIn {
 	// Miscellaneous Options
 	void miscOptions() {
 		String key = IJ.isMacintosh()?"command":"control";
-		GenericDialog gd = new GenericDialog("Miscellaneous Options", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Miscellaneous Options", IJ.getTopComponentFrame());
 		gd.addStringField("Divide by zero value:", ""+FloatBlitter.divideByZeroValue, 10);
 		gd.addCheckbox("Use pointer cursor", Prefs.usePointerCursor);
 		gd.addCheckbox("Hide \"Process Stack?\" dialog", IJ.hideProcessStackDialog);
@@ -73,7 +75,7 @@ public class Options implements PlugIn {
 		if (width==IJ.CANCELED) return;
 		Line.setWidth(width);
 		LineWidthAdjuster.update();
-		ImagePlus imp = WindowManager.getCurrentImage();
+		IjxImagePlus imp = WindowManager.getCurrentImage();
 		if (imp!=null && imp.isProcessor()) {
 			ImageProcessor ip = imp.getProcessor();
 			ip.setLineWidth(Line.getWidth());
@@ -148,7 +150,7 @@ public class Options implements PlugIn {
 	}
 		
 	void appearance() {
-		GenericDialog gd = new GenericDialog("Appearance", IJ.getInstance());
+		GenericDialog gd = new GenericDialog("Appearance", IJ.getTopComponentFrame());
 		gd.addCheckbox("Interpolate zoomed images", Prefs.interpolateScaledImages);
 		gd.addCheckbox("Open images at 100%", Prefs.open100Percent);
 		gd.addCheckbox("Black canvas", Prefs.blackCanvas);
@@ -172,15 +174,15 @@ public class Options implements PlugIn {
 		int menuSize = (int)gd.getNextNumber();
 		if (interpolate!=Prefs.interpolateScaledImages) {
 			Prefs.interpolateScaledImages = interpolate;
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null)
 				imp.draw();
 		}
 		if (blackCanvas!=Prefs.blackCanvas) {
 			Prefs.blackCanvas = blackCanvas;
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) {
-				ImageWindow win = imp.getWindow();
+				IjxImageWindow win = imp.getWindow();
 				if (win!=null) {
 					if (Prefs.blackCanvas) {
 						win.setForeground(Color.white);
@@ -195,7 +197,7 @@ public class Options implements PlugIn {
 		}
 		if (noBorder!=Prefs.noBorder) {
 			Prefs.noBorder = noBorder;
-			ImagePlus imp = WindowManager.getCurrentImage();
+			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.repaintWindow();
 		}
 		if (useInvertingLut!=Prefs.useInvertingLut) {
@@ -212,7 +214,7 @@ public class Options implements PlugIn {
 		int[] list = WindowManager.getIDList();
 		if (list==null) return;
 		for (int i=0; i<list.length; i++) {
-			ImagePlus imp = WindowManager.getImage(list[i]);
+			IjxImagePlus imp = WindowManager.getImage(list[i]);
 			if (imp==null) return;
 			ImageProcessor ip = imp.getProcessor();
 			if (useInvertingLut != ip.isInvertedLut() && !ip.isColorLut()) {
@@ -221,7 +223,7 @@ public class Options implements PlugIn {
 				if (nImages==1)
 					ip.invert();
 				else {
-					ImageStack stack2 = imp.getStack();
+					IjxImageStack stack2 = imp.getStack();
 					for (int slice=1; slice<=nImages; slice++)
 						stack2.getProcessor(slice).invert();
 					stack2.setColorModel(ip.getColorModel());

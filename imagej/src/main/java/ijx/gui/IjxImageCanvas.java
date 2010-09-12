@@ -1,11 +1,11 @@
-// IJX: ImageJ Interface
 package ijx.gui;
 
 import ij.gui.Overlay;
+import ij.gui.Roi;
 import ijx.IjxImagePlus;
-
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
@@ -17,12 +17,13 @@ import java.util.Vector;
 
 /**
  * IjxImageCanvas: interface for a generalized Image Canvas in ImageJ
- * 
+ *
  * Refactored from ImageJ by Grant B. Harris, November 2008, at ImageJ 2008, Luxembourg
- **/
+ * and again, Sept 2010
+ *
+ * @author GBH <imagejdev.org>
+ */
 public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionListener {
-    public Graphics getGraphics();
-
     /**
      * Disable/enable popup menu.
      */
@@ -30,32 +31,51 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
 
     void fitToWindow();
 
-    Rectangle getBounds();
+    public Rectangle getBounds();
 
     /**
      * Returns the current cursor location in image coordinates.
      */
     Point getCursorLoc();
 
-    Vector getDisplayList();
+    /**
+     * @deprecated
+     * replaced by IjxImagePlus.getOverlay()
+     */
+     Vector getDisplayList();
+
+    /**
+     * Returns the IjxImagePlus object that is associated with this ImageCanvas.
+     */
+    IjxImagePlus getImage();
 
     double getMagnification();
 
-
+    /**
+     * Returns the mouse event modifiers.
+     */
     int getModifiers();
+
+    /**
+     * Use IjxImagePlus.getOverlay().
+     */
+    Overlay getOverlay();
 
     Dimension getPreferredSize();
 
+    /**
+     * Return the ROI Manager "Show All" list as an overlay.
+     */
+    Overlay getShowAllList();
+
+    /**
+     * Returns the state of the ROI Manager "Show All" flag.
+     */
     boolean getShowAllROIs();
 
     int getSliceNumber(String label);
 
     Rectangle getSrcRect();
-
-    Overlay getOverlay();
-
-    void setOverlay(Overlay overlay);
-
 
     /**
      * Converts a screen x-coordinate to an offscreen x-coordinate.
@@ -77,13 +97,10 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      */
     double offScreenYD(int sy);
 
-    void paint(Graphics g);
-
-    void repaint();
-
-    void repaint(int x, int y, int w, int h);
-
-    void resizeCanvas(int w, int h);
+    /**
+     * Enlarge the canvas if the user enlarges the window.
+     */
+    void resizeCanvas(int width, int height);
 
     /**
      * Converts an offscreen x-coordinate to a screen x-coordinate.
@@ -110,28 +127,51 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      */
     void setCursor(int sx, int sy, int ox, int oy);
 
-    void setCursor(java.awt.Cursor cursor);
+    /**
+     * Allows plugins (e.g., Orthogonal_Views) to create a custom ROI using a display list.
+     */
+    void setCustomRoi(boolean customRoi);
 
-    void setDisplayList(Vector list);
+    /**
+     * @deprecated
+     * replaced by IjxImagePlus.setOverlay(ij.gui.Overlay)
+     */
+     void setDisplayList(Vector list);
 
-    void setDisplayList(Shape shape, Color color, BasicStroke stroke);
+    /**
+     * @deprecated
+     * replaced by IjxImagePlus.setOverlay(Shape, Color, BasicStroke)
+     */
+     void setDisplayList(Shape shape, Color color, BasicStroke stroke);
+
+    /**
+     * @deprecated
+     * replaced by IjxImagePlus.setOverlay(Roi, Color, int, Color)
+     */
+     void setDisplayList(Roi roi, Color color);
 
     void setDrawingSize(int width, int height);
 
     /**
-     * ImagePlus.updateAndDraw calls this method to get paint
+     * IjxImagePlus.updateAndDraw calls this method to get paint
      * to update the image from the ImageProcessor.
      */
     void setImageUpdated();
-
-    void setMaxBounds();
-
-    void setSrcRect(Rectangle rect);
 
     void setMagnification(double magnification);
 
     void setMagnification2(double magnification);
 
+    void setMaxBounds();
+
+    /**
+     * Use IjxImagePlus.setOverlay(ij.gui.Overlay).
+     */
+    void setOverlay(Overlay overlay);
+
+    /**
+     * Enables/disables the ROI Manager "Show All" mode.
+     */
     void setShowAllROIs(boolean showAllROIs);
 
     /**
@@ -140,16 +180,31 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      */
     void setShowCursorStatus(boolean status);
 
+    void setSourceRect(Rectangle r);
+
+    void setSrcRect(Rectangle srcRect);
+
+    /**
+     * Update this ImageCanvas to have the same zoom and scale settings as the one specified.
+     */
+    void update(IjxImageCanvas icX);
+
+    void update(Graphics g);
+
+    public void repaint();
+
+    public void repaint(int x, int y, int width, int height);
+
+    public void setCursor(Cursor cursor);
+
+    public Graphics getGraphics();
+
+    void updateImage(IjxImagePlus imp);
+
     /**
      * Implements the Image/Zoom/Original Scale command.
      */
     void unzoom();
-
-    void update(Graphics g);
-
-    void update(IjxImageCanvas ic);
-
-    void updateImage(IjxImagePlus imp);
 
     /**
      * Implements the Image/Zoom/View 100% command.
@@ -159,9 +214,10 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
     /**
      * Zooms in by making the window bigger. If it can't
      * be made bigger, then make the source rectangle
-     * (srcRect) smaller and center it at (x,y).
+     * (srcRect) smaller and center it at (sx,sy). Note that
+     * sx and sy are screen coordinates.
      */
-    void zoomIn(int x, int y);
+    void zoomIn(int sx, int sy);
 
     /**
      * Zooms out by making the source rectangle (srcRect)
@@ -169,4 +225,6 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      * then make the window smaller.
      */
     void zoomOut(int x, int y);
+
+    public void paint(Graphics g);
 }

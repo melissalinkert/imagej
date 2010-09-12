@@ -1,11 +1,10 @@
 package ij.gui;
-import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import java.awt.*;
 import java.awt.image.*;
 
 	/** An ImageRoi is an Roi that displays an image as an overlay. 
-	 * @see ij.ImagePlus#setOverlay(ij.gui.Overlay)
+	 * @see ij.IjxImagePlus#setOverlay(ij.gui.Overlay)
 	 */
 public class ImageRoi extends Roi {
 	private Image img;
@@ -63,7 +62,7 @@ public class ImageRoi extends Roi {
 		return opacity;
 	}
 
-	//public void setImage(ImagePlus imp) {
+	//public void setImage(IjxImagePlus imp) {
 	//	ij.IJ.log("draw "+ic+"  "+img);
 	//	super.setImage(imp);
 	//	if (imp==null) img = null;

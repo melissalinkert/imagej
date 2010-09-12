@@ -1,14 +1,12 @@
 package ij.gui;
 
 import java.awt.*;
-import java.awt.image.*;
 import ij.*;
 import ij.process.*;
-import ij.measure.*;
 import ij.plugin.filter.Analyzer;
-import java.awt.event.KeyEvent;
 import ij.plugin.frame.Recorder;
 import ij.util.Java2; 
+import ijx.IjxImagePlus;
 
 /** This class represents a collection of points. */
 public class PointRoi extends PolygonRoi {
@@ -34,7 +32,7 @@ public class PointRoi extends PolygonRoi {
 	}
 
 	/** Creates a new PointRoi using the specified screen coordinates. */
-	public PointRoi(int sx, int sy, ImagePlus imp) {
+	public PointRoi(int sx, int sy, IjxImagePlus imp) {
 		super(makeXArray(sx, imp), makeYArray(sy, imp), 1, POINT);
 		setImage(imp);
 		width=1; height=1;
@@ -44,13 +42,13 @@ public class PointRoi extends PolygonRoi {
 
 	}
 
-	static int[] makeXArray(int value, ImagePlus imp) {
+	static int[] makeXArray(int value, IjxImagePlus imp) {
 		int[] array = new int[1];
 		array[0] = imp!=null?imp.getCanvas().offScreenX(value):value;
 		return array;
 	}
 				
-	static int[] makeYArray(int value, ImagePlus imp) {
+	static int[] makeYArray(int value, IjxImagePlus imp) {
 		int[] array = new int[1];
 		array[0] = imp!=null?imp.getCanvas().offScreenY(value):value;
 		return array;
