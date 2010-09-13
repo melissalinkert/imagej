@@ -231,7 +231,7 @@ public class OvalRoi extends Roi {
 			g.fillOval(sx1, sy1, sw, sh);
 		else
 			g.drawOval(sx1, sy1, sw, sh);
-		if (state!=CONSTRUCTING && clipboard==null && !overlay) {
+		if (getState()!=CONSTRUCTING && clipboard==null && !overlay) {
 			int size2 = HANDLE_SIZE/2;
 			drawHandle(g, sx1+sw2-size2, sy1+sh2-size2);
 			drawHandle(g, sx3-sw2-size2, sy1+sh2-size2);
@@ -245,7 +245,7 @@ public class OvalRoi extends Roi {
 		drawPreviousRoi(g);
 		if (updateFullWindow)
 			{updateFullWindow = false; imp.draw();}
-		if (state!=NORMAL) showStatus();
+		if (getState()!=NORMAL) showStatus();
 	}
 
 	/** Draws an outline of this OvalRoi on the image. */

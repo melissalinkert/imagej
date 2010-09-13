@@ -11,7 +11,7 @@ import java.awt.geom.*;
  * @author Joachim Walter
  */
 public class ScrollbarWithLabel extends Panel implements Adjustable, AdjustmentListener {
-	Scrollbar bar;
+	public Scrollbar bar;
 	private Icon icon;
 	private IjxStackWindow IjxStackWindow;
 	transient AdjustmentListener adjustmentListener;

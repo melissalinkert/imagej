@@ -54,12 +54,12 @@ public class FreehandRoi extends PolygonRoi {
 		imp.draw(xmin-margin, ymin-margin, (xmax-xmin)+margin*2, (ymax-ymin)+margin*2);
 	}
 
-	protected void handleMouseUp(int screenX, int screenY) {
-		if (state==CONSTRUCTING) {
+	public void handleMouseUp(int screenX, int screenY) {
+		if (getState()==CONSTRUCTING) {
             addOffset();
 			finishPolygon();
         }
-		state = NORMAL;
+		setState(NORMAL);
 	}
 
 }

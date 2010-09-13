@@ -59,14 +59,14 @@ public class Arrow extends Line {
 		drawArrow((Graphics2D)g, null, sx1, sy1, sx2, sy2);
 		if (doubleHeaded)
 			drawArrow((Graphics2D)g, null, sx2, sy2, sx1, sy1);
-		if (state!=CONSTRUCTING && !overlay) {
+		if (getState()!=CONSTRUCTING && !overlay) {
 			int size2 = HANDLE_SIZE/2;
 			handleColor=Color.white;
 			drawHandle(g, sx1-size2, sy1-size2);
 			drawHandle(g, sx2-size2, sy2-size2);
 			drawHandle(g, sx3-size2, sy3-size2);
 		}
-		if (state!=NORMAL)
+		if (getState()!=NORMAL)
 			IJ.showStatus(imp.getLocationAsString(x2,y2)+", angle=" + IJ.d2s(getAngle(x1,y1,x2,y2)) + ", length=" + IJ.d2s(getLength()));
 		if (updateFullWindow)
 			{updateFullWindow = false; imp.draw();}

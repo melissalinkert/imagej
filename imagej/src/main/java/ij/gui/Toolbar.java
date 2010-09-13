@@ -13,7 +13,8 @@ import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 
 /** The ImageJ toolbar. */
-public class Toolbar extends Canvas implements MouseListener, MouseMotionListener, ItemListener, ActionListener {
+public class Toolbar extends Canvas implements MouseListener,
+        MouseMotionListener, ItemListener, ActionListener, IjxToolbar {
 
 	public static final int RECTANGLE = 0;
 	public static final int OVAL = 1;
@@ -1230,7 +1231,7 @@ public class Toolbar extends Canvas implements MouseListener, MouseMotionListene
         addTool(name);
 	}
 			
-	void runMacroTool(int id) {
+	public void runMacroTool(int id) {
 		if (macroInstaller!=null)
 			macroInstaller.runMacroTool(names[id]);
 	}

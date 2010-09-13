@@ -22,12 +22,12 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	public static final int HANDLE_SIZE = 5; 
 	public static final int NOT_PASTING = -1; 
 	
-	static final int NO_MODS=0, ADD_TO_ROI=1, SUBTRACT_FROM_ROI=2; // modification states
+	public static final int NO_MODS=0, ADD_TO_ROI=1, SUBTRACT_FROM_ROI=2; // modification states
 		
 	int startX, startY, x, y, width, height;
 	int activeHandle;
-	int state;
-	int modState = NO_MODS;
+	private int state;
+    private int modState = NO_MODS;
 	int arcSize;
 	
 	public static Roi previousRoi;
@@ -171,7 +171,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		}
 	}
 	
-	IjxImagePlus getImage() {
+	public IjxImagePlus getImage() {
 		return imp;
 	}
 	
@@ -730,12 +730,12 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		return 0;
 	}
 		
-	protected void handleMouseDrag(int sx, int sy, int flags) {
+	public void handleMouseDrag(int sx, int sy, int flags) {
 		if (ic==null) return;
 		constrain = (flags&Event.SHIFT_MASK)!=0;
 		center = (flags&Event.CTRL_MASK)!=0 || (IJ.isMacintosh()&&(flags&Event.META_MASK)!=0);
 		aspect = (flags&Event.ALT_MASK)!=0;
-		switch(state) {
+		switch(getState()) {
 			case CONSTRUCTING:
 				grow(sx, sy);
 				break;
@@ -787,7 +787,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 			else
 				g.drawRect(sx1, sy1, sw, sh);
 		}
-		if (state!=CONSTRUCTING && clipboard==null && !overlay) {
+		if (getState()!=CONSTRUCTING && clipboard==null && !overlay) {
 			int size2 = HANDLE_SIZE/2;
 			drawHandle(g, sx1-size2, sy1-size2);
 			drawHandle(g, sx2-size2, sy1-size2);
@@ -799,7 +799,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 			drawHandle(g, sx1-size2, sy2-size2);
 		}
 		drawPreviousRoi(g);
-		if (state!=NORMAL) showStatus();
+		if (getState()!=NORMAL) showStatus();
 		if (updateFullWindow)
 			{updateFullWindow = false; imp.draw();}
 	}
@@ -811,8 +811,8 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	}
 	
 	void drawPreviousRoi(Graphics g) {
-		if (previousRoi!=null && previousRoi!=this && previousRoi.modState!=NO_MODS) {
-			if (type!=POINT && previousRoi.getType()==POINT && previousRoi.modState!=SUBTRACT_FROM_ROI)
+		if (previousRoi!=null && previousRoi!=this && previousRoi.getModState()!=NO_MODS) {
+			if (type!=POINT && previousRoi.getType()==POINT && previousRoi.getModState()!=SUBTRACT_FROM_ROI)
 				return;
 			previousRoi.setImage(imp);
 			previousRoi.draw(g);
@@ -907,22 +907,22 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		return -1;
 	}
 	
-	protected void mouseDownInHandle(int handle, int sx, int sy) {
-		state = MOVING_HANDLE;
+	public void mouseDownInHandle(int handle, int sx, int sy) {
+		setState(MOVING_HANDLE);
 		activeHandle = handle;
 	}
 
-	protected void handleMouseDown(int sx, int sy) {
-		if (state==NORMAL && ic!=null) {
-			state = MOVING;
+	public void handleMouseDown(int sx, int sy) {
+		if (getState()==NORMAL && ic!=null) {
+			setState(MOVING);
 			startX = ic.offScreenX(sx);
 			startY = ic.offScreenY(sy);
 			showStatus();
 		}
 	}
 		
-	protected void handleMouseUp(int screenX, int screenY) {
-		state = NORMAL;
+	public void handleMouseUp(int screenX, int screenY) {
+		setState(NORMAL);
 		if (imp==null) return;
 		imp.draw(clipX-5, clipY-5, clipWidth+10, clipHeight+10);
 		if (Recorder.record) {
@@ -952,18 +952,18 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	}
 
     void modifyRoi() {
-    	if (previousRoi==null || previousRoi.modState==NO_MODS || imp==null)
+    	if (previousRoi==null || previousRoi.getModState()==NO_MODS || imp==null)
     		return;
 		//IJ.log("modifyRoi: "+ type+"  "+modState+" "+previousRoi.type+"  "+previousRoi.modState);
     	if (type==POINT || previousRoi.getType()==POINT) {
     		if (type==POINT && previousRoi.getType()==POINT)
     			addPoint();
-    		else if (isArea() && previousRoi.getType()==POINT && previousRoi.modState==SUBTRACT_FROM_ROI)
+    		else if (isArea() && previousRoi.getType()==POINT && previousRoi.getModState()==SUBTRACT_FROM_ROI)
     			subtractPoints();
     		return;
     	}
 		Roi previous = (Roi)previousRoi.clone();
-		previous.modState = NO_MODS;
+		previous.setModState(NO_MODS);
         ShapeRoi s1  = null;
         ShapeRoi s2 = null;
         if (previousRoi instanceof ShapeRoi)
@@ -974,11 +974,11 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
             s2 = (ShapeRoi)this;
         else
             s2 = new ShapeRoi(this);
-        if (previousRoi.modState==ADD_TO_ROI)
+        if (previousRoi.getModState()==ADD_TO_ROI)
         	s1.or(s2);
         else
         	s1.not(s2);
-		previousRoi.modState = NO_MODS;
+		previousRoi.setModState(NO_MODS);
 		Roi[] rois = s1.getRois();
 		if (rois.length==0) return;
 		int type2 = rois[0].getType();
@@ -996,18 +996,18 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
     
     void addPoint() {
 		if (!(type==POINT && previousRoi.getType()==POINT)) {
-			modState = NO_MODS;
+			setModState(NO_MODS);
 			imp.draw();
 			return;
 		}
-		previousRoi.modState = NO_MODS;
+		previousRoi.setModState(NO_MODS);
 		PointRoi p1 = (PointRoi)previousRoi;
 		Rectangle r = getBounds();
 		imp.setRoi(p1.addPoint(r.x, r.y));
     }
     
     void subtractPoints() {
-		previousRoi.modState = NO_MODS;
+		previousRoi.setModState(NO_MODS);
 		PointRoi p1 = (PointRoi)previousRoi;
 		PointRoi p2 = p1.subtractPoints(this);
 		if (p2!=null)
@@ -1022,18 +1022,18 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
     public void update(boolean add, boolean subtract) {
      	if (previousRoi==null) return;
     	if (add) {
-			previousRoi.modState = ADD_TO_ROI;
+			previousRoi.setModState(ADD_TO_ROI);
    			modifyRoi();
 		} else if (subtract) {
-			previousRoi.modState = SUBTRACT_FROM_ROI;
+			previousRoi.setModState(SUBTRACT_FROM_ROI);
    			modifyRoi();
 		} else
-			previousRoi.modState = NO_MODS;
+			previousRoi.setModState(NO_MODS);
      }
 
 	protected void showStatus() {
 		String value;
-		if (state!=CONSTRUCTING && (type==RECTANGLE||type==POINT) && width<=25 && height<=25) {
+		if (getState()!=CONSTRUCTING && (type==RECTANGLE||type==POINT) && width<=25 && height<=25) {
 			ImageProcessor ip = imp.getProcessor();
 			double v = ip.getPixelValue(x,y);
 			int digits = (imp.getType()==IjxImagePlus.GRAY8||imp.getType()==IjxImagePlus.GRAY16)?0:2;
@@ -1066,7 +1066,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		imp.draw(clipX, clipY, clipWidth, clipHeight);
 	}
 	
-	void updatePaste() {
+	public void updatePaste() {
 		if (clipboard!=null) {
 			imp.getMask();
 			ImageProcessor ip = imp.getProcessor();
@@ -1356,5 +1356,26 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	public void hide() {
 		hide = true;
 	}
+
+    /**
+     * @param state the state to set
+     */
+    public void setState(int state) {
+        this.state = state;
+    }
+
+    /**
+     * @return the modState
+     */
+    public int getModState() {
+        return modState;
+    }
+
+    /**
+     * @param modState the modState to set
+     */
+    public void setModState(int modState) {
+        this.modState = modState;
+    }
 
 }

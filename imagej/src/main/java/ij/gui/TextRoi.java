@@ -159,7 +159,7 @@ public class TextRoi extends Roi {
 		if (r!=null) g.setClip(r.x, r.y, r.width, r.height);
 	}
 	
-	void drawText(Graphics g) {
+	public void drawText(Graphics g) {
 		if (hide) {
 			hide = false;
 			return;
@@ -264,7 +264,7 @@ public class TextRoi extends Roi {
 		}
 	}
 	
-	protected void handleMouseUp(int screenX, int screenY) {
+	public void handleMouseUp(int screenX, int screenY) {
 		super.handleMouseUp(screenX, screenY);
 		if (firstMouseUp) {
 			updateBounds(null);

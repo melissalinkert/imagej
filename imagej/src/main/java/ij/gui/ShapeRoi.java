@@ -136,7 +136,7 @@ public class ShapeRoi extends Roi {
 		width = r.width;
 		height = r.height;
 		
-		state = NORMAL;
+		setState(NORMAL);
 		oldX=x; oldY=y; oldWidth=width; oldHeight=height;
 				
 		AffineTransform at = new AffineTransform();

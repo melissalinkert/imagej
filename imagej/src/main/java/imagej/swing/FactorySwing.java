@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package imagej.swing;
 
 import ij.*;
@@ -9,18 +5,13 @@ import ijx.gui.IjxDialog;
 import ijx.gui.IjxGenericDialog;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
-import ijx.gui.IjxStackWindow;
 import ijx.gui.IjxWindow;
-import ijx.gui.ImageCanvasSwing;
-import ijx.gui.ImageWindowSwing;
-import ijx.gui.WindowSwing;
 import ijx.plugin.frame.IjxPluginFrame;
 import ij.plugin.frame.PlugInFrame;
 import ij.process.ImageProcessor;
 import ijx.IjxFactory;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
-import ijx.gui.StackWindowSwing;
 import java.awt.Image;
 import java.awt.image.ColorModel;
 
@@ -94,7 +85,6 @@ public class FactorySwing implements IjxFactory {
   public IjxImageWindow newImageWindow(IjxImagePlus imp, IjxImageCanvas ic) {
     return new ImageWindowSwing(imp, ic);
   }
-
 
   @Override
   public IjxImageWindow newStackWindow(IjxImagePlus imp) {

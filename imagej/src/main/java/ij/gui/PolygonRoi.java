@@ -109,7 +109,7 @@ public class PolygonRoi extends Roi {
 		clipY = y;
 		clipWidth = 1;
 		clipHeight = 1;
-		state = CONSTRUCTING;
+		setState(CONSTRUCTING);
 		userCreated = true;
 		if (lineWidth>1 && isLine())
 			updateWideLine(lineWidth);
@@ -124,7 +124,7 @@ public class PolygonRoi extends Roi {
         updatePolygon();
 		Color color =  strokeColor!=null? strokeColor:ROIColor;
 		boolean fill = false;
-		if (fillColor!=null && !isLine() && state!=CONSTRUCTING) {
+		if (fillColor!=null && !isLine() && getState()!=CONSTRUCTING) {
 			color = fillColor;
 			fill = true;
 		}
@@ -143,7 +143,7 @@ public class PolygonRoi extends Roi {
             } else
                 drawSpline(g, xSpline, ySpline, splinePoints, true, fill);
         } else {
-            if (type==POLYLINE || type==FREELINE || type==ANGLE || state==CONSTRUCTING) {
+            if (type==POLYLINE || type==FREELINE || type==ANGLE || getState()==CONSTRUCTING) {
                 g.drawPolyline(xp2, yp2, nPoints);
                 if (wideLine && !overlay) {
                 	g2d.setStroke(onePixelWide);
@@ -156,11 +156,11 @@ public class PolygonRoi extends Roi {
                 else
                 	g.drawPolygon(xp2, yp2, nPoints);
              }
-            if (state==CONSTRUCTING && type!=FREEROI && type!=FREELINE)
+            if (getState()==CONSTRUCTING && type!=FREEROI && type!=FREELINE)
                 drawStartBox(g);
         }
         if ((xSpline!=null||type==POLYGON||type==POLYLINE||type==ANGLE)
-        && state!=CONSTRUCTING && clipboard==null && !overlay) {
+        && getState()!=CONSTRUCTING && clipboard==null && !overlay) {
             if (ic!=null) mag = ic.getMagnification();
             int size2 = HANDLE_SIZE/2;
             if (activeHandle>0)
@@ -172,7 +172,7 @@ public class PolygonRoi extends Roi {
                 drawHandle(g, xp2[i]-size2, yp2[i]-size2);
         }
 		drawPreviousRoi(g);
-        if (!(state==MOVING_HANDLE||state==CONSTRUCTING||state==NORMAL))
+        if (!(getState()==MOVING_HANDLE||getState()==CONSTRUCTING||getState()==NORMAL))
             showStatus();
         if (updateFullWindow)
             {updateFullWindow = false; imp.draw();}
@@ -247,7 +247,7 @@ public class PolygonRoi extends Roi {
 		}
 	}
 
-	void handleMouseMove(int ox, int oy) {
+	public void handleMouseMove(int ox, int oy) {
 	// Do rubber banding
 		int tool = Toolbar.getToolId();
 		if (!(tool==Toolbar.POLYGON || tool==Toolbar.POLYLINE || tool==Toolbar.ANGLE)) {
@@ -331,7 +331,7 @@ public class PolygonRoi extends Roi {
 			if (imp!=null) imp.killRoi();
 			if (type!=POINT) return;
 		}
-		state = NORMAL;
+		setState(NORMAL);
 		if (imp!=null && !(type==TRACED_ROI))
 			imp.draw(x-5, y-5, width+10, height+10);
 		oldX=x; oldY=y; oldWidth=width; oldHeight=height;
@@ -343,7 +343,7 @@ public class PolygonRoi extends Roi {
 	}
 	
 	public void exitConstructingMode() {
-		if (type==POLYLINE && state==CONSTRUCTING) {
+		if (type==POLYLINE && getState()==CONSTRUCTING) {
             addOffset();
 			finishPolygon();
 		}
@@ -441,8 +441,8 @@ public class PolygonRoi extends Roi {
 		return ", angle=" + IJ.d2s(degrees);
 	}
    
-   protected void mouseDownInHandle(int handle, int sx, int sy) {
-        if (state==CONSTRUCTING)
+   public void mouseDownInHandle(int handle, int sx, int sy) {
+        if (getState()==CONSTRUCTING)
             return;
 		int ox=ic.offScreenX(sx), oy=ic.offScreenY(sy);
 		if (IJ.altKeyDown() && !(nPoints<=3 && type!=POINT)) {
@@ -452,7 +452,7 @@ public class PolygonRoi extends Roi {
 			addHandle(ox, oy); 
 			return;
 		}
-		state = MOVING_HANDLE;
+		setState(MOVING_HANDLE);
 		activeHandle = handle;
 		int m = (int)(10.0/ic.getMagnification());
 		xClipMin=ox-m; yClipMin=oy-m; xClipMax=ox+m; yClipMax=oy+m;
@@ -465,8 +465,8 @@ public class PolygonRoi extends Roi {
 		boolean splineFit = xSpline != null;
 		xSpline = null;
 		Polygon points = getPolygon();
-		modState = NO_MODS;
-		if (previousRoi!=null) previousRoi.modState = NO_MODS;
+		setModState(NO_MODS);
+		if (previousRoi!=null) previousRoi.setModState(NO_MODS);
 		int pointToDelete = getClosestPoint(ox, oy, points);
 		Polygon points2 = new Polygon();
 		for (int i=0; i<points.npoints; i++) {
@@ -488,8 +488,8 @@ public class PolygonRoi extends Roi {
 		xSpline = null;
 		Polygon points = getPolygon();
 		int n = points.npoints;
-		modState = NO_MODS;
-		if (previousRoi!=null) previousRoi.modState = NO_MODS;
+		setModState(NO_MODS);
+		if (previousRoi!=null) previousRoi.setModState(NO_MODS);
 		int pointToDuplicate = getClosestPoint(ox, oy, points);
 		Polygon points2 = new Polygon();
 		for (int i2=0; i2<n; i2++) {
@@ -678,18 +678,18 @@ public class PolygonRoi extends Roi {
 		return length;
 	}
 	
-	protected void handleMouseUp(int sx, int sy) {
-		if (state==MOVING)
-			{state = NORMAL; return;}				
-		if (state==MOVING_HANDLE) {
+	public void handleMouseUp(int sx, int sy) {
+		if (getState()==MOVING)
+			{setState(NORMAL); return;}
+		if (getState()==MOVING_HANDLE) {
 			cachedMask = null; //mask is no longer valid
-			state = NORMAL;
+			setState(NORMAL);
 			updateClipRect();
 			oldX=x; oldY=y;
 			oldWidth=width; oldHeight=height;
 			return;
 		}		
-		if (state!=CONSTRUCTING)
+		if (getState()!=CONSTRUCTING)
 			return;
 		if (IJ.spaceBarDown()) // is user scrolling image?
 			return;

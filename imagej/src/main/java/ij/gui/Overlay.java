@@ -99,10 +99,10 @@ public class Overlay {
     		get(i).hide();
     }
 
-    boolean getDrawLabels() {return label;}
+    public boolean getDrawLabels() {return label;}
     
-    void setVector(Vector v) {list = v;}
+    public void setVector(Vector v) {list = v;}
         
-    Vector getVector() {return list;}
+    public Vector getVector() {return list;}
     
 }

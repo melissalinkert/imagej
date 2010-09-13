@@ -5,9 +5,7 @@ import ij.measure.*;
 import ij.plugin.Straightener;
 import ijx.IjxImagePlus;
 import java.awt.*;
-import java.awt.image.*;
 import java.awt.event.KeyEvent;
-import java.awt.geom.*;
 
 
 /** This class represents a straight line selection. */
@@ -40,7 +38,7 @@ public class Line extends Roi {
 			updateWideLine(lineWidth);
 		updateClipRect();
 		oldX=x; oldY=y; oldWidth=width; oldHeight=height;
-		state = NORMAL;
+		setState(NORMAL);
 	}
 
 	/** Starts the process of creating a new user-generated straight line
@@ -281,8 +279,8 @@ public class Line extends Roi {
 		oldHeight = height;
 	}
 
-	protected void mouseDownInHandle(int handle, int sx, int sy) {
-		state = MOVING_HANDLE;
+	public void mouseDownInHandle(int handle, int sx, int sy) {
+		setState(MOVING_HANDLE);
 		activeHandle = handle;
 		if (getStrokeWidth()<=3)
 			ic.setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR));
@@ -311,7 +309,7 @@ public class Line extends Roi {
 			g.setColor(getColor());
 			g.drawLine(sx1, sy1, sx2, sy2);
 		}
-		if (state!=CONSTRUCTING && !overlay) {
+		if (getState()!=CONSTRUCTING && !overlay) {
 			int size2 = HANDLE_SIZE/2;
 			handleColor = strokeColor!=null?strokeColor:ROIColor;
 			drawHandle(g, sx1-size2, sy1-size2);
@@ -319,7 +317,7 @@ public class Line extends Roi {
 			drawHandle(g, sx2-size2, sy2-size2);
 			drawHandle(g, sx3-size2, sy3-size2);
 		}
-		if (state!=NORMAL)
+		if (getState()!=NORMAL)
 			IJ.showStatus(imp.getLocationAsString(x2,y2)+", angle=" + IJ.d2s(getAngle(x1,y1,x2,y2)) + ", length=" + IJ.d2s(getLength()));
 		if (updateFullWindow)
 			{updateFullWindow = false; imp.draw();}
