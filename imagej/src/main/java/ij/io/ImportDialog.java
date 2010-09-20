@@ -14,10 +14,15 @@ import ij.plugin.FileInfoVirtualStack;
 import ij.measure.Calibration;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
+import ijx.SavesPrefs;
+import org.openide.util.lookup.ServiceProvider;
 
 
 /** This is a dialog box used to imports raw 8, 16, 24 and 32-bit images. */
-public class ImportDialog {
+
+@ServiceProvider(service=SavesPrefs.class)
+
+public class ImportDialog implements SavesPrefs {
 	private String fileName;
     private String directory;
 	static final String TYPE = "raw.type";
@@ -230,7 +235,7 @@ public class ImportDialog {
 	}
 
 	/** Called once when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
+	public void savePreferences(Properties prefs) {
 		prefs.put(TYPE, Integer.toString(choiceSelection));
 		prefs.put(WIDTH, Integer.toString(width));
 		prefs.put(HEIGHT, Integer.toString(height));

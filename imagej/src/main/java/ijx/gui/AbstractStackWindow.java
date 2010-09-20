@@ -1,58 +1,17 @@
-/*
- * 
- * $Id$
- * 
- * Software License Agreement (BSD License)
- * 
- * Copyright (c) 2010, Expression company is undefined on line 9, column 62 in Templates/Licenses/license-bsd.txt.
- * All rights reserved.
- * 
- * Redistribution and use of this software in source and binary forms, with or without modification, are
- * permitted provided that the following conditions are met:
- * 
- *   Redistributions of source code must retain the above
- *   copyright notice, this list of conditions and the
- *   following disclaimer.
- * 
- *   Redistributions in binary form must reproduce the above
- *   copyright notice, this list of conditions and the
- *   following disclaimer in the documentation and/or other
- *   materials provided with the distribution.
- * 
- *   Neither the name of Expression company is undefined on line 24, column 41 in Templates/Licenses/license-bsd.txt. nor the names of its
- *   contributors may be used to endorse or promote products
- *   derived from this software without specific prior
- *   written permission of Expression company is undefined on line 27, column 43 in Templates/Licenses/license-bsd.txt.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
- * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+package ijx.gui;
 
-package imagej.swing;
-
-/**
- *
- * @author GBH <imagejdev.org>
- */
-
+import ij.gui.*;
 import ijx.gui.IjxStackWindow;
 import ijx.gui.IjxImageCanvas;
 import ijx.app.IjxApplication;
 import ijx.IjxImagePlus;
 import ij.*;
-import ij.gui.ScrollbarWithLabel;
 import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.event.*;
 
 /** This class is an extended IjxImageWindow used to display image stacks. */
-public class StackWindowSwing extends ImageWindowSwing implements IjxStackWindow {
+public class AbstractStackWindow extends AbstractImageWindow implements IjxStackWindow {
     protected Scrollbar sliceSelector; // for backward compatibity with Image5D
     protected ScrollbarWithLabel cSelector, zSelector, tSelector;
     protected Thread thread;
@@ -63,14 +22,20 @@ public class StackWindowSwing extends ImageWindowSwing implements IjxStackWindow
     int nChannels = 1, nSlices = 1, nFrames = 1;
     int c = 1, z = 1, t = 1;
 
-    public StackWindowSwing(IjxImagePlus imp) {
-        this(imp, null);
+    public AbstractStackWindow(IjxImagePlus imp, Container window) {
+        this(imp, null, window);
     }
 
-    public StackWindowSwing(IjxImagePlus imp, IjxImageCanvas ic) {
-        super(imp, ic);
+    public AbstractStackWindow(IjxImagePlus _imp, IjxImageCanvas _ic, Container window) {
+        w = window;
+        if (w == null) {
+            throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
+        }
+        this.imp = _imp;
+        this.ic = _ic;
+
         addScrollbars(imp);
-        addMouseWheelListener(this);
+        w.addMouseWheelListener(this);
         if (sliceSelector == null && this.getClass().getName().indexOf("Image5D") != -1) {
             sliceSelector = new Scrollbar(); // prevents Image5D from crashing
         }		//IJ.log(nChannels+" "+nSlices+" "+nFrames);
@@ -116,10 +81,10 @@ public class StackWindowSwing extends ImageWindowSwing implements IjxStackWindow
         if (cSelector != null || zSelector != null || tSelector != null) {
             removeScrollbars();
         }
-        IjxApplication ij = IJ.getInstance();
+        //IjxApplication ij = IJ.getInstance();
         if (nChannels > 1) {
             cSelector = new ScrollbarWithLabel(this, 1, 1, 1, nChannels + 1, 'c');
-            add(cSelector);
+            w.add(cSelector);
             if (ij != null) {
                 cSelector.addKeyListener(ij);
             }
@@ -137,7 +102,7 @@ public class StackWindowSwing extends ImageWindowSwing implements IjxStackWindow
             if (label == 't') {
                 animationSelector = zSelector;
             }
-            add(zSelector);
+            w.add(zSelector);
             if (ij != null) {
                 zSelector.addKeyListener(ij);
             }
@@ -386,17 +351,17 @@ public class StackWindowSwing extends ImageWindowSwing implements IjxStackWindow
 
     public void removeScrollbars() {
         if (cSelector != null) {
-            remove(cSelector);
+            w.remove(cSelector);
             cSelector.removeAdjustmentListener(this);
             cSelector = null;
         }
         if (zSelector != null) {
-            remove(zSelector);
+            w.remove(zSelector);
             zSelector.removeAdjustmentListener(this);
             zSelector = null;
         }
         if (tSelector != null) {
-            remove(tSelector);
+            w.remove(tSelector);
             tSelector.removeAdjustmentListener(this);
             tSelector = null;
         }
@@ -413,8 +378,4 @@ public class StackWindowSwing extends ImageWindowSwing implements IjxStackWindow
     public ScrollbarWithLabel getTSelector() {
         return tSelector;
     }
-        public Container getContainer() {
-        return this;
-    }
 }
-

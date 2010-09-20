@@ -8,4 +8,6 @@ package ijx.gui;
 
 public interface IjxDialog {
 
+// YesNoCancelDialog(IjxWindow parent, String title, String msg) {
+
 }

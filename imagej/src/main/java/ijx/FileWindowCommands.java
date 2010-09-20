@@ -122,7 +122,7 @@ public class FileWindowCommands {
     public static class NewImageAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
-            new NewImage();
+            new NewImage().openImage();
         }
     }
 

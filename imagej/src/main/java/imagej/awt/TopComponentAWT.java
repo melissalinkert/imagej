@@ -12,6 +12,7 @@ import ij.WindowManager;
 import ijx.app.IjxApplication;
 import ij.gui.ProgressBar;
 import ijx.IjxTopComponent;
+import ijx.gui.IjxProgressBar;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -25,6 +26,7 @@ import java.awt.MenuBar;
 import java.awt.Panel;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.dnd.DropTarget;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
@@ -35,192 +37,255 @@ import java.net.URL;
  *
  * @author GBH
  */
-public class TopComponentAWT extends Frame implements IjxTopComponent {
+public class TopComponentAWT //extends Frame
+        implements IjxTopComponent {
+    private ij.gui.Toolbar toolbar;
+    private Label statusLine;
+    private Panel statusBar;
+    private IjxProgressBar progressBar;
+    private boolean windowClosed;
+    private IjxApplication ijApp;
+    private Frame frame;
 
-  private ij.gui.Toolbar toolbar;
-  private Label statusLine;
-  private Panel statusBar;
-  private ProgressBar progressBar;
-  private boolean windowClosed;
-  private IjxApplication ijApp;
+    public TopComponentAWT(IjxApplication ijApp, String title) {
 
-  public TopComponentAWT(IjxApplication ijApp) {
-    super("ImageJ");
-    this.ijApp = ijApp;
-    setLayout(new GridLayout(2, 1));
-    // Tool bar
-    toolbar = new ij.gui.Toolbar();
-    toolbar.addKeyListener(ijApp);
-    add(toolbar);
+        frame = new Frame(title);
+        //super("ImageJ");
+        this.ijApp = ijApp;
+        frame.setLayout(new GridLayout(2, 1));
+        // Tool bar
+        toolbar = new ij.gui.Toolbar();
+        toolbar.addKeyListener(ijApp);
+        frame.add(toolbar);
 
-    // Status bar
-    statusBar = new Panel();
-    statusBar.setLayout(new BorderLayout());
-    statusBar.setForeground(Color.black);
-    statusBar.setBackground(IJ.backgroundColor);
-    statusLine = new Label();
-    statusLine.setFont(SansSerif12);
-    statusLine.addMouseListener(this);
-    statusBar.add("Center", statusLine);
-    progressBar = new ProgressBar(120, 20);
-    progressBar.addKeyListener(ijApp);
-    progressBar.addMouseListener(this);
-    statusBar.add("East", progressBar);
-    statusBar.setSize(toolbar.getPreferredSize());
-    add(statusBar);
-    addWindowListener(this);
-    setFocusTraversalKeysEnabled(false);
-  }
-
-  public void finishAndShow() {
-    Point loc = getPreferredLocation();
-    Dimension tbSize = toolbar.getPreferredSize();
-    int ijWidth = tbSize.width + 10;
-    int ijHeight = 100;
-    setCursor(Cursor.getDefaultCursor()); // work-around for JDK 1.1.8 bug
-    if (IJ.isWindows()) {
-      try {
-        setIcon();
-      } catch (Exception e) {
-      }
+        // Status bar
+        statusBar = new Panel();
+        statusBar.setLayout(new BorderLayout());
+        statusBar.setForeground(Color.black);
+        statusBar.setBackground(IJ.backgroundColor);
+        statusLine = new Label();
+        statusLine.setFont(SansSerif12);
+        statusLine.addMouseListener(this);
+        statusBar.add("Center", statusLine);
+        progressBar = new ProgressBar(120, 20);
+        progressBar.addKeyListener(ijApp);
+        progressBar.addMouseListener(this);
+        statusBar.add("East", (ProgressBar) progressBar);
+        statusBar.setSize(toolbar.getPreferredSize());
+        frame.add(statusBar);
+        frame.addWindowListener(this);
+        frame.setFocusTraversalKeysEnabled(false);
     }
-    setBounds(loc.x, loc.y, ijWidth, ijHeight); // needed for pack to work
-    setLocation(loc.x, loc.y);
-    pack();
-    setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
-    //if (IJ.isJava15()) {
-    //	try {
-    //		Method method = Frame.class.getMethod("setAlwaysOnTop", new Class[] {boolean.class});
-    //		method.invoke(this, new Object[]{Boolean.TRUE});
-    //	} catch(Exception e) {}
-    //}
-    show();
-  }
 
-  @Override
-  public void setMenuBar(Object menuBar) {
-    super.setMenuBar((MenuBar) menuBar);
-  }
-
-  public void setIcon() throws Exception {
-    URL url = this.getClass().getResource("/microscope.gif");
-    if (url == null) {
-      return;
+    public void finishAndShow() {
+        Point loc = getPreferredLocation();
+        Dimension tbSize = toolbar.getPreferredSize();
+        int ijWidth = tbSize.width + 10;
+        int ijHeight = 100;
+        getFrame().setCursor(Cursor.getDefaultCursor()); // work-around for JDK 1.1.8 bug
+        if (IJ.isWindows()) {
+            try {
+                setIcon();
+            } catch (Exception e) {
+            }
+        }
+        getFrame().setBounds(loc.x, loc.y, ijWidth, ijHeight); // needed for pack to work
+        getFrame().setLocation(loc.x, loc.y);
+        getFrame().pack();
+        getFrame().setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
+        //if (IJ.isJava15()) {
+        //	try {
+        //		Method method = Frame.class.getMethod("setAlwaysOnTop", new Class[] {boolean.class});
+        //		method.invoke(this, new Object[]{Boolean.TRUE});
+        //	} catch(Exception e) {}
+        //}
+        getFrame().show();
     }
-    Image img = createImage((ImageProducer) url.getContent());
-    if (img != null) {
-      setIconImage(img);
+
+    @Override
+    public void setMenuBar(Object menuBar) {
+        getFrame().setMenuBar((MenuBar) menuBar);
     }
-  }
 
-  public Point getPreferredLocation() {
-    if (!IJ.isJava14()) {
-      return new Point(0, 0);
+    public void setIcon() throws Exception {
+        URL url = this.getClass().getResource("/microscope.gif");
+        if (url == null) {
+            return;
+        }
+        Image img = getFrame().createImage((ImageProducer) url.getContent());
+        if (img != null) {
+            getFrame().setIconImage(img);
+        }
     }
-    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-    Rectangle maxBounds = ge.getMaximumWindowBounds();
-    int ijX = Prefs.getInt(IJ_X, -99);
-    int ijY = Prefs.getInt(IJ_Y, -99);
-    if (ijX >= 0 && ijY > 0 && ijX < (maxBounds.x + maxBounds.width - 75)) {
-      return new Point(ijX, ijY);
+
+    public Point getPreferredLocation() {
+        if (!IJ.isJava14()) {
+            return new Point(0, 0);
+        }
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        Rectangle maxBounds = ge.getMaximumWindowBounds();
+        int ijX = Prefs.getInt(IJ_X, -99);
+        int ijY = Prefs.getInt(IJ_Y, -99);
+        if (ijX >= 0 && ijY > 0 && ijX < (maxBounds.x + maxBounds.width - 75)) {
+            return new Point(ijX, ijY);
+        }
+        Dimension tbsize = toolbar.getPreferredSize();
+        int ijWidth = tbsize.width + 10;
+        double percent = maxBounds.width > 832 ? 0.8 : 0.9;
+        ijX = (int) (percent * (maxBounds.width - ijWidth));
+        if (ijX < 10) {
+            ijX = 10;
+        }
+        return new Point(ijX, maxBounds.y);
     }
-    Dimension tbsize = toolbar.getPreferredSize();
-    int ijWidth = tbsize.width + 10;
-    double percent = maxBounds.width > 832 ? 0.8 : 0.9;
-    ijX = (int) (percent * (maxBounds.width - ijWidth));
-    if (ijX < 10) {
-      ijX = 10;
+
+    public void showStatus(String s) {
+        statusLine.setText(s);
     }
-    return new Point(ijX, maxBounds.y);
-  }
 
-  public void showStatus(String s) {
-    statusLine.setText(s);
-  }
-
-  public ProgressBar getProgressBar() {
-    return progressBar;
-  }
-
-  public Panel getStatusBar() {
-    return statusBar;
-  }
-
-  public void mousePressed(MouseEvent e) {
-    Undo.reset();
-    IJ.showStatus("Memory: " + IJ.freeMemory());
-    if (IJ.debugMode) {
-      IJ.log("Windows: " + WindowManager.getWindowCount());
+    public IjxProgressBar getProgressBar() {
+        return progressBar;
     }
-  }
 
-  public void mouseReleased(MouseEvent e) {
-  }
-
-  public void mouseExited(MouseEvent e) {
-  }
-
-  public void mouseClicked(MouseEvent e) {
-  }
-
-  public void mouseEntered(MouseEvent e) {
-  }
-
-  public void windowClosing(WindowEvent e) {
-    ijApp.doCommand("Quit");
-    windowClosed = true;
-  }
-
-  public void windowActivated(WindowEvent e) {
-    if (IJ.isMacintosh() && !ijApp.quitting()) {
-      IJ.wait(10); // may be needed for Java 1.4 on OS X
-      setMenuBar(Menus.getMenuBar());
+    public Panel getStatusBar() {
+        return statusBar;
     }
-  }
 
-  public void windowClosed(WindowEvent e) {
-  }
+    public void mousePressed(MouseEvent e) {
+        Undo.reset();
+        IJ.showStatus("Memory: " + IJ.freeMemory());
+        if (IJ.debugMode) {
+            IJ.log("Windows: " + WindowManager.getWindowCount());
+        }
+    }
 
-  public void windowDeactivated(WindowEvent e) {
-  }
+    public void mouseReleased(MouseEvent e) {
+    }
 
-  public void windowDeiconified(WindowEvent e) {
-  }
+    public void mouseExited(MouseEvent e) {
+    }
 
-  public void windowIconified(WindowEvent e) {
-  }
+    public void mouseClicked(MouseEvent e) {
+    }
 
-  public void windowOpened(WindowEvent e) {
-  }
+    public void mouseEntered(MouseEvent e) {
+    }
 
-  @Override
-  public boolean canClose() {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
+    public void windowClosing(WindowEvent e) {
+        ijApp.doCommand("Quit");
+        windowClosed = true;
+    }
 
-  @Override
-  public boolean close() {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
+    public void windowActivated(WindowEvent e) {
+        if (IJ.isMacintosh() && !ijApp.quitting()) {
+            IJ.wait(10); // may be needed for Java 1.4 on OS X
+            setMenuBar(Menus.getMenuBar());
+        }
+    }
 
-  @Override
-  public boolean isClosed() {
-    return windowClosed;
-  }
+    public void windowClosed(WindowEvent e) {
+    }
+
+    public void windowDeactivated(WindowEvent e) {
+    }
+
+    public void windowDeiconified(WindowEvent e) {
+    }
+
+    public void windowIconified(WindowEvent e) {
+    }
+
+    public void windowOpened(WindowEvent e) {
+    }
+
+    @Override
+    public boolean canClose() {
+        return this.canClose();
+    }
+
+    @Override
+    public boolean close() {
+        return this.close();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return windowClosed;
+    }
 
     public void setDropTarget(Object object) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        getFrame().setDropTarget((DropTarget) object);
     }
 
     public void keyTyped(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     public void keyPressed(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     public void keyReleased(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void setBackground(Color color) {
+        getFrame().setBackground(color);
+    }
+
+    public String getTitle() {
+        return getFrame().getTitle();
+    }
+
+    public void setTitle(String s) {
+        getFrame().setTitle(s);
+    }
+
+    public Image getIconImage() {
+        return getFrame().getIconImage();
+    }
+
+    public boolean isVisible() {
+        return getFrame().isVisible();
+    }
+
+    public void setVisible(boolean b) {
+        getFrame().setVisible(b);
+    }
+
+    public Dimension getSize() {
+        return getFrame().getSize();
+    }
+
+    public Point getLocation() {
+        return getFrame().getLocation();
+    }
+
+    public Point getLocationOnScreen() {
+        return getFrame().getLocationOnScreen();
+    }
+
+    public Rectangle getBounds() {
+        return getFrame().getBounds();
+    }
+
+    public void setLocation(int x, int y) {
+        getFrame().setLocation(x, y);
+    }
+
+    public void setLocation(Point p) {
+        getFrame().setLocation(p);
+    }
+
+    public void toFront() {
+        getFrame().toFront();
+    }
+
+    public void dispose() {
+        getFrame().dispose();
+    }
+
+    /**
+     * @return the frame
+     */
+    public Frame getFrame() {
+        return frame;
     }
 }

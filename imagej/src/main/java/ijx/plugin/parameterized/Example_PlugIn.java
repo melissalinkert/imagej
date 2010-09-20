@@ -1,10 +1,10 @@
 package ijx.plugin.parameterized;
 
 import ij.IJ;
+import ij.ImageJ;
+import ij.ImagePlus;
 import ij.gui.NewImage;
 import ij.plugin.Duplicator;
-import ijx.IjxImagePlus;
-import ijx.ImageJX;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -29,23 +29,41 @@ public class Example_PlugIn extends AbstractPlugIn {
     public String first_name = "grant";
     @Parameter(label = "Your last name", columns = 15)
     public String last_name = "harris";
-    @Parameter(label = "An Integer")
+    @Parameter(label = "An Integer", required = true)
     public Integer n = 1;
-    @Parameter(label = "An int")
+    // a persisted integer
+    @Parameter(label = "Total Potatoes", persist = "example.total")
     public int total = 9;
+    @Parameter(label = "A short")
+    public short count = 9;
+    @Parameter(label = "A Short")
+    public Short countS = 9;
+    @Parameter(label = "A float", widget = "slider")
+    public float f = 50.0f;
+    @Parameter(label = "A Float", widget = "slider") 
+    public Float floaty = 50.0f;
     @Parameter(label = "A Double", widget = "slider")
-    public Double x = 50.0;
-    @Parameter(label = "A double", digits = 3)
+    public Double x = 101.1;
+    //
+    @Parameter(label = "A double", digits = 3, columns = 5, units = "microns")
     public double y = 101.2;
+
     @Parameter
     public boolean yesOrNo = false;
     @Parameter
-    public IjxImagePlus impIn;
+    public ImagePlus impIn;
     //
     @Parameter(output = true)
-    public IjxImagePlus impOut;
+    public ImagePlus impOut;
     @Parameter(output = true)
     public int outputValue = 9;
+
+    public Example_PlugIn() {
+        // dynamically initialize parameter values here...
+         impIn = IJ.getImage();
+         System.out.println("Height of inputImage: " + impIn.getHeight());
+        //
+    }
 
     public void run(String s) {
         //IJ.showMessage("Good morning, " + first_name + "!");
@@ -57,6 +75,7 @@ public class Example_PlugIn extends AbstractPlugIn {
         //this.setParameter("impIn", IJ.getImage());
         impIn = IJ.getImage();
         if (impIn != null) {
+            System.out.println("Height of inputImage: " + impIn.getHeight());
             impOut = duplicateStack(impIn, "New Copy");
 //            impOut = impIn.createImagePlus();
 //            impOut.updateAndDraw();
@@ -76,8 +95,8 @@ public class Example_PlugIn extends AbstractPlugIn {
         System.out.println("End of run() in " + this.getClass().getName() +".\n");
     }
 
-    public IjxImagePlus duplicateStack(IjxImagePlus imp, String newTitle) {
-        IjxImagePlus imp2 = (new Duplicator()).run(imp);
+    public ImagePlus duplicateStack(ImagePlus imp, String newTitle) {
+        ImagePlus imp2 = (new Duplicator()).run(imp);
         imp2.setTitle(newTitle);
         return imp2;
     }
@@ -88,8 +107,8 @@ public class Example_PlugIn extends AbstractPlugIn {
             SwingUtilities.invokeAndWait(new Runnable() {
 
                 public void run() {
-                    ImageJX.main(null); // launch ImageJ
-                    IjxImagePlus imp = IJ.openImage("http://rsb.info.nih.gov/ij/images/blobs.gif");
+                    ImageJ.main(null); // launch ImageJ
+                    ImagePlus imp = IJ.openImage("http://rsb.info.nih.gov/ij/images/blobs.gif");
                     imp.show();
                 }
             });
@@ -106,7 +125,7 @@ public class Example_PlugIn extends AbstractPlugIn {
 
     public static void runOffEDT(String[] args) {
         Example_PlugIn abstractPlugin = new Example_PlugIn();
-      //  abstractPlugin.setParameter("impIn", IJ.getImage());
+        abstractPlugin.setParameter("impIn", IJ.getImage());
 
         RunnableAdapter rPlugin = new RunnableAdapter(abstractPlugin);
         //rPlugin.run();

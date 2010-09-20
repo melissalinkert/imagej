@@ -5,6 +5,7 @@ import ij.gui.Roi;
 import ijx.IjxImagePlus;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -24,6 +25,7 @@ import java.util.Vector;
  * @author GBH <imagejdev.org>
  */
 public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionListener {
+    Component getCanvas();
     /**
      * Disable/enable popup menu.
      */
@@ -148,7 +150,7 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      * @deprecated
      * replaced by IjxImagePlus.setOverlay(Roi, Color, int, Color)
      */
-     void setDisplayList(Roi roi, Color color);
+    void setDisplayList(Roi roi, Color color);
 
     void setDrawingSize(int width, int height);
 

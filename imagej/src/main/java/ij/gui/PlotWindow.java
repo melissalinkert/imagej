@@ -12,10 +12,13 @@ import ij.text.TextWindow;
 import ij.plugin.filter.Analyzer;
 import ij.measure.Measurements;
 import ijx.IjxImagePlus;
+import ijx.SavesPrefs;
+import org.openide.util.lookup.ServiceProvider;
 
+@ServiceProvider(service=SavesPrefs.class)
 
 /** Obsolete; mostly replaced by the Plot class. */
-public class PlotWindow extends ImageWindow implements ActionListener, ClipboardOwner {
+public class PlotWindow extends ImageWindow implements ActionListener, ClipboardOwner, SavesPrefs {
 
 	/** Display points using a circle 5 pixels in diameter. */
 	public static final int CIRCLE = 0;
@@ -98,6 +101,9 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	* @deprecated
 	* replaced by the Plot class.
 	*/
+
+    public PlotWindow() {}
+
 	public PlotWindow(String title, String xLabel, String yLabel, float[] xValues, float[] yValues) {
 		super(createImage(title, xLabel, yLabel, xValues, yValues));
 		plot = staticPlot;
@@ -468,7 +474,7 @@ public class PlotWindow extends ImageWindow implements ActionListener, Clipboard
 	}
 	
 	/** Called once when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
+	public void savePreferences(Properties prefs) {
 		double min = ProfilePlot.getFixedMin();
 		double max = ProfilePlot.getFixedMax();
 		if (!(min==0.0&&max==0.0) && min<max) {

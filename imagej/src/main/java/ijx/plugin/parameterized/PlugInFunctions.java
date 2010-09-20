@@ -1,11 +1,20 @@
 package ijx.plugin.parameterized;
 
+import ij.IJ;
+import ij.ImagePlus;
+import ij.Prefs;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
-import ijx.IjxImagePlus;
-
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,15 +22,15 @@ import java.util.logging.Logger;
  * @author Johannes Schindelin johannes.schindelin at imagejdev.org
  * @author Grant Harris gharris at mbl.edu
  */
-
 public class PlugInFunctions extends ParameterHandler {
-
-    public static Map<String, Object> run(Runnable plugin, Object... parameters)
+    //
+    // execute, passing parameters as a set of varargs pairs
+    public static Map<String, Object> execute(Runnable plugin, Object... parameters)
             throws PlugInException {
         if ((parameters.length % 2) != 0) {
             throw new IllegalArgumentException("incomplete key/value pair");
         }
-        Class clazz = plugin.getClass();
+        //Class clazz = plugin.getClass();
         for (int i = 0; i < parameters.length; i += 2) {
             setParameter(plugin, (String) parameters[i], parameters[i + 1]);
         }
@@ -29,16 +38,73 @@ public class PlugInFunctions extends ParameterHandler {
         return getOutputMap(plugin);
     }
 
+    // execute, passing parameters as an inputMap
+    // @todo: Use case, testing...
+    public static Map<String, Object> execute(Runnable plugin, Map<String, Object> inputMap)
+            throws PlugInException {
+        for (Map.Entry<String, Object> entry : inputMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            setParameter(plugin, key, value);
+        }
+        plugin.run();
+        return getOutputMap(plugin);
+    }
+
+    // Run it again with the same parameter values
+    public static Map<String, Object> runAgain(Runnable plugin) {
+        try {
+            return execute(plugin, createInputMapFromParameters(plugin));
+        } catch (PlugInException ex) {
+            Logger.getLogger(PlugInFunctions.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
     public static void runInteractively(Runnable plugin) {
         if (!showDialog(plugin)) {
             return;
         }
         plugin.run();
-        for (IjxImagePlus image : PlugInFunctions.getOutputImages(plugin)) {
+        for (ImagePlus image : PlugInFunctions.getOutputImages(plugin)) {
             if (image != null) {
                 image.show();
             }
         }
+    }
+
+    public static void testRunAsFuture() {
+        Example_PlugIn abstractPlugin = new Example_PlugIn();
+        // set input parameters
+        abstractPlugin.setParameter("impIn", IJ.getImage());
+        //
+        PlugInFunctions.listParamaters(abstractPlugin);
+    }
+
+    public static Map<String, Object> runAsFuture(Callable plugin) {
+        //RunnableAdapter rPlugin = new RunnableAdapter(abstractPlugin);
+        Map<String, Object> outputMap = null;
+        FutureTask<Map<String, Object>> task = new FutureTask<Map<String, Object>>(plugin);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(task);
+        System.out.println("\nExecuting Plugin: (please wait) ... \n");
+        try {
+            outputMap = task.get(5000, TimeUnit.MILLISECONDS); // timeout in 5 seconds
+            // outputMap = task.get(); // no timeout
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            System.out.println("got interrupted.");
+        } catch (TimeoutException e) {
+            System.out.println("tired of waiting, timed-out.");
+        }
+        executor.shutdown();
+        System.out.println("Done.");
+        if (outputMap != null) {
+            System.out.println("outputMap: " + outputMap.toString());
+        } else {
+            System.out.println("outputMap = null");
+        }
+        return outputMap;
     }
 
     public static void listParamaters(Runnable plugin) {
@@ -113,6 +179,16 @@ public class PlugInFunctions extends ParameterHandler {
         return false;
     }
 
+    // Indicates a key used to get/set value from Prefs
+    public static String getPersist(Field field) {
+        Parameter parameter = field.getAnnotation(Parameter.class);
+        if (parameter != null) {
+            String c = parameter.persist();
+            return c;
+        }
+        return "";
+    }
+
     public static String getWidget(Field field) {
         Parameter parameter = field.getAnnotation(Parameter.class);
         if (parameter != null) {
@@ -123,9 +199,6 @@ public class PlugInFunctions extends ParameterHandler {
         }
         return "";
     }
-    /* 
-    boolean required() default false;  //++ gbh
-     */
 
     public static Object getDefault(Field field) {
         // TODO
@@ -140,81 +213,151 @@ public class PlugInFunctions extends ParameterHandler {
         if (dialog.wasCanceled()) {
             return false;
         }
-        setInputParameterValues(plugin, dialog);
+        setParameterValuesToInputs(plugin, dialog);
         return true;
     }
+
+    private static Map<String, Object> createInputMapFromParameters(Runnable plugin) throws RuntimeException {
+        createInputDialogFromParameters(plugin, null);
+        return getInputMap();
+    }
+
+    private static Map<String, Object> getInputMap() {
+        return inputMap;
+    }
+
+    // inputMap with value from Prefs or default for each parameter
+    private static Map<String, Object> inputMap = new HashMap<String, Object>();
 
     private static void createInputDialogFromParameters(Runnable plugin, GenericDialog dialog) throws RuntimeException {
         for (Field field : getInputParameters(plugin)) {
             try {
-                if (field.getType() == String.class) {
-                    // Add BigDecimal, BigInteger, char, Character using StringField
-                    dialog.addStringField(getLabel(field), (String) field.get(plugin), getColumns(field));
-                } else if (isNumericType(field.getType())) {
+                Class<?> type = field.getType();
+                Object value;
+                if (type == String.class) {
+                    String initValue = (String) field.get(plugin);
+                    if (!getPersist(field).isEmpty()) {
+                        initValue = Prefs.get(getPersist(field), initValue);
+                    }
+                    // @todo: Add BigDecimal, BigInteger, char, Character using StringField
+                    if (dialog != null) {
+                        dialog.addStringField(getLabel(field), initValue, getColumns(field));
+                    } else {
+                        inputMap.put(field.getName(), initValue);
+                    }
+                } else if (isIntType(type)) {
                     // integer / float ?
-                    createNumericInputWidget(field, dialog, plugin);
-                } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                    dialog.addCheckbox(getLabel(field), (Boolean) field.get(plugin));
-                } else if (field.getType() == IjxImagePlus.class) {
+                    Number initValue = (Number) field.get(plugin);
+                    if (!getPersist(field).isEmpty()) {
+                        initValue = Prefs.get(getPersist(field), initValue.doubleValue());
+                    }
+                    if (dialog != null) {
+                        addNumericInputWidget(field, dialog, plugin, initValue);
+                    } else {
+                        inputMap.put(field.getName(), initValue);
+                    }
+
+                } else if (isRealType(type)) {
+                    // integer / float ?
+                    Number initValue = (Number) field.get(plugin);
+                    if (!getPersist(field).isEmpty()) {
+                        initValue = Prefs.get(getPersist(field), initValue.doubleValue());
+                    }
+                    if (dialog != null) {
+                        addNumericInputWidget(field, dialog, plugin, initValue);
+                    } else {
+                        inputMap.put(field.getName(), initValue);
+                    }
+
+                } else if (isBooleanType(type)) {
+                    boolean initValue = (Boolean) field.get(plugin);
+                    if (!getPersist(field).isEmpty()) {
+                        initValue = Prefs.getBoolean(getPersist(field), initValue);
+                    }
+                    if (dialog != null) {
+                        dialog.addCheckbox(getLabel(field), initValue);
+                    } else {
+                        inputMap.put(field.getName(), initValue);
+                    }
+
+                } else if (type == ImagePlus.class) {
                     if (WindowManager.getCurrentImage() != null) {
-                        IjxImagePlus ip = WindowManager.getCurrentImage();
+                        ImagePlus ip = WindowManager.getCurrentImage();
                         field.set(plugin, ip);
                     }
                 } else {
                     throw new RuntimeException("TODO!");
                 }
             } catch (IllegalArgumentException ex) {
-                Logger.getLogger(PlugInFunctions.class.getName()).log(Level.SEVERE, null, ex);
+                ex.printStackTrace();
             } catch (IllegalAccessException ex) {
-                Logger.getLogger(PlugInFunctions.class.getName()).log(Level.SEVERE, null, ex);
+                ex.printStackTrace();
             }
         }
     }
 
-    private static void createNumericInputWidget(Field field, GenericDialog dialog, Runnable plugin)
+    private static void addNumericInputWidget(Field field, GenericDialog dialog, Runnable plugin, Number initValue)
             throws IllegalAccessException, IllegalArgumentException {
         if (getWidget(field).equalsIgnoreCase("slider")) {
-            dialog.addSlider(getLabel(field), 0, 100, ((Number) field.get(plugin)).doubleValue());
+            dialog.addSlider(getLabel(field), 0, 100, initValue.doubleValue());
             if (getWidget(field).equalsIgnoreCase("spinner")) {
                 // add create spinner...
             }
         } else {
-            dialog.addNumericField(getLabel(field), ((Number) field.get(plugin)).doubleValue(),
+            dialog.addNumericField(getLabel(field), initValue.doubleValue(),
                     getDigits(field), getColumns(field), getUnits(field));
         }
     }
 
-    private static boolean isNumericType(Class<?> type) {
-        return (type == int.class
-                || type == Integer.class
-                || type == short.class
-                || type == Short.class
-                || type == long.class
-                || type == Long.class
-                || type == float.class
-                || type == Float.class
-                || type == double.class
-                || type == Double.class);
-    }
-
-    private static void setInputParameterValues(Runnable plugin, GenericDialog dialog) {
+    private static void setParameterValuesToInputs(Runnable plugin, GenericDialog dialog) {
         for (Field field : getInputParameters(plugin)) {
             try {
-                if (field.getType() == String.class || field.getType() == char.class || field.getType() == Character.class) {
-                    field.set(plugin, dialog.getNextString());
-                } else if (field.getType() == int.class || field.getType() == Integer.class) {
-                    field.set(plugin, (int) dialog.getNextNumber());
-                } else if (field.getType() == short.class || field.getType() == Short.class) {
-                    field.set(plugin, (short) dialog.getNextNumber());
-                } else if (field.getType() == long.class || field.getType() == Long.class) {
-                    field.set(plugin, (long) dialog.getNextNumber());
-                } else if (field.getType() == float.class || field.getType() == Float.class) {
-                    field.set(plugin, (float) dialog.getNextNumber());
-                } else if (field.getType() == double.class || field.getType() == Double.class) {
-                    field.set(plugin, (double) dialog.getNextNumber());
-                } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                    field.set(plugin, (boolean) dialog.getNextBoolean());
-                } else if (field.getType() == IjxImagePlus.class) {
+                Class<?> type = field.getType();
+                if (type == String.class || type == char.class || type == Character.class) {
+                    String s = dialog.getNextString();
+                    field.set(plugin, s);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), s);
+                    }
+                } else if (type == int.class || type == Integer.class) {
+                    int n = (int) dialog.getNextNumber();
+                    field.set(plugin, n);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), n);
+                    }
+                } else if (type == short.class || type == Short.class) {
+                    short n = (short) dialog.getNextNumber();
+                    field.set(plugin, n);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), n);
+                    }
+                } else if (type == long.class || type == Long.class) {
+                    long n = (long) dialog.getNextNumber();
+                    field.set(plugin, n);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), n);
+                    }
+                } else if (type == float.class || type == Float.class) {
+                    float n = (float) dialog.getNextNumber();
+                    field.set(plugin, n);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), n);
+                    }
+                } else if (type == double.class || type == Double.class) {
+                    double n = (double) dialog.getNextNumber();
+                    field.set(plugin, n);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), n);
+                    }
+
+                } else if (isBooleanType(type)) {
+                    boolean b = dialog.getNextBoolean();
+                    field.set(plugin, b);
+                    if (!getPersist(field).isEmpty()) {
+                        Prefs.set(getPersist(field), b);
+                    }
+                } else if (type == ImagePlus.class) {
+                    // @todo
                     //((IjxImagePlus) field.get(plugin)).show();
                 } else {
                     System.out.println("skipped  " + field.getName());
@@ -225,6 +368,28 @@ public class PlugInFunctions extends ParameterHandler {
             }
         }
     }
-}
 
-  
+    private static boolean isNumericType(Class<?> type) {
+        return (isIntType(type) || isRealType(type));
+    }
+
+    private static boolean isIntType(Class<?> type) {
+        return (type == int.class
+                || type == Integer.class
+                || type == short.class
+                || type == Short.class
+                || type == long.class
+                || type == Long.class);
+    }
+
+    private static boolean isRealType(Class<?> type) {
+        return (type == float.class
+                || type == Float.class
+                || type == double.class
+                || type == Double.class);
+    }
+
+    private static boolean isBooleanType(Class<?> type) {
+        return (type == boolean.class || type == Boolean.class);
+    }
+}

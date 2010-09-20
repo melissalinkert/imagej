@@ -1,35 +1,103 @@
-package ij.gui;
+/*
+ * 
+ * $Id$
+ * 
+ * Software License Agreement (BSD License)
+ * 
+ * Copyright (c) 2010, Expression company is undefined on line 9, column 62 in Templates/Licenses/license-bsd.txt.
+ * All rights reserved.
+ * 
+ * Redistribution and use of this software in source and binary forms, with or without modification, are
+ * permitted provided that the following conditions are met:
+ * 
+ *   Redistributions of source code must retain the above
+ *   copyright notice, this list of conditions and the
+ *   following disclaimer.
+ * 
+ *   Redistributions in binary form must reproduce the above
+ *   copyright notice, this list of conditions and the
+ *   following disclaimer in the documentation and/or other
+ *   materials provided with the distribution.
+ * 
+ *   Neither the name of Expression company is undefined on line 24, column 41 in Templates/Licenses/license-bsd.txt. nor the names of its
+ *   contributors may be used to endorse or promote products
+ *   derived from this software without specific prior
+ *   written permission of Expression company is undefined on line 27, column 43 in Templates/Licenses/license-bsd.txt.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-import ijx.gui.IjxImageWindow;
-import ijx.gui.IjxImageCanvas;
-import ijx.app.IjxApplication;
-import ijx.IjxImagePlus;
-import java.awt.*;
-import java.awt.image.*;
+package ijx.gui;
+
+import ij.IJ;
+import ij.Menus;
+import ij.Prefs;
+import ij.gui.ImageCanvasHelper;
+import ij.gui.ImageRoi;
+import ij.gui.Overlay;
+import ij.gui.PointRoi;
+import ij.gui.PolygonRoi;
+import ij.gui.Roi;
+import ij.gui.RoiBrush;
+import ij.gui.ShapeRoi;
+import ij.gui.TextRoi;
+import ij.gui.Toolbar;
+import ij.macro.Interpreter;
+import ij.macro.MacroRunner;
 import ij.plugin.WandToolOptions;
 import ij.plugin.frame.Recorder;
 import ij.plugin.frame.RoiManager;
-import ij.macro.*;
-import ij.*;
-import ij.util.*;
-import ijx.gui.IjxStackWindow;
-import java.awt.event.*;
-import java.util.*;
+import ij.util.Java2;
+import ij.util.Tools;
+import ijx.IjxImagePlus;
+import ijx.app.IjxApplication;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Event;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.Point;
+import java.awt.PopupMenu;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseEvent;
+import java.awt.image.IndexColorModel;
+import java.util.Hashtable;
+import java.util.Vector;
 
-/**
- * This is a Canvas used to display images in a Window.
- * This is an AWT version using an awt.Canvas component.
- * 
- * GBH refactoring Sept 2010
+/** This is a Canvas used to display images in a Window. */
+
+/* Using composition rather than inhertance...
+ * The component, c, acts as the canvas and is set when this class is constructed
+ * GBH, Sept 2010
  */
+public class AbstractImageCanvas
+        implements IjxImageCanvas {
 
-public class ImageCanvas extends Canvas implements IjxImageCanvas {
-    //implements IjxImageCanvas {
-    protected static Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
-    protected static Cursor handCursor = new Cursor(Cursor.HAND_CURSOR);
-    protected static Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
-    protected static Cursor crosshairCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
+    // Cursors
+    protected static final Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+    protected static final Cursor handCursor = new Cursor(Cursor.HAND_CURSOR);
+    protected static final Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
+    protected static final Cursor crosshairCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
+
     public static boolean usePointer = Prefs.usePointerCursor;
+
+    protected IjxApplication ij;
     protected IjxImagePlus imp;
     protected boolean imageUpdated;
     protected Rectangle srcRect;
@@ -50,7 +118,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
     private static Color labelColor;
     private int resetMaxBoundsCount;
     private Roi currentRoi;
-    protected IjxApplication ij;
+
     protected double magnification;
     protected int dstWidth, dstHeight;
     protected int xMouseStart;
@@ -64,9 +132,17 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
     private boolean mouseExited = true;
     private boolean customRoi;
 
-    public ImageCanvas(IjxImagePlus imp) {
-        this.imp = imp;
-        ij = IJ.getInstance();
+    // The component that will display the image, rois, etc.
+    private Component c;
+
+
+    public AbstractImageCanvas(IjxImagePlus _imp, Component component) {
+        this.imp = _imp;
+        if(imp == null) {
+            System.err.println("imp == null in AbstractImageCanvas");
+        }
+        c = component;
+        //ij = IJ.getInstance();
         int width = imp.getWidth();
         int height = imp.getHeight();
         imageWidth = width;
@@ -74,14 +150,18 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
         setDrawingSize(imageWidth, (int) (imageHeight));
         magnification = 1.0;
-        addMouseListener(this);
-        addMouseMotionListener(this);
-        addKeyListener(ij);  // ImageJ handles keyboard shortcuts
-        setFocusTraversalKeysEnabled(false);
+        c.addMouseListener(this);
+        c.addMouseMotionListener(this);
+        c.addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+        c.setFocusTraversalKeysEnabled(false);
     }
 
-    public void updateImage(IjxImagePlus imp) {
-        this.imp = imp;
+    public Component getCanvas() {
+        return c;
+    }
+
+    public void updateImage(IjxImagePlus _imp) {
+        this.imp = _imp;
         int width = imp.getWidth();
         int height = imp.getHeight();
         imageWidth = width;
@@ -113,7 +193,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
     public void setDrawingSize(int width, int height) {
         dstWidth = width;
         dstHeight = height;
-        setSize(dstWidth, dstHeight);
+        c.setSize(dstWidth, dstHeight);
     }
 
     /** IjxImagePlus.updateAndDraw calls this method to get paint
@@ -122,10 +202,12 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         imageUpdated = true;
     }
 
+    @Override
     public void update(Graphics g) {
         paint(g);
     }
 
+    @Override
     public void paint(Graphics g) {
         Roi roi = imp.getRoi();
         if (roi != null || showAllROIs || overlay != null) {
@@ -199,7 +281,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
                 overlay = showAllList;
             }
             showAllROIs = false;
-            repaint();
+            c.repaint();
             return;
         }
         initGraphics(g);
@@ -405,7 +487,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         final int srcRectWidthMag = (int) (srcRect.width * magnification);
         final int srcRectHeightMag = (int) (srcRect.height * magnification);
         if (offScreenImage == null || offScreenWidth != srcRectWidthMag || offScreenHeight != srcRectHeightMag) {
-            offScreenImage = createImage(srcRectWidthMag, srcRectHeightMag);
+            offScreenImage = c.createImage(srcRectWidthMag, srcRectHeightMag);
             offScreenWidth = srcRectWidthMag;
             offScreenHeight = srcRectHeightMag;
         }
@@ -498,32 +580,36 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             return;
         }
         if (IJ.spaceBarDown()) {
-            setCursor(handCursor);
+            setCursorC(handCursor);
             return;
         }
         int id = Toolbar.getToolId();
         switch (Toolbar.getToolId()) {
             case Toolbar.MAGNIFIER:
-                setCursor(moveCursor);
+                setCursorC(moveCursor);
                 break;
             case Toolbar.HAND:
-                setCursor(handCursor);
+                setCursorC(handCursor);
                 break;
             default:  //selection tool
                 if (id == Toolbar.SPARE1 || id >= Toolbar.SPARE2) {
                     if (Prefs.usePointerCursor) {
-                        setCursor(defaultCursor);
+                        setCursorC(defaultCursor);
                     } else {
-                        setCursor(crosshairCursor);
+                        setCursorC(crosshairCursor);
                     }
                 } else if (roi != null && roi.getState() != roi.CONSTRUCTING && roi.isHandle(sx, sy) >= 0) {
-                    setCursor(handCursor);
+                    setCursorC(handCursor);
                 } else if (Prefs.usePointerCursor || (roi != null && roi.getState() != roi.CONSTRUCTING && roi.contains(ox, oy))) {
-                    setCursor(defaultCursor);
+                    setCursorC(defaultCursor);
                 } else {
-                    setCursor(crosshairCursor);
+                    setCursorC(crosshairCursor);
                 }
         }
+    }
+
+    private void setCursorC(Cursor cursor) {
+        c.setCursor(cursor);
     }
 
     /**Converts a screen x-coordinate to an offscreen x-coordinate.*/
@@ -624,7 +710,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             if ((srcRect.y + srcRect.height) > imageHeight) {
                 srcRect.y = imageHeight - srcRect.height;
             }
-            repaint();
+            c.repaint();
         }
         //IJ.log("resizeCanvas2: "+srcRect+" "+dstWidth+"  "+dstHeight+" "+width+"  "+height);
     }
@@ -647,7 +733,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         }
         srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
         setDrawingSize(width, height);
-        getParent().doLayout();
+        c.getParent().doLayout();
     }
 
     public void setMaxBounds() {
@@ -718,7 +804,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         } else {
             adjustSourceRect(newMag, sx, sy);
         }
-        repaint();
+        c.repaint();
         if (srcRect.width < imageWidth || srcRect.height < imageHeight) {
             resetMaxBounds();
         }
@@ -762,7 +848,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         }
         Rectangle r1 = win.getBounds();
         Insets insets = win.getInsets();
-        Point loc = getLocation();
+        Point loc = c.getLocation();
         if (loc.x > insets.left + 5 || loc.y > insets.top + 5) {
             r1.width = newWidth + insets.left + insets.right + 10;
             r1.height = newHeight + insets.top + insets.bottom + 10;
@@ -829,7 +915,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
                 setDrawingSize(newDstWidth, newDstHeight);
                 imp.getWindow().pack();
             } else {
-                repaint();
+                c.repaint();
             }
             return;
         }
@@ -868,7 +954,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         setMagnification(newMag);
         //IJ.write(srcRect.x + " " + srcRect.width + " " + dstWidth);
         setMaxBounds();
-        repaint();
+        c.repaint();
     }
 
     /** Implements the Image/Zoom/Original Scale command. */
@@ -1198,11 +1284,11 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         }
         PopupMenu popup = Menus.getPopupMenu();
         if (popup != null) {
-            add(popup);
+            c.add(popup);
             if (IJ.isMacOSX()) {
                 IJ.wait(10);
             }
-            popup.show(this, x, y);
+            popup.show(c, x, y);
         }
     }
 
@@ -1526,7 +1612,27 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
     public void mouseEntered(MouseEvent e) {
     }
 
-    public Component getCanvas() {
-        return this;
+    /*
+     * Passed to canvas component
+     */
+
+    public Rectangle getBounds() {
+        return c.getBounds();
+    }
+
+    public void repaint() {
+        c.repaint();
+    }
+
+    public void repaint(int x, int y, int width, int height) {
+        c.repaint(x, y, width, height);
+    }
+
+    public void setCursor(Cursor cursor) {
+        c.setCursor(cursor);
+    }
+
+    public Graphics getGraphics() {
+        return c.getGraphics();
     }
 }

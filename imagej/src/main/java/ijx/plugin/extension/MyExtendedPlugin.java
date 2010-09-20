@@ -40,7 +40,7 @@ public class MyExtendedPlugin extends AbstractPlugIn implements ExtendedPlugin {
 
     @Override
     public void run() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 
     public String getHelp() {

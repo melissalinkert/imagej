@@ -22,9 +22,9 @@ public abstract class AbstractPlugIn implements PlugIn, Runnable, Callable<Map<S
 
 	public abstract void run();
 
-	public Map<String, Object> run(Object... parameters)
+	public Map<String, Object> execute(Object... parameters)
 			throws PlugInException {
-		return PlugInFunctions.run(this, parameters);
+		return PlugInFunctions.execute(this, parameters);
 	}
 
 	public void setParameter(String key, Object value) {
@@ -37,6 +37,11 @@ public abstract class AbstractPlugIn implements PlugIn, Runnable, Callable<Map<S
 
     public Map<String, Object> call() { // for non-interactive... must set parameters before
         run();
+        return getOutputMap();
+    }
+    public Map<String, Object> call(Map<String, Object> inputMap) { // for non-interactive... must set parameters before
+        run();
+        PlugInFunctions.runAsFuture(this);
         return getOutputMap();
     }
 }

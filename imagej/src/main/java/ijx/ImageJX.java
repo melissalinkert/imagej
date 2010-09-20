@@ -14,8 +14,7 @@ import java.io.*;
 import ij.util.*;
 import ijx.app.IjxAbstractApplication;
 import ijx.app.IjxApplication;
-import imagej.awt.FactoryAWT;
-import imagej.awt.TopComponentAWT;
+import imagej.swing.FactorySwing;
 
 /**
 This frame is the main ImageJ class.
@@ -67,7 +66,7 @@ Example: -run "About ImageJ..."
 public class ImageJX extends IjxAbstractApplication {
     /** SansSerif, 12-point, plain font. */
 
-
+    public static String title = "ImageJX";
     /** Creates a new ImageJ frame that runs as an application. */
     public ImageJX() {
         this(null, STANDALONE);
@@ -86,8 +85,9 @@ public class ImageJX extends IjxAbstractApplication {
         embedded = applet == null && mode == EMBEDDED;
         this.applet = applet;
         String err1 = Prefs.load(this, applet);
-
-        TopComponentAWT topComponent = new TopComponentAWT(this);
+        //IJ.setFactory(new FactoryAWT()); // <<== set the Factory, GBH
+        IJ.setFactory(new FactorySwing()); // <<== set the Factory, GBH
+        IjxTopComponent topComponent = IJ.getFactory().newTopComponent(this, title);
         //topComponent = new TopComponentDesktop(this);
         //TopComponentSwing topComponent = new TopComponentSwing(this);
         if (IJ.isLinux()) {
@@ -98,7 +98,7 @@ public class ImageJX extends IjxAbstractApplication {
         String err2 = m.addMenuBar();
         m.installPopupMenu(this);
         IJ.init((IjxApplication) this, topComponent, applet);
-        IJ.setFactory(new FactoryAWT()); // <<== set the Factory, GBH
+
         //addKeyListener(this);
         topComponent.finishAndShow();
         if (err1 != null) {
@@ -122,7 +122,7 @@ public class ImageJX extends IjxAbstractApplication {
         m.installStartupMacroSet();
         String str = m.getMacroCount() == 1 ? " macro)" : " macros)";
         String java = "Java " + System.getProperty("java.version");
-        IJ.showStatus("ImageJ " + VERSION + "/" + java + " (" + m.getPluginCount() + " commands, " + m.getMacroCount() + str);
+        IJ.showStatus("ImageJX " + VERSION + "/" + java + " (" + m.getPluginCount() + " commands, " + m.getMacroCount() + str);
         if (applet == null && !embedded) {
             new SocketListener();
         }

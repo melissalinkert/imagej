@@ -45,6 +45,8 @@ public class ImageWindow extends Frame
     window, presses the escape key, or closes the window. */
     private boolean running2;
 
+    public ImageWindow() {} //?
+
     public ImageWindow(String title) {
         super(title);
     }
@@ -76,7 +78,7 @@ public class ImageWindow extends Frame
         this.ic = ic;
         IjxImageWindow previousWindow = imp.getWindow();
         setLayout(new ImageLayout(ic));
-        add((ImageCanvas) ic);
+        add((ImageCanvas)ic);
         addFocusListener(this);
         addWindowListener(this);
         addWindowStateListener(this);
@@ -764,6 +766,10 @@ public class ImageWindow extends Frame
 
     public long getMaxBoundsTime() {
         return maxBoundsTime;
+    }
+
+    public Container getContainer() {
+        return this;
     }
     /** Overrides the setBounds() method in Component so
     we can find out when the window is resized. */

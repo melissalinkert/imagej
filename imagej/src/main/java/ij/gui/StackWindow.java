@@ -182,7 +182,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
 
     @Override
     public boolean canClose() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 
     @Override
@@ -370,5 +370,9 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
 
     public ScrollbarWithLabel getTSelector() {
         return tSelector;
+    }
+
+    public Container getContainer() {
+        return this;
     }
 }

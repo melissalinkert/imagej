@@ -1,7 +1,5 @@
 package ij;
 import ij.process.*;
-import ij.gui.*;
-import ij.plugin.*;
 import ij.plugin.frame.*;
 import ij.plugin.filter.RGBStackSplitter;
 import ij.io.FileInfo;

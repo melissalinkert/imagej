@@ -8,6 +8,8 @@ import ijx.gui.IjxDialog;
 import ijx.gui.IjxImageCanvas;
 import ijx.plugin.frame.IjxPluginFrame;
 import ij.process.ImageProcessor;
+import ijx.app.IjxApplication;
+import ijx.gui.IjxProgressBar;
 import java.awt.Image;
 import java.awt.image.ColorModel;
 
@@ -16,6 +18,9 @@ import java.awt.image.ColorModel;
  * @author GBH
  */
 public interface IjxFactory {
+    public IjxTopComponent newTopComponent(IjxApplication app, String title);
+
+    IjxProgressBar newProgressBar(int canvasWidth, int canvasHeight);
 
     IjxImagePlus newImagePlus();
 
@@ -26,6 +31,10 @@ public interface IjxFactory {
     IjxImagePlus newImagePlus(String pathOrURL);
 
     IjxImagePlus newImagePlus(String title, IjxImageStack stack);
+
+    IjxImagePlus CompositeImage(IjxImagePlus imp);
+
+    IjxImagePlus CompositeImage(IjxImagePlus imp, int mode);
 
     IjxImagePlus[] newImagePlusArray(int n);
 
@@ -59,7 +68,6 @@ public interface IjxFactory {
     IjxDialog newDialog();
 
     IjxGenericDialog newGenericDialog();
-    
-    IjxPluginFrame newPluginFrame(String title);
 
+    IjxPluginFrame newPluginFrame(String title);
 }

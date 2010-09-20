@@ -14,6 +14,7 @@ import ijx.IjxImageStack;
 import ijx.app.IjxApplication;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
+import ijx.gui.IjxProgressBar;
 import ijx.gui.IjxWindow;
 import java.awt.*;
 import java.awt.image.*;
@@ -2066,7 +2067,7 @@ public class Functions implements MacroConstants, Measurements {
 	
 	void showProgress() {
 		IjxApplication ij = IJ.getInstance();
-		ij.gui.ProgressBar progressBar = ij!=null?
+		IjxProgressBar progressBar = ij!=null?
             IJ.getTopComponent().getProgressBar():null;
 		interp.getLeftParen();
 		double arg1 = interp.getExpression();

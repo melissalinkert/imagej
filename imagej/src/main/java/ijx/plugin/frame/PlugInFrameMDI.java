@@ -71,6 +71,6 @@ public class PlugInFrameMDI extends javax.swing.JInternalFrame implements IjxPlu
     }
 
     public Image getIconImage() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 }

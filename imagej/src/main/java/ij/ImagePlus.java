@@ -42,11 +42,12 @@ public class ImagePlus implements IjxImagePlus {
     /** True if any changes have been made to this image. */
 	private boolean changes;
 
+	private IjxApplication ijApp = IJ.getInstance();
+	private Frame ij = IJ.getTopComponentFrame();
+	protected IjxImageWindow win;
 
-	
 	protected Image img;
 	protected ImageProcessor ip;
-	protected IjxImageWindow win;
 	protected Roi roi;
 	protected int currentSlice;
 	protected static final int OPENED=0, CLOSED=1, UPDATED=2;
@@ -55,8 +56,7 @@ public class ImagePlus implements IjxImagePlus {
 	protected int height;
 	protected boolean locked = false;
 
-	private IjxApplication ijApp = IJ.getInstance();
-	private Frame ij = IJ.getTopComponentFrame();
+
 	private String title;
 	private	String url;
 	private FileInfo fileInfo;
@@ -187,9 +187,14 @@ public class ImagePlus implements IjxImagePlus {
 		if (comp==null) {
 			comp = IJ.getTopComponentFrame();
 			if (comp==null)
-				comp = new Canvas();
+				comp = (Component) IJ.getFactory().newImageCanvas((IjxImagePlus)this);
 		}
 		imageLoaded = false;
+        // @todo:  Why is prepareImage used here...? (it is JDK 1.)  Might it be MediaTracker?
+        //  or createCompatibleImage()
+        //or
+//                Image greenball = Toolkit.getDefaultToolkit().getImage(
+//                        new java.net.URL( "http://mindprod.com/images/greenball.gif" ) );
 		if (!comp.prepareImage(img, this)) {
 			double progress;
 			waitStart = System.currentTimeMillis();
@@ -221,7 +226,9 @@ public class ImagePlus implements IjxImagePlus {
 		has not been called).*/
 	public void draw(){
 		if (win!=null)
-			win.getCanvas().repaint();
+			if(win.getCanvas()!=null)
+                win.getCanvas().repaint();
+            else System.err.println("win.getCanvas()==null in ImagePlus.draw()");
 	}
 	
 	/** Draws image and roi outline using a clip rect. */
@@ -620,7 +627,18 @@ public class ImagePlus implements IjxImagePlus {
 	/** Returns the ImageCanvas being used to
 		display this image, or null. */
 	public IjxImageCanvas getCanvas() {
-		return win!=null?getWindow().getCanvas():flatteningCanvas;
+        IjxImageCanvas ic = null;
+        if(win!=null){
+
+            ic = getWindow().getCanvas();
+            if(ic == null) {
+                System.err.println("Uh Oh... Canvas == null at ImagePlus.getCanvas()");
+            }
+        } else {
+            ic = flatteningCanvas;
+        }
+        return ic;
+		//return win!=null?getWindow().getCanvas():flatteningCanvas;
 	}
 
 	/** Sets current foreground color. */
@@ -2098,11 +2116,11 @@ public class ImagePlus implements IjxImagePlus {
     }
 
     public void setChanged(boolean t) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        this.changes = t;
     }
 
     public boolean isChanged() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.changes;
     }
 
     public IjxImageCanvas getFlatteningCanvas() {

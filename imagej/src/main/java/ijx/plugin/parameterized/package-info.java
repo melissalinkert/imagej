@@ -44,6 +44,40 @@ IjxImagePlus
  for non-interactive... must set parameters before
  executed by [?]
 
+ *
+ *  Unless a label is specified, the field name will be used for the dialog,
+    so it starts upcased, and underscores are removed.
+
+ * Examples:
+
+    @Parameter
+    public String first_name = "grant";
+    @Parameter(label = "Your last name", columns = 15)
+    public String last_name = "harris";
+    @Parameter(label = "An Integer", required = true)
+    public Integer n = 1;
+    @Parameter(label = "An int", persist = "example.total")
+    public int total = 9;
+    @Parameter(label = "A short")
+    public short count = 9;
+    @Parameter(label = "A float", widget = "slider")
+    public float f = 50.0f;
+    @Parameter(label = "A Double", widget = "slider")
+    public Double x = 50.0;
+
+    @Parameter(label = "A double", digits = 3, columns = 5, units = "microns")
+    public double y = 101.2;
+
+    @Parameter
+    public boolean yesOrNo = false;
+    @Parameter
+    public IjxImagePlus impIn;
+    //
+    @Parameter(output = true)
+    public IjxImagePlus impOut;
+    @Parameter(output = true)
+    public int outputValue = 9;
+ *
  */
 package ijx.plugin.parameterized;
 

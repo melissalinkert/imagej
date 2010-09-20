@@ -18,6 +18,7 @@ import ij.plugin.frame.Recorder;
 import ij.macro.Interpreter;
 import ij.measure.Calibration;
 import ij.measure.ResultsTable;
+import ijx.gui.IjxProgressBar;
 import java.awt.event.*;
 import java.text.*;
 import java.util.*;
@@ -39,7 +40,7 @@ public class IJ {
     private static IjxTopComponent topComponent;
     private static IjxFactory factory;
     private static ImageJApplet applet;
-    private static ProgressBar progressBar;
+    private static IjxProgressBar progressBar;
     private static TextPanel textPanel;
     private static String osname, osarch;
     private static boolean isMac, isWin, isJava2, isJava14, isJava15, isJava16, isJava17, isLinux, isVista, is64Bit;
@@ -114,7 +115,7 @@ public class IJ {
     }
 
     public static Frame getTopComponentFrame() {
-        return (Frame) topComponent;
+        return topComponent.getFrame();
     }
 
     public static void setTopComponent(IjxTopComponent tc) {

@@ -1,6 +1,6 @@
 package ijx.plugin.parameterized;
 
-import ijx.IjxImagePlus;
+import ij.ImagePlus;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +21,6 @@ public class ParameterHandler {
     public static Iterable<Field> getInputParameters(Runnable plugin) {
         return getParameters(plugin, PlugInFunctions.inputs);
     }
-
 
     public static void setParameter(Runnable plugin, String key, Object value) {
         try {
@@ -54,12 +53,12 @@ public class ParameterHandler {
         return getParameters(plugin, PlugInFunctions.all);
     }
 
-    public static Iterable<IjxImagePlus> getOutputImages(Runnable plugin) {
-        List<IjxImagePlus> result = new ArrayList<IjxImagePlus>();
+    public static Iterable<ImagePlus> getOutputImages(Runnable plugin) {
+        List<ImagePlus> result = new ArrayList<ImagePlus>();
         for (Field field : getOutputParameters(plugin)) {
-            if (field.getType() == IjxImagePlus.class) {
+            if (field.getType() == ImagePlus.class) {
                 try {
-                    result.add((IjxImagePlus) field.get(plugin));
+                    result.add((ImagePlus) field.get(plugin));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -69,6 +68,7 @@ public class ParameterHandler {
     }
 
     public static Map<String, Object> getOutputMap(Runnable plugin) {
+        // @todo: Mightn't this oughta be ConcurrentHashMap ?
         Map<String, Object> result = new HashMap<String, Object>();
         for (Field field : getOutputParameters(plugin)) {
             try {

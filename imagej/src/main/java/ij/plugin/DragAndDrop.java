@@ -28,7 +28,7 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 	public void run(String arg) {
 		IjxTopComponent ij = IJ.getTopComponent();
 		ij.setDropTarget(null);
-		new DropTarget((Component)ij, this);
+		new DropTarget(ij.getFrame(), this);
 		new DropTarget(Toolbar.getInstance(), this);
 		new DropTarget(ij.getStatusBar(), this);
 	}  

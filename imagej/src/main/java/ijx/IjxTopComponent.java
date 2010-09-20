@@ -5,10 +5,11 @@
 
 package ijx;
 
+import ijx.gui.IjxProgressBar;
 import ijx.gui.IjxWindow;
-import ij.gui.ProgressBar;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.Panel;
 import java.awt.Point;
 import java.awt.event.KeyListener;
@@ -29,11 +30,13 @@ public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListene
      */
     Font SansSerif12 = new Font("SansSerif", Font.PLAIN, 12);
 
+    Frame getFrame();
+
     void setMenuBar(Object menuBar);
 
     Point getPreferredLocation();
 
-    ProgressBar getProgressBar();
+    IjxProgressBar getProgressBar();
 
     Panel getStatusBar();
     

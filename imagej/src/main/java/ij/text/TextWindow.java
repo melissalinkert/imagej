@@ -317,11 +317,11 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 	public void focusLost(FocusEvent e) {}
 
     public boolean isClosed() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 
     public boolean canClose() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 
 }

@@ -101,7 +101,7 @@ public class ImageJApplet extends Applet {
         doLayout();
     }
 
-    public void setImageCanvas(Component c) {
+    public void setImageCanvas(ImageCanvas c) {
         if (c != null) {
             imagePane.removeAll();
             imagePane.add(c);

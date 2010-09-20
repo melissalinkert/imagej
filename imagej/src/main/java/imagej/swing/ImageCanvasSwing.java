@@ -63,6 +63,7 @@ import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxStackWindow;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Event;
@@ -1391,5 +1392,9 @@ public class ImageCanvasSwing extends JPanel implements IjxImageCanvas  {
 
 	public void mouseClicked(MouseEvent e) {}
 	public void mouseEntered(MouseEvent e) {}
+
+    public Component getCanvas() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
 }

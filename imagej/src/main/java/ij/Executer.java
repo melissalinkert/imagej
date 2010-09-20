@@ -81,6 +81,7 @@ public class Executer implements Runnable {
 			if (command.charAt(len-1)!=']' && !(len<4&&(command.equals("In")||command.equals("Out"))))
 				IJ.setKeyUp(IJ.ALL_KEYS);  // set keys up except for "<", ">", "+" and "-" shortcuts
 		} catch(Throwable e) {
+            e.printStackTrace();
 			IJ.showStatus("");
 			IJ.showProgress(1, 1);
 			IjxImagePlus imp = WindowManager.getCurrentImage();
@@ -117,10 +118,12 @@ public class Executer implements Runnable {
 						w=700; h=150;
 					}
 				}
-				if (IJ.getInstance()!=null)
+				if (IJ.getInstance()!=null){
 					new TextWindow("Exception", s, w, h);
+                }
 				else
 					IJ.log(s);
+
 				notifyCommandListeners(cmd, CommandListenerPlus.CMD_ERROR);
 			}
 			IJ.abort();

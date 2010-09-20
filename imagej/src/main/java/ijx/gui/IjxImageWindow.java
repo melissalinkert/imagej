@@ -6,6 +6,7 @@ package ijx.gui;
 
 import ijx.IjxImagePlus;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.Rectangle;
@@ -56,6 +57,8 @@ public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelList
      * Draws the subtitle.
      */
     void drawInfo(Graphics g);
+
+    Container getContainer();
 
     IjxImageCanvas getCanvas();
 

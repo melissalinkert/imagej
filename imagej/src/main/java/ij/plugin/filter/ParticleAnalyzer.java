@@ -12,8 +12,13 @@ import ij.macro.Interpreter;
 import ij.util.Tools;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
+import ijx.SavesPrefs;
 import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxWindow;
+import org.openide.util.lookup.ServiceProvider;
+
+@ServiceProvider(service=SavesPrefs.class)
+
 
 /** Implements ImageJ's Analyze Particles command.
 	<p>
@@ -28,7 +33,7 @@ import ijx.gui.IjxWindow;
 				continue the scan
 	</pre>
 */
-public class ParticleAnalyzer implements PlugInFilter, Measurements {
+public class ParticleAnalyzer implements PlugInFilter, Measurements, SavesPrefs {
 
 	/** Display results in the ImageJ console. */
 	public static final int SHOW_RESULTS = 1;
@@ -996,7 +1001,7 @@ public class ParticleAnalyzer implements PlugInFilter, Measurements {
 	}
 
 	/** Called once when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
+	public void savePreferences(Properties prefs) {
 		prefs.put(OPTIONS, Integer.toString(staticOptions));
 	}
 

@@ -1,17 +1,18 @@
-package ij.gui;
+package imagej.swing;
+import ij.gui.*;
+import ijx.IjxTopComponent;
 import ijx.app.IjxApplication;
 import ijx.gui.IjxProgressBar;
 import ij.IJ;
 import ij.macro.Interpreter;
-import ijx.IjxTopComponent;
-import imagej.swing.TopComponentSwing;
 import java.awt.*;
 import java.awt.image.*;
+import javax.swing.JProgressBar;
 
 /** This is the progress bar that is displayed in the lower 
 	right hand corner of the ImageJ window. Use one of the static 
 	IJ.showProgress() methods to display and update the progress bar. */
-public class ProgressBar extends Canvas implements IjxProgressBar {
+public class ProgressBarSwing extends JProgressBar implements IjxProgressBar {
 
 	private int canvasWidth, canvasHeight;
 	private int x, y, width, height;
@@ -27,7 +28,7 @@ public class ProgressBar extends Canvas implements IjxProgressBar {
 	private Color frameDarker = backgroundColor.darker();
 
 	/** This constructor is called once by ImageJ at startup. */
-	public ProgressBar(int canvasWidth, int canvasHeight) {
+	public ProgressBarSwing(int canvasWidth, int canvasHeight) {
 		this.canvasWidth = canvasWidth;
 		this.canvasHeight = canvasHeight;
 		x = 3;

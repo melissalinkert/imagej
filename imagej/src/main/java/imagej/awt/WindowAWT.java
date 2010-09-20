@@ -22,7 +22,7 @@ public class WindowAWT extends Frame implements IjxWindow{
 
     @Override
     public boolean close() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 
 }

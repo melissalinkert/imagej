@@ -11,10 +11,6 @@ import java.lang.annotation.Target;
  * @author Grant Harris gharris at mbl.edu
  */
 
-/**
- *
- * @author GBH
- */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface Parameter {
@@ -43,15 +39,23 @@ public @interface Parameter {
     String units() default "";
     /**
      *
+     * @return widget to use for input
+     */
+    
+    String widget() default "";
+    /**
+     *
      * @return is this parameter required (i.e. no default
      */
     boolean required() default false;
+
     /**
+     * Defines a key to use for saving the value to Prefs...
      *
-     * @return widget to use for input
+     * @return
      */
-    String widget() default "";
-    //
+    String persist() default "";
+
     /**
      *
      * @return

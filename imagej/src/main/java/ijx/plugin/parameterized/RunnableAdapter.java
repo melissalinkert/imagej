@@ -64,9 +64,14 @@ of a Runnable.
         PlugInFunctions.runInteractively(plugin);
     }
 
-    public Map<String, Object> run(Object... parameters)
+    public Map<String, Object> execute(Object... parameters)
             throws PlugInException {
-        return PlugInFunctions.run(plugin, parameters);
+        return PlugInFunctions.execute(plugin, parameters);
+    }
+
+    public Map<String, Object> execute(Map<String, Object> inputMap)
+            throws PlugInException {
+        return PlugInFunctions.execute(plugin, inputMap);
     }
 
     @Override

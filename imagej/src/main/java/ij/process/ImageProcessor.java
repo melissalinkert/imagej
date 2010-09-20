@@ -9,6 +9,7 @@ import ij.process.AutoThresholder.Method;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
 import ij.Prefs;
+import ijx.gui.IjxProgressBar;
 
 /**
 This abstract class is the superclass for classes that process
@@ -66,7 +67,7 @@ public abstract class ImageProcessor extends Object {
 	private static boolean useBicubic;
 	private int sliceNumber;
 		
-    ProgressBar progressBar;
+    IjxProgressBar progressBar;
 	protected int width, snapshotWidth;
 	protected int height, snapshotHeight;
 	protected int roiX, roiY, roiWidth, roiHeight;
@@ -809,7 +810,7 @@ public abstract class ImageProcessor extends Object {
 
 	/** Assigns a progress bar to this processor. Set 'pb' to
 		null to disable the progress bar. */
-	public void setProgressBar(ProgressBar pb) {
+	public void setProgressBar(IjxProgressBar pb) {
 		progressBar = pb;
 	}
 

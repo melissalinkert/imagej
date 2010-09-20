@@ -62,7 +62,7 @@ public class IjxAbstractApplication implements IjxApplication {
     boolean hotkey;
     protected IjxTopComponent topComponent;
     protected boolean embedded;
-    protected static String title = "ImageJA";
+
     protected static String iconPath;
     protected static boolean prefsLoaded;
     private static IjxImagePlus clipboard;
@@ -669,8 +669,9 @@ public class IjxAbstractApplication implements IjxApplication {
         return VERSION;
     }
 
+    // @todo getApplet - implement this.
     public ImageJApplet getApplet() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return null;
     }
 
     public Image getIconImage() {

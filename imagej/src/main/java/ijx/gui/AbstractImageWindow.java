@@ -33,49 +33,61 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package ijx.gui;
 
-package imagej.swing;
-
-/**
- *
- * @author GBH <imagejdev.org>
- */
-import java.awt.*;
-import java.awt.event.*;
-import ij.*;
+import ij.CompositeImage;
+import ij.IJ;
+import ij.ImageJApplet;
+import ij.Menus;
+import ij.Prefs;
+import ij.WindowManager;
 import ij.gui.GUI;
 import ij.gui.HistogramWindow;
+import ij.gui.ImageCanvas;
 import ij.gui.ImageCanvasHelper;
 import ij.gui.ImageLayout;
 import ij.gui.YesNoCancelDialog;
-import ij.io.*;
-import ij.measure.*;
-import ij.plugin.frame.*;
+import ij.io.FileSaver;
 import ij.macro.Interpreter;
+import ij.measure.Calibration;
+import ij.plugin.frame.Channels;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
-import ijx.ImageJX;
 import ijx.app.IjxApplication;
-import ijx.gui.IjxImageCanvas;
-import ijx.gui.IjxImageWindow;
-import ijx.gui.IjxStackWindow;
-import javax.swing.JFrame;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Window;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.WindowEvent;
+import java.beans.PropertyVetoException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.ImageIcon;
+import javax.swing.JInternalFrame;
+import javax.swing.event.InternalFrameEvent;
+import javax.swing.event.InternalFrameListener;
 
-/** A frame for displaying images. */
-public class ImageWindowSwing extends JFrame implements IjxImageWindow {
+/** Window for displaying images.
+/* Using composition rather than inhertance...
+ * The component, w, acts as the window and is set when this class is constructed
+ * GBH, Sept 2010
+ */
+public class AbstractImageWindow //extends Frame
+        implements IjxImageWindow, InternalFrameListener {
     public static final int MIN_WIDTH = 128;
     public static final int MIN_HEIGHT = 32;
-    protected IjxImagePlus imp;
-    protected IjxApplication ij;
-    protected IjxImageCanvas ic;
-    private double initialMagnification = 1;
-    private int newWidth, newHeight;
-    protected boolean closed;
-    private boolean newCanvas;
-    private boolean unzoomWhenMinimizing = true;
-    Rectangle maxWindowBounds; // largest possible window on this screen
-    Rectangle maxBounds; // Size of this window after it is maximized
-    long maxBoundsTime;
     private static final int XINC = 8;
     private static final int YINC = 12;
     private static final int TEXT_GAP = 10;
@@ -84,64 +96,107 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     private static int xloc;
     private static int yloc;
     private static int count;
+    //
+    protected IjxImagePlus imp;
+    protected IjxApplication ij;
+    protected IjxImageCanvas ic;
+    protected Container w; // the Window - a Frame, JFrame or JInternalFrame
+    //
+    private double initialMagnification = 1;
+    private int newWidth, newHeight;
+    protected boolean closed;
+    private boolean newCanvas;
+    private boolean unzoomWhenMinimizing = true;
+    Rectangle maxWindowBounds; // largest possible window on this screen
+    Rectangle maxBounds; // Size of this window after it is maximized
+    long maxBoundsTime;
     private int textGap = WindowManager.isCenterNextImage() ? 0 : TEXT_GAP;
     /** This variable is set false if the user presses the escape key or closes the window. */
     public boolean running;
     /** This variable is set false if the user clicks in this
     window, presses the escape key, or closes the window. */
     private boolean running2;
+    private String title = "";
 
-    public ImageWindowSwing(String title) {
-        super(title);
+    public AbstractImageWindow() {
     }
 
-    public ImageWindowSwing(IjxImagePlus imp) {
-        this(imp, null);
+    public AbstractImageWindow(String _title, Container window) {
+        this.title = _title;
+        w = window;
+        if (w == null) {
+            throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
+        }
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            // awt.Frame or swing.JFrame
+            ((Frame) w).setTitle(title);
+        }
+        if (w instanceof JInternalFrame) {
+            // swing.JInternalFrame
+            ((JInternalFrame) w).setTitle(title);
+        }
+        // @todo no ImagePlus assigned...
     }
 
-    public ImageWindowSwing(IjxImagePlus imp, IjxImageCanvas ic) {
-        super(imp.getTitle());
+    public AbstractImageWindow(IjxImagePlus _imp, Container window) {
+        this(_imp, null, window);
+    }
+
+    public AbstractImageWindow(IjxImagePlus _imp, IjxImageCanvas _ic, Container window) {
+        this.w = window;
+        this.imp = _imp;
+        this.ic = _ic;
+        if (w == null) {
+            throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
+        }
+        if (imp == null) {
+            throw new UnsupportedOperationException("Uh Oh... ImagePlus is null"); // @todo
+        }
+        //super(imp.getTitle());
         if (Prefs.blackCanvas && getClass().getName().equals("ij.gui.IjxImageWindow")) {
-            setForeground(Color.white);
-            setBackground(Color.black);
+            w.setForeground(Color.white);
+            w.setBackground(Color.black);
         } else {
-            setForeground(Color.black);
+            w.setForeground(Color.black);
             if (IJ.isLinux()) {
-                setBackground(IJ.backgroundColor);
+                w.setBackground(IJ.backgroundColor);
             } else {
-                setBackground(Color.white);
+                w.setBackground(Color.white);
             }
         }
-        ij = IJ.getInstance();
 
-        this.imp = imp;
         if (ic == null) {
             ic = IJ.getFactory().newImageCanvas(imp);
             newCanvas = true;
         }
-        this.ic = ic;
+
         IjxImageWindow previousWindow = imp.getWindow();
-        setLayout(new ImageLayout(ic));
-        add((ImageCanvasSwing)ic);
-        addFocusListener(this);
-        addWindowListener(this);
-        addWindowStateListener(this);
-        addKeyListener(ij);
-        setFocusTraversalKeysEnabled(false);
-        if (!(this instanceof IjxStackWindow)) {
-            addMouseWheelListener(this);
+        w.setLayout(new ImageLayout(ic));
+        w.add(ic.getCanvas());
+
+        // @todo need to also support InternalFrameListener
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            // awt.Frame or swing.JFrame
+            setListenersOnWindow(((Frame) w));
+
         }
-        setResizable(true);
+        if (w instanceof JInternalFrame) {
+            // swing.JInternalFrame
+            setListenersOnInternalWindow(((JInternalFrame) w));
+        }
+
         WindowManager.addWindow(this);
         imp.setWindow(this);
         ImageJApplet applet = getApplet();
-        if (applet != null) {
+
+        if (applet != null) {  // is runnning as an Applet
             if (Interpreter.isBatchMode()) {
                 WindowManager.setTempCurrentImage(imp);
                 Interpreter.addBatchModeImage(imp);
             } else {
-             //   applet.setImageCanvas((ImageCanvasSwing) ic);
+                applet.setImageCanvas((ImageCanvas) ic);
             }
+
         } else if (previousWindow != null) {
             if (newCanvas) {
                 setLocationAndSize(false);
@@ -149,7 +204,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
                 ic.update(previousWindow.getCanvas());
             }
             Point loc = previousWindow.getLocation();
-            setLocation(loc.x, loc.y);
+            w.setLocation(loc.x, loc.y);
             if (!(this instanceof IjxStackWindow)) {
                 pack();
                 show();
@@ -171,22 +226,55 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
 //				if (img!=null)
 //					try {setIconImage(img);} catch (Exception e) {}
 //			}
+            // @todo  add JInternalFrame handling
             if (WindowManager.isCenterNextImage()) {
-                GUI.center(this);
+                GUI.center((Frame) w);
                 WindowManager.setCenterNextImage(false);
             } else if (WindowManager.getNextLocation() != null) {
-                setLocation(WindowManager.getNextLocation());
+                w.setLocation(WindowManager.getNextLocation());
                 WindowManager.setNextLocation(null);
             }
-            // @todo ... deal with HistogramWindow type
+            // @todo need HistogramWindow that is an AbstractImageWindow...
 //            if (Interpreter.isBatchMode()
 //                    || (IJ.getInstance() == null && this instanceof HistogramWindow)) {
 //                WindowManager.setTempCurrentImage(imp);
 //                Interpreter.addBatchModeImage(imp);
 //            } else {
+            if (!(this instanceof IjxStackWindow)) {
+                pack();
                 show();
+            }
+            show();
 //            }
         }
+    }
+
+    public Container getContainer() {
+        return w;
+    }
+
+    private void setListenersOnWindow(Frame w) {
+        w.addFocusListener(this);
+        ((Window) w).addWindowListener(this);
+        w.addWindowStateListener(this);
+        w.addKeyListener(ij);
+        w.setFocusTraversalKeysEnabled(false);
+        if (!(this instanceof IjxStackWindow)) {
+            w.addMouseWheelListener(this);
+        }
+        w.setResizable(true);
+    }
+
+    private void setListenersOnInternalWindow(JInternalFrame w) {
+        w.addFocusListener(this);
+        w.addInternalFrameListener(this);
+        //w.addWindowStateListener(this);
+        w.addKeyListener(ij);
+        w.setFocusTraversalKeysEnabled(false);
+        if (!(this instanceof IjxStackWindow)) {
+            w.addMouseWheelListener(this);
+        }
+        w.setResizable(true);
     }
 
     private ImageJApplet getApplet() {
@@ -200,25 +288,36 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
         ImageJApplet applet = getApplet();
         if (applet != null) {
             applet.pack();
-        } else {
-            super.pack();
+        } else if (Frame.class.isAssignableFrom(w.getClass())) {
+            // awt.Frame or swing.JFrame
+            ((Frame) w).pack();
+        } else if (w instanceof JInternalFrame) {
+            // swing.JInternalFrame
+            ((JInternalFrame) w).pack();
         }
     }
 
     public void toFront() {
-        super.toFront();
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            // awt.Frame or swing.JFrame
+            ((Frame) w).toFront();
+        } else if (w instanceof JInternalFrame) {
+            // swing.JInternalFrame
+            ((JInternalFrame) w).toFront();
+        }
         ImageJApplet applet = getApplet();
         if (applet != null) {
-           // applet.setImageCanvas((ImageCanvasSwing) ic);
+            applet.setImageCanvas((ImageCanvas) ic);
         }
     }
 
     public void show() {
         ImageJApplet applet = getApplet();
         if (applet != null) {
-           // applet.setImageCanvas((ImageCanvasSwing) ic);
+            applet.setImageCanvas((ImageCanvas) ic);
         } else {
-            super.show();
+            w.show();
+
         }
     }
 
@@ -275,14 +374,14 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
             y = ybase;
         }
         if (!updating) {
-            setLocation(x, y);
+            w.setLocation(x, y);
         }
         if (Prefs.open100Percent && ic.getMagnification() < 1.0) {
             while (ic.getMagnification() < 1.0) {
                 ic.zoomIn(0, 0);
             }
-            setSize(Math.min(width, maxWindow.width - x), Math.min(height, screenHeight - y));
-            validate();
+            w.setSize(Math.min(width, maxWindow.width - x), Math.min(height, screenHeight - y));
+            w.validate();
         } else {
             pack();
         }
@@ -333,7 +432,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
 
     /** Override Container getInsets() to make room for some text above the image. */
     public Insets getInsets() {
-        Insets insets = super.getInsets();
+        Insets insets = w.getInsets();
         double mag = ic.getMagnification();
         int extraWidth = (int) ((MIN_WIDTH - imp.getWidth() * mag) / 2.0);
         if (extraWidth < 0) {
@@ -350,7 +449,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     /** Draws the subtitle. */
     public void drawInfo(Graphics g) {
         if (textGap != 0) {
-            Insets insets = super.getInsets();
+            Insets insets = w.getInsets();
             if (imp.isComposite()) {
                 CompositeImage ci = (CompositeImage) imp;
                 if (ci.getMode() == CompositeImage.COMPOSITE) {
@@ -477,7 +576,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
             } else {
                 msg = "Save changes to \"" + name + "\"?";
             }
-            YesNoCancelDialog d = new YesNoCancelDialog(this, "ImageJ", msg);
+            YesNoCancelDialog d = new YesNoCancelDialog(null, "ImageJ", msg);
             if (d.cancelPressed()) {
                 return false;
             } else if (d.yesPressed()) {
@@ -493,7 +592,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
             yloc = 0;
         }
         WindowManager.removeWindow(this);
-        setVisible(false);
+        w.setVisible(false);
         if (ij != null && ij.quitting()) // this may help avoid thread deadlocks
         {
             return true;
@@ -589,10 +688,10 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
         if (extraHeight == 20) {
             extraHeight = 42;
         }
-        int members = getComponentCount();
+        int members = w.getComponentCount();
         //if (IJ.debugMode) IJ.log("getExtraSize: "+members+" "+insets);
         for (int i = 1; i < members; i++) {
-            Component m = getComponent(i);
+            Component m = w.getComponent(i);
             Dimension d = m.getPreferredSize();
             extraHeight += d.height + 5;
             if (IJ.debugMode) {
@@ -603,7 +702,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     }
 
     public Component add(Component comp) {
-        comp = super.add(comp);
+        comp = w.add(comp);
         maxBounds = getMaximumBounds();
         //if (!IJ.isLinux()) {
         setMaximizedBounds(maxBounds);
@@ -631,7 +730,15 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
         if (IJ.debugMode) {
             IJ.log("maximize: " + mag + " " + ic.getMagnification() + " " + maxBounds);
         }
-        setSize(getMaximizedBounds().width, getMaximizedBounds().height);
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            setSize(((Frame) w).getMaximizedBounds().width, ((Frame) w).getMaximizedBounds().height);
+        }
+        if (w instanceof JInternalFrame) {
+            try {
+                ((JInternalFrame) w).setMaximum(true);
+            } catch (PropertyVetoException ex) {
+            }
+        }
         if (mag > ic.getMagnification() || aspectRatio < 0.5 || aspectRatio > 2.0) {
             ic.setMagnification2(mag);
             ic.setSrcRect(new Rectangle(0, 0, width, height));
@@ -662,6 +769,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
         }
     }
 
+// <editor-fold defaultstate="collapsed" desc=" WindowListener">
     public void windowActivated(WindowEvent e) {
         if (IJ.debugMode) {
             IJ.log("windowActivated: " + imp.getTitle());
@@ -669,10 +777,11 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
         //ImageJ ij = IJ.getInstance();
         IjxApplication ij = IJ.getInstance();
         boolean quitting = ij != null && ij.quitting();
-        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
-            IJ.wait(10); // may be needed for Java 1.4 on OS X
-            setMenuBar(Menus.getMenuBar());
-        }
+        // @todo Deal with Mac Menu issues here
+//        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
+//            IJ.wait(10); // may be needed for Java 1.4 on OS X
+//            setMenuBar(Menus.getMenuBar());
+//        }
         imp.setActivated(); // notify IjxImagePlus that image has been activated
         if (!closed && !quitting && !Interpreter.isBatchMode()) {
             WindowManager.setCurrentWindow(this);
@@ -727,6 +836,30 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     public void windowOpened(WindowEvent e) {
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" InternalFrameListener ">
+    public void internalFrameClosing(InternalFrameEvent e) {
+    }
+
+    public void internalFrameClosed(InternalFrameEvent e) {
+    }
+
+    public void internalFrameOpened(InternalFrameEvent e) {
+    }
+
+    public void internalFrameIconified(InternalFrameEvent e) {
+    }
+
+    public void internalFrameDeiconified(InternalFrameEvent e) {
+    }
+
+    public void internalFrameActivated(InternalFrameEvent e) {
+    }
+
+    public void internalFrameDeactivated(InternalFrameEvent e) {
+    }
+
+// </editor-fold>
     public void mouseWheelMoved(MouseWheelEvent event) {
         int rotation = event.getWheelRotation();
         int width = imp.getWidth();
@@ -780,7 +913,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     /** Moves and resizes this window. Changes the
     magnification so the image fills the window. */
     public void setLocationAndSize(int x, int y, int width, int height) {
-        setBounds(x, y, width, height);
+        w.setBounds(x, y, width, height);
         getCanvas().fitToWindow();
         pack();
     }
@@ -802,7 +935,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     }
 
     public boolean canClose() {
-        throw new UnsupportedOperationException("Not supported yet."); // @todo
+        return true;
     }
 
     public void setMaxBoundsTime(long time) {
@@ -812,14 +945,117 @@ public class ImageWindowSwing extends JFrame implements IjxImageWindow {
     public long getMaxBoundsTime() {
         return maxBoundsTime;
     }
+
     /** Overrides the setBounds() method in Component so
     we can find out when the window is resized. */
     //public void setBounds(int x, int y, int width, int height)	{
     //	super.setBounds(x, y, width, height);
     //	ic.resizeSourceRect(width, height);
     //}
-        public Container getContainer() {
-        return this;
+    public void setBounds(Rectangle r) {
+        w.setBounds(r);
+    }
+
+    public void setMaximizedBounds(Rectangle r) {
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            ((Frame) w).setMaximizedBounds(maxBounds);
+        }
+        // @todo -- does this work correctly...?
+        if (w instanceof JInternalFrame) {
+            ((JInternalFrame) w).setMaximumSize(new Dimension(r.width, r.height));
+        }
+    }
+
+    public void repaint() {
+        w.repaint();
+    }
+
+    public void setForeground(Color c) {
+        w.setForeground(c);
+    }
+
+    public void setBackground(Color c) {
+        w.setBackground(c);
+    }
+
+    public void setSize(int w, int h) {
+        this.w.setSize(w, h);
+    }
+
+    public void validate() {
+        w.validate();
+    }
+
+    public String getTitle() {
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            return ((Frame) w).getTitle();
+        }
+        if (w instanceof JInternalFrame) {
+            return ((JInternalFrame) w).getTitle();
+        }
+        return "";
+    }
+
+    public void setTitle(String s) {
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            ((Frame) w).setTitle(s);
+        }
+        if (w instanceof JInternalFrame) {
+            ((JInternalFrame) w).setTitle(title);
+        }
+    }
+
+    public Image getIconImage() {
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            return ((Frame) w).getIconImage();
+        }
+        if (w instanceof JInternalFrame) {
+            return ((ImageIcon) ((JInternalFrame) w).getFrameIcon()).getImage();
+        }
+        return null;
+    }
+
+    public boolean isVisible() {
+        return w.isVisible();
+    }
+
+    public void setVisible(boolean b) {
+        w.setVisible(b);
+    }
+
+    public Dimension getSize() {
+        return w.getSize();
+    }
+
+    public Point getLocation() {
+        return w.getLocation();
+    }
+
+    public Point getLocationOnScreen() {
+        return w.getLocationOnScreen();
+    }
+
+    public Rectangle getBounds() {
+        return w.getBounds();
+    }
+
+    public void setLocation(int x, int y) {
+        w.setLocation(x, y);
+    }
+
+    public void setLocation(Point p) {
+        w.setLocation(p);
+    }
+
+    public void dispose() {
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            // awt.Frame or swing.JFrame
+            ((Frame) w).dispose();
+        }
+        if (w instanceof JInternalFrame) {
+            // swing.JInternalFrame
+            ((JInternalFrame) w).hide();
+        }
     }
 } //class IjxImageWindow
 

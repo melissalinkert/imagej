@@ -84,14 +84,15 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
     	are open. Dialog parameters are recorded by ImageJ's command recorder but
     	this requires that the first word of each label be unique. */
 	public GenericDialog(String title) {
-		this(title, WindowManager.getCurrentImage()!=null?
-			(Frame)WindowManager.getCurrentImage().getWindow():
-            IJ.getTopComponentFrame()!=null?IJ.getTopComponentFrame():new Frame());
+		this(title, IJ.getTopComponentFrame());
+//		this(title, WindowManager.getCurrentImage()!=null?
+//			(Window)WindowManager.getCurrentImage().getWindow().getContainer():
+//            IJ.getTopComponentFrame()!=null?IJ.getTopComponentFrame():new Frame());
 	}
 
     /** Creates a new GenericDialog using the specified title and parent frame. */
     public GenericDialog(String title, Frame parent) {
-		super(parent==null?new Frame():parent, title, true);
+		super(parent==null?new Frame():parent, title, Dialog.ModalityType.APPLICATION_MODAL);
 		if (Prefs.blackCanvas) {
 			setForeground(SystemColor.controlText);
 			setBackground(SystemColor.control);

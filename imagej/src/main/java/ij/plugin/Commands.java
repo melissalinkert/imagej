@@ -17,7 +17,7 @@ public class Commands implements PlugIn {
 	
 	public void run(String cmd) {
 		if (cmd.equals("new"))
-			new NewImage();
+			new NewImage().openImage();
 		else if (cmd.equals("open")) {
 			if (Prefs.useJFileChooser && !IJ.macroRunning())
 				new Opener().openMultiple();

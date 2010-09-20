@@ -7,6 +7,7 @@ import ij.util.*;
 import ij.plugin.MacroInstaller;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
+import ijx.SavesPrefs;
 import ijx.gui.IjxWindow;
 import java.applet.Applet;
 import java.awt.*;
@@ -21,6 +22,10 @@ import java.net.JarURLConnection;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.openide.util.lookup.ServiceProvider;
+
+@ServiceProvider(service=SavesPrefs.class)
+
 /**
 This class installs and updates ImageJ's menus. Note that menu labels,
 even in submenus, must be unique. This is because ImageJ uses a single
@@ -31,7 +36,7 @@ the same label. One of the labels has an extra space.
 @see ImageJ
 */
 
-public class Menus implements IjxMenus {
+public class Menus implements IjxMenus, SavesPrefs {
 
 
 
@@ -74,6 +79,8 @@ public class Menus implements IjxMenus {
 	static boolean jnlp; // true when using Java WebStart
     private static IjxTopComponent topComponent;
 	private static IjxApplication ijApp;
+
+    public Menus() {}
 		
 	public Menus(IjxTopComponent tc, IjxApplication _ijApp, Applet appletInstance) {
 		topComponent = tc;
@@ -1534,7 +1541,7 @@ public class Menus implements IjxMenus {
 	}
 
 	/** Called once when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
+	public void savePreferences(Properties prefs) {
 		int index = 0;
 		for (Enumeration en=instance.pluginsPrefs.elements(); en.hasMoreElements();) {
 			String key = "plugin" + (index/10)%10 + index%10;

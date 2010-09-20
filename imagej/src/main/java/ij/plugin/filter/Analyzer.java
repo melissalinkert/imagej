@@ -11,10 +11,14 @@ import ij.plugin.Straightener;
 import ij.macro.Interpreter;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
+import ijx.SavesPrefs;
 import ijx.app.IjxApplication;
+import org.openide.util.lookup.ServiceProvider;
+
+@ServiceProvider(service=SavesPrefs.class)
 
 /** This plugin implements ImageJ's Analyze/Measure and Analyze/Set Measurements commands. */
-public class Analyzer implements PlugInFilter, Measurements {
+public class Analyzer implements PlugInFilter, Measurements, SavesPrefs {
 	
 	private String arg;
 	private IjxImagePlus imp;
@@ -839,7 +843,7 @@ public class Analyzer implements PlugInFilter, Measurements {
 	}
 
 	/** Called once when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
+	public void savePreferences(Properties prefs) {
 		prefs.put(MEASUREMENTS, Integer.toString(systemMeasurements));
 		prefs.put(MARK_WIDTH, Integer.toString(markWidth));
 		prefs.put(PRECISION, Integer.toString(precision));	}

@@ -329,7 +329,7 @@ public class Prefs {
             for (Iterator<? extends SavesPrefs> it = s.iterator(); it.hasNext();) {
                 SavesPrefs savesPrefs = it.next();
                 System.out.println("SavesPrefs: " + savesPrefs.toString());
-                savesPrefs.savePrefs(prefs);
+                savesPrefs.savePreferences(prefs);
             }
             // these have been changed to @ServiceProvider(SavesPrefs.class)...
             //Menus.savePreferences(prefs);
@@ -344,6 +344,7 @@ public class Prefs {
 				File f = new File(prefsDir);
 				if (!f.exists()) f.mkdir(); // create .imagej directory
 			}
+
 			savePrefs(prefs, path);
 		} catch (Throwable t) {
 			String msg = t.getMessage();

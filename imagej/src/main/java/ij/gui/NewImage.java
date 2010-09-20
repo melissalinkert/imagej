@@ -5,9 +5,13 @@ import ij.*;
 import ij.process.*;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
+import ijx.SavesPrefs;
+import org.openide.util.lookup.ServiceProvider;
+
+@ServiceProvider(service=SavesPrefs.class)
 
 /** New image dialog box plus several static utility methods for creating images.*/
-public class NewImage {
+public class NewImage implements SavesPrefs {
 
 	public static final int GRAY8=0, GRAY16=1, GRAY32=2, RGB=3;
 	public static final int FILL_BLACK=1, FILL_RAMP=2, FILL_WHITE=4, CHECK_AVAILABLE_MEMORY=8;
@@ -31,7 +35,7 @@ public class NewImage {
     
 	
     public NewImage() {
-    	openImage();
+    	//openImage();
     }
     
 	static boolean createStack(IjxImagePlus imp, ImageProcessor ip, int nSlices, int type, int options) {
@@ -97,10 +101,10 @@ public class NewImage {
 	}
 
 	static IjxImagePlus createImagePlus() {
-		//IjxImagePlus imp = WindowManager.getCurrentImage();
-		//if (imp!=null)
-		//	return imp.createImagePlus();
-		//else
+		IjxImagePlus imp = WindowManager.getCurrentImage();
+		if (imp!=null)
+			return imp.createImagePlus();
+		else
 		return IJ.getFactory().newImagePlus();
 	}
 	
@@ -310,7 +314,7 @@ public class NewImage {
 		return true;
 	}
 
-	void openImage() {
+	public void openImage() {
 		if (!showDialog())
 			return;
 		try {open(name, width, height, slices, type, fillWith);}
@@ -318,7 +322,7 @@ public class NewImage {
 	}
 	
 	/** Called when ImageJ quits. */
-	public static void savePreferences(Properties prefs) {
+	public void savePreferences(Properties prefs) {
 		prefs.put(NAME, name);
 		prefs.put(TYPE, Integer.toString(type));
 		prefs.put(FILL, Integer.toString(fillWith));
