@@ -5,6 +5,7 @@ import ij.ImagePlus;
 import ij.Prefs;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
+import ijx.IjxImagePlus;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -282,7 +283,7 @@ public class PlugInFunctions extends ParameterHandler {
 
                 } else if (type == ImagePlus.class) {
                     if (WindowManager.getCurrentImage() != null) {
-                        ImagePlus ip = WindowManager.getCurrentImage();
+                        IjxImagePlus ip = WindowManager.getCurrentImage();
                         field.set(plugin, ip);
                     }
                 } else {

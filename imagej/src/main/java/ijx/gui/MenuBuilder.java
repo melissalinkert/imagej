@@ -1,14 +1,14 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package ijx.gui;
+
+import javax.swing.Action;
 
 /**
  *
  * @author GBH
  */
 public interface MenuBuilder {
+    void setTopMenu(String topMenu);
+    void addItem(Action action);
+    void addSubItem(String subMenu, Action action);
 
 }

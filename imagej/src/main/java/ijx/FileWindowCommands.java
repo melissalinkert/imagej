@@ -28,7 +28,8 @@ public class FileWindowCommands {
     }
     }
      */
-    @MenuItem(label = "TestItem",
+    @MenuItem(
+    label = "TestItem",
     menu = "File",
     commandKey = "commandName",
     toolbar = "main",
@@ -45,6 +46,37 @@ public class FileWindowCommands {
             close();
         }
     }
+    @MenuItem(label = "RadioItemA",
+    menu = "File",
+    commandKey = "radioA",
+    hotKey = "alt shift A",
+    mnemonic = java.awt.event.KeyEvent.VK_1,
+    tip = "Tool tip displayed",
+    group = "group1",
+    bundle = "demo.plugin1.properties")
+    public static class RadioActionA implements ActionListener {
+
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("Yaba Daba Doo");
+        }
+    }
+
+    @MenuItem(label = "RadioItemB",
+    menu = "File",
+    commandKey = "radioB",
+    hotKey = "alt shift B",
+    mnemonic = java.awt.event.KeyEvent.VK_1,
+    tip = "Tool tip displayed",
+    group = "group1",
+    bundle = "demo.plugin1.properties")
+    public static class RadioActionB implements ActionListener {
+
+        public void actionPerformed(ActionEvent e) {
+            close();
+        }
+    }
+
+    //===============================================================
 
     @MenuItem(menu = "file", label = "Open...", hotKey = "O")
     public static class OpenAction implements ActionListener {

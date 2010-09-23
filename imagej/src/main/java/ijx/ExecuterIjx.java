@@ -19,6 +19,9 @@ import java.awt.event.ActionEvent;
 import java.awt.Menu;
 
 /** Runs ImageJ menu commands in a separate thread.  IJX */
+
+// @todo: Use of ExecutorService, FutureTask
+
 public class ExecuterIjx implements Runnable {
 
     private static String previousCommand;
@@ -41,6 +44,7 @@ public class ExecuterIjx implements Runnable {
 
     /** Create an Executer that runs the specified menu command
     in a separate thread using the active image image. */
+
     public ExecuterIjx(String cmd, IjxImagePlus ignored) {
         if (cmd.startsWith("Repeat")) {
             command = previousCommand;

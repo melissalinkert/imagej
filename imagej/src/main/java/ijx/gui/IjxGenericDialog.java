@@ -28,14 +28,31 @@ import java.util.Vector;
 /**
  * IjxGenericDialog: interface for a generalized Image Canvas in ImageJ
  * Refactored from ImageJ by Grant B. Harris, November 2008, at ImageJ 2008, Luxembourg
-**/
-
-public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentListener, 
-    FocusListener, ItemListener, KeyListener, TextListener, WindowListener {
+ **/
+public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentListener,
+        FocusListener, ItemListener, KeyListener, TextListener, WindowListener {
     int MAX_SLIDERS = 25;
+
+    /**
+     * Add an Object implementing the DialogListener interface. This object will
+     * be notified by its dialogItemChanged method of input to the dialog. The first
+     * DialogListener will be also called after the user has typed 'OK' or if the
+     * dialog has been invoked by a macro; it should read all input fields of the
+     * dialog.
+     * For other listeners, the OK button will not cause a call to dialogItemChanged;
+     * the CANCEL button will never cause such a call.
+     * @param dl the Object that wants to listen.
+     */
+    void addDialogListener(DialogListener dl);
+
+    /**
+     * Displays this dialog box.
+     */
+    void showDialog();
 
     void actionPerformed(ActionEvent e);
 
+// <editor-fold defaultstate="collapsed" desc=" Add Fields ">
     /**
      * Adds a checkbox.
      * @param label			the label
@@ -61,23 +78,6 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
     void addChoice(String label, String[] items, String defaultItem);
 
     /**
-     * Add an Object implementing the DialogListener interface. This object will
-     * be notified by its dialogItemChanged method of input to the dialog. The first
-     * DialogListener will be also called after the user has typed 'OK' or if the
-     * dialog has been invoked by a macro; it should read all input fields of the
-     * dialog.
-     * For other listeners, the OK button will not cause a call to dialogItemChanged;
-     * the CANCEL button will never cause such a call.
-     * @param dl the Object that wants to listen.
-     */
-    void addDialogListener(DialogListener dl);
-
-    /**
-     * Adds a message consisting of one or more lines of text.
-     */
-    void addMessage(String text);
-
-    /**
      * Adds a numeric field. The first word of the label must be
      * unique or command recording will not work.
      * @param label			the label
@@ -96,45 +96,6 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
      * @param units			a string displayed to the right of the field
      */
     void addNumericField(String label, double defaultValue, int digits, int columns, String units);
-
-    /**
-     * Adds a Panel to the dialog.
-     */
-    void addPanel(Panel panel);
-
-    /**
-     * Adds a Panel to the dialog with custom contraint and insets. The
-     * defaults are GridBagConstraints.WEST (left justified) and
-     * "new Insets(5, 0, 0, 0)" (5 pixels of padding at the top).
-     */
-    void addPanel(Panel panel, int contraints, Insets insets);
-
-    /**
-     * Adds a checkbox labelled "Preview" for "automatic" preview.
-     * The reference to this checkbox can be retrieved by getPreviewCheckbox()
-     * and it provides the additional method previewRunning for optical
-     * feedback while preview is prepared.
-     * PlugInFilters can have their "run" method automatically called for
-     * preview under the following conditions:
-     * - the PlugInFilter must pass a reference to itself (i.e., "this") as an
-     * argument to the AddPreviewCheckbox
-     * - it must implement the DialogListener interface and set the filter
-     * parameters in the dialogItemChanged method.
-     * - it must have DIALOG and PREVIEW set in its flags.
-     * A previewCheckbox is always off when the filter is started and does not get
-     * recorded by the Macro Recorder.
-     *
-     * @param pfr A reference to the PlugInFilterRunner calling the PlugInFilter
-     * if automatic preview is desired, null otherwise.
-     */
-    void addPreviewCheckbox(PlugInFilterRunner pfr);
-
-    /**
-     * Add the preview checkbox with user-defined label; for details see the
-     * addPreviewCheckbox method with standard "Preview" label
-     * Note that a GenericDialog can have only one PreviewCheckbox
-     */
-    void addPreviewCheckbox(PlugInFilterRunner pfr, String label);
 
     void addSlider(String label, double minValue, double maxValue, double defaultValue);
 
@@ -162,16 +123,29 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
      */
     void addTextAreas(String text1, String text2, int rows, int columns);
 
-    void adjustmentValueChanged(AdjustmentEvent e);
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Setup ">
+    /**
+     * Adds a message consisting of one or more lines of text.
+     */
+    void addMessage(String text);
+
+    /**
+     * Adds a Panel to the dialog.
+     */
+    void addPanel(Panel panel);
+
+    /**
+     * Adds a Panel to the dialog with custom contraint and insets. The
+     * defaults are GridBagConstraints.WEST (left justified) and
+     * "new Insets(5, 0, 0, 0)" (5 pixels of padding at the top).
+     */
+    void addPanel(Panel panel, int contraints, Insets insets);
 
     /**
      * Make this a "Yes No Cancel" dialog.
      */
     void enableYesNoCancel();
-
-    void focusGained(FocusEvent e);
-
-    void focusLost(FocusEvent e);
 
     /**
      * Returns the Vector containing the Checkboxes.
@@ -189,14 +163,41 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
      */
     String getErrorMessage();
 
-    Insets getInsets();
-
     /**
      * Returns a reference to the Label or MultiLineLabel created by the
      * last addMessage() call, or null if addMessage() was not called.
      */
     Component getMessage();
 
+    /**
+     * Sets the echo character for the next string field.
+     */
+    void setEchoChar(char echoChar);
+
+    /**
+     * Set the insets (margins), in pixels, that will be
+     * used for the next component added to the dialog.
+     * <pre>
+     * Default insets:
+     * addMessage: 0,20,0 (empty string) or 10,20,0
+     * addCheckbox: 15,20,0 (first checkbox) or 0,20,0
+     * addCheckboxGroup: 10,0,0
+     * addNumericField: 5,0,3 (first field) or 0,0,3
+     * addStringField: 5,0,5 (first field) or 0,0,5
+     * addChoice: 5,0,5 (first field) or 0,0,5
+     * </pre>
+     */
+    void setInsets(int top, int left, int bottom);
+
+    Insets getInsets();
+
+    /**
+     * Sets a replacement label for the "OK" button.
+     */
+    void setOKLabel(String label);
+
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc="Get Fields">
     /**
      * Returns the state of the next checkbox.
      */
@@ -233,11 +234,6 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
     Vector getNumericFields();
 
     /**
-     * Returns a reference to the Preview Checkbox.
-     */
-    Checkbox getPreviewCheckbox();
-
-    /**
      * Returns the sliders (Scrollbars).
      */
     Vector getSliders();
@@ -256,6 +252,47 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
      * Returns a reference to textArea2.
      */
     TextArea getTextArea2();
+// </editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc=" Preview ">
+    /**
+     * Adds a checkbox labelled "Preview" for "automatic" preview.
+     * The reference to this checkbox can be retrieved by getPreviewCheckbox()
+     * and it provides the additional method previewRunning for optical
+     * feedback while preview is prepared.
+     * PlugInFilters can have their "run" method automatically called for
+     * preview under the following conditions:
+     * - the PlugInFilter must pass a reference to itself (i.e., "this") as an
+     * argument to the AddPreviewCheckbox
+     * - it must implement the DialogListener interface and set the filter
+     * parameters in the dialogItemChanged method.
+     * - it must have DIALOG and PREVIEW set in its flags.
+     * A previewCheckbox is always off when the filter is started and does not get
+     * recorded by the Macro Recorder.
+     *
+     * @param pfr A reference to the PlugInFilterRunner calling the PlugInFilter
+     * if automatic preview is desired, null otherwise.
+     */
+    void addPreviewCheckbox(PlugInFilterRunner pfr);
+
+    /**
+     * Add the preview checkbox with user-defined label; for details see the
+     * addPreviewCheckbox method with standard "Preview" label
+     * Note that a GenericDialog can have only one PreviewCheckbox
+     */
+    void addPreviewCheckbox(PlugInFilterRunner pfr, String label);
+
+    /**
+     * Returns a reference to the Preview Checkbox.
+     */
+    Checkbox getPreviewCheckbox();
+
+    /**
+     * optical feedback whether preview is running by switching from
+     * "Preview" to "wait..."
+     */
+    void previewRunning(boolean isRunning);
+// </editor-fold>
 
     /**
      * Returns true if one or more of the numeric fields contained an
@@ -263,53 +300,7 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
      */
     boolean invalidNumber();
 
-    void itemStateChanged(ItemEvent e);
-
-    void keyPressed(KeyEvent e);
-
-    void keyReleased(KeyEvent e);
-
-    void keyTyped(KeyEvent e);
-
     void paint(Graphics g);
-
-    /**
-     * optical feedback whether preview is running by switching from
-     * "Preview" to "wait..."
-     */
-    void previewRunning(boolean isRunning);
-
-    /**
-     * Sets the echo character for the next string field.
-     */
-    void setEchoChar(char echoChar);
-
-    /**
-     * Set the insets (margins), in pixels, that will be
-     * used for the next component added to the dialog.
-     * <pre>
-     * Default insets:
-     * addMessage: 0,20,0 (empty string) or 10,20,0
-     * addCheckbox: 15,20,0 (first checkbox) or 0,20,0
-     * addCheckboxGroup: 10,0,0
-     * addNumericField: 5,0,3 (first field) or 0,0,3
-     * addStringField: 5,0,5 (first field) or 0,0,5
-     * addChoice: 5,0,5 (first field) or 0,0,5
-     * </pre>
-     */
-    void setInsets(int top, int left, int bottom);
-
-    /**
-     * Sets a replacement label for the "OK" button.
-     */
-    void setOKLabel(String label);
-
-    /**
-     * Displays this dialog box.
-     */
-    void showDialog();
-
-    void textValueChanged(TextEvent e);
 
     /**
      * Returns 'true' if any numeric field contained a 'p'.
@@ -326,6 +317,23 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
      */
     boolean wasOKed();
 
+// <editor-fold defaultstate="collapsed" desc="Event Handling">
+    void itemStateChanged(ItemEvent e);
+
+    void keyPressed(KeyEvent e);
+
+    void keyReleased(KeyEvent e);
+
+    void keyTyped(KeyEvent e);
+
+    void adjustmentValueChanged(AdjustmentEvent e);
+
+    void textValueChanged(TextEvent e);
+
+    void focusGained(FocusEvent e);
+
+    void focusLost(FocusEvent e);
+
     void windowActivated(WindowEvent e);
 
     void windowClosed(WindowEvent e);
@@ -339,5 +347,5 @@ public interface IjxGenericDialog extends IjxDialog, ActionListener, AdjustmentL
     void windowIconified(WindowEvent e);
 
     void windowOpened(WindowEvent e);
-
+// </editor-fold>
 }

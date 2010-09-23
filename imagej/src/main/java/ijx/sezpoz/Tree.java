@@ -10,6 +10,8 @@ import java.util.List;
  * This Tree provides a method to serialize the Tree into a List by doing a
  * pre-order traversal. It has several methods to allow easy updation of Nodes
  * in the Tree.
+ *
+ * Tree contains Nodes, and Nodes contains references to other nodes
  */
 public class Tree<T> {
 

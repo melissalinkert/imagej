@@ -12,9 +12,7 @@ import net.java.sezpoz.Indexable;
 @Indexable(type = ActionListener.class)
 public @interface MenuItem {
 
-    String menu(); // "menu/submenu" parsed
-
-    String toolbar() default "";
+    // Define action >>
 
     String label(); // displayed name, Action.NAME
 
@@ -28,11 +26,30 @@ public @interface MenuItem {
 
     String icon() default "";  // Action.SMALL_ICON, a path to icon used in menues
 
+    // << Define action
+
+    String bundle() default ""; // properties file baseName, a fully qualified class name, for i18n
+
+    String menu(); // "menu/submenu" parsed
+
+    String toolbar() default "";
+
     int position() default Integer.MAX_VALUE; // at end
 
     boolean separate() default false;  // to preceed this item with separator
 
-    String bundle() default ""; // properties file baseName, a fully qualified class name
+    String group() default ""; // types: implies that this is a RadioButton, a member of the group
+
+    boolean state() default false; // implies is is a CheckBoxMenuItem, with state specified
+    // ?? or boolean toggle() default false;
+
+    String[] args() default {};
+
+    // To add...
+
+    // Help / Documentation
+
+    // enablement
 }
 /*
 
@@ -42,15 +59,16 @@ public @interface MenuItem {
  * with all parameters
 @MenuItem(
 label = "Exit",
-menu = "File",
+
 commandKey="commandName",
 toolbar="main",
 hotKey="alt shift X",
 mnemonic=java.awt.event.KeyEvent.VK_1,
+icon = "demo/plugin1/movieNew16gif",
 tip="Tool tip displayed",
+menu = "File",
 position=9,
 separate=true,
-icon = "demo/plugin1/movieNew16gif",
 bundle = "demo.plugin1.properties"
 )
 

@@ -1,5 +1,5 @@
 /*
- * $Id: ActionContainerFactory.java 1265 2006-07-21 17:15:39Z kleopatra $
+ * $Id: ActionContainerFactory.java 3724 2010-07-14 00:10:45Z kschaefe $
  *
  * Copyright 2004 Sun Microsystems, Inc., 4150 Network Circle,
  * Santa Clara, California 95054, U.S.A. All rights reserved.
@@ -30,6 +30,7 @@ import java.util.Map;
 
 import javax.swing.AbstractButton;
 import javax.swing.Action;
+import javax.swing.ActionMap;
 import javax.swing.ButtonGroup;
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -75,10 +76,10 @@ public class ActionContainerFactory {
      */
     private static Insets TOOLBAR_BUTTON_MARGIN = new Insets(1, 1, 1, 1);
     
-    private ActionManager manager;
+    private ActionMap manager;
 
     // Map between group id + component and the ButtonGroup
-    private Map groupMap;
+    private Map<Integer, ButtonGroup> groupMap;
 
     /**
      * Constructs an container factory which uses the default 
@@ -93,7 +94,7 @@ public class ActionContainerFactory {
      * @param manager use the actions managed with this manager for
      *                constructing ui componenents.
      */
-    public ActionContainerFactory(ActionManager manager) {
+    public ActionContainerFactory(ActionMap manager) {
         setActionManager(manager);
     }
 
@@ -104,7 +105,7 @@ public class ActionContainerFactory {
      * @return the ActionManager used by the ActionContainerFactory.
      * @see #setActionManager
      */
-    public ActionManager getActionManager() {
+    public ActionMap getActionManager() {
         if (manager == null) {
             manager = ActionManager.getInstance();
         }
@@ -115,7 +116,7 @@ public class ActionContainerFactory {
      * Sets the ActionManager instance that will be used by this
      * ActionContainerFactory
      */
-    public void setActionManager(ActionManager manager) {
+    public void setActionManager(ActionMap manager) {
         this.manager = manager;
     }
 
@@ -137,9 +138,9 @@ public class ActionContainerFactory {
      * @param list a list of action ids used to construct the toolbar.
      * @return the toolbar or null
      */
-    public JToolBar createToolBar(List list) {
+    public JToolBar createToolBar(List<?> list) {
         JToolBar toolbar = new JToolBar();
-        Iterator iter = list.iterator();
+        Iterator<?> iter = list.iterator();
         while(iter.hasNext()) {
             Object element = iter.next();
 
@@ -148,6 +149,7 @@ public class ActionContainerFactory {
             } else {
                 AbstractButton button = createButton(element, toolbar);
                 // toolbar buttons shouldn't steal focus
+                if(button==null) continue;
                 button.setFocusable(false);
                 /*
                  * TODO
@@ -181,9 +183,9 @@ public class ActionContainerFactory {
      * @param list a list of action ids used to construct the popup.
      * @return the popup or null
      */
-    public JPopupMenu createPopup(List list) {
+    public JPopupMenu createPopup(List<?> list) {
         JPopupMenu popup = new JPopupMenu();
-        Iterator iter = list.iterator();
+        Iterator<?> iter = list.iterator();
         while(iter.hasNext()) {
             Object element = iter.next();
 
@@ -203,17 +205,6 @@ public class ActionContainerFactory {
 
     /**
      * Constructs a menu tree from a list of actions or lists of lists or actions.
-     * 
-     * TODO This method is broken. It <em>should</em> expect either that every
-     * entry is a List (thus, the sub menus off the main MenuBar), or it should
-     * handle normal actions properly. By submitting a List of all Actions, nothing
-     * is created....
-     * <p>
-     * For example, If my list is [action, action, action], then nothing is added
-     * to the menu bar. However, if my list is [list[action], action, action, action] then
-     * I get a menu and under it the tree actions. This should not be, because if I
-     * wanted those actions to be on the sub menu, then they should have been
-     * listed within the sub list!
      *
      * @param actionIds an array which represents the root item.
      * @return a menu bar which represents the menu bar tree
@@ -224,43 +215,33 @@ public class ActionContainerFactory {
 
     /**
      * Constructs a menu tree from a list of actions or lists of lists or actions.
-     * TODO This method is broken. It <em>should</em> expect either that every
-     * entry is a List (thus, the sub menus off the main MenuBar), or it should
-     * handle normal actions properly. By submitting a List of all Actions, nothing
-     * is created....
-     * <p>
-     * For example, If my list is [action, action, action], then nothing is added
-     * to the menu bar. However, if my list is [list[action], action, action, action] then
-     * I get a menu and under it the tree actions. This should not be, because if I
-     * wanted those actions to be on the sub menu, then they should have been
-     * listed within the sub list!
      *
      * @param list a list which represents the root item.
      * @return a menu bar which represents the menu bar tree
      */
-    public JMenuBar createMenuBar(List list) {
-        JMenuBar menubar = new JMenuBar();
-        JMenu menu = null;
+    public JMenuBar createMenuBar(List<?> list) {
+        final JMenuBar menubar = new JMenuBar();
 
-        Iterator iter = list.iterator();
-        while(iter.hasNext()) {
-            Object element = iter.next();
-
+        for (Object element : list) {
             if (element == null) {
-                if (menu != null) {
-                    menu.addSeparator();
-                }
+                continue;
+            }
+
+            JMenuItem menu;
+
+            if (element instanceof Object[]) {
+                menu = createMenu((Object[]) element);
             } else if (element instanceof List) {
-                menu = createMenu((List)element);
-                if (menu != null) {
-                    menubar.add(menu);
-                }
-            } else  {
-                if (menu != null) {
-                    menu.add(createMenuItem(element, menu));
-                }
+                menu = createMenu((List<?>) element);
+            } else {
+                menu = createMenuItem(element, menubar);
+            }
+
+            if (menu != null) {
+                menubar.add(menu);
             }
         }
+        
         return menubar;
     }
 
@@ -289,42 +270,45 @@ public class ActionContainerFactory {
      *             the first element represents the action used for the menu,
      * @return the constructed JMenu or null
      */
-    public JMenu createMenu(List list) {
+    public JMenu createMenu(List<?> list) {
         // The first item will be the action for the JMenu
         Action action = getAction(list.get(0));
+        
         if (action == null) {
             return null;
         }
+        
         JMenu menu = new JMenu(action);
 
         // The rest of the items represent the menu items.
-        Iterator iter = list.listIterator(1);
-        while(iter.hasNext()) {
-            Object element = iter.next();
+        for (Object element : list.subList(1, list.size())) {
             if (element == null) {
                 menu.addSeparator();
-            } else if (element instanceof List) {
-                JMenu newMenu = createMenu((List)element);
+            } else {
+                JMenuItem newMenu;
+
+                if (element instanceof Object[]) {
+                    newMenu = createMenu((Object[]) element);
+                } else if (element instanceof List<?>) {
+                    newMenu = createMenu((List<?>) element);
+                } else {
+                    newMenu = createMenuItem(element, menu);
+                }
+
                 if (newMenu != null) {
                     menu.add(newMenu);
                 }
-            } else  {
-                menu.add(createMenuItem(element, menu));
             }
         }
+        
         return menu;
     }
-
 
     /**
      * Convenience method to get the action from an ActionManager.
      */
     private Action getAction(Object id) {
-        Action action = getActionManager().getAction(id);
-        if (action == null) {
-            throw new RuntimeException("ERROR: No Action for " + id);
-        }
-        return action;
+        return getActionManager().get(id);
     }
 
     /**
@@ -335,7 +319,7 @@ public class ActionContainerFactory {
      */
     private ButtonGroup getGroup(String groupid, JComponent container) {
         if (groupMap == null) {
-            groupMap = new HashMap();
+            groupMap = new HashMap<Integer, ButtonGroup>();
         }
         int intCode = groupid.hashCode();
         if (container != null) {
@@ -343,7 +327,7 @@ public class ActionContainerFactory {
         }
         Integer hashCode = new Integer(intCode);
 
-        ButtonGroup group = (ButtonGroup)groupMap.get(hashCode);
+        ButtonGroup group = groupMap.get(hashCode);
         if (group == null) {
             group = new ButtonGroup();
             groupMap.put(hashCode, group);
@@ -371,7 +355,9 @@ public class ActionContainerFactory {
      * @param action a mangaged Action
      * @param container the parent container may be null for non-group actions.
      * @return a JMenuItem or subclass depending on type.
+     * @deprecated API will be made private; see Issue #313
      */
+    @Deprecated
     public JMenuItem createMenuItem(Action action, JComponent container) {
         JMenuItem menuItem = null;
         if (action instanceof AbstractActionExt) {

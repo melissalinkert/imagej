@@ -5,11 +5,12 @@ import java.util.*;
 import ij.*;
 import ij.plugin.frame.Recorder;
 import ij.plugin.ScreenGrabber;
+import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.util.Tools;
 import ij.macro.*;
 import ijx.IjxImagePlus;
-import ijx.gui.IjxGenericDialog;
+import javax.swing.JPanel;
 
 
 /**
@@ -38,8 +39,9 @@ import ijx.gui.IjxGenericDialog;
 * to spaces when the dialog is displayed. For example, change the checkbox labels
 * "Show Quality" and "Show Residue" to "Show_Quality" and "Show_Residue".
 */
-public class GenericDialog extends Dialog implements IjxGenericDialog, ActionListener, TextListener,
-FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
+public class GenericInputPanel extends JPanel implements ActionListener, TextListener,
+FocusListener, ItemListener, KeyListener, AdjustmentListener //, WindowListener
+{
 
 	public static final int MAX_SLIDERS = 25;
 	protected Vector numberField, stringField, checkbox, choice, slider;
@@ -83,7 +85,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
     	image window as the parent frame or the ImageJ frame if no image windows
     	are open. Dialog parameters are recorded by ImageJ's command recorder but
     	this requires that the first word of each label be unique. */
-	public GenericDialog(String title) {
+	public GenericInputPanel(String title) {
 		this(title, IJ.getTopComponentFrame());
 //		this(title, WindowManager.getCurrentImage()!=null?
 //			(Window)WindowManager.getCurrentImage().getWindow().getContainer():
@@ -91,8 +93,8 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 	}
 
     /** Creates a new GenericDialog using the specified title and parent frame. */
-    public GenericDialog(String title, Frame parent) {
-		super(parent==null?new Frame():parent, title, Dialog.ModalityType.APPLICATION_MODAL);
+    public GenericInputPanel(String title, Frame parent) {
+		//super(parent==null?new Frame():parent, title, Dialog.ModalityType.APPLICATION_MODAL);
 		if (Prefs.blackCanvas) {
 			setForeground(SystemColor.controlText);
 			setBackground(SystemColor.control);
@@ -105,7 +107,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		macroOptions = Macro.getOptions();
 		macro = macroOptions!=null;
 		addKeyListener(this);
-		addWindowListener(this);
+		//addWindowListener(this);
     }
     
 	//void showFields(String id) {
@@ -754,7 +756,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 					value = 0.0;
 					if (macro) {
 						IJ.error("Macro Error", "Numeric value expected in run() function\n \n"
-							+"   Dialog box title: \""+getTitle()+"\"\n"
+//							+"   Dialog box title: \""+getTitle()+"\"\n"
 							+"   Key: \""+label.toLowerCase(Locale.US)+"\"\n"
 							+"   Value or variable name: \""+theText+"\"");
 					}
@@ -923,7 +925,8 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 				Interpreter interp = Interpreter.getInstance();
 				String s = interp!=null?interp.getStringVariable(item):null;
 				if (s==null)
-					IJ.error(getTitle(), "\""+item+"\" is not a valid choice for \""+label+"\"");
+					IJ.error(//getTitle(), "\""+
+                            item+"\" is not a valid choice for \""+label+"\"");
 				else
 					item = s;
 			}
@@ -971,8 +974,9 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		if (macro) {
 			recorderOn = Recorder.record && Recorder.recordInMacros;
 		} else {
-			if (pfr!=null) // prepare preview (not in macro mode): tell the PlugInFilterRunner to listen
-			pfr.setDialog(this);
+			//if (pfr!=null) // prepare preview (not in macro mode): tell the PlugInFilterRunner to listen
+			//  pfr.setDialog(this);
+
 			//if (stringField!=null&&numberField==null) {
 			//	TextField tf = (TextField)(stringField.elementAt(0));
 			//	tf.selectAll();
@@ -1016,10 +1020,10 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 			grid.setConstraints(buttons, c);
 			add(buttons);
 			if (IJ.isMacintosh())
-			setResizable(false);
-			pack();
+//			setResizable(false);
+//			pack();
 			setup();
-			if (centerDialog) GUI.center(this);
+//			if (centerDialog) GUI.center(this);
 			setVisible(true);
 			recorderOn = Recorder.record;
 			IJ.wait(50); // work around for Sun/WinNT bug
@@ -1027,7 +1031,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		/* For plugins that read their input only via dialogItemChanged, call it at least once */
 		if (!wasCanceled && dialogListeners!=null && dialogListeners.size()>0) {
 			resetCounters();
-			((DialogListener)dialogListeners.elementAt(0)).dialogItemChanged(this,null);
+			//((DialogListener)dialogListeners.elementAt(0)).dialogItemChanged(this,null);
 			recorderOn = false;
 		}
 		resetCounters();
@@ -1122,11 +1126,11 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		if (source==okay || source==cancel | source==no) {
 			wasCanceled = source==cancel;
 			wasOKed = source==okay;
-			dispose();
+		//	dispose();
 		} else if (source==help) {
 			if (hideCancelButton) {
 				wasOKed = true;
-				dispose();
+			//	dispose();
 			}
 			showHelp();
 		} else
@@ -1174,14 +1178,14 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 			wasOKed = true;
 			if (IJ.isMacOSX()&&IJ.isJava15())
 				accessTextFields();
-			dispose();
+			//dispose();
 		} else if (keyCode==KeyEvent.VK_ESCAPE) { 
 			wasCanceled = true; 
-			dispose(); 
+			//dispose();
 			IJ.resetEscape();
 		} else if (keyCode==KeyEvent.VK_W && (e.getModifiers()&Toolkit.getDefaultToolkit().getMenuShortcutKeyMask())!=0) { 
 			wasCanceled = true; 
-			dispose(); 
+			//dispose();
 		} 
 	} 
 		
@@ -1241,7 +1245,7 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
         for (int i=0; everythingOk && i<dialogListeners.size(); i++)
             try {
                 resetCounters();
-                if (!((DialogListener)dialogListeners.elementAt(i)).dialogItemChanged(this, e))
+                //if (!((DialogListener)dialogListeners.elementAt(i)).dialogItemChanged(this, e))
                     everythingOk = false; }         // disable further listeners if false (invalid parameters) returned
             catch (Exception err) {                 // for exceptions, don't cover the input by a window but
                 IJ.beep();                          // show them at in the "Log"
@@ -1268,10 +1272,10 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		}
 	}
     	
-    public void windowClosing(WindowEvent e) {
-		wasCanceled = true; 
-		dispose(); 
-    }
+//    public void windowClosing(WindowEvent e) {
+//		wasCanceled = true;
+//		//dispose();
+//    }
     
     public void addHelp(String url) {
     	helpURL = url;
@@ -1282,16 +1286,11 @@ FocusListener, ItemListener, KeyListener, AdjustmentListener, WindowListener {
 		new MacroRunner(macro);
 	}
     
-    public void windowActivated(WindowEvent e) {}
-    public void windowOpened(WindowEvent e) {}
-    public void windowClosed(WindowEvent e) {}
-    public void windowIconified(WindowEvent e) {}
-    public void windowDeiconified(WindowEvent e) {}
-    public void windowDeactivated(WindowEvent e) {}
-
-    // @todo ????
-    public boolean unitIsPixel() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+//    public void windowActivated(WindowEvent e) {}
+//    public void windowOpened(WindowEvent e) {}
+//    public void windowClosed(WindowEvent e) {}
+//    public void windowIconified(WindowEvent e) {}
+//    public void windowDeiconified(WindowEvent e) {}
+//    public void windowDeactivated(WindowEvent e) {}
 
 }
