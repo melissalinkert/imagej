@@ -2,12 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package ijx;
 
 import ijx.gui.IjxProgressBar;
 import ijx.gui.IjxWindow;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Panel;
@@ -22,9 +22,7 @@ import java.awt.event.WindowListener;
  * @author GBH
  */
 public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListener, KeyListener {
-
-	String IJ_X="ij.x",IJ_Y="ij.y";
-
+    String IJ_X = "ij.x", IJ_Y = "ij.y";
     /**
      * SansSerif, 12-point, plain font.
      */
@@ -38,21 +36,18 @@ public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListene
 
     IjxProgressBar getProgressBar();
 
-    Panel getStatusBar();
-    
     void setIcon() throws Exception;
-    
+
     void setBackground(Color color);
-    
+
     void showStatus(java.lang.String message);
-    
+
+    Component getStatusBar();
+
     void finishAndShow();
 
     public void setDropTarget(Object object);
-
-    
-
-/*  implementors also need to implement:
+    /*  implementors also need to implement:
 
     void mouseClicked(MouseEvent e);
 
@@ -79,12 +74,11 @@ public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListene
 
     void windowOpened(WindowEvent e);
     
-       
+
     boolean canClose();
 
     void close();
     
     boolean isClosed();
- */
-
+     */
 }

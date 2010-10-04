@@ -25,6 +25,7 @@ import java.util.Vector;
  * @author GBH <imagejdev.org>
  */
 public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionListener {
+
     Component getCanvas();
     /**
      * Disable/enable popup menu.
@@ -63,7 +64,7 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      */
     Overlay getOverlay();
 
-    Dimension getPreferredSize();
+    //Dimension getPreferredSize();
 
     /**
      * Return the ROI Manager "Show All" list as an overlay.
@@ -191,7 +192,7 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      */
     void update(IjxImageCanvas icX);
 
-    void update(Graphics g);
+   // void update(Graphics g);
 
     public void repaint();
 
@@ -199,7 +200,7 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
 
     public void setCursor(Cursor cursor);
 
-    public Graphics getGraphics();
+    //public Graphics getGraphics();
 
     void updateImage(IjxImagePlus imp);
 
@@ -228,5 +229,5 @@ public interface IjxImageCanvas extends Cloneable, MouseListener, MouseMotionLis
      */
     void zoomOut(int x, int y);
 
-    public void paint(Graphics g);
+  //  public void paint(Graphics g);
 }

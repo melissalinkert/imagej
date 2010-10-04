@@ -9,6 +9,7 @@ import ij.*;
 import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.event.*;
+import javax.swing.JInternalFrame;
 
 /** This class is an extended IjxImageWindow used to display image stacks. */
 public class AbstractStackWindow extends AbstractImageWindow implements IjxStackWindow {
@@ -27,24 +28,30 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
     }
 
     public AbstractStackWindow(IjxImagePlus _imp, IjxImageCanvas _ic, Container window) {
-        w = window;
-        if (w == null) {
-            throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
-        }
-        this.imp = _imp;
-        this.ic = _ic;
-
+        super(_imp, _ic, window);
         addScrollbars(imp);
         w.addMouseWheelListener(this);
         if (sliceSelector == null && this.getClass().getName().indexOf("Image5D") != -1) {
             sliceSelector = new Scrollbar(); // prevents Image5D from crashing
         }		//IJ.log(nChannels+" "+nSlices+" "+nFrames);
-        pack();
+
         ic = imp.getCanvas();
+        if (ic == null) {
+            ic = IJ.getFactory().newImageCanvas(imp);
+            //newCanvas = true;
+        }
         if (ic != null) {
             ic.setMaxBounds();
         }
-        show();
+        // @todo also handle JInternalframe
+        if (Frame.class.isAssignableFrom(w.getClass())) {
+            ((Frame) w).pack();
+            ((Frame) w).show();
+        }
+        if (w instanceof JInternalFrame) {
+            ((JInternalFrame) w).pack();
+            ((JInternalFrame) w).show();
+        }
         int previousSlice = imp.getCurrentSlice();
         if (previousSlice > 1 && previousSlice <= imp.getStackSize()) {
             imp.setSlice(previousSlice);

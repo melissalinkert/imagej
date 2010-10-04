@@ -18,16 +18,14 @@ import ijx.gui.IjxProgressBar;
 import ijx.gui.IjxWindow;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.gui.ImageWindow;
 import ij.gui.ProgressBar;
-import ij.gui.StackWindow;
-import ij.gui.YesNoCancelDialog;
 import ijx.plugin.frame.IjxPluginFrame;
 import ij.plugin.frame.PlugInFrame;
 import ij.process.ImageProcessor;
 import ijx.gui.AbstractImageCanvas;
 import ijx.gui.AbstractImageWindow;
 import ijx.gui.AbstractStackWindow;
+import ijx.gui.IjxToolbar;
 import java.awt.Canvas;
 import java.awt.Container;
 import java.awt.Frame;
@@ -145,6 +143,10 @@ public class FactoryAWT implements IjxFactory {
 
     public IjxProgressBar newProgressBar(int canvasWidth, int canvasHeight) {
         return new ProgressBar(canvasWidth, canvasHeight);
+    }
+
+    public IjxToolbar newToolBar() {
+        return (IjxToolbar) new Canvas();
     }
 
 }

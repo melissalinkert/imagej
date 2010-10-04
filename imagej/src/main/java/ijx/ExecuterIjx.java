@@ -153,6 +153,7 @@ public class ExecuterIjx implements Runnable {
     }
 
     void runCommand(Command cmd) {
+        // @todo: Use ExecutorService...
         Hashtable table = Menus.getCommands();
         cmd.className = (String) table.get(cmd.command);
         if (cmd.className != null) {

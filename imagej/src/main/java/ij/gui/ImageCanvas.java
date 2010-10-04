@@ -15,6 +15,7 @@ import ij.util.*;
 import ijx.gui.IjxStackWindow;
 import java.awt.event.*;
 import java.util.*;
+import javax.swing.JInternalFrame;
 
 /**
  * This is a Canvas used to display images in a Window.
@@ -103,7 +104,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         srcRect = new Rectangle(ic.getSrcRect().x, ic.getSrcRect().y,
                 ic.getSrcRect().width, ic.getSrcRect().height);
         setMagnification(ic.getMagnification());
-        setDrawingSize(ic.getPreferredSize().width, ic.getPreferredSize().height);
+        setDrawingSize(ic.getCanvas().getPreferredSize().width, ic.getCanvas().getPreferredSize().height);
     }
 
     public void setSourceRect(Rectangle r) {
@@ -714,7 +715,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             } else {
                 setMagnification(newMag);
             }
-            imp.getWindow().pack();
+            packImageWindow();
         } else {
             adjustSourceRect(newMag, sx, sy);
         }
@@ -827,7 +828,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             if (newDstWidth < dstWidth || newDstHeight < dstHeight) {
                 //IJ.log("pack");
                 setDrawingSize(newDstWidth, newDstHeight);
-                imp.getWindow().pack();
+                packImageWindow();
             } else {
                 repaint();
             }
@@ -862,7 +863,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
             setDrawingSize((int) (imageWidth * newMag), (int) (imageHeight * newMag));
             //setDrawingSize(dstWidth/2, dstHeight/2);
-            imp.getWindow().pack();
+            packImageWindow();
         }
         //IJ.write(newMag + " " + srcRect.x+" "+srcRect.y+" "+srcRect.width+" "+srcRect.height+" "+dstWidth + " " + dstHeight);
         setMagnification(newMag);
@@ -882,7 +883,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         setDrawingSize((int) (imageWidth * imag), (int) (imageHeight * imag));
         setMagnification(imag);
         setMaxBounds();
-        win.pack();
+        packImageWindow();
         setMaxBounds();
         repaint();
     }
@@ -1528,5 +1529,14 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
 
     public Component getCanvas() {
         return this;
+    }
+    private void packImageWindow() {
+        IjxImageWindow win = imp.getWindow();
+        if (Frame.class.isAssignableFrom(win.getClass())) {
+            ((Frame) win).pack();
+        }
+        if (win instanceof JInternalFrame) {
+            ((JInternalFrame) win).pack();
+        }
     }
 }

@@ -10,6 +10,7 @@ import ijx.plugin.frame.IjxPluginFrame;
 import ij.process.ImageProcessor;
 import ijx.app.IjxApplication;
 import ijx.gui.IjxProgressBar;
+import ijx.gui.IjxToolbar;
 import java.awt.Image;
 import java.awt.image.ColorModel;
 
@@ -21,6 +22,8 @@ public interface IjxFactory {
     public IjxTopComponent newTopComponent(IjxApplication app, String title);
 
     IjxProgressBar newProgressBar(int canvasWidth, int canvasHeight);
+
+    IjxToolbar newToolBar();
 
     IjxImagePlus newImagePlus();
 

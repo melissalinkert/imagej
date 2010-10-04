@@ -537,8 +537,8 @@ class Plots extends ImagePlus {
         if (loc.y + h > screen.height) {
             h = screen.height - loc.y - 30;
         }
-        win.setSize(w, h);
-        win.validate();
+        ((Frame)win).setSize(w, h);
+        ((Frame)win).validate();
         repaintWindow();
     }
 }

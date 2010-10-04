@@ -1,6 +1,5 @@
 package ijx.plugin.extension;
 
-
 import ijx.plugin.parameterized.AbstractPlugIn;
 import javax.swing.Action;
 
@@ -8,19 +7,16 @@ import javax.swing.Action;
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 /**
  *
  * @author GBH
  */
 public class MyExtendedPlugin extends AbstractPlugIn implements ExtendedPlugin {
-
 //protected String label;
 //protected String name;
 //protected String description;
 //protected String URL;
 //protected Action[] actions;
-
     public String getLabel() {
         return "MyPlug";
     }
@@ -33,7 +29,6 @@ public class MyExtendedPlugin extends AbstractPlugIn implements ExtendedPlugin {
         return "The description of this incredible plugin";
     }
 
-
     public Action[] getActions() {
         return null;
     }
@@ -44,11 +39,11 @@ public class MyExtendedPlugin extends AbstractPlugIn implements ExtendedPlugin {
     }
 
     public String getHelp() {
-        return "" +
-                "";
-    }
-        public String getURL() {
-        return "http://www.hoseheads.org";
+        return ""
+                + "";
     }
 
+    public String getURL() {
+        return "http://www.hoseheads.org";
+    }
 }

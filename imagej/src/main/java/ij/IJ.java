@@ -18,7 +18,9 @@ import ij.plugin.frame.Recorder;
 import ij.macro.Interpreter;
 import ij.measure.Calibration;
 import ij.measure.ResultsTable;
+import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
+import ijx.gui.StatusMessage;
 import java.awt.event.*;
 import java.text.*;
 import java.util.*;
@@ -419,7 +421,8 @@ public class IJ {
     /**Displays a message in the ImageJ status bar.*/
     public static void showStatus(String s) {
         if (ij != null) {
-            topComponent.showStatus(s);
+            //topComponent.showStatus(s);
+            EventBus.getDefault().publish(new StatusMessage(s));
         }
         IjxImagePlus imp = WindowManager.getCurrentImage();
         IjxImageCanvas ic = imp != null ? imp.getCanvas() : null;

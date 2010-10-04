@@ -285,7 +285,7 @@ public class TextRoi extends Roi {
 		Font font = getScaledFont();
 		newFont = false;
 		boolean nullg = g==null;
-		if (nullg) g = ic.getGraphics();
+		if (nullg) g = ic.getCanvas().getGraphics();
 		Java2.setAntialiasedText(g, true);
 		FontMetrics metrics = g.getFontMetrics(font);
 		int fontHeight = (int)(metrics.getHeight()/mag);

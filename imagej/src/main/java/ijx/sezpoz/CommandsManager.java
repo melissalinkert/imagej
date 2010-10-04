@@ -33,7 +33,7 @@ import javax.swing.WindowConstants;
 import net.java.sezpoz.Index;
 import net.java.sezpoz.IndexItem;
 
-public class CommandsLoader {
+public class CommandsManager {
     //
     Map<String, Action> commands = new HashMap<String, Action>();
 
@@ -307,7 +307,7 @@ public class CommandsLoader {
     }
 
     public static void main(String[] args) {
-        CommandsLoader cl = new CommandsLoader();
+        CommandsManager cl = new CommandsManager();
         cl.loadAllItems();
 
         cl.loadImporters();

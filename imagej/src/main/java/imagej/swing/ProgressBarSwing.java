@@ -120,12 +120,12 @@ public class ProgressBarSwing extends JProgressBar implements IjxProgressBar {
         this.batchMode = batchMode;
     }
 
-    public void addKeyListener(IjxApplication ijApp) {
-        this.addKeyListener(ijApp);
-    }
-
-    public void addMouseListener(IjxTopComponent aThis) {
-        this.addMouseListener(aThis);
-    }
+//    public void addKeyListener(IjxApplication ijApp) {
+//        addKeyListener(ijApp);
+//    }
+//
+//    public void addMouseListener(IjxTopComponent aThis) {
+//        addMouseListener(aThis);
+//    }
 
 }

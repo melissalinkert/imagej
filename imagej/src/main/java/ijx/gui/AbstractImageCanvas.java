@@ -33,7 +33,6 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package ijx.gui;
 
 import ij.IJ;
@@ -66,6 +65,7 @@ import java.awt.Dimension;
 import java.awt.Event;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -79,6 +79,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.IndexColorModel;
 import java.util.Hashtable;
 import java.util.Vector;
+import javax.swing.JInternalFrame;
 
 /** This is a Canvas used to display images in a Window. */
 
@@ -88,39 +89,30 @@ import java.util.Vector;
  */
 public class AbstractImageCanvas
         implements IjxImageCanvas {
-
     // Cursors
     protected static final Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
     protected static final Cursor handCursor = new Cursor(Cursor.HAND_CURSOR);
     protected static final Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
     protected static final Cursor crosshairCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
-
     public static boolean usePointer = Prefs.usePointerCursor;
-
     protected IjxApplication ij;
     protected IjxImagePlus imp;
-    protected boolean imageUpdated;
-    protected Rectangle srcRect;
     protected int imageWidth, imageHeight;
     protected int xMouse; // current cursor offscreen x location
     protected int yMouse; // current cursor offscreen y location
     private boolean showCursorStatus = true;
     private int sx2, sy2;
     private boolean disablePopupMenu;
-    private boolean showAllROIs;
     private static Color zoomIndicatorColor;
     private static Font smallFont, largeFont;
     private Rectangle[] labelRects;
     private boolean maxBoundsReset;
-    private Overlay overlay, showAllList;
     private static final int LIST_OFFSET = 100000;
     private static Color showAllColor = Prefs.getColor(Prefs.SHOW_ALL_COLOR, new Color(0, 255, 255));
     private static Color labelColor;
     private int resetMaxBoundsCount;
     private Roi currentRoi;
 
-    protected double magnification;
-    protected int dstWidth, dstHeight;
     protected int xMouseStart;
     protected int yMouseStart;
     protected int xSrcStart;
@@ -131,18 +123,27 @@ public class AbstractImageCanvas
     private int offScreenHeight = 0;
     private boolean mouseExited = true;
     private boolean customRoi;
-
     // The component that will display the image, rois, etc.
-    private Component c;
+    //private Component panel;  // Factory creates ImagePanelSwing or ImagePanelAWT
+    private Component panel;  // Factory creates ImagePanelSwing or ImagePanelAWT
+    // actually, panel is a Component that implement IjxImageDisplayPanel#setDrawingDelegate(AbstractImageCanvas)
+    // which passes update, paint, and/or paintComponent back to paintMe(Graphics g) to draw rois, etc.
 
+    // passed to panel
+    protected Rectangle srcRect;
+    private boolean showAllROIs;
+    private Overlay overlay, showAllList;
+    protected boolean imageUpdated;
+    protected double magnification;
+    protected int dstWidth, dstHeight;
 
     public AbstractImageCanvas(IjxImagePlus _imp, Component component) {
         this.imp = _imp;
-        if(imp == null) {
+        if (imp == null) {
             System.err.println("imp == null in AbstractImageCanvas");
         }
-        c = component;
-        //ij = IJ.getInstance();
+        panel = component;
+        ij = IJ.getInstance();
         int width = imp.getWidth();
         int height = imp.getHeight();
         imageWidth = width;
@@ -150,14 +151,15 @@ public class AbstractImageCanvas
         srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
         setDrawingSize(imageWidth, (int) (imageHeight));
         magnification = 1.0;
-        c.addMouseListener(this);
-        c.addMouseMotionListener(this);
-        c.addKeyListener(ij);  // ImageJ handles keyboard shortcuts
-        c.setFocusTraversalKeysEnabled(false);
+        panel.addMouseListener(this);
+        panel.addMouseMotionListener(this);
+        panel.addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+        panel.setFocusTraversalKeysEnabled(false);
+        ((IjxImageDisplayPanel)panel).setDrawingDelegate(this);
     }
 
     public Component getCanvas() {
-        return c;
+        return panel;
     }
 
     public void updateImage(IjxImagePlus _imp) {
@@ -173,6 +175,7 @@ public class AbstractImageCanvas
 
     /** Update this ImageCanvas to have the same zoom and scale settings as the one specified. */
     public void update(IjxImageCanvas icX) {
+        // @todo Need to fix this...
         IjxImageCanvas ic = (IjxImageCanvas) icX;
         if (ic == null || ic == this || ic.getImage() == null) {
             return;
@@ -183,7 +186,7 @@ public class AbstractImageCanvas
         srcRect = new Rectangle(ic.getSrcRect().x, ic.getSrcRect().y,
                 ic.getSrcRect().width, ic.getSrcRect().height);
         setMagnification(ic.getMagnification());
-        setDrawingSize(ic.getPreferredSize().width, ic.getPreferredSize().height);
+        setDrawingSize(panel.getPreferredSize().width, panel.getPreferredSize().height);
     }
 
     public void setSourceRect(Rectangle r) {
@@ -193,7 +196,7 @@ public class AbstractImageCanvas
     public void setDrawingSize(int width, int height) {
         dstWidth = width;
         dstHeight = height;
-        c.setSize(dstWidth, dstHeight);
+        //panel.setDrawingSize(dstWidth, dstHeight);
     }
 
     /** IjxImagePlus.updateAndDraw calls this method to get paint
@@ -201,21 +204,25 @@ public class AbstractImageCanvas
     public void setImageUpdated() {
         imageUpdated = true;
     }
+// Moved to ImagePanel (a JPanel for Swing)
+    //
+//    @Override
+//    public void update(Graphics g) {
+//       paint(g);
+//    }
+//
+//    @Override
+//    public void paint(Graphics g) {
 
-    @Override
-    public void update(Graphics g) {
-        paint(g);
-    }
-
-    @Override
-    public void paint(Graphics g) {
+    public void paintMe(Graphics cg) {
+        //Graphics cg =  panel.getGraphics();
         Roi roi = imp.getRoi();
         if (roi != null || showAllROIs || overlay != null) {
             if (roi != null) {
                 roi.updatePaste();
             }
             if (!IJ.isMacOSX() && imageWidth != 0) {
-                paintDoubleBuffered(g);
+                paintDoubleBuffered(cg);
                 return;
             }
         }
@@ -224,26 +231,26 @@ public class AbstractImageCanvas
                 imageUpdated = false;
                 imp.updateImage();
             }
-            Java2.setBilinearInterpolation(g, Prefs.interpolateScaledImages);
+            Java2.setBilinearInterpolation(cg, Prefs.interpolateScaledImages);
             Image img = imp.getImage();
             if (img != null) {
-                g.drawImage(img, 0, 0, (int) (srcRect.width * magnification), (int) (srcRect.height * magnification),
+                cg.drawImage(img, 0, 0, (int) (srcRect.width * magnification), (int) (srcRect.height * magnification),
                         srcRect.x, srcRect.y, srcRect.x + srcRect.width, srcRect.y + srcRect.height, null);
             }
             if (overlay != null) {
-                drawOverlay(g);
+                drawOverlay(cg);
             }
             if (showAllROIs) {
-                drawAllROIs(g);
+                drawAllROIs(cg);
             }
             if (roi != null) {
-                drawRoi(roi, g);
+                drawRoi(roi, cg);
             }
             if (srcRect.width < imageWidth || srcRect.height < imageHeight) {
-                drawZoomIndicator(g);
+                drawZoomIndicator(cg);
             }
             if (IJ.debugMode) {
-                showFrameRate(g);
+                showFrameRate(cg);
             }
         } catch (OutOfMemoryError e) {
             IJ.outOfMemory("Paint");
@@ -281,7 +288,7 @@ public class AbstractImageCanvas
                 overlay = showAllList;
             }
             showAllROIs = false;
-            c.repaint();
+            panel.repaint();
             return;
         }
         initGraphics(g);
@@ -487,7 +494,7 @@ public class AbstractImageCanvas
         final int srcRectWidthMag = (int) (srcRect.width * magnification);
         final int srcRectHeightMag = (int) (srcRect.height * magnification);
         if (offScreenImage == null || offScreenWidth != srcRectWidthMag || offScreenHeight != srcRectHeightMag) {
-            offScreenImage = c.createImage(srcRectWidthMag, srcRectHeightMag);
+            offScreenImage = panel.createImage(srcRectWidthMag, srcRectHeightMag);
             offScreenWidth = srcRectWidthMag;
             offScreenHeight = srcRectHeightMag;
         }
@@ -540,9 +547,9 @@ public class AbstractImageCanvas
         g.drawString((int) (fps + 0.5) + " fps", 10, 25);
     }
 
-    public Dimension getPreferredSize() {
-        return new Dimension(dstWidth, dstHeight);
-    }
+//    public Dimension getPreferredSize() {
+//        return new Dimension(dstWidth, dstHeight);
+//    }
     int count;
 
     /*
@@ -609,7 +616,7 @@ public class AbstractImageCanvas
     }
 
     private void setCursorC(Cursor cursor) {
-        c.setCursor(cursor);
+        panel.setCursor(cursor);
     }
 
     /**Converts a screen x-coordinate to an offscreen x-coordinate.*/
@@ -710,7 +717,7 @@ public class AbstractImageCanvas
             if ((srcRect.y + srcRect.height) > imageHeight) {
                 srcRect.y = imageHeight - srcRect.height;
             }
-            c.repaint();
+            panel.repaint();
         }
         //IJ.log("resizeCanvas2: "+srcRect+" "+dstWidth+"  "+dstHeight+" "+width+"  "+height);
     }
@@ -733,7 +740,7 @@ public class AbstractImageCanvas
         }
         srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
         setDrawingSize(width, height);
-        c.getParent().doLayout();
+        panel.getParent().doLayout();
     }
 
     public void setMaxBounds() {
@@ -800,11 +807,11 @@ public class AbstractImageCanvas
             } else {
                 setMagnification(newMag);
             }
-            imp.getWindow().pack();
+            this.packImageWindow();
         } else {
             adjustSourceRect(newMag, sx, sy);
         }
-        c.repaint();
+        panel.repaint();
         if (srcRect.width < imageWidth || srcRect.height < imageHeight) {
             resetMaxBounds();
         }
@@ -848,7 +855,7 @@ public class AbstractImageCanvas
         }
         Rectangle r1 = win.getBounds();
         Insets insets = win.getInsets();
-        Point loc = c.getLocation();
+        Point loc = panel.getLocation();
         if (loc.x > insets.left + 5 || loc.y > insets.top + 5) {
             r1.width = newWidth + insets.left + insets.right + 10;
             r1.height = newHeight + insets.top + insets.bottom + 10;
@@ -913,9 +920,15 @@ public class AbstractImageCanvas
             if (newDstWidth < dstWidth || newDstHeight < dstHeight) {
                 //IJ.log("pack");
                 setDrawingSize(newDstWidth, newDstHeight);
-                imp.getWindow().pack();
+                IjxImageWindow win = imp.getWindow();
+                if (Frame.class.isAssignableFrom(win.getClass())) {
+                    ((Frame) win).pack();
+                }
+                if (win instanceof JInternalFrame) {
+                    ((JInternalFrame) win).pack();
+                }
             } else {
-                c.repaint();
+                panel.repaint();
             }
             return;
         }
@@ -948,13 +961,13 @@ public class AbstractImageCanvas
             srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
             setDrawingSize((int) (imageWidth * newMag), (int) (imageHeight * newMag));
             //setDrawingSize(dstWidth/2, dstHeight/2);
-            imp.getWindow().pack();
+            packImageWindow();
         }
         //IJ.write(newMag + " " + srcRect.x+" "+srcRect.y+" "+srcRect.width+" "+srcRect.height+" "+dstWidth + " " + dstHeight);
         setMagnification(newMag);
         //IJ.write(srcRect.x + " " + srcRect.width + " " + dstWidth);
         setMaxBounds();
-        c.repaint();
+        panel.repaint();
     }
 
     /** Implements the Image/Zoom/Original Scale command. */
@@ -964,11 +977,10 @@ public class AbstractImageCanvas
             return;
         }
         srcRect = new Rectangle(0, 0, imageWidth, imageHeight);
-        IjxImageWindow win = imp.getWindow();
         setDrawingSize((int) (imageWidth * imag), (int) (imageHeight * imag));
         setMagnification(imag);
         setMaxBounds();
-        win.pack();
+        packImageWindow();
         setMaxBounds();
         repaint();
     }
@@ -1284,11 +1296,11 @@ public class AbstractImageCanvas
         }
         PopupMenu popup = Menus.getPopupMenu();
         if (popup != null) {
-            c.add(popup);
+            panel.add(popup);
             if (IJ.isMacOSX()) {
                 IJ.wait(10);
             }
-            popup.show(c, x, y);
+            popup.show(panel, x, y);
         }
     }
 
@@ -1617,22 +1629,33 @@ public class AbstractImageCanvas
      */
 
     public Rectangle getBounds() {
-        return c.getBounds();
+        return panel.getBounds();
     }
 
     public void repaint() {
-        c.repaint();
+        panel.repaint();
     }
 
     public void repaint(int x, int y, int width, int height) {
-        c.repaint(x, y, width, height);
+        panel.repaint(x, y, width, height);
     }
 
     public void setCursor(Cursor cursor) {
-        c.setCursor(cursor);
+        panel.setCursor(cursor);
     }
 
-    public Graphics getGraphics() {
-        return c.getGraphics();
+//    public Graphics getGraphics() {
+//        return panel.getGraphics();
+//    }
+
+    private void packImageWindow() {
+        IjxImageWindow win = imp.getWindow();
+        if (Frame.class.isAssignableFrom(win.getClass())) {
+            ((Frame) win).pack();
+        }
+        if (win instanceof JInternalFrame) {
+            ((JInternalFrame) win).pack();
+        }
     }
+
 }

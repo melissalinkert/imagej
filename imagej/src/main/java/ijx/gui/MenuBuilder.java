@@ -10,5 +10,6 @@ public interface MenuBuilder {
     void setTopMenu(String topMenu);
     void addItem(Action action);
     void addSubItem(String subMenu, Action action);
+    void removeItem();
 
 }

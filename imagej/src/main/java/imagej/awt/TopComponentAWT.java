@@ -12,9 +12,13 @@ import ij.WindowManager;
 import ijx.app.IjxApplication;
 import ij.gui.ProgressBar;
 import ijx.IjxTopComponent;
+import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
+import ijx.gui.StatusMessage;
 import java.awt.BorderLayout;
+import java.awt.Canvas;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -39,8 +43,8 @@ import java.net.URL;
  */
 public class TopComponentAWT //extends Frame
         implements IjxTopComponent {
-    private ij.gui.Toolbar toolbar;
-    private Label statusLine;
+    private ijx.gui.IjxToolbar toolbar;
+    private StatusLineAWT statusLine;
     private Panel statusBar;
     private IjxProgressBar progressBar;
     private boolean windowClosed;
@@ -54,24 +58,24 @@ public class TopComponentAWT //extends Frame
         this.ijApp = ijApp;
         frame.setLayout(new GridLayout(2, 1));
         // Tool bar
-        toolbar = new ij.gui.Toolbar();
-        toolbar.addKeyListener(ijApp);
-        frame.add(toolbar);
+        toolbar = IJ.getFactory().newToolBar();
+        ((Canvas)toolbar).addKeyListener(ijApp);
+        frame.add((Canvas)toolbar);
 
         // Status bar
         statusBar = new Panel();
         statusBar.setLayout(new BorderLayout());
         statusBar.setForeground(Color.black);
         statusBar.setBackground(IJ.backgroundColor);
-        statusLine = new Label();
+        statusLine = new StatusLineAWT();
         statusLine.setFont(SansSerif12);
         statusLine.addMouseListener(this);
         statusBar.add("Center", statusLine);
         progressBar = new ProgressBar(120, 20);
-        progressBar.addKeyListener(ijApp);
-        progressBar.addMouseListener(this);
+       ((ProgressBar) progressBar).addKeyListener(ijApp);
+       ((ProgressBar) progressBar).addMouseListener(this);
         statusBar.add("East", (ProgressBar) progressBar);
-        statusBar.setSize(toolbar.getPreferredSize());
+        statusBar.setSize(((Canvas)toolbar).getPreferredSize());
         frame.add(statusBar);
         frame.addWindowListener(this);
         frame.setFocusTraversalKeysEnabled(false);
@@ -79,7 +83,7 @@ public class TopComponentAWT //extends Frame
 
     public void finishAndShow() {
         Point loc = getPreferredLocation();
-        Dimension tbSize = toolbar.getPreferredSize();
+        Dimension tbSize = ((Canvas)toolbar).getPreferredSize();
         int ijWidth = tbSize.width + 10;
         int ijHeight = 100;
         getFrame().setCursor(Cursor.getDefaultCursor()); // work-around for JDK 1.1.8 bug
@@ -129,7 +133,7 @@ public class TopComponentAWT //extends Frame
         if (ijX >= 0 && ijY > 0 && ijX < (maxBounds.x + maxBounds.width - 75)) {
             return new Point(ijX, ijY);
         }
-        Dimension tbsize = toolbar.getPreferredSize();
+        Dimension tbsize = ((Canvas)toolbar).getPreferredSize();
         int ijWidth = tbsize.width + 10;
         double percent = maxBounds.width > 832 ? 0.8 : 0.9;
         ijX = (int) (percent * (maxBounds.width - ijWidth));
@@ -140,14 +144,16 @@ public class TopComponentAWT //extends Frame
     }
 
     public void showStatus(String s) {
-        statusLine.setText(s);
+        //statusLine.setText(s);
+        EventBus.getDefault().publish(new StatusMessage(s));
+
     }
 
     public IjxProgressBar getProgressBar() {
         return progressBar;
     }
 
-    public Panel getStatusBar() {
+    public Component getStatusBar() {
         return statusBar;
     }
 

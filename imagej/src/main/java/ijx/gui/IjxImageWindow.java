@@ -33,7 +33,7 @@ public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelList
 
     public void setRunning2(boolean b);
 
-    Component add(Component comp);
+   // Component add(Component comp);
 
     /**
      * Removes this window from the window list and disposes of it.
@@ -56,6 +56,7 @@ public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelList
     /**
      * Draws the subtitle.
      */
+
     void drawInfo(Graphics g);
 
     Container getContainer();
@@ -97,12 +98,13 @@ public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelList
      */
     void mouseMoved(int x, int y);
 
-    //void mouseWheelMoved(MouseWheelEvent event);
-    void paint(Graphics g);
+//  void mouseWheelMoved(MouseWheelEvent event);
 
-    void repaint();
+ //   void paint(Graphics g);
 
-    void pack();
+   void repaint();
+
+   //void pack();
 
     void paste();
 
@@ -122,7 +124,7 @@ public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelList
 
     public void setSize(int w, int h);
 
-    public void validate();
+ //   public void validate();
     
 //    String toString();
 //

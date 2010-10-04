@@ -8,9 +8,12 @@ import ij.WindowManager;
 import ijx.app.IjxApplication;
 import ij.gui.ProgressBar;
 import ijx.IjxTopComponent;
+import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
+import ijx.gui.StatusMessage;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -31,6 +34,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JToolBar;
 
 /**
  *
@@ -38,9 +42,9 @@ import javax.swing.JProgressBar;
  */
 public class TopComponentSwing //extends Frame
         implements IjxTopComponent {
-    private ij.gui.Toolbar toolbar;
-    private JLabel statusLine;
-    private Panel statusBar;
+    private ijx.gui.IjxToolbar toolbar;
+    private StatusLineSwing statusLine;
+    private JPanel statusBar;
     private IjxProgressBar progressBar;
     private boolean windowClosed;
     private IjxApplication ijApp;
@@ -53,24 +57,24 @@ public class TopComponentSwing //extends Frame
         this.ijApp = ijApp;
         frame.setLayout(new GridLayout(2, 1));
         // Tool bar
-        toolbar = new ij.gui.Toolbar();
-        toolbar.addKeyListener(ijApp);
-        frame.add(toolbar);
+        toolbar = IJ.getFactory().newToolBar();
+        ((JToolBar)toolbar).addKeyListener(ijApp);
+        frame.add((JToolBar)toolbar);
 
         // Status bar
-        statusBar = new Panel();
+        statusBar = new JPanel();
         statusBar.setLayout(new BorderLayout());
         statusBar.setForeground(Color.black);
         statusBar.setBackground(IJ.backgroundColor);
-        statusLine = new JLabel();
+        statusLine = new StatusLineSwing();
         statusLine.setFont(SansSerif12);
         statusLine.addMouseListener(this);
         statusBar.add("Center", statusLine);
         progressBar = IJ.getFactory().newProgressBar(120, 20);
-        progressBar.addKeyListener(ijApp);
-        progressBar.addMouseListener(this);
+        ((JProgressBar)progressBar).addKeyListener(ijApp);
+        ((JProgressBar)progressBar).addMouseListener(this);
         statusBar.add("East", (JProgressBar)progressBar);
-        statusBar.setSize(toolbar.getPreferredSize());
+        statusBar.setSize(((JToolBar)toolbar).getPreferredSize());
         frame.add(statusBar);
         frame.addWindowListener(this);
         frame.setFocusTraversalKeysEnabled(false);
@@ -78,7 +82,7 @@ public class TopComponentSwing //extends Frame
 
     public void finishAndShow() {
         Point loc = getPreferredLocation();
-        Dimension tbSize = toolbar.getPreferredSize();
+        Dimension tbSize = ((JToolBar)toolbar).getPreferredSize();
         int ijWidth = tbSize.width + 10;
         int ijHeight = 100;
         getFrame().setCursor(Cursor.getDefaultCursor()); // work-around for JDK 1.1.8 bug
@@ -128,7 +132,7 @@ public class TopComponentSwing //extends Frame
         if (ijX >= 0 && ijY > 0 && ijX < (maxBounds.x + maxBounds.width - 75)) {
             return new Point(ijX, ijY);
         }
-        Dimension tbsize = toolbar.getPreferredSize();
+        Dimension tbsize = ((JToolBar)toolbar).getPreferredSize();
         int ijWidth = tbsize.width + 10;
         double percent = maxBounds.width > 832 ? 0.8 : 0.9;
         ijX = (int) (percent * (maxBounds.width - ijWidth));
@@ -139,14 +143,15 @@ public class TopComponentSwing //extends Frame
     }
 
     public void showStatus(String s) {
-        statusLine.setText(s);
+        //statusLine.setText(s);
+        EventBus.getDefault().publish(new StatusMessage(s));
     }
 
     public IjxProgressBar getProgressBar() {
         return progressBar;
     }
 
-    public Panel getStatusBar() {
+    public Component getStatusBar() {
         return statusBar;
     }
 

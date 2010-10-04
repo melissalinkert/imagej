@@ -94,7 +94,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		state = NORMAL;
 		type = RECTANGLE;
 		if (ic!=null) {
-			Graphics g = ic.getGraphics();
+			Graphics g = ic.getCanvas().getGraphics();
 			draw(g);
 			g.dispose();
 		}

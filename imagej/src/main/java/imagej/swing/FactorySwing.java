@@ -19,6 +19,7 @@ import ijx.gui.IjxGenericDialog;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxProgressBar;
+import ijx.gui.IjxToolbar;
 import ijx.gui.IjxWindow;
 import ijx.plugin.frame.IjxPluginFrame;
 import imagej.awt.WindowAWT;
@@ -27,6 +28,8 @@ import java.awt.Container;
 import java.awt.Frame;
 import java.awt.Image;
 import java.awt.image.ColorModel;
+import javax.swing.JPanel;
+import javax.swing.JToolBar;
 
 
 /**
@@ -44,6 +47,7 @@ public class FactorySwing implements IjxFactory {
     public IjxProgressBar newProgressBar(int canvasWidth, int canvasHeight) {
         return new ProgressBarSwing(canvasWidth, canvasHeight);
     }
+
     public IjxImagePlus newImagePlus() {
         return new ImagePlus();
     }
@@ -78,7 +82,7 @@ public class FactorySwing implements IjxFactory {
     }
 
     public IjxImageCanvas newImageCanvas(IjxImagePlus imp) {
-        return new AbstractImageCanvas(imp, new Canvas());
+        return new AbstractImageCanvas(imp, new ImagePanelSwing(imp));
     }
 
     public IjxImageStack newImageStack() {
@@ -125,7 +129,7 @@ public class FactorySwing implements IjxFactory {
     }
 
     public IjxWindow newWindow() {
-        return new WindowAWT();
+        return new WindowSwing();
     }
 
     public IjxGenericDialog newGenericDialog() {
@@ -133,11 +137,15 @@ public class FactorySwing implements IjxFactory {
     }
 
     public IjxPluginFrame newPluginFrame(String title) {
-        return (IjxPluginFrame) new PlugInFrame(title);
+        return (IjxPluginFrame) new PlugInFrameSwing(title);
     }
 
     public IjxDialog newDialog() {
         return null;
+    }
+
+    public IjxToolbar newToolBar() {
+        return (IjxToolbar) new ToolbarSwing();
     }
 
 

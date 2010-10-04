@@ -26,7 +26,7 @@ public class CompositeImage extends ImagePlus {
 	LUT[] lut;
 	int currentChannel = -1;
 	int previousChannel;
-	int currentSlice = 1;
+	int currentSlice = 1;  // @todo remove?
 	int currentFrame = 1;
 	static int count;
 	boolean singleChannel;

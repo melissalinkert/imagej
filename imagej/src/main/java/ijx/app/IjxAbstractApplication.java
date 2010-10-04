@@ -646,6 +646,7 @@ public class IjxAbstractApplication implements IjxApplication {
 
     }
 
+    // move this into WindowManager ??
     public void saveWindowLocations() {
         IjxWindow frame = WindowManager.getFrame("B&C");
         if (frame != null) {

@@ -24,7 +24,7 @@ public class Executer implements Runnable {
 	
 	/** Create an Executer to run the specified menu command
 		in this thread using the active image. */
-	public Executer(String cmd) {
+	public Executer(String  cmd) {
 		command = cmd;
 	}
 

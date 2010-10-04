@@ -48,9 +48,9 @@ import java.awt.Graphics;
  */
 public interface IjxProgressBar {
 
-    Dimension getPreferredSize();
+   // Dimension getPreferredSize();
 
-    void paint(Graphics g);
+   // void paint(Graphics g);
 
     void setBatchMode(boolean batchMode);
 
@@ -77,10 +77,10 @@ public interface IjxProgressBar {
      */
     void show(int currentIndex, int finalIndex);
 
-    void update(Graphics g);
+//    void update(Graphics g);
 
-    public void addKeyListener(IjxApplication ijApp);
-
-    public void addMouseListener(IjxTopComponent aThis);
+//    public void addKeyListener(IjxApplication ijApp);
+//
+//    public void addMouseListener(IjxTopComponent aThis);
 
 }

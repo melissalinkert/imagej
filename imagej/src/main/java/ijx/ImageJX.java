@@ -107,6 +107,7 @@ public class ImageJX extends IjxAbstractApplication {
         if (err2 != null) {
             IJ.error(err2);
         }
+        // @todo ?? Should this be a PlugIn ??
         if (IJ.isMacintosh() && applet == null) {
             Object qh = null;
             if (IJ.isJava14()) {
@@ -117,6 +118,7 @@ public class ImageJX extends IjxAbstractApplication {
             }
         }
         if (applet == null) {
+            // @todo ?? Should this be a PlugIn ??
             IJ.runPlugIn("ij.plugin.DragAndDrop", "");
         }
         m.installStartupMacroSet();
