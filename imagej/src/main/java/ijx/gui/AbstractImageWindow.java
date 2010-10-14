@@ -201,10 +201,17 @@ public class AbstractImageWindow //extends Frame
             }
             Point loc = previousWindow.getLocation();
             displayWindow.setLocation(loc.x, loc.y);
+            // @todo ... ??
 //            if (!isStackWindow) {
             //if (!(this instanceof IjxStackWindow)) {
-            pack();
-            show();
+            if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+                ((Frame) displayWindow).pack();
+                ((Frame) displayWindow).setVisible(true);
+            }
+            if (displayWindow instanceof JInternalFrame) {
+                ((JInternalFrame) displayWindow).pack();
+                ((JInternalFrame) displayWindow).setVisible(true);
+            }
 //            }
             boolean unlocked = imp.lockSilently();
             boolean changes = imp.isChanged();
@@ -218,11 +225,18 @@ public class AbstractImageWindow //extends Frame
         } else {
             setLocationAndSize(false);
             // @todo Macintosh-related
-//			if (ij!=null && !IJ.isMacintosh()) {
-//				Image img = ij.getIconImage();
-//				if (img!=null)
-//					try {setIconImage(img);} catch (Exception e) {}
-//			}
+            if (ij != null && !IJ.isMacintosh()) {
+                ImageIcon img = ij.getImageIcon();
+                if (img != null) {
+                    if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+                        ((Frame) displayWindow).setIconImage(img.getImage());
+                    }
+                }
+                if (displayWindow instanceof JInternalFrame) {
+                    ((JInternalFrame) displayWindow).setFrameIcon(img);
+                }
+
+            }
             // @todo  add JInternalFrame handling
             if (WindowManager.isCenterNextImage()) {
                 GUI.center((Frame) displayWindow);
@@ -239,8 +253,16 @@ public class AbstractImageWindow //extends Frame
 //            } else {
 //            if (!isStackWindow) {
             //if (!(this instanceof IjxStackWindow)) {
-            pack();
-            show();
+            if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+                ((Frame) displayWindow).pack();
+                ((Frame) displayWindow).setVisible(true);
+
+            }
+            if (displayWindow instanceof JInternalFrame) {
+                ((JInternalFrame) displayWindow).pack();
+                ((JInternalFrame) displayWindow).setVisible(true);
+            }
+
             //           }
 //            }
         }
@@ -1020,12 +1042,12 @@ public class AbstractImageWindow //extends Frame
         }
     }
 
-    public Image getIconImage() {
+    public ImageIcon getImageIcon() {
         if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
-            return ((Frame) displayWindow).getIconImage();
+            return new ImageIcon(((Frame) displayWindow).getIconImage());
         }
         if (displayWindow instanceof JInternalFrame) {
-            return ((ImageIcon) ((JInternalFrame) displayWindow).getFrameIcon()).getImage();
+            return ((ImageIcon) ((JInternalFrame) displayWindow).getFrameIcon());
         }
         return null;
     }
@@ -1073,5 +1095,5 @@ public class AbstractImageWindow //extends Frame
         }
     }
 }
- //class IjxImageWindow
+//class IjxImageWindow
 

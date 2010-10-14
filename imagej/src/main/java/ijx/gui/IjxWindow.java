@@ -1,6 +1,7 @@
 package ijx.gui;
 
 import java.awt.Image;
+import javax.swing.ImageIcon;
 
 /**
  * IjxWindow: interface for a generalized Window in ImageJ
@@ -13,7 +14,7 @@ public interface IjxWindow {
 
     void setTitle(String s);
 
-    Image getIconImage();
+    ImageIcon getImageIcon();
 
     boolean isVisible();
 

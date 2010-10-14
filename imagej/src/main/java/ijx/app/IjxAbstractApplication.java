@@ -673,12 +673,12 @@ public class IjxAbstractApplication implements IjxApplication {
     }
 
 
-    public Image getIconImage() {
+    public ImageIcon getImageIcon() {
         URL url = this.getClass().getResource("/microscope.gif");
         if (url == null) {
             return null;
         }
-        Image img = new ImageIcon(url).getImage();
+        ImageIcon img = new ImageIcon(url);
         //createImage((ImageProducer)url.getContent());
         if (img != null) {
             return img;

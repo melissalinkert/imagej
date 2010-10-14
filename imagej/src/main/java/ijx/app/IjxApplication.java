@@ -13,6 +13,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyListener;
 import java.util.Properties;
+import javax.swing.ImageIcon;
 
 /**
  *
@@ -90,7 +91,7 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
     
 	ImageJApplet getApplet();
 
-    Image getIconImage();
+    ImageIcon getImageIcon();
 
     Image createCompatibleImage(int w, int h);
 
