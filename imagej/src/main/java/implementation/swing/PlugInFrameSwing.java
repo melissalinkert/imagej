@@ -3,7 +3,9 @@ import ijx.plugin.frame.IjxPluginFrame;
 import java.awt.*;
 import java.awt.event.*;
 import ij.*;
+import ijx.app.IjxApplication;
 import ijx.plugin.frame.IjxPluginFrame;
+import javax.swing.ImageIcon;
 
 
 /**  This is a closeable window that plugins can extend. */
@@ -15,14 +17,14 @@ public class PlugInFrameSwing extends javax.swing.JFrame implements IjxPluginFra
 		super(title);
 		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
 		this.title = title;
-		Frame ij = IJ.getTopComponentFrame();
+		IjxApplication ij = IJ.getInstance();
 		addWindowListener(this);
  		addFocusListener(this);
 		if (IJ.isLinux()) setBackground(IJ.backgroundColor);
 		if (ij!=null) {
-			Image img = ij.getIconImage();
+			ImageIcon img = ij.getImageIcon();
 			if (img!=null)
-				try {setIconImage(img);} catch (Exception e) {}
+				try {setIconImage(img.getImage());} catch (Exception e) {}
 		}
 	}
 	
@@ -70,4 +72,9 @@ public class PlugInFrameSwing extends javax.swing.JFrame implements IjxPluginFra
     public boolean isClosed() {
         return true;
     }
+
+    public ImageIcon getImageIcon() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
 }

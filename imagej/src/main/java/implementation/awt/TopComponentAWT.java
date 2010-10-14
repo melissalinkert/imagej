@@ -38,6 +38,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.image.ImageProducer;
 import java.net.URL;
+import javax.swing.ImageIcon;
 
 /**
  *
@@ -251,8 +252,8 @@ public class TopComponentAWT //extends Frame
         getFrame().setTitle(s);
     }
 
-    public Image getIconImage() {
-        return getFrame().getIconImage();
+    public ImageIcon getImageIcon() {
+        return new ImageIcon(getFrame().getIconImage());
     }
 
     public boolean isVisible() {

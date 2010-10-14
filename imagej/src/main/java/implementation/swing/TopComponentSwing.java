@@ -13,6 +13,7 @@ import ijx.IjxTopComponent;
 import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
 import ijx.event.StatusMessage;
+import ijx.util.GraphicsUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -32,6 +33,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.image.ImageProducer;
 import java.net.URL;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
@@ -53,13 +55,14 @@ public class TopComponentSwing //extends Frame
     private IjxApplication ijApp;
     private JFrame frame;
     private final CentralLookup centralLookup = CentralLookup.getDefault();
-    Dimension prefSize = new Dimension(IjxToolbar.SIZE*IjxToolbar.NUM_BUTTONS, IjxToolbar.SIZE);
+    Dimension prefSize = new Dimension(IjxToolbar.SIZE * IjxToolbar.NUM_BUTTONS, IjxToolbar.SIZE);
+
     public TopComponentSwing(IjxApplication ijApp, String title) {
         frame = new JFrame(title);
         //super("ImageJ");
         this.ijApp = ijApp;
         frame.setLayout(new GridLayout(2, 1));
-        
+
         frame.addWindowListener(this);
         frame.setFocusTraversalKeysEnabled(false);
     }
@@ -251,8 +254,8 @@ public class TopComponentSwing //extends Frame
         getFrame().setTitle(s);
     }
 
-    public Image getIconImage() {
-        return getFrame().getIconImage();
+    public ImageIcon getImageIcon() {
+        return new ImageIcon(getFrame().getIconImage());
     }
 
     public boolean isVisible() {

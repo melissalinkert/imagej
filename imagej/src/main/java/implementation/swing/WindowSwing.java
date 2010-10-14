@@ -1,6 +1,7 @@
 package implementation.swing;
 
 import ijx.gui.IjxWindow;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 
 /**
@@ -23,6 +24,10 @@ public class WindowSwing extends JFrame implements IjxWindow{
     @Override
     public boolean close() {
         throw new UnsupportedOperationException("Not supported yet."); // @todo
+    }
+
+    public ImageIcon getImageIcon() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }

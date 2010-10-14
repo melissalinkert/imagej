@@ -2,7 +2,9 @@ package implementation.mdi;
 
 import implementation.swing.*;
 import ijx.gui.IjxWindow;
+import ijx.util.GraphicsUtilities;
 import java.awt.Image;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 
@@ -28,9 +30,9 @@ public class WindowMDI extends JInternalFrame implements IjxWindow{
         throw new UnsupportedOperationException("Not supported yet."); // @todo
     }
 
-    public Image getIconImage() {
-        // @todo
-        return null;
+    public ImageIcon getImageIcon() {
+       return new ImageIcon(GraphicsUtilities.iconToImage(getFrameIcon()));
     }
+
 
 }
