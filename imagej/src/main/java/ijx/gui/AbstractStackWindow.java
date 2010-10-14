@@ -30,7 +30,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
     public AbstractStackWindow(IjxImagePlus _imp, IjxImageCanvas _ic, Container window) {
         super(_imp, _ic, window);
         addScrollbars(imp);
-        w.addMouseWheelListener(this);
+        displayWindow.addMouseWheelListener(this);
         if (sliceSelector == null && this.getClass().getName().indexOf("Image5D") != -1) {
             sliceSelector = new Scrollbar(); // prevents Image5D from crashing
         }		//IJ.log(nChannels+" "+nSlices+" "+nFrames);
@@ -44,13 +44,13 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
             ic.setMaxBounds();
         }
         // @todo also handle JInternalframe
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            ((Frame) w).pack();
-            ((Frame) w).show();
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            ((Frame) displayWindow).pack();
+            ((Frame) displayWindow).show();
         }
-        if (w instanceof JInternalFrame) {
-            ((JInternalFrame) w).pack();
-            ((JInternalFrame) w).show();
+        if (displayWindow instanceof JInternalFrame) {
+            ((JInternalFrame) displayWindow).pack();
+            ((JInternalFrame) displayWindow).show();
         }
         int previousSlice = imp.getCurrentSlice();
         if (previousSlice > 1 && previousSlice <= imp.getStackSize()) {
@@ -91,7 +91,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
         //IjxApplication ij = IJ.getInstance();
         if (nChannels > 1) {
             cSelector = new ScrollbarWithLabel(this, 1, 1, 1, nChannels + 1, 'c');
-            w.add(cSelector);
+            displayWindow.add(cSelector);
             if (ij != null) {
                 cSelector.addKeyListener(ij);
             }
@@ -109,7 +109,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
             if (label == 't') {
                 animationSelector = zSelector;
             }
-            w.add(zSelector);
+            displayWindow.add(zSelector);
             if (ij != null) {
                 zSelector.addKeyListener(ij);
             }
@@ -358,17 +358,17 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
 
     public void removeScrollbars() {
         if (cSelector != null) {
-            w.remove(cSelector);
+            displayWindow.remove(cSelector);
             cSelector.removeAdjustmentListener(this);
             cSelector = null;
         }
         if (zSelector != null) {
-            w.remove(zSelector);
+            displayWindow.remove(zSelector);
             zSelector.removeAdjustmentListener(this);
             zSelector = null;
         }
         if (tSelector != null) {
-            w.remove(tSelector);
+            displayWindow.remove(tSelector);
             tSelector.removeAdjustmentListener(this);
             tSelector = null;
         }

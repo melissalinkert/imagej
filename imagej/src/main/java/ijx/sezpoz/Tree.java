@@ -14,7 +14,6 @@ import java.util.List;
  * Tree contains Nodes, and Nodes contains references to other nodes
  */
 public class Tree<T> {
-
     private Node<T> rootElement;
 
     /**
@@ -63,7 +62,8 @@ public class Tree<T> {
     /**
      * Walks the Tree in pre-order style. This is a recursive method, and is
      * called from the toList() method with the root element as the first
-     * argument. It appends to the second argument, which is passed by reference     * as it recurses down the tree.
+     * argument. It appends to the second argument, which is passed by reference
+     * as it recurses down the tree.
      * @param element the starting element.
      * @param list the output of the walk.
      */
@@ -80,7 +80,6 @@ public class Tree<T> {
      * in the Tree<T>.
      */
     public class Node<T> {
-
         public T data;
         public List<Node<T>> children;
 

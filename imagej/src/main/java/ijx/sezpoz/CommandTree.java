@@ -5,22 +5,20 @@ package ijx.sezpoz;
  *
  * @author GBH <imagejdev.org>
  */
-public class CommandTree {
 
-}
 /**
  * Non-generic subclass of Tree<Task>
  */
-//public class CommandTree extends Tree<Task> {
-//    public TaskTree() {
-//        super();
-//    }
-//}
+public class CommandTree extends Tree<String> {
+    public CommandTree() {
+        super();
+    }
+}
 //
 ///**
 // * Non-generic subclass of Node<T>
 // */
-//public class TaskNode extends Node<Task> {
+//public class CommandNode extends Node<String> {
 //    public TaskNode() {
 //        super();
 //    }

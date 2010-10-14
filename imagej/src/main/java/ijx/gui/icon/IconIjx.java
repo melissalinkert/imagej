@@ -12,7 +12,6 @@ import java.awt.RenderingHints;
  *
  * @author GBH <imagejdev.org>
  */
-import static ijx.gui.IjxToolbar.*;
 
 public abstract class IconIjx {
 

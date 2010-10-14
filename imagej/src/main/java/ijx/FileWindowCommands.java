@@ -13,7 +13,7 @@ import java.io.File;
 import java.applet.Applet;
 
 
-import ijx.sezpoz.MenuItem;
+import ijx.sezpoz.ActionIjx;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -28,7 +28,7 @@ public class FileWindowCommands {
     }
     }
      */
-    @MenuItem(
+    @ActionIjx(
     label = "TestItem",
     menu = "File",
     commandKey = "commandName",
@@ -46,7 +46,7 @@ public class FileWindowCommands {
             close();
         }
     }
-    @MenuItem(label = "RadioItemA",
+    @ActionIjx(label = "RadioItemA",
     menu = "File",
     commandKey = "radioA",
     hotKey = "alt shift A",
@@ -61,7 +61,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(label = "RadioItemB",
+    @ActionIjx(label = "RadioItemB",
     menu = "File",
     commandKey = "radioB",
     hotKey = "alt shift B",
@@ -78,7 +78,7 @@ public class FileWindowCommands {
 
     //===============================================================
 
-    @MenuItem(menu = "file", label = "Open...", hotKey = "O")
+    @ActionIjx(menu = "File", label = "Open...", hotKey = "O")
     public static class OpenAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -93,7 +93,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "file", label = "Close", hotKey = "W")
+    @ActionIjx(menu = "File", label = "Close", hotKey = "W")
     public static class CloseAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -101,7 +101,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "file", label = "Close All")
+    @ActionIjx(menu = "File", label = "Close All")
     public static class CloseAllAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -109,7 +109,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "file", label = "Save", hotKey = "S")
+    @ActionIjx(menu = "File", label = "Save", hotKey = "S")
     public static class SaveAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -117,7 +117,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "file", label = "Revert", hotKey = "R")
+    @ActionIjx(menu = "File", label = "Revert", hotKey = "R")
     public static class RevertAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -125,7 +125,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "edit", label = "Undo", hotKey = "Z")
+    @ActionIjx(menu = "edit", label = "Undo", hotKey = "Z")
     public static class UndoAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -133,14 +133,14 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "window", label = "Put Behind [tab]")
+    @ActionIjx(menu = "window", label = "Put Behind [tab]")
     public static class PutBehindAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
         }
     }
 
-    @MenuItem(menu = "file", label = "Quit")
+    @ActionIjx(menu = "File", label = "Quit")
     public static class QuitAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             IjxApplication ij = IJ.getInstance();
@@ -150,7 +150,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "file", label = "Image...[n]")
+    @ActionIjx(menu = "File", label = "Image...[n]")
     public static class NewImageAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -158,7 +158,7 @@ public class FileWindowCommands {
         }
     }
 
-    @MenuItem(menu = "file", label = "Startup Macros...")
+    @ActionIjx(menu = "File", label = "Startup Macros...")
     public static class StartupMacrosAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {

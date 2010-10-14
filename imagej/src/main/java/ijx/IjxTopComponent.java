@@ -23,14 +23,13 @@ import java.awt.event.WindowListener;
  */
 public interface IjxTopComponent extends IjxWindow, MouseListener, WindowListener, KeyListener {
     String IJ_X = "ij.x", IJ_Y = "ij.y";
-    /**
-     * SansSerif, 12-point, plain font.
-     */
-    Font SansSerif12 = new Font("SansSerif", Font.PLAIN, 12);
+    Font SansSerif12 = new Font("SansSerif", Font.PLAIN, 12); // SansSerif, 12-point, plain font.
 
     Frame getFrame();
 
     void setMenuBar(Object menuBar);
+    void setToolbar(Object toolbar);
+    void addStatusBar();
 
     Point getPreferredLocation();
 

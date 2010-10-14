@@ -1,6 +1,34 @@
 /*
 From http://netbeans.dzone.com/news/publish-subscribe-netbeans-pla
 
+ * Publisher: e.g.: EventBus.getDefault().publish(new StatusMessage(s));
+ *
+ * Subscriber:
+ * In constructor or initialization:
+       EventBus.getDefault().subscribe(StatusMessage.class, listener);
+ *
+ * and the listener:
+    private final EventBusListener<StatusMessage> listener = new EventBusListener<StatusMessage>() {
+        @Override
+        public void notify(final StatusMessage msg) {
+            if (msg != null) {
+                StatusLineSwing.this.setText(msg.getMessage());
+            }
+        }
+    };
+
+ Copy/Paste:
+ EventBus.getDefault().subscribe(<topic>.class, listener);
+
+    private final EventBusListener<Topic> listener = new EventBusListener<Topic>() {
+        @Override
+        public void notify(final Topic msg) {
+            if (msg != null) {
+                //setText(msg.getMessage());
+            }
+        }
+    };
+ *
  */
 package ijx.event;
 
@@ -14,7 +42,8 @@ public class EventBus {
     private static final EventBus instance = new EventBus();
     private final CentralLookup centralLookup = CentralLookup.getDefault();
     private final Map<Class<?>, Result<?>> resultMapByClass = new HashMap<Class<?>, Result<?>>();
-    private final Map<EventBusListener<?>, ListenerAdapter<?>> adapterMapByListener = new HashMap<EventBusListener<?>, ListenerAdapter<?>>();
+    private final Map<EventBusListener<?>, ListenerAdapter<?>> adapterMapByListener =
+            new HashMap<EventBusListener<?>, ListenerAdapter<?>>();
 
     private EventBus() {
     }

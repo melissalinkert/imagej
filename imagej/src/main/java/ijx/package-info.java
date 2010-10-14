@@ -35,7 +35,7 @@
  */
 
 /**
- * This package contains...
+ * This package contains... ImageJX (or ImageJ 2.0, o
  * @author GBH <imagejdev.org>
  */
 

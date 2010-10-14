@@ -100,7 +100,7 @@ public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelList
 
 //  void mouseWheelMoved(MouseWheelEvent event);
 
- //   void paint(Graphics g);
+   void paintMe(Graphics g);  // callback/redirection from drawing component
 
    void repaint();
 

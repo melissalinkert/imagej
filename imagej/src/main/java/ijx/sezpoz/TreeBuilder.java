@@ -1,12 +1,15 @@
 package ijx.sezpoz;
 
 import ij.IJ;
+import ijx.IjxMenus;
 import ij.Menus;
+import ij.MenusAWT;
 import ij.gui.GUI;
-import ij.plugin.ControlPanel;
 import ij.plugin.PlugIn;
 import ij.util.Java2;
 import ij.util.StringSorter;
+import ijx.CentralLookup;
+import implementation.swing.MenusSwing;
 import ijx.app.IjxApplication;
 import java.awt.AWTEventMulticaster;
 import java.awt.BorderLayout;
@@ -42,6 +45,7 @@ import java.util.Vector;
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
@@ -71,8 +75,8 @@ import javax.swing.tree.TreeSelectionModel;
  */
 // A COPY of ControlPanel **********************
 public class TreeBuilder implements PlugIn {
-
-    private static final String pluginsPath = Menus.getPlugInsPath();
+    static IjxMenus menusCentral = CentralLookup.getDefault().lookup(IjxMenus.class);
+    private static final String pluginsPath = menusCentral.getPlugInsPath();
     private static final String pcpVersion = "1.0g";
     /** The platform-specific file separator string.*/
     private static final String fileSeparator = System.getProperty("file.separator");
@@ -238,13 +242,25 @@ public class TreeBuilder implements PlugIn {
         if (argLength == 0) {
             node.setUserObject("Control Panel");
         }
-        MenuBar menuBar = Menus.getMenuBar();
+        if(menusCentral instanceof MenusAWT) {
+        MenuBar menuBar = (MenuBar)menusCentral.getMenuBar();
         for (int i = 0; i < menuBar.getMenuCount(); i++) {
             Menu menu = menuBar.getMenu(i);
             DefaultMutableTreeNode menuNode = new DefaultMutableTreeNode(menu.getLabel());
             recurseSubMenu(menu, menuNode);
             node.add(menuNode);
         }
+        }
+        if(menusCentral instanceof MenusSwing) {
+        JMenuBar menuBar = (JMenuBar)menusCentral.getMenuBar();
+        for (int i = 0; i < menuBar.getMenuCount(); i++) {
+            JMenu menu = menuBar.getMenu(i);
+            DefaultMutableTreeNode menuNode = new DefaultMutableTreeNode(menu.getLabel());
+            recurseSubMenu(menu, menuNode);
+            node.add(menuNode);
+        }
+        }
+
         return node;
     }
 
@@ -282,6 +298,33 @@ public class TreeBuilder implements PlugIn {
                     }
                     if (label.equals("Reload Plugins")) {
                         reloadMI = mItem;
+                        treeCommands.put(label, "Reload Plugins From Panel");
+                    }
+                }
+            }
+        }
+    }
+    private void recurseSubMenu(JMenu menu, DefaultMutableTreeNode node) {
+        int items = menu.getItemCount();
+        if (items == 0) {
+            return;
+        }
+        for (int i = 0; i < items; i++) {
+            JMenuItem mItem = menu.getItem(i);
+            String label = mItem.getLabel();
+            if (mItem instanceof JMenu) {
+                DefaultMutableTreeNode subNode = new DefaultMutableTreeNode(label);
+                recurseSubMenu((JMenu) mItem, subNode);
+                node.add(subNode);
+            } else if (mItem instanceof JMenuItem) {
+                if (!(label.equals("-"))) {
+                    DefaultMutableTreeNode leaf = new DefaultMutableTreeNode(label);
+                    node.add(leaf);
+                    if (treeCommands == null) {
+                        treeCommands = new Hashtable();
+                    }
+                    if (label.equals("Reload Plugins")) {
+                       // reloadMI = mItem;
                         treeCommands.put(label, "Reload Plugins From Panel");
                     }
                 }

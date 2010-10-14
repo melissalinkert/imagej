@@ -6,8 +6,11 @@ package ijx.sezpoz;
 
 import ij.plugin.PlugIn;
 import ij.plugin.filter.PlugInFilterRunner;
+import ijx.app.Option;
+import ijx.gui.MenuBuilder;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
@@ -23,62 +26,90 @@ import javax.swing.Action;
 import javax.swing.ButtonGroup;
 import javax.swing.ButtonModel;
 import javax.swing.ImageIcon;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JRadioButton;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 import net.java.sezpoz.Index;
 import net.java.sezpoz.IndexItem;
+import org.pf.joi.Inspector;
 
 public class CommandsManager {
     //
-    Map<String, Action> commands = new HashMap<String, Action>();
-
-    Map<String, IndexItem<MenuItem, ActionListener>> items =
-            new HashMap<String, IndexItem<MenuItem, ActionListener>>();
+    Map<String, Action> commands = new HashMap<String, Action>();  // commandKey / action
+    Map<String, String> menuCommands = new HashMap<String, String>();  // "menu>submenu" / commandKey
+    Map<String, String> toolbarCommands = new HashMap<String, String>();  // toolbar / commandKey
+    Map<String, IndexItem<ActionIjx, ?>> items =
+            new HashMap<String, IndexItem<ActionIjx, ?>>();
 
     public Action getAction(String commandKey) {
         return commands.get(commandKey);
     }
 
     public void loadAllItems() {
-        for (final IndexItem<MenuItem, ActionListener> item : Index.load(MenuItem.class, ActionListener.class)) {
+        for (final IndexItem<ActionIjx, ActionListener> item : Index.load(ActionIjx.class, ActionListener.class)) {
             String commandKey = null;
             if (!item.annotation().commandKey().isEmpty()) {
                 commandKey = item.annotation().commandKey();
             } else {
                 commandKey = item.annotation().label();
             }
-            Action action = createActionActionListener(commandKey, item);
-            commands.put(commandKey, action);
-            decorateAction(action, item);
-            items.put(commandKey, item);  // save for use in creating UI components
+            Action action = createActionForActionListener(commandKey, item);
+            addToMaps(commandKey, action, item);
         }
     }
 
-    public void loadAllPlugins() {
-        for (final IndexItem<MenuItem, PlugIn> item : Index.load(MenuItem.class, PlugIn.class)) {
-            String commandKey = null;
-            if (!item.annotation().commandKey().isEmpty()) {
-                commandKey = item.annotation().commandKey();
-            } else {
-                commandKey = item.annotation().label();
+        public void loadOptions() {
+        for (final IndexItem<Option, Object> item : Index.load(Option.class, Object.class)) {
+            try {
+                String clazz = item.className();
+                System.out.println("clazz = " + clazz);
+                String fieldName = item.memberName();
+                System.out.println("fieldName = " + fieldName);
+                System.out.println("item.element().getClass()" +item.element().getClass().getCanonicalName());
+            } catch (InstantiationException ex) {
+                Logger.getLogger(CommandsManager.class.getName()).log(Level.SEVERE, null, ex);
             }
-            Action action = createActionPlugIn(commandKey, item);
-            decorateAction(action, item);
-            commands.put(commandKey, action);
-            // will need another item type map here...
+        }
+    }
+//    public void loadAllPlugins() {
+//        for (final IndexItem<ActionIjx, PlugIn> item : Index.load(ActionIjx.class, PlugIn.class)) {
+//            String commandKey = null;
+//            if (!item.annotation().commandKey().isEmpty()) {
+//                commandKey = item.annotation().commandKey();
+//            } else {
+//                commandKey = item.annotation().label();
+//            }
+//            Action action = createActionForPlugIn(commandKey, item);
+//            addToMaps(commandKey, action, item);
+//
+//        }
+//    }
+
+    private void addToMaps(String commandKey, Action action, IndexItem<ActionIjx, ?> item) {
+        commands.put(commandKey, action);
+        action.putValue(Action.ACTION_COMMAND_KEY, commandKey);
+        decorateAction(action, item);
+        items.put(commandKey, item);  // save for use in creating UI components
+        if (!item.annotation().menu().isEmpty()) {
+            menuCommands.put(item.annotation().menu(), commandKey);
+        }
+        if (!item.annotation().toolbar().isEmpty()) {
+            toolbarCommands.put(item.annotation().toolbar(), commandKey);
         }
     }
 
-    public void loadImporters() {
-        for (final IndexItem<Importer, ij.plugin.PlugIn> item : Index.load(Importer.class, ij.plugin.PlugIn.class)) {
-            System.out.println("Importer Found: " + item.annotation().commandKey() + item.annotation().fileExts());
-        }
-    }
+//    public void loadImporters() {
+//        for (final IndexItem<Importer, ij.plugin.PlugIn> item : Index.load(Importer.class, ij.plugin.PlugIn.class)) {
+//            System.out.println("Importer Found: " + item.annotation().commandKey() + item.annotation().fileExts());
+//        }
+//    }
 
 //    public void loadExtendedPluginFilters() {
 //        for (final IndexItem<PluginFilterItem, ActionListener> item :
@@ -90,7 +121,6 @@ public class CommandsManager {
 //            System.out.println("Filter Found: " + item.annotation().commandKey());
 //        }
 //    }
-
 //    public static Action createFilterAction(String commandKey,
 //            final IndexItem<PluginFilterItem, ActionListener> item) {
 //        System.out.println("creating action: " + commandKey);
@@ -112,8 +142,9 @@ public class CommandsManager {
 //        return null;
 //    }
 
-
-    public static Action createActionActionListener(String commandKey, final IndexItem<MenuItem, ActionListener> item) {
+    
+// <editor-fold defaultstate="collapsed" desc=" Action Creation ">
+    public static Action createActionForActionListener(String commandKey, final IndexItem<ActionIjx, ActionListener> item) {
         System.out.println("creating action: " + commandKey);
         Action action = new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
@@ -125,12 +156,10 @@ public class CommandsManager {
                 }
             }
         };
-        action.putValue(Action.ACTION_COMMAND_KEY, commandKey);
         return action;
     }
 
-
-    public static Action createActionPlugIn(String commandKey, final IndexItem<MenuItem, PlugIn> item) {
+    public static Action createActionForPlugIn(String commandKey, final IndexItem<ActionIjx, PlugIn> item) {
         System.out.println("creating action (plugin): " + commandKey);
         String[] args = item.annotation().args();
         final String arg = args[0];
@@ -144,12 +173,10 @@ public class CommandsManager {
                 }
             }
         };
-        action.putValue(Action.ACTION_COMMAND_KEY, commandKey);
-        // Add Icon...
         return action;
     }
 
-    public void decorateAction(Action action, final IndexItem<MenuItem, ?> item) {
+    public void decorateAction(Action action, final IndexItem<ActionIjx, ?> item) {
         if (!item.annotation().icon().isEmpty()) {
             try {
                 ImageIcon img = new ImageIcon(ClassLoader.getSystemResource(item.annotation().icon()));
@@ -192,18 +219,18 @@ public class CommandsManager {
     public void setEnabled(boolean b);
     }
 
+    // </editor-fold>
      */
     private void AddAllItemsToUI() {
-        //Iterator it = items.entrySet().iterator();
-        for (Entry<String, IndexItem<MenuItem, ActionListener>> e : items.entrySet()) {
+        for (Entry<String, IndexItem<ActionIjx, ?>> e : items.entrySet()) {
             String commandKey = e.getKey();
-            IndexItem<MenuItem, ActionListener> item = e.getValue();
+            IndexItem<ActionIjx, ?> item = e.getValue();
             AddItemToUI(commandKey, item);
         }
     }
     // Just lists them out, so far...
 
-    private void AddItemToUI(String commandKey, IndexItem<MenuItem, ActionListener> item) {
+    private void AddItemToUI(String commandKey, IndexItem<ActionIjx, ?> item) {
         String menu = item.annotation().menu();
         String bundlePath = item.annotation().bundle(); // for i18n
         String toolbar = item.annotation().toolbar();
@@ -218,75 +245,14 @@ public class CommandsManager {
                 + pos + " "
                 + separator + " "
                 + state + " " + group);
-        //
-    }
-    Map<String, JMenu> topMenus = new HashMap<String, JMenu>();
-    Map<String, ButtonGroup> groups = new HashMap<String, ButtonGroup>();
-
-    public void selectRadioButton(JRadioButton b, ButtonGroup group) {
-        // Select the radio button; the currently selected radio button is deselected.
-        // This operation does not cause any action events to be fired.
-        // Better to use Action.SELECTED_KEY, but only in JDK 6.
-        ButtonModel model = b.getModel();
-        group.setSelected(model, true);
     }
 
-    JMenu findOrCreateMenu(String menuName) {
-        JMenu menu = topMenus.get(menuName);
-        if (menu == null) {
-            menu = new JMenu(menuName);
-            topMenus.put(menuName, menu);
-        }
-        return menu;
+    private void buildMenu() {
+        MenuBuilder mBuilder = ij.IJ.getFactory().newMenuBuilder(commands, menuCommands, toolbarCommands, items);
+        mBuilder.build();
     }
 
-    JMenuBar createMenu() {
-        JMenuBar bar = new JMenuBar();
-        Iterator it = commands.entrySet().iterator();
-        for (Entry<String, Action> e : commands.entrySet()) {
-            String menuName = e.getKey();
-            Action action = e.getValue();
-            // parse the menuName topMenu>subMenu>subsubMenu
-            JMenu menu = findOrCreateMenu(menuName);
-            //equiv: JMenuItem menuItem = new JMenuItem(action); menu.add(menuItem);
-            menu.add(action);
-        }
-        // create Top Level Menu
-        //bar.add(menu);
-
-        return bar;
-    }
-
-    private void createItem(IndexItem<MenuItem, ActionListener> item) {
-        String radioButtonGroup = item.annotation().group();
-        if (!radioButtonGroup.isEmpty()) {
-            // this is a radioButton item
-            if (!item.annotation().menu().isEmpty()) {
-                createRadioButtonMenuItem(item);
-            }
-            if (!item.annotation().toolbar().isEmpty()) {
-                createRadioButtonOnToolbar(item);
-            }
-            //     JRadioButtonMenuItem radioItem = new JRadioButtonMenuItem(getAction(action);
-            // does group already exist?  If not, create.
-            if (groups.get(radioButtonGroup) == null) {
-                groups.put(radioButtonGroup, new ButtonGroup());
-            }
-            //     groups.get(radioButtonGroup).add(radioItem);
-        }
-    }
-
-    private void createRadioButtonMenuItem(IndexItem<MenuItem, ActionListener> item) {
-        String menuName = item.annotation().menu();
-        //...
-    }
-
-    private void createRadioButtonOnToolbar(IndexItem<MenuItem, ActionListener> item) {
-        String toolbarName = item.annotation().toolbar();
-        //...
-    }
-
-    public void loadResources(final IndexItem<MenuItem, ActionListener> item) {
+    public void loadResources(final IndexItem<ActionIjx, ActionListener> item) {
         String bundle = item.annotation().bundle();
         ResourceBundle res = ResourceBundle.getBundle(bundle, Locale.getDefault());
         String label = res.getString("LABEL");
@@ -310,13 +276,14 @@ public class CommandsManager {
         CommandsManager cl = new CommandsManager();
         cl.loadAllItems();
 
-        cl.loadImporters();
+        // cl.loadImporters();
 
         cl.AddAllItemsToUI();
 
-        System.out.println("Invoking action: radioA");
-        Action a = cl.getAction("radioA");
-        a.actionPerformed(null);
+        Inspector.inspectWait(cl);
+//        System.out.println("Invoking action: radioA");
+//        Action a = cl.getAction("radioA");
+//        a.actionPerformed(null);
 
     }
 }

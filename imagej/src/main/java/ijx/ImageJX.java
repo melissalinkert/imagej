@@ -6,15 +6,29 @@ package ijx;
 
 import ij.IJ;
 import ij.ImageJApplet;
-import ij.Menus;
 import ij.Prefs;
 import ij.SocketListener;
+import ij.gui.IjxToolbar;
 import java.awt.*;
 import java.io.*;
 import ij.util.*;
 import ijx.app.IjxAbstractApplication;
 import ijx.app.IjxApplication;
-import imagej.swing.FactorySwing;
+import ijx.etc.StartupDialog;
+import ijx.event.AppEventType;
+import ijx.event.ApplicationEvent;
+import ijx.event.EventBus;
+import implementation.awt.FactoryAWT;
+import implementation.mdi.FactoryMDI;
+import implementation.swing.FactorySwing;
+import java.lang.reflect.InvocationTargetException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFrame;
+import javax.swing.JPopupMenu;
+import javax.swing.ToolTipManager;
+import javax.swing.UIManager;
+import org.pushingpixels.substance.api.skin.SubstanceGeminiLookAndFeel;
 
 /**
 This frame is the main ImageJ class.
@@ -66,7 +80,7 @@ Example: -run "About ImageJ..."
 public class ImageJX extends IjxAbstractApplication {
     /** SansSerif, 12-point, plain font. */
 
-    public static String title = "ImageJX";
+    static String guiMode = null;
     /** Creates a new ImageJ frame that runs as an application. */
     public ImageJX() {
         this(null, STANDALONE);
@@ -82,24 +96,32 @@ public class ImageJX extends IjxAbstractApplication {
     version of ImageJ which does not start the SocketListener. */
     public ImageJX(ImageJApplet applet, int mode) {
         //super("ImageJ");
+        System.setProperty("com.apple.macos.useScreenMenuBar","true");
         embedded = applet == null && mode == EMBEDDED;
         this.applet = applet;
         String err1 = Prefs.load(this, applet);
-        //IJ.setFactory(new FactoryAWT()); // <<== set the Factory, GBH
-        IJ.setFactory(new FactorySwing()); // <<== set the Factory, GBH
-        IjxTopComponent topComponent = IJ.getFactory().newTopComponent(this, title);
-        //topComponent = new TopComponentDesktop(this);
-        //TopComponentSwing topComponent = new TopComponentSwing(this);
+        //
+        if(guiMode.equalsIgnoreCase("AWT")) IJ.setFactory(new FactoryAWT());
+        if(guiMode.equalsIgnoreCase("SDI (Swing)")) IJ.setFactory(new FactorySwing());
+        if(guiMode.equalsIgnoreCase("MDI (Swing)")) IJ.setFactory(new FactoryMDI());
+        //
+        IjxTopComponent topComponent = IJ.getFactory().newTopComponent(this, TITLE);
+        CentralLookup.getDefault().add(topComponent);
+        IJ.init((IjxApplication) this, topComponent, applet);
+        IjxMenus menus = IJ.getFactory().newMenus(topComponent, this, applet);
+        CentralLookup.getDefault().add(menus);
+        String err2 = menus.addMenuBar();
+        menus.installPopupMenu(this);
+        //
+        IjxToolbar toolbar = IJ.getFactory().newToolBar();
+        CentralLookup.getDefault().add(toolbar);
+        topComponent.setToolbar(toolbar);
+        topComponent.addStatusBar();
+        topComponent.getFrame().addKeyListener(this);
         if (IJ.isLinux()) {
             Color backgroundColor = new Color(240, 240, 240);
             topComponent.setBackground(backgroundColor);
         }
-        Menus m = new Menus(topComponent, this, applet);
-        String err2 = m.addMenuBar();
-        m.installPopupMenu(this);
-        IJ.init((IjxApplication) this, topComponent, applet);
-
-        //addKeyListener(this);
         topComponent.finishAndShow();
         if (err1 != null) {
             IJ.error(err1);
@@ -121,10 +143,12 @@ public class ImageJX extends IjxAbstractApplication {
             // @todo ?? Should this be a PlugIn ??
             IJ.runPlugIn("ij.plugin.DragAndDrop", "");
         }
-        m.installStartupMacroSet();
-        String str = m.getMacroCount() == 1 ? " macro)" : " macros)";
-        String java = "Java " + System.getProperty("java.version");
-        IJ.showStatus("ImageJX " + VERSION + "/" + java + " (" + m.getPluginCount() + " commands, " + m.getMacroCount() + str);
+        // @todo re-enable
+        //m.installStartupMacroSet();
+        //String str = m.getMacroCount() == 1 ? " macro)" : " macros)";
+        //String java = "Java " + System.getProperty("java.version");
+        //IJ.showStatus("ImageJX " + VERSION + "/" + java + " (" + m.getPluginCount() + " commands, " + m.getMacroCount() + str);
+
         if (applet == null && !embedded) {
             new SocketListener();
         }
@@ -132,6 +156,8 @@ public class ImageJX extends IjxAbstractApplication {
     }
 
     public static void main(String args[]) {
+        EventBus.getDefault().publish(new ApplicationEvent(AppEventType.STARTING));
+
         if (System.getProperty("java.version").substring(0, 3).compareTo("1.4") < 0) {
             javax.swing.JOptionPane.showMessageDialog(null, "ImageJ " + VERSION + " requires Java 1.4.1 or later.");
             System.exit(0);
@@ -166,6 +192,25 @@ public class ImageJX extends IjxAbstractApplication {
         // will pass the arguments to it using sockets.
         if (nArgs > 0 && !noGUI && (mode == STANDALONE) && isRunning(args)) {
             return;
+        }
+        try { // For Demo / Testing, Dialog to select GUI mode.
+            java.awt.EventQueue.invokeAndWait(new Runnable() {
+                public void run() {
+                    StartupDialog dialog = new StartupDialog(new javax.swing.JFrame(), "ImageJX Statup", true);
+                    dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                        public void windowClosing(java.awt.event.WindowEvent e) {
+                            System.exit(0);
+                        }
+                    });
+                    dialog.setVisible(true);
+                    int ret = dialog.getReturnStatus();
+                    guiMode = dialog.getMode();
+                }
+            });
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ImageJX.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InvocationTargetException ex) {
+            Logger.getLogger(ImageJX.class.getName()).log(Level.SEVERE, null, ex);
         }
         IjxApplication ij = IJ.getInstance();
         if (!noGUI && (ij == null || (ij != null && !IJ.getTopComponentFrame().isShowing()))) {
@@ -204,6 +249,42 @@ public class ImageJX extends IjxAbstractApplication {
         if (noGUI) {
             System.exit(0);
         }
+    }
+
+    private static void setupUI() {
+
+        JFrame.setDefaultLookAndFeelDecorated(true);
+        //UIManager.getSystemLookAndFeelClassName();
+
+//        try {
+//            com.jgoodies.looks.plastic.PlasticLookAndFeel.setPlasticTheme(
+//                new com.jgoodies.looks.plastic.theme.DesertBluer());
+//            //new com.jgoodies.looks.plastic.theme.Silver());
+//            //new com.jgoodies.looks.plastic.theme.SkyBluerTahoma());
+//            //new com.jgoodies.looks.plastic.theme.DesertBlue());
+//            com.jgoodies.looks.plastic.PlasticLookAndFeel.setTabStyle("Metal");
+//            UIManager.setLookAndFeel("com.jgoodies.looks.plastic.Plastic3DLookAndFeel");
+        //UIManager.setLookAndFeel("org.jvnet.substance.skin.SubstanceNebulaLookAndFeel");
+        //UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+        //UIManager.setLookAndFeel("de.javasoft.plaf.synthetica.SyntheticaStandardLookAndFeel");
+        //UIManager.setLookAndFeel(new InfoNodeLookAndFeel());
+//        } catch (javax.swing.UnsupportedLookAndFeelException use) {
+//            UIManager.getSystemLookAndFeelClassName();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        try {
+            UIManager.setLookAndFeel(new SubstanceGeminiLookAndFeel());
+            //UIManager.setLookAndFeel("org.jvnet.substance.api.skin.SubstanceGeminiLookAndFeel");
+        } catch (Exception e) {
+            System.out.println("Substance Gemini failed to initialize");
+            e.printStackTrace();
+        }
+        // If Globally using heavyweight components:
+        JPopupMenu.setDefaultLightWeightPopupEnabled(false);
+        ToolTipManager.sharedInstance().setLightWeightPopupEnabled(false);
+        // Use Auditory Queues
+        UIManager.put("AuditoryCues.playList", UIManager.get("AuditoryCues.defaultCueList"));
     }
 //	void configureProxy() {
 //		String server = Prefs.get("proxy.server", null);

@@ -23,6 +23,10 @@ package ijx.event;
 import java.util.EventObject;
 import java.util.logging.Level;
 
+/*
+ * GBH: This is not used as yet... could be a model for an message event
+ */
+
 /**
  * Represents a message passed from a MessageSource. This class contains
  * properties which indicate the level of the message, a string which represents

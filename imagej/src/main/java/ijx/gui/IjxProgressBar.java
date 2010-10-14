@@ -38,7 +38,7 @@ package ijx.gui;
 
 import ijx.IjxTopComponent;
 import ijx.app.IjxApplication;
-import imagej.swing.TopComponentSwing;
+import implementation.swing.TopComponentSwing;
 import java.awt.Dimension;
 import java.awt.Graphics;
 

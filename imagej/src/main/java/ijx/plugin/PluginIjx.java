@@ -5,7 +5,7 @@
 package ijx.plugin;
 
 import ijx.ExecuterIjx;
-import ijx.sezpoz.MenuItem;
+import ijx.sezpoz.ActionIjx;
 import ij.plugin.PlugIn;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -22,7 +22,7 @@ public class PluginIjx implements PlugIn {
     }
 
     //==========================================================
-    @MenuItem(label = "TestItem",
+    @ActionIjx(label = "TestItem",
               menu = "File",
               commandKey = "commandName",
               toolbar = "main",

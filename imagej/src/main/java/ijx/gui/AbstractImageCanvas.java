@@ -36,8 +36,10 @@
 package ijx.gui;
 
 import ij.IJ;
-import ij.Menus;
+import ijx.IjxMenus;
+import ij.MenusAWT;
 import ij.Prefs;
+import ij.gui.IjxToolbar;
 import ij.gui.ImageCanvasHelper;
 import ij.gui.ImageRoi;
 import ij.gui.Overlay;
@@ -55,9 +57,11 @@ import ij.plugin.frame.Recorder;
 import ij.plugin.frame.RoiManager;
 import ij.util.Java2;
 import ij.util.Tools;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.app.IjxApplication;
 import java.awt.BasicStroke;
+import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -80,6 +84,8 @@ import java.awt.image.IndexColorModel;
 import java.util.Hashtable;
 import java.util.Vector;
 import javax.swing.JInternalFrame;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 
 /** This is a Canvas used to display images in a Window. */
 
@@ -112,7 +118,6 @@ public class AbstractImageCanvas
     private static Color labelColor;
     private int resetMaxBoundsCount;
     private Roi currentRoi;
-
     protected int xMouseStart;
     protected int yMouseStart;
     protected int xSrcStart;
@@ -123,19 +128,21 @@ public class AbstractImageCanvas
     private int offScreenHeight = 0;
     private boolean mouseExited = true;
     private boolean customRoi;
-    // The component that will display the image, rois, etc.
-    //private Component panel;  // Factory creates ImagePanelSwing or ImagePanelAWT
+    //
+    /*
+    The component that will display the image, rois, etc.
+    actually, panel is a Component that implement IjxImageDisplayPanel#setDrawingDelegate(AbstractImageCanvas)
+    which passes update, paint, and/or paintComponent back to paintMe(Graphics g) to draw rois, etc.
+    passed to panel
+    */
     private Component panel;  // Factory creates ImagePanelSwing or ImagePanelAWT
-    // actually, panel is a Component that implement IjxImageDisplayPanel#setDrawingDelegate(AbstractImageCanvas)
-    // which passes update, paint, and/or paintComponent back to paintMe(Graphics g) to draw rois, etc.
-
-    // passed to panel
     protected Rectangle srcRect;
     private boolean showAllROIs;
     private Overlay overlay, showAllList;
     protected boolean imageUpdated;
     protected double magnification;
     protected int dstWidth, dstHeight;
+    IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
 
     public AbstractImageCanvas(IjxImagePlus _imp, Component component) {
         this.imp = _imp;
@@ -155,7 +162,7 @@ public class AbstractImageCanvas
         panel.addMouseMotionListener(this);
         panel.addKeyListener(ij);  // ImageJ handles keyboard shortcuts
         panel.setFocusTraversalKeysEnabled(false);
-        ((IjxImageDisplayPanel)panel).setDrawingDelegate(this);
+        ((IjxImageDisplayPanel) panel).setDrawingDelegate(this);
     }
 
     public Component getCanvas() {
@@ -546,7 +553,6 @@ public class AbstractImageCanvas
         g.setColor(Color.black);
         g.drawString((int) (fps + 0.5) + " fps", 10, 25);
     }
-
 //    public Dimension getPreferredSize() {
 //        return new Dimension(dstWidth, dstHeight);
 //    }
@@ -590,16 +596,16 @@ public class AbstractImageCanvas
             setCursorC(handCursor);
             return;
         }
-        int id = Toolbar.getToolId();
-        switch (Toolbar.getToolId()) {
-            case Toolbar.MAGNIFIER:
+        int id = toolbar.getToolId();
+        switch (toolbar.getToolId()) {
+            case IjxToolbar.MAGNIFIER:
                 setCursorC(moveCursor);
                 break;
-            case Toolbar.HAND:
+            case IjxToolbar.HAND:
                 setCursorC(handCursor);
                 break;
             default:  //selection tool
-                if (id == Toolbar.SPARE1 || id >= Toolbar.SPARE2) {
+                if (id == IjxToolbar.SPARE1 || id >= IjxToolbar.SPARE2) {
                     if (Prefs.usePointerCursor) {
                         setCursorC(defaultCursor);
                     } else {
@@ -1095,23 +1101,23 @@ public class AbstractImageCanvas
         }
         Color c;
         if (setBackground) {
-            c = Toolbar.getBackgroundColor();
+            c = toolbar.getBackgroundColor();
         } else {
-            c = Toolbar.getForegroundColor();
+            c = toolbar.getForegroundColor();
             imp.setColor(c);
         }
         IJ.showStatus("(" + c.getRed() + ", " + c.getGreen() + ", " + c.getBlue() + ")");
     }
 
     private void setForegroundColor(Color c) {
-        Toolbar.setForegroundColor(c);
+        toolbar.setForegroundColor(c);
         if (Recorder.record) {
             Recorder.record("setForegroundColor", c.getRed(), c.getGreen(), c.getBlue());
         }
     }
 
     private void setBackgroundColor(Color c) {
-        Toolbar.setBackgroundColor(c);
+        toolbar.setBackgroundColor(c);
         if (Recorder.record) {
             Recorder.record("setBackgroundColor", c.getRed(), c.getGreen(), c.getBlue());
         }
@@ -1122,7 +1128,7 @@ public class AbstractImageCanvas
             return;
         }
         showCursorStatus = true;
-        int toolID = Toolbar.getToolId();
+        int toolID = toolbar.getToolId();
         IjxImageWindow win = imp.getWindow();
         if (win != null && win.isRunning2() && toolID != Toolbar.MAGNIFIER) {
             if (win instanceof IjxStackWindow) {
@@ -1209,7 +1215,7 @@ public class AbstractImageCanvas
                 }
                 break;
             case Toolbar.OVAL:
-                if (Toolbar.getBrushSize() > 0) {
+                if (toolbar.getBrushSize() > 0) {
                     new RoiBrush();
                 } else {
                     handleRoiMouseDown(e);
@@ -1224,7 +1230,7 @@ public class AbstractImageCanvas
             case Toolbar.SPARE7:
             case Toolbar.SPARE8:
             case Toolbar.SPARE9:
-                Toolbar.getInstance().runMacroTool(toolID);
+                ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).runMacroTool(toolID);
                 break;
             default:  //selection tool
                 handleRoiMouseDown(e);
@@ -1294,13 +1300,26 @@ public class AbstractImageCanvas
             roi.handleMouseUp(x, y); // polygon or polyline selection
             return;
         }
-        PopupMenu popup = Menus.getPopupMenu();
-        if (popup != null) {
-            panel.add(popup);
-            if (IJ.isMacOSX()) {
-                IJ.wait(10);
+        // @todo - this is ugly, but...
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+        if (m instanceof MenusAWT) {
+            PopupMenu popup = (PopupMenu) m.getPopupMenu();
+            if (popup != null) {
+                ((Canvas) panel).add(popup);
+                if (IJ.isMacOSX()) {
+                    IJ.wait(10);
+                }
+                popup.show(panel, x, y);
             }
-            popup.show(panel, x, y);
+        } else {
+            JPopupMenu popup = (JPopupMenu) m.getPopupMenu();
+            if (popup != null) {
+                ((JPanel) panel).add(popup);
+                if (IJ.isMacOSX()) {
+                    IJ.wait(10);
+                }
+                popup.show(panel, x, y);
+            }
         }
     }
 
@@ -1350,7 +1369,7 @@ public class AbstractImageCanvas
         {
             flags = InputEvent.BUTTON1_MASK;
         }
-        if (Toolbar.getToolId() == Toolbar.HAND || IJ.spaceBarDown()) {
+        if (toolbar.getToolId() == Toolbar.HAND || IJ.spaceBarDown()) {
             scroll(x, y);
         } else {
             IJ.setInputEvent(e);
@@ -1369,7 +1388,7 @@ public class AbstractImageCanvas
         Roi roi = imp.getRoi();
         int handle = roi != null ? roi.isHandle(sx, sy) : -1;
         boolean multiPointMode = roi != null && (roi instanceof PointRoi) && handle == -1
-                && Toolbar.getToolId() == Toolbar.POINT && Toolbar.getMultiPointMode();
+                && toolbar.getToolId() == toolbar.POINT && toolbar.getMultiPointMode();
         if (multiPointMode) {
             imp.setRoi(((PointRoi) roi).addPoint(ox, oy));
             return;
@@ -1400,7 +1419,7 @@ public class AbstractImageCanvas
                     && roi.getState() == roi.CONSTRUCTING) {
                 return;
             }
-            int tool = Toolbar.getToolId();
+            int tool = toolbar.getToolId();
             if ((tool == Toolbar.POLYGON || tool == Toolbar.POLYLINE || tool == Toolbar.ANGLE) && !(IJ.shiftKeyDown() || IJ.altKeyDown())) {
                 imp.killRoi();
                 return;
@@ -1416,7 +1435,7 @@ public class AbstractImageCanvas
         if (roi.getState() == Roi.CONSTRUCTING) {
             return;
         }
-        int tool = Toolbar.getToolId();
+        int tool = toolbar.getToolId();
         if (tool > Toolbar.FREEROI && tool != Toolbar.WAND && tool != Toolbar.POINT) {
             roi.setModState(Roi.NO_MODS);
             return;
@@ -1627,7 +1646,6 @@ public class AbstractImageCanvas
     /*
      * Passed to canvas component
      */
-
     public Rectangle getBounds() {
         return panel.getBounds();
     }
@@ -1647,7 +1665,6 @@ public class AbstractImageCanvas
 //    public Graphics getGraphics() {
 //        return panel.getGraphics();
 //    }
-
     private void packImageWindow() {
         IjxImageWindow win = imp.getWindow();
         if (Frame.class.isAssignableFrom(win.getClass())) {
@@ -1657,5 +1674,4 @@ public class AbstractImageCanvas
             ((JInternalFrame) win).pack();
         }
     }
-
 }

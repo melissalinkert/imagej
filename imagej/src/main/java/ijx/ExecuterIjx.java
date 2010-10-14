@@ -17,6 +17,7 @@ import java.util.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.ActionEvent;
 import java.awt.Menu;
+import javax.swing.JMenu;
 
 /** Runs ImageJ menu commands in a separate thread.  IJX */
 
@@ -199,8 +200,10 @@ public class ExecuterIjx implements Runnable {
     }
 
     /** Opens a file from the File/Open Recent menu and returns 'true' if successful. */
+    // @todo - this does not belong here... and needs to deal with AWT
     boolean openRecent(String cmd) {
-        Menu menu = Menus.openRecentMenu;
+        //Menu menu = (Menu)Menus.getOpenRecentMenu();
+        JMenu menu = (JMenu)Menus.getOpenRecentMenu();
         if (menu == null) {
             return false;
         }

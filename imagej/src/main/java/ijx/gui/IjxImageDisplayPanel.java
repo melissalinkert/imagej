@@ -1,9 +1,6 @@
 
 package ijx.gui;
 
-import ij.gui.Overlay;
-import java.awt.Rectangle;
-
 /**
  *
  * @author GBH <imagejdev.org>

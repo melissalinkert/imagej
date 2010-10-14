@@ -51,8 +51,10 @@ import ij.io.FileSaver;
 import ij.macro.Interpreter;
 import ij.measure.Calibration;
 import ij.plugin.frame.Channels;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
+import ijx.IjxMenus;
 import ijx.app.IjxApplication;
 import java.awt.Color;
 import java.awt.Component;
@@ -81,7 +83,7 @@ import javax.swing.event.InternalFrameListener;
 
 /** Window for displaying images.
 /* Using composition rather than inhertance...
- * The component, w, acts as the window and is set when this class is constructed
+ * The component, displayWindow, acts as the window and is set when this class is constructed
  * GBH, Sept 2010
  */
 public class AbstractImageWindow //extends Frame
@@ -100,7 +102,7 @@ public class AbstractImageWindow //extends Frame
     protected IjxImagePlus imp;
     protected IjxApplication ij;
     protected IjxImageCanvas ic;
-    protected Container w; // the Window - a Frame, JFrame or JInternalFrame
+    protected Container displayWindow; // the Window - a Frame, JFrame or JInternalFrame
     //
     private double initialMagnification = 1;
     private int newWidth, newHeight;
@@ -121,8 +123,8 @@ public class AbstractImageWindow //extends Frame
 
     public AbstractImageWindow(String _title, Container window) {
         this.title = _title;
-        w = window;
-        if (w == null) {
+        displayWindow = window;
+        if (displayWindow == null) {
             throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
         }
         setTitle(this.title);
@@ -135,10 +137,10 @@ public class AbstractImageWindow //extends Frame
     }
 
     public AbstractImageWindow(IjxImagePlus _imp, IjxImageCanvas _ic, Container window) {
-        this.w = window;
+        this.displayWindow = window;
         this.imp = _imp;
         this.ic = _ic;
-        if (w == null) {
+        if (displayWindow == null) {
             throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
         }
         if (imp == null) {
@@ -146,14 +148,14 @@ public class AbstractImageWindow //extends Frame
         }
         //super(imp.getTitle());
         if (Prefs.blackCanvas && getClass().getName().equals("ij.gui.IjxImageWindow")) {
-            w.setForeground(Color.white);
-            w.setBackground(Color.black);
+            displayWindow.setForeground(Color.white);
+            displayWindow.setBackground(Color.black);
         } else {
-            w.setForeground(Color.black);
+            displayWindow.setForeground(Color.black);
             if (IJ.isLinux()) {
-                w.setBackground(IJ.backgroundColor);
+                displayWindow.setBackground(IJ.backgroundColor);
             } else {
-                w.setBackground(Color.white);
+                displayWindow.setBackground(Color.white);
             }
         }
 
@@ -163,17 +165,21 @@ public class AbstractImageWindow //extends Frame
         }
 
         IjxImageWindow previousWindow = imp.getWindow();
-        w.add(ic.getCanvas());
-        w.setLayout(new ImageLayout(ic));
+        displayWindow.add(ic.getCanvas());
+        displayWindow.setLayout(new ImageLayout(ic));
+        //
+        ((IjxImageDisplayWindow) displayWindow).setDrawingDelegate(this);
+        //
         isStackWindow = (IjxStackWindow.class.isAssignableFrom(this.getClass()));
 
         // @todo need to also support InternalFrameListener
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            setListenersOnWindow(((Frame) w));
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            setListenersOnWindow(((Frame) displayWindow));
         }
-        if (w instanceof JInternalFrame) {
-            setListenersOnInternalWindow(((JInternalFrame) w));
+        if (displayWindow instanceof JInternalFrame) {
+            setListenersOnInternalWindow(((JInternalFrame) displayWindow));
         }
+
 
         WindowManager.addWindow(this);
         imp.setWindow(this);
@@ -194,11 +200,11 @@ public class AbstractImageWindow //extends Frame
                 ic.update(previousWindow.getCanvas());
             }
             Point loc = previousWindow.getLocation();
-            w.setLocation(loc.x, loc.y);
+            displayWindow.setLocation(loc.x, loc.y);
 //            if (!isStackWindow) {
-                //if (!(this instanceof IjxStackWindow)) {
-                pack();
-                show();
+            //if (!(this instanceof IjxStackWindow)) {
+            pack();
+            show();
 //            }
             boolean unlocked = imp.lockSilently();
             boolean changes = imp.isChanged();
@@ -219,10 +225,10 @@ public class AbstractImageWindow //extends Frame
 //			}
             // @todo  add JInternalFrame handling
             if (WindowManager.isCenterNextImage()) {
-                GUI.center((Frame) w);
+                GUI.center((Frame) displayWindow);
                 WindowManager.setCenterNextImage(false);
             } else if (WindowManager.getNextLocation() != null) {
-                w.setLocation(WindowManager.getNextLocation());
+                displayWindow.setLocation(WindowManager.getNextLocation());
                 WindowManager.setNextLocation(null);
             }
             // @todo need HistogramWindow that is an AbstractImageWindow...
@@ -232,18 +238,17 @@ public class AbstractImageWindow //extends Frame
 //                Interpreter.addBatchModeImage(imp);
 //            } else {
 //            if (!isStackWindow) {
-                //if (!(this instanceof IjxStackWindow)) {
-                pack();
-                show();
- //           }
+            //if (!(this instanceof IjxStackWindow)) {
+            pack();
+            show();
+            //           }
 //            }
         }
     }
 
     public Container getContainer() {
-        return w;
+        return displayWindow;
     }
-
 
     private ImageJApplet getApplet() {
         if (null == IJ.getInstance()) {
@@ -256,12 +261,12 @@ public class AbstractImageWindow //extends Frame
         ImageJApplet applet = getApplet();
         if (applet != null) {
             applet.pack();
-        } else if (Frame.class.isAssignableFrom(w.getClass())) {
+        } else if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
             // awt.Frame or swing.JFrame
-            ((Frame) w).pack();
-        } else if (w instanceof JInternalFrame) {
+            ((Frame) displayWindow).pack();
+        } else if (displayWindow instanceof JInternalFrame) {
             // swing.JInternalFrame
-            ((JInternalFrame) w).pack();
+            ((JInternalFrame) displayWindow).pack();
         }
     }
 
@@ -269,22 +274,22 @@ public class AbstractImageWindow //extends Frame
         ImageJApplet applet = getApplet();
         if (applet != null) {
             applet.setImageCanvas((ImageCanvas) ic);
-        } else if (Frame.class.isAssignableFrom(w.getClass())) {
+        } else if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
             // awt.Frame or swing.JFrame
-            ((Frame) w).show();
-        } else if (w instanceof JInternalFrame) {
+            ((Frame) displayWindow).show();
+        } else if (displayWindow instanceof JInternalFrame) {
             // swing.JInternalFrame
-            ((JInternalFrame) w).show();
+            ((JInternalFrame) displayWindow).show();
         }
     }
 
     public void toFront() {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
             // awt.Frame or swing.JFrame
-            ((Frame) w).toFront();
-        } else if (w instanceof JInternalFrame) {
+            ((Frame) displayWindow).toFront();
+        } else if (displayWindow instanceof JInternalFrame) {
             // swing.JInternalFrame
-            ((JInternalFrame) w).toFront();
+            ((JInternalFrame) displayWindow).toFront();
         }
         ImageJApplet applet = getApplet();
         if (applet != null) {
@@ -345,14 +350,14 @@ public class AbstractImageWindow //extends Frame
             y = ybase;
         }
         if (!updating) {
-            w.setLocation(x, y);
+            displayWindow.setLocation(x, y);
         }
         if (Prefs.open100Percent && ic.getMagnification() < 1.0) {
             while (ic.getMagnification() < 1.0) {
                 ic.zoomIn(0, 0);
             }
-            w.setSize(Math.min(width, maxWindow.width - x), Math.min(height, screenHeight - y));
-            w.validate();
+            displayWindow.setSize(Math.min(width, maxWindow.width - x), Math.min(height, screenHeight - y));
+            displayWindow.validate();
         } else {
             pack();
         }
@@ -403,7 +408,7 @@ public class AbstractImageWindow //extends Frame
 
     /** Override Container getInsets() to make room for some text above the image. */
     public Insets getInsets() {
-        Insets insets = w.getInsets();
+        Insets insets = displayWindow.getInsets();
         double mag = ic.getMagnification();
         int extraWidth = (int) ((MIN_WIDTH - imp.getWidth() * mag) / 2.0);
         if (extraWidth < 0) {
@@ -420,7 +425,7 @@ public class AbstractImageWindow //extends Frame
     /** Draws the subtitle. */
     public void drawInfo(Graphics g) {
         if (textGap != 0) {
-            Insets insets = w.getInsets();
+            Insets insets = displayWindow.getInsets();
             if (imp.isComposite()) {
                 CompositeImage ci = (CompositeImage) imp;
                 if (ci.getMode() == CompositeImage.COMPOSITE) {
@@ -517,15 +522,17 @@ public class AbstractImageWindow //extends Frame
         return s + "; " + s2 + s3;
     }
 
-    public void paint(Graphics g) {
+    public void paintMe(Graphics g) {
         //if (IJ.debugMode) IJ.log("wPaint: " + imp.getTitle());
-        Graphics wg = w.getGraphics();
-        if(wg==null) return;
+        Graphics wg = displayWindow.getGraphics();
+        if (wg == null) {
+            return;
+        }
         drawInfo(wg);
         Rectangle r = ic.getBounds();
         int extraWidth = MIN_WIDTH - r.width;
         int extraHeight = MIN_HEIGHT - r.height;
-        wg.setColor(Color.RED);
+        wg.setColor(Color.BLACK);
         if (extraWidth <= 0 && extraHeight <= 0 && !Prefs.noBorder && !IJ.isLinux()) {
             wg.drawRect(r.x - 1, r.y - 1, r.width + 1, r.height + 1);
         }
@@ -566,7 +573,7 @@ public class AbstractImageWindow //extends Frame
             yloc = 0;
         }
         WindowManager.removeWindow(this);
-        w.setVisible(false);
+        displayWindow.setVisible(false);
         if (ij != null && ij.quitting()) // this may help avoid thread deadlocks
         {
             return true;
@@ -662,10 +669,10 @@ public class AbstractImageWindow //extends Frame
         if (extraHeight == 20) {
             extraHeight = 42;
         }
-        int members = w.getComponentCount();
+        int members = displayWindow.getComponentCount();
         //if (IJ.debugMode) IJ.log("getExtraSize: "+members+" "+insets);
         for (int i = 1; i < members; i++) {
-            Component m = w.getComponent(i);
+            Component m = displayWindow.getComponent(i);
             Dimension d = m.getPreferredSize();
             extraHeight += d.height + 5;
             if (IJ.debugMode) {
@@ -676,7 +683,7 @@ public class AbstractImageWindow //extends Frame
     }
 
     public Component add(Component comp) {
-        comp = w.add(comp);
+        comp = displayWindow.add(comp);
         maxBounds = getMaximumBounds();
         //if (!IJ.isLinux()) {
         setMaximizedBounds(maxBounds);
@@ -704,12 +711,12 @@ public class AbstractImageWindow //extends Frame
         if (IJ.debugMode) {
             IJ.log("maximize: " + mag + " " + ic.getMagnification() + " " + maxBounds);
         }
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            setSize(((Frame) w).getMaximizedBounds().width, ((Frame) w).getMaximizedBounds().height);
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            setSize(((Frame) displayWindow).getMaximizedBounds().width, ((Frame) displayWindow).getMaximizedBounds().height);
         }
-        if (w instanceof JInternalFrame) {
+        if (displayWindow instanceof JInternalFrame) {
             try {
-                ((JInternalFrame) w).setMaximum(true);
+                ((JInternalFrame) displayWindow).setMaximum(true);
             } catch (PropertyVetoException ex) {
             }
         }
@@ -747,7 +754,6 @@ public class AbstractImageWindow //extends Frame
     }
 
 // <editor-fold defaultstate="collapsed" desc=" WindowListener">
-
     private void setListenersOnWindow(Frame w) {
         w.addFocusListener(this);
         ((Window) w).addWindowListener(this);
@@ -769,14 +775,16 @@ public class AbstractImageWindow //extends Frame
         IjxApplication ij = IJ.getInstance();
         boolean quitting = ij != null && ij.quitting();
         // @todo Deal with Mac Menu issues here
-//        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
-//            IJ.wait(10); // may be needed for Java 1.4 on OS X
-//            setMenuBar(Menus.getMenuBar());
-//        }
+        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
+            IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+            IJ.wait(10); // may be needed for Java 1.4 on OS X
+            //setMenuBar(menus.getMenuBar());
+        }
         imp.setActivated(); // notify IjxImagePlus that image has been activated
         if (!closed && !quitting && !Interpreter.isBatchMode()) {
             WindowManager.setCurrentWindow(this);
         }
+        // @todo  Frame??
         Frame channels = Channels.getInstance();
         if (channels != null && imp.isComposite()) {
             ((Channels) channels).update();
@@ -826,13 +834,11 @@ public class AbstractImageWindow //extends Frame
 
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc=" InternalFrameListener ">
-
     // @todo: implement for internal frame
-
     private void setListenersOnInternalWindow(JInternalFrame w) {
         w.addFocusListener(this);
         w.addInternalFrameListener(this);
-        //w.addWindowStateListener(this);
+        //displayWindow.addWindowStateListener(this);
         w.addKeyListener(ij);
         w.setFocusTraversalKeysEnabled(false);
         if (!(this instanceof IjxStackWindow)) {
@@ -863,7 +869,6 @@ public class AbstractImageWindow //extends Frame
     }
 
 // </editor-fold>
-
     // Pans up/down, left/right if spacebar pressed
     public void mouseWheelMoved(MouseWheelEvent event) {
         int rotation = event.getWheelRotation();
@@ -918,7 +923,7 @@ public class AbstractImageWindow //extends Frame
     /** Moves and resizes this window. Changes the
     magnification so the image fills the window. */
     public void setLocationAndSize(int x, int y, int width, int height) {
-        w.setBounds(x, y, width, height);
+        displayWindow.setBounds(x, y, width, height);
         getCanvas().fitToWindow();
         pack();
     }
@@ -958,115 +963,115 @@ public class AbstractImageWindow //extends Frame
     //	ic.resizeSourceRect(width, height);
     //}
     public void setBounds(Rectangle r) {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            ((Frame) w).setBounds(r);
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            ((Frame) displayWindow).setBounds(r);
         }
-        if (w instanceof JInternalFrame) {
-            ((JInternalFrame) w).setBounds(r);
+        if (displayWindow instanceof JInternalFrame) {
+            ((JInternalFrame) displayWindow).setBounds(r);
         }
     }
 
     public void setMaximizedBounds(Rectangle r) {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            ((Frame) w).setMaximizedBounds(maxBounds);
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            ((Frame) displayWindow).setMaximizedBounds(maxBounds);
         }
         // @todo -- does this work correctly...?
-        if (w instanceof JInternalFrame) {
-            ((JInternalFrame) w).setMaximumSize(new Dimension(r.width, r.height));
+        if (displayWindow instanceof JInternalFrame) {
+            ((JInternalFrame) displayWindow).setMaximumSize(new Dimension(r.width, r.height));
         }
     }
 
     public void repaint() {
-        //w.repaint();
-        this.paint(null);
+        displayWindow.repaint();
     }
 
     public void setForeground(Color c) {
-        w.setForeground(c);
+        displayWindow.setForeground(c);
     }
 
     public void setBackground(Color c) {
-        w.setBackground(c);
+        displayWindow.setBackground(c);
     }
 
     public void setSize(int w, int h) {
-        this.w.setSize(w, h);
+        this.displayWindow.setSize(w, h);
     }
 
     public void validate() {
-        w.validate();
+        displayWindow.validate();
     }
 
     public String getTitle() {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            return ((Frame) w).getTitle();
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            return ((Frame) displayWindow).getTitle();
         }
-        if (w instanceof JInternalFrame) {
-            return ((JInternalFrame) w).getTitle();
+        if (displayWindow instanceof JInternalFrame) {
+            return ((JInternalFrame) displayWindow).getTitle();
         }
         return "";
     }
 
     public void setTitle(String s) {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            ((Frame) w).setTitle(s);
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            ((Frame) displayWindow).setTitle(s);
         }
-        if (w instanceof JInternalFrame) {
-            ((JInternalFrame) w).setTitle(title);
+        if (displayWindow instanceof JInternalFrame) {
+            ((JInternalFrame) displayWindow).setTitle(title);
         }
     }
 
     public Image getIconImage() {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
-            return ((Frame) w).getIconImage();
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            return ((Frame) displayWindow).getIconImage();
         }
-        if (w instanceof JInternalFrame) {
-            return ((ImageIcon) ((JInternalFrame) w).getFrameIcon()).getImage();
+        if (displayWindow instanceof JInternalFrame) {
+            return ((ImageIcon) ((JInternalFrame) displayWindow).getFrameIcon()).getImage();
         }
         return null;
     }
 
     public boolean isVisible() {
-        return w.isVisible();
+        return displayWindow.isVisible();
     }
 
     public void setVisible(boolean b) {
-        w.setVisible(b);
+        displayWindow.setVisible(b);
     }
 
     public Dimension getSize() {
-        return w.getSize();
+        return displayWindow.getSize();
     }
 
     public Point getLocation() {
-        return w.getLocation();
+        return displayWindow.getLocation();
     }
 
     public Point getLocationOnScreen() {
-        return w.getLocationOnScreen();
+        return displayWindow.getLocationOnScreen();
     }
 
     public Rectangle getBounds() {
-        return w.getBounds();
+        return displayWindow.getBounds();
     }
 
     public void setLocation(int x, int y) {
-        w.setLocation(x, y);
+        displayWindow.setLocation(x, y);
     }
 
     public void setLocation(Point p) {
-        w.setLocation(p);
+        displayWindow.setLocation(p);
     }
 
     public void dispose() {
-        if (Frame.class.isAssignableFrom(w.getClass())) {
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
             // awt.Frame or swing.JFrame
-            ((Frame) w).dispose();
+            ((Frame) displayWindow).dispose();
         }
-        if (w instanceof JInternalFrame) {
+        if (displayWindow instanceof JInternalFrame) {
             // swing.JInternalFrame
-            ((JInternalFrame) w).hide();
+            ((JInternalFrame) displayWindow).hide();
         }
     }
-} //class IjxImageWindow
+}
+ //class IjxImageWindow
 

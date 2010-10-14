@@ -1,6 +1,6 @@
 package ijx;
 
-import ijx.gui.IjxStackWindow;
+import ij.ImageJApplet;
 import ijx.gui.IjxGenericDialog;
 import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxWindow;
@@ -10,9 +10,14 @@ import ijx.plugin.frame.IjxPluginFrame;
 import ij.process.ImageProcessor;
 import ijx.app.IjxApplication;
 import ijx.gui.IjxProgressBar;
-import ijx.gui.IjxToolbar;
+import ij.gui.IjxToolbar;
+import ijx.gui.MenuBuilder;
+import ijx.sezpoz.ActionIjx;
 import java.awt.Image;
 import java.awt.image.ColorModel;
+import java.util.Map;
+import javax.swing.Action;
+import net.java.sezpoz.IndexItem;
 
 /**
  *
@@ -24,6 +29,14 @@ public interface IjxFactory {
     IjxProgressBar newProgressBar(int canvasWidth, int canvasHeight);
 
     IjxToolbar newToolBar();
+
+    IjxMenus newMenus(IjxTopComponent topComponent, ImageJX ijx, ImageJApplet applet);
+
+    public MenuBuilder newMenuBuilder(
+            Map<String, Action> commands,
+            Map<String, String> menuCommands,
+            Map<String, String> toolbarCommands,
+            Map<String, IndexItem<ActionIjx, ?>> items);
 
     IjxImagePlus newImagePlus();
 

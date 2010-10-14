@@ -5,6 +5,7 @@
  */
 package ijx.app;
 
+import ijx.IjxMenus;
 import ij.*;
 import ij.gui.GenericDialog;
 import ijx.gui.IjxWindow;
@@ -16,9 +17,10 @@ import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.frame.ContrastAdjuster;
 import ij.plugin.frame.ThresholdAdjuster;
 import ij.text.TextWindow;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxTopComponent;
-import ijx.MenusIjx;
+import implementation.swing.MenusSwing;
 import ijx.gui.IjxImageWindow;
 import java.awt.Dimension;
 import java.awt.Event;
@@ -42,6 +44,8 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 import javax.swing.ImageIcon;
+import javax.swing.JComponent;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
 /**
@@ -62,23 +66,28 @@ public class IjxAbstractApplication implements IjxApplication {
     boolean hotkey;
     protected IjxTopComponent topComponent;
     protected boolean embedded;
-
     protected static String iconPath;
     protected static boolean prefsLoaded;
     private static IjxImagePlus clipboard;
 
+    public static final String TITLE = "ImageJX";
+    public static final String VERSION = "0.10a";
+    public static final String BUILD = "";
+
 
     /** Returns the internal clipboard or null if the internal clipboard is empty. */
-	public  IjxImagePlus getClipboard() {
-		return clipboard;
-	}
-	public  void setClipboard(IjxImagePlus imp) {
-		clipboard = imp;
-	}
-	/** Clears the internal clipboard. */
-	public void resetClipboard() {
-		clipboard = null;
-	}
+    public IjxImagePlus getClipboard() {
+        return clipboard;
+    }
+
+    public void setClipboard(IjxImagePlus imp) {
+        clipboard = imp;
+    }
+
+    /** Clears the internal clipboard. */
+    public void resetClipboard() {
+        clipboard = null;
+    }
 //	/** Creates a new ImageJ frame that runs as an application. */
 //	public ImageJ() {
 //		this(null, STANDALONE);
@@ -135,6 +144,7 @@ public class IjxAbstractApplication implements IjxApplication {
 //			new SocketListener();
 //		configureProxy();
 // 	}
+
     public void configureProxy() {
         String server = Prefs.get("proxy.server", null);
         if (server == null || server.equals("")) {
@@ -193,17 +203,18 @@ public class IjxAbstractApplication implements IjxApplication {
     /** Handle menu events. */
     public void actionPerformed(ActionEvent e) {
         String cmd = null;
-        if ((e.getSource() instanceof MenuItem)) {
+        IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+        if (menus instanceof MenusAWT) {
             MenuItem item = (MenuItem) e.getSource();
             cmd = e.getActionCommand();
-            if (item.getParent() == Menus.openRecentMenu) {
+            if (item.getParent() == menus.getOpenRecentMenu()) {
                 new RecentOpener(cmd); // open image in separate thread
                 return;
             }
-        } else if ((e.getSource() instanceof JMenuItem)) { // IjX: Swing-version
+        } else if (menus instanceof MenusSwing) {
             JMenuItem jItem = (JMenuItem) e.getSource();
             cmd = e.getActionCommand();
-            if (jItem.getParent() == MenusIjx.openRecentMenu) {
+            if (jItem.getParent() == menus.getOpenRecentMenu()) {
                 new RecentOpener(cmd); // open image in separate thread
                 return;
             }
@@ -222,13 +233,28 @@ public class IjxAbstractApplication implements IjxApplication {
 
     /** Handles CheckboxMenuItem state changes. */
     public void itemStateChanged(ItemEvent e) {
-        MenuItem item = (MenuItem) e.getSource();
-        MenuComponent parent = (MenuComponent) item.getParent();
-        String cmd = e.getItem().toString();
-        if ((Menu) parent == Menus.window) {
-            WindowManager.activateWindow(cmd, item);
-        } else {
-            doCommand(cmd);
+        IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+        if (menus instanceof MenusAWT) {
+            MenuItem item = (MenuItem) e.getSource();
+            MenuComponent parent = (MenuComponent) item.getParent();
+            String cmd = e.getItem().toString();
+            if ((Menu) parent == menus.getWindowMenu()) {
+                WindowManager.activateWindow(cmd, item);
+            } else {
+                doCommand(cmd);
+            }
+        } else if (menus instanceof MenusSwing) {
+            JMenuItem item = (JMenuItem) e.getSource();
+            // if the source of event is the Window menu,
+            Object o = item.getParent();
+            JComponent parent = (JComponent) item.getParent();
+            String cmd = e.getItem().toString();
+            // ClassCastException: javax.swing.JPopupMenu cannot be cast to javax.swing.JMenu
+            if (parent == (JMenu)menus.getWindowMenu()) {
+                WindowManager.activateWindow(cmd, item);
+            } else {
+                doCommand(cmd);
+            }
         }
 
     }
@@ -240,14 +266,12 @@ public class IjxAbstractApplication implements IjxApplication {
         if (keyCode == e.VK_CONTROL || keyCode == e.VK_SHIFT) {
             return;
         }
-
         char keyChar = e.getKeyChar();
         int flags = e.getModifiers();
         if (IJ.debugMode) {
             IJ.log("keyPressed: code=" + keyCode + " (" + KeyEvent.getKeyText(keyCode) + "), char=\""
                     + keyChar + "\" (" + (int) keyChar + "), flags=" + KeyEvent.getKeyModifiersText(flags));
         }
-
         boolean shift = (flags & e.SHIFT_MASK) != 0;
         boolean control = (flags & e.CTRL_MASK) != 0;
         boolean alt = (flags & e.ALT_MASK) != 0;
@@ -255,37 +279,27 @@ public class IjxAbstractApplication implements IjxApplication {
         String cmd = "";
         IjxImagePlus imp = WindowManager.getCurrentImage();
         boolean isStack = (imp != null) && (imp.getStackSize() > 1);
-
         if (imp != null && !control && ((keyChar >= 32 && keyChar <= 255) || keyChar == '\b' || keyChar == '\n')) {
             Roi roi = imp.getRoi();
             if (roi instanceof TextRoi) {
                 if ((flags & e.META_MASK) != 0 && IJ.isMacOSX()) {
                     return;
                 }
-
                 if (alt) {
                     switch (keyChar) {
                         case 'u':
                         case 'm':
                             keyChar = IJ.micronSymbol;
                             break;
-
                         case 'A':
                             keyChar = IJ.angstromSymbol;
                             break;
-
                         default:
-
                     }
                 }
                 ((TextRoi) roi).addChar(keyChar);
                 return;
-
             }
-
-
-
-
         }
 
         // Handle one character macro shortcuts
@@ -297,17 +311,11 @@ public class IjxAbstractApplication implements IjxApplication {
                 } else {
                     cmd = (String) macroShortcuts.get(new Integer(keyCode));
                 }
-
                 if (cmd != null) {
                     //MacroInstaller.runMacroCommand(cmd);
                     MacroInstaller.runMacroShortcut(cmd);
                     return;
-
                 }
-
-
-
-
             }
         }
 
@@ -318,9 +326,7 @@ public class IjxAbstractApplication implements IjxApplication {
             } else {
                 cmd = (String) shortcuts.get(new Integer(keyCode));
             }
-
         }
-
         if (cmd == null) {
             switch (keyChar) {
                 case '<':
@@ -348,7 +354,6 @@ public class IjxAbstractApplication implements IjxApplication {
 
             }
         }
-
         if (cmd == null) {
             switch (keyCode) {
                 case KeyEvent.VK_TAB:
@@ -610,28 +615,28 @@ public class IjxAbstractApplication implements IjxApplication {
                 }
             }
         }
-        if (IJ.getTopComponent().isClosed() && !changes
-                && Menus.window.getItemCount() > Menus.WINDOW_MENU_ITEMS
-                && !(IJ.macroRunning() && WindowManager.getImageCount() == 0)) {
-            GenericDialog gd = new GenericDialog("ImageJ", IJ.getTopComponentFrame());
-            gd.addMessage("Are you sure you want to quit ImageJ?");
-            gd.showDialog();
-            quitting =
-                    !gd.wasCanceled();
-            // windowClosed = false;  // ????????
+        IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+        // @todo - AWT implementation
+        if (menus instanceof MenusSwing) {
+            if (IJ.getTopComponent().isClosed() && !changes
+                    && ((JMenu) menus.getWindowMenu()).getItemCount() > IjxMenus.WINDOW_MENU_ITEMS
+                    && !(IJ.macroRunning() && WindowManager.getImageCount() == 0)) {
+                GenericDialog gd = new GenericDialog("ImageJ", IJ.getTopComponentFrame());
+                gd.addMessage("Are you sure you want to quit ImageJ?");
+                gd.showDialog();
+                quitting =
+                        !gd.wasCanceled();
+                // windowClosed = false;  // ????????
+            }
         }
-
         if (!quitting) {
             return;
         }
-
         if (!WindowManager.closeAllWindows()) {
             quitting = false;
             return;
-
         }
         //IJ.log("savePreferences");
-
         if (applet == null) {
             saveWindowLocations();
             Prefs.savePreferences();
@@ -666,21 +671,18 @@ public class IjxAbstractApplication implements IjxApplication {
             Prefs.set(TextWindow.HEIGHT_KEY, d.height);
         }
     }
-    public String getVersion() {
-        return VERSION;
-    }
 
-    // @todo getApplet - implement this.
-    public ImageJApplet getApplet() {
-        return null;
-    }
 
     public Image getIconImage() {
-		URL url = this.getClass().getResource("/microscope.gif");
-		if (url==null) return null;
-		Image img = new ImageIcon(url).getImage();
-           //createImage((ImageProducer)url.getContent());
-		if (img!=null) return img;
+        URL url = this.getClass().getResource("/microscope.gif");
+        if (url == null) {
+            return null;
+        }
+        Image img = new ImageIcon(url).getImage();
+        //createImage((ImageProducer)url.getContent());
+        if (img != null) {
+            return img;
+        }
         return null;
     }
 
@@ -694,4 +696,29 @@ public class IjxAbstractApplication implements IjxApplication {
         return config.createCompatibleImage(w, h);
         //Transparency.OPAQUE);
     }
+
+
+    public String getVersion() {
+        return VERSION;
+    }
+
+    public String getTitle() {
+        return TITLE;
+    }
+
+    // @todo getApplet - implement this.
+    public ImageJApplet getApplet() {
+        return null;
+    }
+    //
+    private static boolean compatibilityMode = false;
+
+    public static boolean isCompatibilityMode() {
+        return compatibilityMode;
+    }
+
+    public static void setCompatibilityMode(boolean compatibilityMode) {
+        IjxAbstractApplication.compatibilityMode = compatibilityMode;
+    }
+    //
 }

@@ -26,11 +26,8 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
     int DEFAULT_PORT = 57294;
     int EMBEDDED = 1;
     int STANDALONE = 0;
-    /**
-     * Plugins should call IJ.getVersion() to get the version string.
-     */
-    String VERSION = "2.00a";
-    String BUILD = "";
+
+    public String getTitle();
     String getVersion();
 	IjxImagePlus getClipboard();
 	void setClipboard(IjxImagePlus imp);
@@ -96,4 +93,6 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
     Image getIconImage();
 
     Image createCompatibleImage(int w, int h);
+
+
 }
