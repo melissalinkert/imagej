@@ -3,6 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 import java.awt.*;
@@ -16,6 +17,7 @@ public class Filler implements PlugInFilter, Measurements {
 	int sliceCount;
 	ImageProcessor mask;
 	boolean isTextRoi;
+    IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
 
 	public int setup(String arg, IjxImagePlus imp) {
 		this.arg = arg;
@@ -74,7 +76,7 @@ public class Filler implements PlugInFilter, Measurements {
 	}
 	
 	public void clear(ImageProcessor ip) {
-	 	ip.setColor(Toolbar.getBackgroundColor());
+	 	ip.setColor(toolbar.getBackgroundColor());
 		if (isLineSelection()) {
 			if (isStraightLine() && roi.getStrokeWidth()>1)
 				ip.fillPolygon(roi.getPolygon());
@@ -82,7 +84,7 @@ public class Filler implements PlugInFilter, Measurements {
 				roi.drawPixels();
 		} else
 	 		ip.fill(); // fill with background color
-		ip.setColor(Toolbar.getForegroundColor());
+		ip.setColor(toolbar.getForegroundColor());
 	}
 		
 	/**
@@ -90,7 +92,7 @@ public class Filler implements PlugInFilter, Measurements {
 	* replaced by ImageProcessor.fill(Roi)
 	*/
 	public void fill(ImageProcessor ip) {
-		ip.setColor(Toolbar.getForegroundColor());
+		ip.setColor(toolbar.getForegroundColor());
 		if (isLineSelection()) {
 			if (isStraightLine() && roi.getStrokeWidth()>1 && !(roi instanceof Arrow))
 				ip.fillPolygon(roi.getPolygon());
@@ -105,7 +107,7 @@ public class Filler implements PlugInFilter, Measurements {
 	* replaced by ImageProcessor.draw(Roi)
 	*/
 	public void draw(ImageProcessor ip) {
-		ip.setColor(Toolbar.getForegroundColor());
+		ip.setColor(toolbar.getForegroundColor());
 		roi.drawPixels(ip);
 		if (IJ.altKeyDown())
 			drawLabel(ip);
@@ -119,7 +121,7 @@ public class Filler implements PlugInFilter, Measurements {
 		if (Analyzer.firstParticle<Analyzer.lastParticle)
 			drawParticleLabels(ip);
 		else {
-			ip.setColor(Toolbar.getForegroundColor());
+			ip.setColor(toolbar.getForegroundColor());
 			IjxImageCanvas ic = imp.getCanvas();
 			if (ic!=null) {
 				double mag = ic.getMagnification();
@@ -160,8 +162,8 @@ public class Filler implements PlugInFilter, Measurements {
 	}
 
 	public void drawLabel(IjxImagePlus imp, ImageProcessor ip, int count, Rectangle r) {
-		Color foreground = Toolbar.getForegroundColor();
-		Color background = Toolbar.getBackgroundColor();
+		Color foreground = toolbar.getForegroundColor();
+		Color background = toolbar.getBackgroundColor();
 		if (foreground.equals(background)) {
 			foreground = Color.black;
 			background = Color.white;
@@ -203,7 +205,7 @@ public class Filler implements PlugInFilter, Measurements {
  		Rectangle r = ip.getRoi();
  		if (mask==null)
  			makeMask(ip, r);
-  		ip.setColor(Toolbar.getBackgroundColor());
+  		ip.setColor(toolbar.getBackgroundColor());
  		int stackSize = imp.getStackSize();
  		if (stackSize>1)
  			ip.snapshot();
@@ -221,7 +223,7 @@ public class Filler implements PlugInFilter, Measurements {
  		ip.fill();
  		ip.setRoi(r); // restore original ROI
  		if (sliceCount==stackSize) {
-			ip.setColor(Toolbar.getForegroundColor());
+			ip.setColor(toolbar.getForegroundColor());
 			Roi roi = imp.getRoi();
 			imp.killRoi();
 			imp.updateAndDraw();

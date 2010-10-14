@@ -10,6 +10,7 @@ import ij.measure.*;
 import ij.plugin.frame.Recorder;
 import ij.plugin.filter.Analyzer;
 import ij.macro.Interpreter;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 
@@ -62,6 +63,9 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 	protected boolean overlay;
 	protected boolean wideLine;
 	protected boolean hide;
+
+    IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
+
 
 
 
@@ -128,7 +132,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 		state = CONSTRUCTING;
 		type = RECTANGLE;
 		if (isDrawingTool()) {
-			setStrokeColor(Toolbar.getForegroundColor());
+			setStrokeColor(toolbar.getForegroundColor());
 			if (!(this instanceof TextRoi)) {
 				double mag = imp!=null&&imp.getCanvas()!=null?imp.getCanvas().getMagnification():1.0; 
 				if (mag>1.0) mag = 1.0;
@@ -943,7 +947,7 @@ public class Roi extends Object implements Cloneable, java.io.Serializable {
 				}
 			}
 		}
-		if (Toolbar.getToolId()==Toolbar.OVAL&&Toolbar.getBrushSize()>0)  {
+		if (toolbar.getToolId()==IjxToolbar.OVAL&&toolbar.getBrushSize()>0)  {
 			int flags = ic!=null?ic.getModifiers():16;
 			if ((flags&16)==0) // erase ROI Brush
 				{imp.draw(); return;}

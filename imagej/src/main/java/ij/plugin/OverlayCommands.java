@@ -3,6 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.plugin.frame.RoiManager;
 import ij.macro.Interpreter;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxWindow;
@@ -70,7 +71,7 @@ public class OverlayCommands implements PlugIn {
 		if (roi.getStroke()==null && width>1 && !tooWide)
 			roi.setStrokeWidth(Line.getWidth());
 		if (roi.getStrokeColor()==null)
-			roi.setStrokeColor(Toolbar.getForegroundColor());
+			roi.setStrokeColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
 		boolean points = roi instanceof PointRoi && ((PolygonRoi)roi).getNCoordinates()>1;
 		if (points) roi.setStrokeColor(Color.red);
 		if (!IJ.altKeyDown() && !(roi instanceof Arrow)) {

@@ -5,10 +5,11 @@ import ij.gui.*;
 import ij.process.*;
 import ij.io.*;
 import ij.plugin.frame.LineWidthAdjuster;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import ijx.gui.IjxImageWindow;
-import ijx.sezpoz.MenuItem;
+import ijx.sezpoz.ActionIjx;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -24,28 +25,28 @@ public class Options implements PlugIn {
     options14="DICOM...",ij.plugin.Options("dicom")
     options15="Misc...",ij.plugin.Options("misc")
      */
-    @MenuItem(label = "Line Width...",
+    @ActionIjx(label = "Line Width...",
               commandKey = "option.linewidth",
               menu = "Edit>Options")
     public static final ActionListener LINE = callWithArg("option.lineWidth", "line");
     //
-    @MenuItem(label = "Input/Output...",
+    @ActionIjx(label = "Input/Output...",
               commandKey = "option.io",
               menu = "Edit>Options")
     public static final ActionListener IO = callWithArg("option.io", "io");
-    @MenuItem(label = "Appearance...",
+    @ActionIjx(label = "Appearance...",
               commandKey = "option.display",
               menu = "Edit>Options")
     public static final ActionListener DISP = callWithArg("option.", "display");
-    @MenuItem(label = "Conversions...",
+    @ActionIjx(label = "Conversions...",
               commandKey = "option.conv",
               menu = "Edit>Options")
     public static final ActionListener CONV = callWithArg("option.conv", "conv");
-    @MenuItem(label = "DICOM...",
+    @ActionIjx(label = "DICOM...",
               commandKey = "option.dicom",
               menu = "Edit>Options")
     public static final ActionListener DICOM = callWithArg("option.dicom", "dicom");
-    @MenuItem(label = "Misc...",
+    @ActionIjx(label = "Misc...",
               commandKey = "option.misc",
               menu = "Edit>Options")
     public static final ActionListener MISC = callWithArg("option.misc", "misc");
@@ -242,7 +243,7 @@ public class Options implements PlugIn {
         boolean change = antialiasedTools != Prefs.antialiasedTools;
         Prefs.antialiasedTools = antialiasedTools;
         if (change) {
-            Toolbar.getInstance().repaint();
+            ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).repaint();
         }
         int menuSize = (int) gd.getNextNumber();
         if (interpolate != Prefs.interpolateScaledImages) {

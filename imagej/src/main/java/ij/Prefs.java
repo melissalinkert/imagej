@@ -12,6 +12,7 @@ import ij.plugin.Animator;
 import ij.process.FloatBlitter;
 import ij.process.ColorProcessor;
 import ij.text.TextWindow;
+import ijx.CentralLookup;
 import ijx.SavesPrefs;
 import org.openide.util.Lookup;
 
@@ -312,8 +313,9 @@ public class Prefs {
 				prefs.put(DIR_IMAGE, dir);
 			prefs.put(ROICOLOR, Tools.c2hex(Roi.getColor()));
 			prefs.put(SHOW_ALL_COLOR, Tools.c2hex(ImageCanvasHelper.getShowAllColor()));
-			prefs.put(FCOLOR, Tools.c2hex(Toolbar.getForegroundColor()));
-			prefs.put(BCOLOR, Tools.c2hex(Toolbar.getBackgroundColor()));
+            IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
+			prefs.put(FCOLOR, Tools.c2hex(toolbar.getForegroundColor()));
+			prefs.put(BCOLOR, Tools.c2hex(toolbar.getBackgroundColor()));
 			prefs.put(JPEG, Integer.toString(FileSaver.getJpegQuality()));
 			prefs.put(FPS, Double.toString(Animator.getFrameRate()));
 			prefs.put(DIV_BY_ZERO_VALUE, Double.toString(FloatBlitter.divideByZeroValue));
@@ -338,13 +340,11 @@ public class Prefs {
             //ImportDialog.savePreferences(prefs);
             //PlotWindow.savePreferences(prefs);
             //NewImage.savePreferences(prefs);
-
 			String path = prefsDir+separator+PREFS_NAME;
 			if (prefsDir.endsWith(".imagej")) {
 				File f = new File(prefsDir);
 				if (!f.exists()) f.mkdir(); // create .imagej directory
 			}
-
 			savePrefs(prefs, path);
 		} catch (Throwable t) {
 			String msg = t.getMessage();
@@ -352,7 +352,7 @@ public class Prefs {
 			int delay = 4000;
 			if (IJ.isVista()) {
 				msg += vistaHint;
-				delay = 8000;
+				delay = 4000;
 			}
 			try {
 				new TextWindow("Error Saving Preferences", msg, 500, 200);
@@ -522,7 +522,7 @@ public class Prefs {
 	public static void savePrefs(Properties prefs, String path) throws IOException{
 		FileOutputStream fos = new FileOutputStream(path);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
-		prefs.store(bos, "ImageJA "+IJ.getInstance().VERSION+" Preferences");
+		prefs.store(bos, IJ.getInstance().getTitle() + " "+IJ.getInstance().getVersion()+" Preferences");
 		bos.close();
 	}
 	

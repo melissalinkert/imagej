@@ -1,5 +1,6 @@
 package ij.gui;
 import ij.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 import java.awt.*;
@@ -18,7 +19,9 @@ public class RoiBrush implements Runnable {
 	}
 
 	public void run() {
-		int size = Toolbar.getBrushSize();
+
+		//int size = Toolbar.getBrushSize();
+		int size = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBrushSize();
 		IjxImagePlus img = WindowManager.getCurrentImage();
 		if (img==null) return;
 		IjxImageCanvas ic = img.getCanvas();

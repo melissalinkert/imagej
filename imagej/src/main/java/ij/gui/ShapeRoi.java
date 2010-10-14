@@ -10,6 +10,7 @@ import ij.measure.*;
 import ij.plugin.frame.Recorder;
 import ij.plugin.filter.Analyzer;
 import ij.util.Tools;
+import ijx.CentralLookup;
 
 /**A subclass of <code>ij.gui.Roi</code> (2D Regions Of Interest) implemented in terms of java.awt.Shape.
  * A ShapeRoi is constructed from a <code>ij.gui.Roi</code> object, or as a result of logical operators
@@ -1063,7 +1064,7 @@ public class ShapeRoi extends Roi {
 		else
 			g2d.draw(aTx.createTransformedShape(shape));
 		if (stroke!=null) g2d.setStroke(defaultStroke);
-		if (Toolbar.getToolId()==Toolbar.OVAL)
+		if (((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getToolId()==IjxToolbar.OVAL)
 			drawRoiBrush(g);
 		if (imp!=null&&imp.getRoi()!=null) showStatus();
 		if (updateFullWindow) 
@@ -1072,7 +1073,7 @@ public class ShapeRoi extends Roi {
 
 	public void drawRoiBrush(Graphics g) {
 		g.setColor(ROIColor);
-		int size = Toolbar.getBrushSize();
+		int size = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBrushSize();
 		if (size==0) return;
 		int flags = ic.getModifiers();
 		if ((flags&16)==0) return; // exit if mouse button up

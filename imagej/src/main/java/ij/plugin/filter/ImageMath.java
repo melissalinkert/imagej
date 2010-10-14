@@ -5,7 +5,7 @@ import ij.gui.*;
 import ij.process.*;
 import ij.macro.*;
 import ijx.IjxImagePlus;
-import ijx.sezpoz.MenuItem;
+import ijx.sezpoz.ActionIjx;
 import java.awt.AWTEvent;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -37,79 +37,79 @@ math19="Macro...",ij.plugin.filter.ImageMath("macro")
 public class ImageMath implements ExtendedPlugInFilter, DialogListener {
 
     //== MenuItems =========================================================
-    @MenuItem(label = "Add...",
+    @ActionIjx(label = "Add...",
               menu = "Image>Math",
               commandKey="math.add")
     public static final ActionListener ADD = callWithArg("math.add", "add");
-    @MenuItem(label = "Subtract...",
+    @ActionIjx(label = "Subtract...",
               menu = "Image>Math",
               commandKey="math.sub")
     public static final ActionListener SUB = callWithArg("math.sub", "sub");
-    @MenuItem(label = "Multiply...",
+    @ActionIjx(label = "Multiply...",
               menu = "Image>Math",
               commandKey="math.mul")
     public static final ActionListener MUL = callWithArg("math.mul", "mul");
-    @MenuItem(label = "Divide...",
+    @ActionIjx(label = "Divide...",
               menu = "Image>Math",
               commandKey="math.div")
     public static final ActionListener DIV = callWithArg("math.div", "div");
-    @MenuItem(label = "AND...",
+    @ActionIjx(label = "AND...",
               menu = "Image>Math",
               commandKey="math.and")
     public static final ActionListener AND = callWithArg("math.and", "and");
-    @MenuItem(label = "OR...",
+    @ActionIjx(label = "OR...",
               menu = "Image>Math",
               commandKey="math.or")
     public static final ActionListener OR = callWithArg("math.or", "or");
-    @MenuItem(label = "XOR...",
+    @ActionIjx(label = "XOR...",
               menu = "Image>Math",
               commandKey="math.xor")
     public static final ActionListener XOR = callWithArg("math.xor", "xor");
-    @MenuItem(label = "Min...",
+    @ActionIjx(label = "Min...",
               menu = "Image>Math",
               commandKey="math.min")
     public static final ActionListener MIN = callWithArg("math.min", "min");
-    @MenuItem(label = "Max...",
+    @ActionIjx(label = "Max...",
               menu = "Image>Math",
               commandKey="math.max")
     public static final ActionListener MAX = callWithArg("math.max", "max");
-    @MenuItem(label = "Gamma...",
+    @ActionIjx(label = "Gamma...",
               menu = "Image>Math",
               commandKey="math.gamma")
     public static final ActionListener GAM = callWithArg("math.gamma", "gamma");
-    @MenuItem(label = "Set...",
+    @ActionIjx(label = "Set...",
               menu = "Image>Math",
               commandKey="math.set")
     public static final ActionListener SET = callWithArg("math.set", "set");
-    @MenuItem(label = "Log",
+    @ActionIjx(label = "Log",
               menu = "Image>Math",
               commandKey="math.log")
     public static final ActionListener LOG = callWithArg("math.log", "log");
-    @MenuItem(label = "Exp",
+    @ActionIjx(label = "Exp",
               menu = "Image>Math",
               commandKey="math.exp")
     public static final ActionListener EXP = callWithArg("math.exp", "exp");
-    @MenuItem(label = "Square",
+    @ActionIjx(label = "Square",
               menu = "Image>Math",
               commandKey="math.sqr")
     public static final ActionListener SQR = callWithArg("math.sqr", "sqr");
-    @MenuItem(label = "Square Root",
+    @ActionIjx(label = "Square Root",
               menu = "Image>Math",
               commandKey="math.sqrt")
     public static final ActionListener SRT = callWithArg("math.sqrt", "sqrt");
-    @MenuItem(label = "Reciprocal",
+    @ActionIjx(label = "Reciprocal",
               menu = "Image>Math",
               commandKey="math.reciprocal")
     public static final ActionListener RCP = callWithArg("math.reciprocal", "reciprocal");
-    @MenuItem(label = "NaN Background",
+    @ActionIjx(label = "NaN Background",
               menu = "Image>Math",
               commandKey="math.nan")
     public static final ActionListener NAN = callWithArg("math.nan", "nan");
-    @MenuItem(label = "Abs",
+    @ActionIjx(label = "Abs",
               menu = "Image>Math",
               commandKey="math.abs")
     public static final ActionListener ABS = callWithArg("math.abs", "abs");
-    @MenuItem(label = "Macro...",
+    @ActionIjx(label = "Macro...",
               menu = "Image>Math",
               commandKey="math.macro")
     public static final ActionListener MAC = callWithArg("math.macro", "macro");

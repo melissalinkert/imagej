@@ -43,12 +43,12 @@ public class Java2 {
 	
 	/** Sets the Swing look and feel to the system look and feel. */
 	public static void setSystemLookAndFeel() {
-		if (lookAndFeelSet) return;
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch(Throwable t) {}
-		lookAndFeelSet = true;
-		IJ.register(Java2.class);
+//		if (lookAndFeelSet) return;
+//		try {
+//			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+//		} catch(Throwable t) {}
+//		lookAndFeelSet = true;
+//		IJ.register(Java2.class);
 	}
 
 }

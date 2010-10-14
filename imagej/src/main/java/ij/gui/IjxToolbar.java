@@ -1,49 +1,49 @@
-/*
- * 
- * $Id$
- * 
- * Software License Agreement (BSD License)
- * 
- * Copyright (c) 2010, Expression company is undefined on line 9, column 62 in Templates/Licenses/license-bsd.txt.
- * All rights reserved.
- * 
- * Redistribution and use of this software in source and binary forms, with or without modification, are
- * permitted provided that the following conditions are met:
- * 
- *   Redistributions of source code must retain the above
- *   copyright notice, this list of conditions and the
- *   following disclaimer.
- * 
- *   Redistributions in binary form must reproduce the above
- *   copyright notice, this list of conditions and the
- *   following disclaimer in the documentation and/or other
- *   materials provided with the distribution.
- * 
- *   Neither the name of Expression company is undefined on line 24, column 41 in Templates/Licenses/license-bsd.txt. nor the names of its
- *   contributors may be used to endorse or promote products
- *   derived from this software without specific prior
- *   written permission of Expression company is undefined on line 27, column 43 in Templates/Licenses/license-bsd.txt.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
- * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package ij.gui;
 
 import ij.plugin.MacroInstaller;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 
 /**
  *
  * @author GBH <imagejdev.org>
  */
-public interface IjxToolbar {
+public interface IjxToolbar extends ActionListener, ItemListener, MouseListener, MouseMotionListener {
+    int NUM_TOOLS = 23;
+    int NUM_BUTTONS = 21;
+    int SIZE = 26;
+    int OFFSET = 5;
+    String BRUSH_SIZE = "toolbar.brush.size";
+    String ARC_SIZE = "toolbar.arc.size";
+    int ANGLE = 14;
+    int CROSSHAIR = 7;
+    int DOUBLE_CLICK_THRESHOLD = 650;
+    int DROPPER = 13;
+    int FREELINE = 6;
+    int FREEROI = 3;
+    int HAND = 12;
+    int LINE = 4;
+    int MAGNIFIER = 11;
+    int OVAL = 1;
+    int POINT = 7;
+    int POLYGON = 2;
+    int POLYLINE = 5;
+    int RECTANGLE = 0;
+    int SPARE1 = 10;
+    int SPARE2 = 15;
+    int SPARE3 = 16;
+    int SPARE4 = 17;
+    int SPARE5 = 18;
+    int SPARE6 = 19;
+    int SPARE7 = 20;
+    int SPARE8 = 21;
+    int SPARE9 = 22;
+    int TEXT = 9;
+    int WAND = 8;
 
     /**
      * Used by the MacroInstaller class to install macro tools.
@@ -58,11 +58,42 @@ public interface IjxToolbar {
      */
     int addTool(String toolTip);
 
+    Color getBackgroundColor();
+
+    /**
+     * Returns the size of the brush tool, or 0 if the brush tool is not enabled.
+     */
+    int getBrushSize();
+
+    int getButtonSize();
+
     /**
      * @deprecated
      * replaced by getForegroundColor()
      */
-    Color getColor();
+     Color getColor();
+
+    Color getForegroundColor();
+
+    Dimension getMinimumSize();
+
+    /**
+     * Returns 'true' if the multi-point tool is enabled.
+     */
+    boolean getMultiPointMode();
+
+    Dimension getPreferredSize();
+
+    /**
+     * Returns the rounded rectangle arc size, or 0 if the rounded rectangle tool is not enabled.
+     */
+    int getRoundRectArcSize();
+
+    /**
+     * Returns the ID of the current tool (Toolbar.RECTANGLE,
+     * Toolbar.OVAL, etc.).
+     */
+    int getToolId();
 
     /**
      * Returns the ID of the tool whose name (the description displayed in the status bar)
@@ -70,16 +101,35 @@ public interface IjxToolbar {
      */
     int getToolId(String name);
 
+    String getToolName();
+
     void restorePreviousTool();
+
+    void runMacroTool(int id);
+
+    void setBackgroundColor(Color c);
+
+    /**
+     * Set the size of the brush tool, which must be greater than 4.
+     */
+    void setBrushSize(int size);
 
     /**
      * @deprecated
      * replaced by setForegroundColor()
      */
-    void setColor(Color c);
+     void setColor(Color c);
+
+    void setForegroundColor(Color c);
+
+    /**
+     * Sets the rounded rectangle arc size (pixels).
+     */
+    void setRoundRectArcSize(int size);
 
     boolean setTool(String name);
 
     void setTool(int tool);
-
+    
+    void repaint();
 }

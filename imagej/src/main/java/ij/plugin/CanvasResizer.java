@@ -2,6 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 
@@ -92,7 +93,7 @@ public class CanvasResizer implements PlugIn {
 	public IjxImageStack expandStack(IjxImageStack stackOld, int wNew, int hNew, int xOff, int yOff) {
 		int nFrames = stackOld.getSize();
 		ImageProcessor ipOld = stackOld.getProcessor(1);
-		java.awt.Color colorBack = Toolbar.getBackgroundColor();
+		java.awt.Color colorBack = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
 		
 		IjxImageStack stackNew = IJ.getFactory().newImageStack(wNew, hNew, stackOld.getColorModel());
 		ImageProcessor ipNew;
@@ -116,7 +117,7 @@ public class CanvasResizer implements PlugIn {
 		if (zeroFill)
 			ipNew.setValue(0.0);
 		else 
-			ipNew.setColor(Toolbar.getBackgroundColor());
+			ipNew.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor());
 		ipNew.fill();
 		ipNew.insert(ipOld, xOff, yOff);
 		return ipNew;

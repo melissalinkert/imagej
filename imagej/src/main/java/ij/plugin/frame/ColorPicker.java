@@ -6,11 +6,13 @@ import java.awt.event.*;
 import java.util.Vector;
 import ij.process.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 
 /** Implements the Image/Color/Color Picker command. */
 public class ColorPicker extends PlugInFrame {
 	static final String LOC_KEY = "cp.loc";
 	static ColorPicker instance;
+    IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
 
     public ColorPicker() {
 		super("CP");
@@ -56,7 +58,7 @@ public class ColorPicker extends PlugInFrame {
 class ColorGenerator extends ColorProcessor {
     int w, h;
     int[] colors = {0xff0000, 0x00ff00, 0x0000ff, 0xffffff, 0x00ffff, 0xff00ff, 0xffff00, 0x000000};
-
+    IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
     public ColorGenerator(int width, int height, int[] pixels) {
         super(width, height, pixels);
     }
@@ -112,7 +114,7 @@ class ColorGenerator extends ColorProcessor {
         setColor(0x999999);
         drawRect((w*2)-11, 277, (w*2)+2, (h*2)+2);
         setRoi((w*2)-10, 278, w*2, h*2);//Paints the Background Color
-        setColor(Toolbar.getBackgroundColor());
+        setColor(toolbar.getBackgroundColor());
         fill();
     }
 
@@ -123,7 +125,7 @@ class ColorGenerator extends ColorProcessor {
         setColor(0x999999);
         drawRect(9, 267, (w*2)+2, (h*2)+2);
         setRoi(10, 268, w*2, h*2); //Paints the Foreground Color
-        setColor(Toolbar.getForegroundColor());
+        setColor(toolbar.getForegroundColor());
         fill();
     }
 
@@ -202,6 +204,7 @@ class ColorCanvas extends Canvas implements MouseListener, MouseMotionListener{
 	long mouseDownTime;
 	ColorGenerator ip;
 	Frame frame;
+        IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
 			
 	public ColorCanvas(int width, int height, Frame frame, ColorGenerator ip) {
 		this.width=width; this.height=height;
@@ -228,7 +231,7 @@ class ColorCanvas extends Canvas implements MouseListener, MouseMotionListener{
 	public void mousePressed(MouseEvent e) {
 		//IJ.log("mousePressed "+e);
 		ip.setLineWidth(1);
-		if (Toolbar.getToolId()==Toolbar.DROPPER)
+		if (toolbar.getToolId()==Toolbar.DROPPER)
 		IJ.setTool(Toolbar.RECTANGLE );
 		Rectangle flipperRect = new Rectangle(86, 268, 18, 18);
 		Rectangle resetRect = new Rectangle(86, 294, 18, 18);
@@ -242,12 +245,12 @@ class ColorCanvas extends Canvas implements MouseListener, MouseMotionListener{
 		boolean doubleClick = (difference<=250);
 		mouseDownTime = System.currentTimeMillis();
 		if (flipperRect.contains(x, y)) {
-			Color c = Toolbar.getBackgroundColor();
-			Toolbar.setBackgroundColor(Toolbar.getForegroundColor());
-			Toolbar.setForegroundColor(c);
+			Color c = toolbar.getBackgroundColor();
+			toolbar.setBackgroundColor(toolbar.getForegroundColor());
+			toolbar.setForegroundColor(c);
 		} else if(resetRect.contains(x,y)) {
-			Toolbar.setForegroundColor(new Color(0x000000));
-			Toolbar.setBackgroundColor(new Color(0xffffff)); 
+			toolbar.setForegroundColor(new Color(0x000000));
+			toolbar.setBackgroundColor(new Color(0xffffff));
 		} else if ((background1Rect.contains(x,y)) || (background2Rect.contains(x,y))) {
 			background = true;
 			if (doubleClick) editColor();
@@ -300,24 +303,24 @@ class ColorCanvas extends Canvas implements MouseListener, MouseMotionListener{
 		int b = p&0xff;
 		Color c = new Color(r, g, b);
 		if (setBackground) {
-			Toolbar.setBackgroundColor(c);
+			toolbar.setBackgroundColor(c);
 			if (Recorder.record)
 				Recorder.record("setBackgroundColor", c.getRed(), c.getGreen(), c.getBlue());
 		} else {
-			Toolbar.setForegroundColor(c);
+			toolbar.setForegroundColor(c);
 			if (Recorder.record)
 				Recorder.record("setForegroundColor", c.getRed(), c.getGreen(), c.getBlue());
 		}
 	}
 
 	void editColor() {
-		Color c  = background?Toolbar.getBackgroundColor():Toolbar.getForegroundColor();
+		Color c  = background?toolbar.getBackgroundColor():toolbar.getForegroundColor();
 		ColorChooser cc = new ColorChooser((background?"Background":"Foreground")+" Color", c, false, frame);
 		c = cc.getColor();
 		if (background)
-			Toolbar.setBackgroundColor(c);
+			toolbar.setBackgroundColor(c);
 		else
-			Toolbar.setForegroundColor(c);
+			toolbar.setForegroundColor(c);
 	}
 	
 	public void refreshColors() {

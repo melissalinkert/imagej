@@ -624,10 +624,10 @@ public class ImageWindow extends Frame
         //ImageJ ij = IJ.getInstance();
         IjxApplication ij = IJ.getInstance();
         boolean quitting = ij != null && ij.quitting();
-        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
-            IJ.wait(10); // may be needed for Java 1.4 on OS X
-            setMenuBar(Menus.getMenuBar());
-        }
+//        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
+//            IJ.wait(10); // may be needed for Java 1.4 on OS X
+//            setMenuBar(Menus.getMenuBar());
+//        }
         imp.setActivated(); // notify IjxImagePlus that image has been activated
         if (!closed && !quitting && !Interpreter.isBatchMode()) {
             WindowManager.setCurrentWindow(this);
@@ -770,6 +770,10 @@ public class ImageWindow extends Frame
 
     public Container getContainer() {
         return this;
+    }
+
+    public void paintMe(Graphics g) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     /** Overrides the setBounds() method in Component so
     we can find out when the window is resized. */

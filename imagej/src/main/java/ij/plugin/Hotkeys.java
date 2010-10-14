@@ -1,7 +1,9 @@
 package ij.plugin;
+import ijx.IjxMenus;
 import ij.*;
 import ij.gui.*;
 import ij.util.*;
+import ijx.CentralLookup;
 import java.awt.*;
 import java.io.*;
 import java.util.*;
@@ -42,12 +44,13 @@ public class Hotkeys implements PlugIn {
 		if (shortcut.length()>1)
 			shortcut = shortcut.replace('f','F');
 		String plugin = "ij.plugin.Hotkeys("+"\""+command+"\")";
-		int err = Menus.installPlugin(plugin,Menus.SHORTCUTS_MENU,"*"+command,shortcut,IJ.getInstance());
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+		int err = m.installPlugin(plugin,IjxMenus.SHORTCUTS_MENU,"*"+command,shortcut,IJ.getInstance());
 		switch (err) {
-			case Menus.INVALID_SHORTCUT:
+			case IjxMenus.INVALID_SHORTCUT:
 				IJ.showMessage(TITLE, "The shortcut must be a single character or F1-F24.");
 				break;
-			case Menus.SHORTCUT_IN_USE:
+			case IjxMenus.SHORTCUT_IN_USE:
 				IJ.showMessage("The \""+shortcut+"\" shortcut is already being used.");
 				break;
 			default:
@@ -69,9 +72,10 @@ public class Hotkeys implements PlugIn {
 		if (gd.wasCanceled())
 			return;
 		command = gd.getNextChoice();
-		int err = Menus.uninstallPlugin(command);
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+		int err = m.uninstallPlugin(command);
 		boolean removed = true;
-		if(err==Menus.COMMAND_NOT_FOUND)
+		if(err==IjxMenus.COMMAND_NOT_FOUND)
 			removed = deletePlugin(command);
 		if (removed) {
 			IJ.showStatus("\""+command + "\" removed; ImageJ restart required");

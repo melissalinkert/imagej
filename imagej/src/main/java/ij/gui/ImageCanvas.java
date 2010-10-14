@@ -12,6 +12,7 @@ import ij.plugin.frame.RoiManager;
 import ij.macro.*;
 import ij.*;
 import ij.util.*;
+import ijx.CentralLookup;
 import ijx.gui.IjxStackWindow;
 import java.awt.event.*;
 import java.util.*;
@@ -64,6 +65,9 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
     private int offScreenHeight = 0;
     private boolean mouseExited = true;
     private boolean customRoi;
+
+    private final CentralLookup centralLookup = CentralLookup.getDefault();
+    IjxToolbar toolbar = ((IjxToolbar) centralLookup.lookup(IjxToolbar.class));
 
     public ImageCanvas(IjxImagePlus imp) {
         this.imp = imp;
@@ -502,12 +506,12 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             setCursor(handCursor);
             return;
         }
-        int id = Toolbar.getToolId();
-        switch (Toolbar.getToolId()) {
-            case Toolbar.MAGNIFIER:
+        int id = toolbar.getToolId();
+        switch (toolbar.getToolId()) {
+            case IjxToolbar.MAGNIFIER:
                 setCursor(moveCursor);
                 break;
-            case Toolbar.HAND:
+            case IjxToolbar.HAND:
                 setCursor(handCursor);
                 break;
             default:  //selection tool
@@ -998,23 +1002,23 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         }
         Color c;
         if (setBackground) {
-            c = Toolbar.getBackgroundColor();
+            c = toolbar.getBackgroundColor();
         } else {
-            c = Toolbar.getForegroundColor();
+            c = toolbar.getForegroundColor();
             imp.setColor(c);
         }
         IJ.showStatus("(" + c.getRed() + ", " + c.getGreen() + ", " + c.getBlue() + ")");
     }
 
     private void setForegroundColor(Color c) {
-        Toolbar.setForegroundColor(c);
+        toolbar.setForegroundColor(c);
         if (Recorder.record) {
             Recorder.record("setForegroundColor", c.getRed(), c.getGreen(), c.getBlue());
         }
     }
 
     private void setBackgroundColor(Color c) {
-        Toolbar.setBackgroundColor(c);
+        toolbar.setBackgroundColor(c);
         if (Recorder.record) {
             Recorder.record("setBackgroundColor", c.getRed(), c.getGreen(), c.getBlue());
         }
@@ -1025,7 +1029,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             return;
         }
         showCursorStatus = true;
-        int toolID = Toolbar.getToolId();
+        int toolID = toolbar.getToolId();
         IjxImageWindow win = imp.getWindow();
         if (win != null && win.isRunning2() && toolID != Toolbar.MAGNIFIER) {
             if (win instanceof IjxStackWindow) {
@@ -1112,22 +1116,22 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
                 }
                 break;
             case Toolbar.OVAL:
-                if (Toolbar.getBrushSize() > 0) {
+                if (toolbar.getBrushSize() > 0) {
                     new RoiBrush();
                 } else {
                     handleRoiMouseDown(e);
                 }
                 break;
-            case Toolbar.SPARE1:
-            case Toolbar.SPARE2:
-            case Toolbar.SPARE3:
-            case Toolbar.SPARE4:
-            case Toolbar.SPARE5:
-            case Toolbar.SPARE6:
-            case Toolbar.SPARE7:
-            case Toolbar.SPARE8:
-            case Toolbar.SPARE9:
-                Toolbar.getInstance().runMacroTool(toolID);
+            case IjxToolbar.SPARE1:
+            case IjxToolbar.SPARE2:
+            case IjxToolbar.SPARE3:
+            case IjxToolbar.SPARE4:
+            case IjxToolbar.SPARE5:
+            case IjxToolbar.SPARE6:
+            case IjxToolbar.SPARE7:
+            case IjxToolbar.SPARE8:
+            case IjxToolbar.SPARE9:
+                toolbar.runMacroTool(toolID);
                 break;
             default:  //selection tool
                 handleRoiMouseDown(e);
@@ -1197,14 +1201,14 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
             roi.handleMouseUp(x, y); // polygon or polyline selection
             return;
         }
-        PopupMenu popup = Menus.getPopupMenu();
-        if (popup != null) {
-            add(popup);
-            if (IJ.isMacOSX()) {
-                IJ.wait(10);
-            }
-            popup.show(this, x, y);
-        }
+//        PopupMenu popup = Menus.getPopupMenu();
+//        if (popup != null) {
+//            add(popup);
+//            if (IJ.isMacOSX()) {
+//                IJ.wait(10);
+//            }
+//            popup.show(this, x, y);
+//        }
     }
 
     public void mouseExited(MouseEvent e) {
@@ -1253,7 +1257,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         {
             flags = InputEvent.BUTTON1_MASK;
         }
-        if (Toolbar.getToolId() == Toolbar.HAND || IJ.spaceBarDown()) {
+        if (toolbar.getToolId() == IjxToolbar.HAND || IJ.spaceBarDown()) {
             scroll(x, y);
         } else {
             IJ.setInputEvent(e);
@@ -1272,7 +1276,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         Roi roi = imp.getRoi();
         int handle = roi != null ? roi.isHandle(sx, sy) : -1;
         boolean multiPointMode = roi != null && (roi instanceof PointRoi) && handle == -1
-                && Toolbar.getToolId() == Toolbar.POINT && Toolbar.getMultiPointMode();
+                && toolbar.getToolId() == IjxToolbar.POINT && toolbar.getMultiPointMode();
         if (multiPointMode) {
             imp.setRoi(((PointRoi) roi).addPoint(ox, oy));
             return;
@@ -1303,7 +1307,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
                     && roi.getState() == roi.CONSTRUCTING) {
                 return;
             }
-            int tool = Toolbar.getToolId();
+            int tool = toolbar.getToolId();
             if ((tool == Toolbar.POLYGON || tool == Toolbar.POLYLINE || tool == Toolbar.ANGLE) && !(IJ.shiftKeyDown() || IJ.altKeyDown())) {
                 imp.killRoi();
                 return;
@@ -1319,7 +1323,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         if (roi.getState() == Roi.CONSTRUCTING) {
             return;
         }
-        int tool = Toolbar.getToolId();
+        int tool = toolbar.getToolId();
         if (tool > Toolbar.FREEROI && tool != Toolbar.WAND && tool != Toolbar.POINT) {
             roi.setModState(Roi.NO_MODS);
             return;

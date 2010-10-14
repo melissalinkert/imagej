@@ -4,6 +4,7 @@ import ij.gui.*;
 import ij.process.*;
 import ij.io.*;
 import ij.plugin.filter.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.event.*;
@@ -23,9 +24,9 @@ public class Colors implements PlugIn, ItemListener {
 	}
 
 	void showDialog() {
-		Color fc =Toolbar.getForegroundColor();
+		Color fc =((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor();
 		String fname = getColorName(fc, "black");
-		Color bc =Toolbar.getBackgroundColor();
+		Color bc =((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
 		String bname = getColorName(bc, "white");
 		Color sc =Roi.getColor();
 		String sname = getColorName(sc, "yellow");
@@ -43,8 +44,8 @@ public class Colors implements PlugIn, ItemListener {
 		
 		gd.showDialog();
 		if (gd.wasCanceled()) {
-			if (fc2!=fc) Toolbar.setForegroundColor(fc);
-			if (bc2!=bc) Toolbar.setBackgroundColor(bc);
+			if (fc2!=fc) ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setForegroundColor(fc);
+			if (bc2!=bc) ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setBackgroundColor(bc);
 			if (sc2!=sc) {
 				Roi.setColor(sc);
 				IjxImagePlus imp = WindowManager.getCurrentImage();
@@ -58,13 +59,13 @@ public class Colors implements PlugIn, ItemListener {
 		fc2 = getColor(fname, Color.black);
 		bc2 = getColor(bname, Color.white);
 		sc2 = getColor(sname, Color.yellow);
-		if (fc2!=fc) Toolbar.setForegroundColor(fc2);
-		if (bc2!=bc) Toolbar.setBackgroundColor(bc2);
+		if (fc2!=fc) ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setForegroundColor(fc2);
+		if (bc2!=bc) ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setBackgroundColor(bc2);
 		if (sc2!=sc) {
 			Roi.setColor(sc2);
 			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.draw();
-			Toolbar.getInstance().repaint();
+			((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).repaint();
 		}
 	}
 	
@@ -156,14 +157,14 @@ public class Colors implements PlugIn, ItemListener {
 		String item = choice.getSelectedItem();
 		Color color = getColor(item, Color.black);
 		if (choice==fchoice)
-			Toolbar.setForegroundColor(color);
+			((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setForegroundColor(color);
 		else if (choice==bchoice)
-			Toolbar.setBackgroundColor(color);
+			((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setBackgroundColor(color);
 		else if (choice==schoice) {
 			Roi.setColor(color);
 			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null && imp.getRoi()!=null) imp.draw();
-			Toolbar.getInstance().repaint();
+			((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).repaint();
 		}
 	}
 	
@@ -188,7 +189,7 @@ public class Colors implements PlugIn, ItemListener {
 				Roi.setColor(sc);
 				IjxImagePlus imp = WindowManager.getCurrentImage();
 				if (imp!=null && imp.getRoi()!=null) imp.draw();
-				Toolbar.getInstance().repaint();
+				((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).repaint();
 			}
 			return;
 		}
@@ -211,7 +212,7 @@ public class Colors implements PlugIn, ItemListener {
 			Roi.setColor(sc2);
 			IjxImagePlus imp = WindowManager.getCurrentImage();
 			if (imp!=null) imp.draw();
-			Toolbar.getInstance().repaint();
+			((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)). repaint();
 		}
 	}
 

@@ -19,17 +19,17 @@ import javax.swing.ImageIcon;
 		int lines = 7;
 		String[] text = new String[lines];
 		int k = 0;
-		text[k++] = "ImageJA "+ImageJX.VERSION;
+		text[k++] = IJ.getInstance().getTitle() + " "+ IJ.getInstance().getVersion();
 		text[k++] = "http://imageja.sourceforge.net/";
 		text[k++] = "Based on ImageJ";
 		text[k++] = IJ.URL;
 		text[k++] = "Java "+System.getProperty("java.version")+(IJ.is64Bit()?" (64-bit)":" (32-bit)");
 		text[k++] = IJ.freeMemory();
-		text[k++] = "ImageJA is in the public domain";
+		text[k++] = IJ.getInstance().getTitle()  + " is in the public domain";
 		ImageProcessor ip = null;
 
 		IjxApplication ij = IJ.getInstance();
-		URL url = ij.getClass().getResource("/aboutja.jpg");
+		URL url = ij.getClass().getResource("/aboutijx.png");
 
 		if (url!=null) {
 			Image img = null;
@@ -43,7 +43,7 @@ import javax.swing.ImageIcon;
 		}
 		if (ip==null) 
 			ip =  new ColorProcessor(55,45);
-		ip = ip.resize(ip.getWidth()*4, ip.getHeight()*4);
+		ip = ip.resize(ip.getWidth(), ip.getHeight());
 		ip.setFont(new Font("SansSerif", Font.PLAIN, LARGE_FONT));
 		ip.setAntialiasedText(true);
 		int[] widths = new int[lines];
@@ -55,7 +55,7 @@ import javax.swing.ImageIcon;
 		for (int i=0; i<lines-1; i++) 
 			if (widths[i]>max)
 				max = widths[i];
-		ip.setColor(new Color(255,255, 140));
+		ip.setColor(new Color(0,0,0));
 		ip.setFont(new Font("SansSerif", Font.PLAIN, LARGE_FONT));
 		int y  = 45;
 		ip.drawString(text[0], x(text[0],ip,max), y);
@@ -74,7 +74,7 @@ import javax.swing.ImageIcon;
 		}
 		ip.drawString(text[6], ip.getWidth()-ip.getStringWidth(text[6])-10, ip.getHeight()-3);
 		WindowManager.setCenterNextImage(true);
-		IJ.getFactory().newImagePlus("About ImageJA", ip).show();
+		IJ.getFactory().newImagePlus("About " + IJ.getInstance().getTitle(), ip).show();
 	}
 
 	int x(String text, ImageProcessor ip, int max) {

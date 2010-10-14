@@ -1,13 +1,16 @@
 package ij.plugin;
 
+import ijx.IjxMenus;
 import java.io.*;
 import ij.*;
 import ij.io.*;
 import ij.gui.*;
 import ij.plugin.*;
+import ijx.CentralLookup;
 
 public class PlugInInstaller implements PlugIn {
 	public void run(String arg) {
+
 		String pluginsPath = Menus.getPlugInsPath();
 		if(pluginsPath == null) {
 			String homeDir = Prefs.getHomeDir();
@@ -46,7 +49,9 @@ public class PlugInInstaller implements PlugIn {
 		}
 
 		// insert into menu
-		Menus.updateImageJMenus();
+
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+		m.updateImageJMenus();
 		IJ.showMessage("PluginInstaller","Plugin "+file+" was installed!");
 	}
 

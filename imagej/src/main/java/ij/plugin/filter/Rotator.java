@@ -2,6 +2,7 @@ package ij.plugin.filter;
 import ij.*;
 import ij.gui.*;
 import ij.process.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 import java.awt.*;
@@ -51,7 +52,7 @@ public class Rotator implements ExtendedPlugInFilter, DialogListener {
 		}
 		ip.setInterpolationMethod(interpolationMethod);
 		if (fillWithBackground) {
-			Color bgc = Toolbar.getBackgroundColor();
+			Color bgc = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
 			if (bitDepth==8)
 				ip.setBackgroundValue(ip.getBestIndex(bgc));
 			else if (bitDepth==24)

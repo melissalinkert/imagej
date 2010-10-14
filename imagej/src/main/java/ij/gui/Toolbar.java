@@ -10,12 +10,10 @@ import ij.plugin.MacroInstaller;
 import ij.macro.Program;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
-import ijx.gui.IjxToolbar;
 
 /** The ImageJ toolbar. */
-public class Toolbar extends Canvas implements MouseListener,
-        MouseMotionListener, ItemListener, ActionListener, IjxToolbar {
-		
+public class Toolbar extends Canvas implements IjxToolbar {
+
 	private Dimension ps = new Dimension(SIZE*NUM_BUTTONS, SIZE);
 	private boolean[] down;
 	private static int current;
@@ -41,7 +39,8 @@ public class Toolbar extends Canvas implements MouseListener,
 	private String currentSet = "Startup Macros";
 
 	private static Color foregroundColor = Prefs.getColor(Prefs.FCOLOR,Color.black);
-	private static Color backgroundColor = Prefs.getColor(Prefs.BCOLOR,Color.white);
+    private static Color backgroundColor = Prefs.getColor(Prefs.BCOLOR,Color.white);
+
 	private static boolean brushEnabled;
 	private static boolean multiPointMode = Prefs.multiPointMode;
 	private static boolean roundRectMode;
@@ -134,7 +133,7 @@ public class Toolbar extends Canvas implements MouseListener,
 	
 	/** Returns the ID of the current tool (Toolbar.RECTANGLE,
 		Toolbar.OVAL, etc.). */
-	public static int getToolId() {
+	public int getToolId() {
 		return current;
 	}
 
@@ -152,9 +151,9 @@ public class Toolbar extends Canvas implements MouseListener,
 	}
 
 	/** Returns a reference to the ImageJ toolbar. */
-	public static Toolbar getInstance() {
-		return instance;
-	}
+//	public static Toolbar getInstance() {
+//		return instance;
+//	}
 
 	private void drawButtons(Graphics g) {
 		if (Prefs.antialiasedTools) {
@@ -556,7 +555,7 @@ public class Toolbar extends Canvas implements MouseListener,
 	}
 	
 	/** Returns the name of the current tool. */
-	public static String getToolName() {
+	public String getToolName() {
 		String name = instance.getName(current);
 		if (current>=SPARE1 && current<=SPARE9 && instance.names[current]!=null)
 			name = instance.names[current];
@@ -653,11 +652,11 @@ public class Toolbar extends Canvas implements MouseListener,
 		}
 	}
 	
-	public static Color getForegroundColor() {
+	public Color getForegroundColor() {
 		return foregroundColor;
 	}
 
-	public static void setForegroundColor(Color c) {
+	public void setForegroundColor(Color c) {
 		if (c!=null) {
 			foregroundColor = c;
 			repaintTool(DROPPER);
@@ -666,11 +665,11 @@ public class Toolbar extends Canvas implements MouseListener,
 		}
 	}
 
-	public static Color getBackgroundColor() {
+	public Color getBackgroundColor() {
 		return backgroundColor;
 	}
 
-	public static void setBackgroundColor(Color c) {
+	public void setBackgroundColor(Color c) {
 		if (c!=null) {
 			backgroundColor = c;
 			repaintTool(DROPPER);
@@ -689,7 +688,7 @@ public class Toolbar extends Canvas implements MouseListener,
 	}
 
 	/** Returns the size of the brush tool, or 0 if the brush tool is not enabled. */
-	public static int getBrushSize() {
+	public int getBrushSize() {
 		if (brushEnabled)
 			return brushSize;
 		else
@@ -697,14 +696,14 @@ public class Toolbar extends Canvas implements MouseListener,
 	}
 
 	/** Set the size of the brush tool, which must be greater than 4. */
-	public static void setBrushSize(int size) {
+	public  void setBrushSize(int size) {
 		brushSize = size;
 		if (brushSize<5) brushSize = 5;
 		Prefs.set(BRUSH_SIZE, brushSize);
 	}
 		
 	/** Returns the rounded rectangle arc size, or 0 if the rounded rectangle tool is not enabled. */
-	public static int getRoundRectArcSize() {
+	public  int getRoundRectArcSize() {
 		if (!roundRectMode)
 			return 0;
 		else
@@ -712,7 +711,7 @@ public class Toolbar extends Canvas implements MouseListener,
 	}
 
 	/** Sets the rounded rectangle arc size (pixels). */
-	public static void setRoundRectArcSize(int size) {
+	public  void setRoundRectArcSize(int size) {
 		if (size<=0)
 			roundRectMode = false;
 		else {
@@ -727,21 +726,21 @@ public class Toolbar extends Canvas implements MouseListener,
 	}
 
 	/** Returns 'true' if the multi-point tool is enabled. */
-	public static boolean getMultiPointMode() {
+	public boolean getMultiPointMode() {
 		return multiPointMode;
 	}
 
-	public static int getButtonSize() {
+	public int getButtonSize() {
 		return SIZE;
 	}
 	
-	static void repaintTool(int tool) {
+	 void repaintTool(int tool) {
 		if (IJ.getInstance()!=null) {
-			Toolbar tb = getInstance();
-			Graphics g = tb.getGraphics();
+
+			Graphics g = getGraphics();
 			if (Prefs.antialiasedTools)
 				((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			tb.drawButton(g, tool);
+			drawButton(g, tool);
 			if (g!=null) g.dispose();
 		}
 		//Toolbar tb = getInstance();

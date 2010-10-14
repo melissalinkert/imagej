@@ -47,8 +47,9 @@ public class PlugInFrame extends Frame implements IjxPluginFrame, PlugIn, Window
 
     public void windowActivated(WindowEvent e) {
 		if (IJ.isMacintosh() && IJ.getInstance()!=null) {
-			IJ.wait(10); // may be needed for Java 1.4 on OS X
-			setMenuBar(Menus.getMenuBar());
+            // @todo
+			//IJ.wait(10); // may be needed for Java 1.4 on OS X
+			//setMenuBar(Menus.getMenuBar());
 		}
 		WindowManager.setWindow(this);
 	}

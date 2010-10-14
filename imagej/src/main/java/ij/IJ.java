@@ -18,9 +18,11 @@ import ij.plugin.frame.Recorder;
 import ij.macro.Interpreter;
 import ij.measure.Calibration;
 import ij.measure.ResultsTable;
+import ijx.CentralLookup;
+import ijx.ImageJX;
 import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
-import ijx.gui.StatusMessage;
+import ijx.event.StatusMessage;
 import java.awt.event.*;
 import java.text.*;
 import java.util.*;
@@ -93,10 +95,10 @@ public class IJ {
      */
 
     static void init() {
-        // @todo - I expect that this will break...
-        Menus m = new Menus(topComponent, ij, applet);
-        Prefs.load(m, null);
-        m.addMenuBar();
+//        // @todo - I expect that this will break...
+//        Menus m = new Menus(topComponent, ij, applet);
+//        Prefs.load(m, null);
+//        m.addMenuBar();
     }
 
     static void cleanup() {
@@ -632,7 +634,7 @@ public class IJ {
         showMessage("Message", msg);
     }
 
-    /**	Displays a message in a dialog box with the specified title.
+    /**	Displays a message in a dialog box with the specified TITLE.
     Writes the Java console if ImageJ is not present. */
     public static void showMessage(String title, String msg) {
         if (ij != null) {
@@ -658,11 +660,11 @@ public class IJ {
         }
     }
 
-    /**Displays a message in a dialog box with the specified title.
+    /**Displays a message in a dialog box with the specified TITLE.
     If a macro is running, it is aborted. Writes to the Java
     console if ImageJ is not present. */
     public static void error(String title, String msg) {
-        String title2 = title != null ? title : "ImageJA";
+        String title2 = title != null ? title : IJ.getInstance().getTitle();
         boolean abortMacro = title != null;
         if (redirectErrorMessages || redirectErrorMessages2) {
             IJ.log(title2 + ": " + msg);
@@ -678,7 +680,7 @@ public class IJ {
         }
     }
 
-    /** Displays a message in a dialog box with the specified title.
+    /** Displays a message in a dialog box with the specified TITLE.
     Returns false if the user pressed "Cancel". */
     public static boolean showMessageWithCancel(String title, String msg) {
         GenericDialog gd = new GenericDialog(title);
@@ -1033,7 +1035,7 @@ public class IJ {
     /** Displays an error message and returns false if the
     ImageJ version is less than the one specified. */
     public static boolean versionLessThan(String version) {
-        boolean lessThan = IJ.getInstance().VERSION.compareTo(version) < 0;
+        boolean lessThan = IJ.getInstance().getVersion().compareTo(version) < 0;
         if (lessThan) {
             error("This plugin or macro requires ImageJ " + version + " or later. Use\nHelp>Update ImageJ to upgrade to the latest version.");
         }
@@ -1277,7 +1279,7 @@ public class IJ {
         }
     }
 
-    /** Activates the window with the specified title. */
+    /** Activates the window with the specified TITLE. */
     public static void selectWindow(String title) {
         if (title.equals("ImageJ") && IJ.getTopComponentFrame() != null) {
             IJ.getTopComponentFrame().toFront();
@@ -1352,31 +1354,31 @@ public class IJ {
         }
         Color c = new Color(red, green, blue);
         if (foreground) {
-            Toolbar.setForegroundColor(c);
+            ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setForegroundColor(c);
             IjxImagePlus img = WindowManager.getCurrentImage();
             if (img != null) {
                 img.getProcessor().setColor(c);
             }
         } else {
-            Toolbar.setBackgroundColor(c);
+            ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setBackgroundColor(c);
         }
     }
 
     /** Switches to the specified tool, where id = Toolbar.RECTANGLE (0),
     Toolbar.OVAL (1), etc. */
     public static void setTool(int id) {
-        Toolbar.getInstance().setTool(id);
+        ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setTool(id);
     }
 
     /** Switches to the specified tool, where 'name' is "rect", "elliptical",
     "brush", etc. Returns 'false' if the name is not recognized. */
     public static boolean setTool(String name) {
-        return Toolbar.getInstance().setTool(name);
+        return ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setTool(name);
     }
 
     /** Returns the name of the current tool. */
     public static String getToolName() {
-        return Toolbar.getToolName();
+        return ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getToolName();
     }
 
     /** Equivalent to clicking on the current image at (x,y) with the
@@ -1484,11 +1486,11 @@ public class IJ {
 
     /** Returns the ImageJ version number as a string. */
     public static String getVersion() {
-        return IJ.getInstance().VERSION;
+        return IJ.getInstance().getVersion();
     }
 
     /** Returns the path to the home ("user.home"), startup, ImageJ, plugins, macros,
-    luts, temp, current or image directory if <code>title</code> is "home", "startup",
+    luts, temp, current or image directory if <code>TITLE</code> is "home", "startup",
     "imagej", "plugins", "macros", "luts", "temp", "current" or "image", otherwise,
     displays a dialog and returns the path to the directory selected by the user.
     Returns null if the specified directory is not found or the user
@@ -1933,7 +1935,7 @@ public class IJ {
             if (pluginsDir == null) {
                 return IJ.class.getClassLoader();
             } else {
-                if (Menus.jnlp) {
+                if (MenusAWT.jnlp) {
                     classLoader = new PluginClassLoader(pluginsDir, true);
                 } else {
                     classLoader = new PluginClassLoader(pluginsDir);

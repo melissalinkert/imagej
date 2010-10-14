@@ -2,6 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.gui.*;
 import ij.io.*;
+import ijx.CentralLookup;
 import ijx.IjxTopComponent;
 import java.awt.Component;
 import java.io.*;
@@ -29,7 +30,8 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 		IjxTopComponent ij = IJ.getTopComponent();
 		ij.setDropTarget(null);
 		new DropTarget(ij.getFrame(), this);
-		new DropTarget(Toolbar.getInstance(), this);
+        // @todo
+		//new DropTarget(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)), this);
 		new DropTarget(ij.getStatusBar(), this);
 	}  
 	    
@@ -132,7 +134,7 @@ public class DragAndDrop implements PlugIn, DropTargetListener, Runnable {
 	    public void dragOver(DropTargetDragEvent e) {
 			if (IJ.debugMode) IJ.log("DragOver: "+e.getLocation());
 			Point loc = e.getLocation();
-			int buttonSize = Toolbar.getButtonSize();
+			int buttonSize = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getButtonSize();
 			int width = IJ.getTopComponent().getSize().width;
 			openAsVirtualStack = width-loc.x<=buttonSize;
 			if (openAsVirtualStack)

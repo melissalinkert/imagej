@@ -4,6 +4,7 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.plugin.frame.Recorder;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import java.awt.*;
@@ -109,16 +110,16 @@ public class Thresholder implements PlugIn, Measurements {
 		if (useBlackAndWhite)
  			ip.setColor(Color.black);
  		else
- 			ip.setColor(Toolbar.getForegroundColor());
+ 			ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
 		ip.drawPixel(0,0);
 		fcolor = ip.getPixel(0,0);
 		if (useBlackAndWhite)
  			ip.setColor(Color.white);
  		else
- 			ip.setColor(Toolbar.getBackgroundColor());
+ 			ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor());
 		ip.drawPixel(0,0);
 		bcolor = ip.getPixel(0,0);
-		ip.setColor(Toolbar.getForegroundColor());
+		ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
 		ip.putPixel(0,0,savePixel);
 
 		int[] lut = new int[256];

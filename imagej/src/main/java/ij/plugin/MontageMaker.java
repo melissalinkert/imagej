@@ -3,6 +3,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import java.awt.*;
@@ -130,8 +131,8 @@ public class MontageMaker implements PlugIn {
 		Color fgColor=Color.white;
 		Color bgColor = Color.black;
 		if (useForegroundColor) {
-			fgColor = Toolbar.getForegroundColor();
-			bgColor = Toolbar.getBackgroundColor();
+			fgColor =  ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor();
+			bgColor = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
 		} else {
 			boolean whiteBackground = false;
 			if ((ip instanceof ByteProcessor) || (ip instanceof ColorProcessor)) {

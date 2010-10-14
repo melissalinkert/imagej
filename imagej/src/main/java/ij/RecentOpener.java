@@ -1,7 +1,11 @@
 package ij;
+import ijx.IjxMenus;
 import ij.io.*;
+import ijx.CentralLookup;
 import java.awt.*;
 import java.io.*;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 
 /** Opens, in a separate thread, files selected from the File/Open Recent submenu.*/
 public class RecentOpener implements Runnable {
@@ -17,7 +21,9 @@ public class RecentOpener implements Runnable {
 	public void run() {
 		Opener o = new Opener();
 		o.open(path);
-		Menu menu = Menus.openRecentMenu;
+        // @todo Deal with AWT...
+        IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+		JMenu menu = (JMenu)menus.getOpenRecentMenu();
 		int n = menu.getItemCount();
 		int index = 0;
 		for (int i=0; i<n; i++) {
@@ -27,7 +33,7 @@ public class RecentOpener implements Runnable {
 			}
 		}
 		if (index>0) {
-			MenuItem item = menu.getItem(index);
+			JMenuItem item = menu.getItem(index);
 			menu.remove(index);
 			menu.insert(item, 0);
 		}

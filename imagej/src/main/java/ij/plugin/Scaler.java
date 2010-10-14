@@ -4,6 +4,7 @@ import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.util.Tools;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import java.awt.*;
@@ -272,7 +273,7 @@ public class Scaler implements PlugIn, TextListener, FocusListener {
 		title = gd.getNextString();
 
 		if (fillWithBackground) {
-			Color bgc = Toolbar.getBackgroundColor();
+			Color bgc = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
 			if (bitDepth==8)
 				bgValue = ip.getBestIndex(bgc);
 			else if (bitDepth==24)

@@ -1,5 +1,6 @@
 package ij;
 
+import ijx.IjxMenus;
 import ijx.gui.IjxImageWindow;
 import ijx.app.IjxApplication;
 import ijx.IjxImagePlus;
@@ -10,7 +11,11 @@ import ij.plugin.frame.PlugInFrame;
 import java.awt.*;
 import java.util.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 import ijx.gui.IjxWindow;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 
 /**
  * WindowManager: New window manager that handles objects using IJX interfaces
@@ -26,6 +31,7 @@ public class WindowManager {
     private static Hashtable tempImageTable = new Hashtable();
     private static boolean centerOnScreen;
     private static Point nextLocation;
+    private static IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
 
     private WindowManager() {
     }
@@ -267,7 +273,7 @@ public class WindowManager {
         } else if (win instanceof IjxImageWindow) {
             addImageWindow((IjxImageWindow) win);
         } else {
-            Menus.insertWindowMenuItem(win);
+            menus.insertWindowMenuItem(win);
             nonImageList.addElement(win);
         }
     }
@@ -279,7 +285,7 @@ public class WindowManager {
         }
         checkForDuplicateName(imp);
         imageList.addElement(win);
-        Menus.addWindowMenuItem(imp);
+        menus.addWindowMenuItem(imp);
         setCurrentWindow(win, true);
     }
 
@@ -344,7 +350,7 @@ public class WindowManager {
             IjxApplication ij = IJ.getInstance();
             if (index >= 0) {
                 //if (ij!=null && !ij.quitting())
-                Menus.removeWindowMenuItem(index);
+                menus.removeWindowMenuItem(index);
                 nonImageList.removeElement(win);
             }
         }
@@ -370,8 +376,8 @@ public class WindowManager {
             if (nonImageCount > 0) {
                 nonImageCount++;
             }
-            Menus.removeWindowMenuItem(nonImageCount + index);
-            Menus.updateMenus();
+            menus.removeWindowMenuItem(nonImageCount + index);
+            menus.updateMenus();
             Undo.reset();
         }
     }
@@ -393,7 +399,7 @@ public class WindowManager {
     /** Closes all windows. Stops and returns false if any image "save changes" dialog is canceled. */
     public synchronized static boolean closeAllWindows() {
         while (imageList.size() > 0) {
-            if (!((IjxImageWindow) imageList.elementAt(0)).canClose()) {
+            if (!((IjxImageWindow) imageList.elementAt(0)).close()) {
                 return false;
             }
             IJ.wait(100);
@@ -471,12 +477,13 @@ public class WindowManager {
     }
 
     /** Activates a window selected from the Window menu. */
+    // @todo -- this is a kludge - I just copied it... GBH
     public synchronized static void activateWindow(String menuItemLabel, MenuItem item) {
         //IJ.write("activateWindow: "+menuItemLabel+" "+item);
         for (int i = 0; i < nonImageList.size(); i++) {
             IjxWindow win = (IjxWindow) nonImageList.elementAt(i);
             String title = win.getTitle();
-            if (item == Menus.window.getItem(i + Menus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
+            if (item == ((Menu) menus.getWindowMenu()).getItem(i + IjxMenus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
                 win.toFront();
                 ((CheckboxMenuItem) item).setState(false);
                 if (Recorder.record && !IJ.isMacro()) {
@@ -486,8 +493,7 @@ public class WindowManager {
             }
         }
         int lastSpace = menuItemLabel.lastIndexOf(' ');
-        if (lastSpace > 0) // remove image size (e.g., " 90K")
-        {
+        if (lastSpace > 0) { // remove image size (e.g., " 90K")
             menuItemLabel = menuItemLabel.substring(0, lastSpace);
         }
         for (int i = 0; i < imageList.size(); i++) {
@@ -497,11 +503,46 @@ public class WindowManager {
                 setCurrentWindow(win);
                 win.toFront();
                 int index = imageList.indexOf(win);
-                int n = Menus.window.getItemCount();
-                int start = Menus.WINDOW_MENU_ITEMS + Menus.windowMenuItems2;
+                int n = ((Menu) menus.getWindowMenu()).getItemCount();
+                int start = IjxMenus.WINDOW_MENU_ITEMS + menus.getWindowMenuItems2();
                 for (int j = start; j < n; j++) {
-                    MenuItem mi = Menus.window.getItem(j);
+                    MenuItem mi = ((Menu) menus.getWindowMenu()).getItem(j);
                     ((CheckboxMenuItem) mi).setState((j - start) == index);
+                }
+                break;
+            }
+        }
+    }
+    public synchronized static void activateWindow(String menuItemLabel, JMenuItem item) {
+        //IJ.write("activateWindow: "+menuItemLabel+" "+item);
+        for (int i = 0; i < nonImageList.size(); i++) {
+            IjxWindow win = (IjxWindow) nonImageList.elementAt(i);
+            String title = win.getTitle();
+            if (item == ((JMenu) menus.getWindowMenu()).getItem(i + IjxMenus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
+                win.toFront();
+                ((JCheckBoxMenuItem) item).setState(false);
+                if (Recorder.record && !IJ.isMacro()) {
+                    Recorder.record("selectWindow", title);
+                }
+                return;
+            }
+        }
+        int lastSpace = menuItemLabel.lastIndexOf(' ');
+        if (lastSpace > 0) { // remove image size (e.g., " 90K")
+            menuItemLabel = menuItemLabel.substring(0, lastSpace);
+        }
+        for (int i = 0; i < imageList.size(); i++) {
+            IjxImageWindow win = (IjxImageWindow) imageList.elementAt(i);
+            String title = win.getImagePlus().getTitle();
+            if (menuItemLabel.equals(title)) {
+                setCurrentWindow(win);
+                win.toFront();
+                int index = imageList.indexOf(win);
+                int n = ((JMenu) menus.getWindowMenu()).getItemCount();
+                int start = IjxMenus.WINDOW_MENU_ITEMS + menus.getWindowMenuItems2();
+                for (int j = start; j < n; j++) {
+                    JMenuItem mi = ((JMenu) menus.getWindowMenu()).getItem(j);
+                    ((JCheckBoxMenuItem) mi).setState((j - start) == index);
                 }
                 break;
             }
@@ -551,6 +592,7 @@ public class WindowManager {
     public static void setNextLocation(Point loc) {
         nextLocation = loc;
     }
+
     public static Point getNextLocation() {
         return nextLocation;
     }

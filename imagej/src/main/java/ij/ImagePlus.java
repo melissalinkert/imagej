@@ -18,6 +18,7 @@ import ij.measure.*;
 import ij.macro.Interpreter;
 import ij.plugin.frame.ContrastAdjuster;
 import ij.plugin.frame.Recorder;
+import ijx.CentralLookup;
 
 /**
 An IjxImagePlus contain an ImageProcessor (2D image) or an IjxImageStack (3D, 4D or 5D image).
@@ -1555,9 +1556,9 @@ public class ImagePlus implements IjxImagePlus {
     the tool bar is active. The user interactively sets the selection size and shape. */
     public void createNewRoi(int sx, int sy) {
         killRoi();
-        switch (Toolbar.getToolId()) {
+        switch (((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getToolId()) {
             case Toolbar.RECTANGLE:
-                roi = new Roi(sx, sy, this, Toolbar.getRoundRectArcSize());
+                roi = new Roi(sx, sy, this, ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getRoundRectArcSize());
                 break;
             case Toolbar.OVAL:
                 roi = new OvalRoi(sx, sy, this);
@@ -1572,7 +1573,7 @@ public class ImagePlus implements IjxImagePlus {
                 roi = new FreehandRoi(sx, sy, this);
                 break;
             case Toolbar.LINE:
-                if ("arrow".equals(Toolbar.getToolName())) {
+                if ("arrow".equals(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getToolName())) {
                     roi = new Arrow(sx, sy, this);
                 } else {
                     roi = new Line(sx, sy, this);
@@ -2097,13 +2098,13 @@ public class ImagePlus implements IjxImagePlus {
         }
         if (cut) {
             ip.snapshot();
-            ip.setColor(Toolbar.getBackgroundColor());
+            ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor());
             ip.fill();
             if (roi != null && roi.getType() != Roi.RECTANGLE) {
                 getMask();
                 ip.reset(ip.getMask());
             }
-            setColor(Toolbar.getForegroundColor());
+            setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
             Undo.setup(Undo.FILTER, this);
             updateAndDraw();
         }

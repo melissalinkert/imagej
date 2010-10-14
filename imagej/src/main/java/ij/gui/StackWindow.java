@@ -375,4 +375,8 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
     public Container getContainer() {
         return this;
     }
+
+    public void paintMe(Graphics g) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }

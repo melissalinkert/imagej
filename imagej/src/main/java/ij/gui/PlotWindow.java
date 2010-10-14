@@ -13,6 +13,7 @@ import ij.plugin.filter.Analyzer;
 import ij.measure.Measurements;
 import ijx.IjxImagePlus;
 import ijx.SavesPrefs;
+import ijx.gui.AbstractImageWindow;
 import org.openide.util.lookup.ServiceProvider;
 
 @ServiceProvider(service=SavesPrefs.class)

@@ -9,6 +9,7 @@ import ij.text.*;
 import ij.plugin.MeasurementsWriter;
 import ij.plugin.Straightener;
 import ij.macro.Interpreter;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import ijx.SavesPrefs;
@@ -562,8 +563,8 @@ public class Analyzer implements PlugInFilter, Measurements, SavesPrefs {
 		int x = p.xpoints[0];
 		int y = p.ypoints[0];
 		double value = ip.getPixelValue(x,y);
-		if (markWidth>0 && !Toolbar.getMultiPointMode()) {
-			ip.setColor(Toolbar.getForegroundColor());
+		if (markWidth>0 && !((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getMultiPointMode()) {
+			ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
 			ip.setLineWidth(markWidth);
 			ip.moveTo(x,y);
 			ip.lineTo(x,y);

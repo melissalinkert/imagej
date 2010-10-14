@@ -6,6 +6,7 @@ import ij.process.*;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.frame.Recorder;
 import ij.util.Java2; 
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 
 /** This class represents a collection of points. */
@@ -13,7 +14,7 @@ public class PointRoi extends PolygonRoi {
 	private static Font font;
 	private static int fontSize = 9;
 	private double saveMag;
-	
+	IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
 	/** Creates a new PointRoi using the specified arrays of offscreen coordinates. */
 	public PointRoi(int[] ox, int[] oy, int points) {
 		super(ox, oy, points, POINT);
@@ -69,7 +70,7 @@ public class PointRoi extends PolygonRoi {
 		updatePolygon();
 		if (ic!=null) mag = ic.getMagnification();
 		int size2 = HANDLE_SIZE/2;
-		if (!Prefs.noPointLabels && (nPoints>1||Toolbar.getMultiPointMode())) {
+		if (!Prefs.noPointLabels && (nPoints>1||toolbar.getMultiPointMode())) {
 			fontSize = 9;
 			if (mag>1.0)
 				fontSize = (int)(((mag-1.0)/3.0+1.0)*9.0);
@@ -94,7 +95,7 @@ public class PointRoi extends PolygonRoi {
 		g.drawLine(x+2, y-4, x+2, y+8);
 		g.setColor(strokeColor!=null?strokeColor:ROIColor);
 		g.fillRect(x+1,y+1,3,3);
-		if (!Prefs.noPointLabels && (nPoints>1||Toolbar.getMultiPointMode()))
+		if (!Prefs.noPointLabels && (nPoints>1||toolbar.getMultiPointMode()))
 			g.drawString(""+n, x+6, y+fontSize+4);
 		g.setColor(Color.black);
 		g.drawRect(x, y, 4, 4);

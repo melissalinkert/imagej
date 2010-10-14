@@ -1,6 +1,7 @@
 package ij.plugin;
 import ij.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import java.awt.*;
 
@@ -17,11 +18,11 @@ public class ArrowToolOptions implements PlugIn, DialogListener {
 	}
 				
 	void arrowToolOptions() {
-		if (!Toolbar.getToolName().equals("arrow"))
+		if (!((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getToolName().equals("arrow"))
 			IJ.setTool("arrow");
 		double width = Arrow.getDefaultWidth();
 		double headSize = Arrow.getDefaultHeadSize();
-		Color color = Toolbar.getForegroundColor();
+		Color color = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor();
 		colorName = Colors.getColorName(color, "red");
 		int style = Arrow.getDefaultStyle();
 		gd = new NonBlockingGenericDialog("Arrow Tool");
@@ -42,7 +43,7 @@ public class ArrowToolOptions implements PlugIn, DialogListener {
 		boolean doubleHeaded2 = gd.getNextBoolean();
 		if (colorName!=null && !colorName2.equals(colorName)) {
 			Color color = Colors.getColor(colorName2, Color.black);
-			Toolbar.setForegroundColor(color);
+			((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setForegroundColor(color);
 		}
 		colorName = colorName2;
 		Arrow.setDefaultWidth(width2);

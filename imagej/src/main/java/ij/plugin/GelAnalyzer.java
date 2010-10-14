@@ -4,6 +4,7 @@ import ij.*;
 import ij.gui.*;
 import ij.process.*;
 import ij.measure.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
@@ -411,9 +412,8 @@ public class GelAnalyzer implements PlugIn {
         saveID = 0;
         //gel = null;
         ipLanes = null;
-        Toolbar toolbar = Toolbar.getInstance();
-        toolbar.setColor(Color.black);
-        toolbar.setTool(Toolbar.LINE);
+        ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setColor(Color.black);
+        ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).setTool(IjxToolbar.LINE);
         IjxWindow win = WindowManager.getCurrentWindow();
         if (win instanceof IjxImageWindow) {
             IjxImageCanvas canvas = ((IjxImageWindow) win).getCanvas();
@@ -567,7 +567,7 @@ class PlotsCanvas extends ImageCanvas {
         } else {
             Roi.setColor(Color.yellow);
         }
-        if (Toolbar.getToolId() != Toolbar.WAND || IJ.spaceBarDown()) {
+        if (((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getToolId() != IjxToolbar.WAND || IJ.spaceBarDown()) {
             return;
         }
         if (IJ.shiftKeyDown()) {

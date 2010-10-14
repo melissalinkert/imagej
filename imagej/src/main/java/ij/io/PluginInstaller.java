@@ -1,6 +1,8 @@
 package ij.io;
+import ijx.IjxMenus;
 import ij.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 import java.io.*;
 import java.net.URL;
 import java.net.*;
@@ -32,13 +34,14 @@ class PluginInstaller {
 			data = download(f);
 		}
 		if (data==null) return false;
-		SaveDialog sd = new SaveDialog("Save Plugin...", Menus.getPlugInsPath(), name, null);
+        IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+		SaveDialog sd = new SaveDialog("Save Plugin...", menus.getPlugInsPath(), name, null);
 		String name2 = sd.getFileName();
 		if (name2==null) return false;
 		String dir = sd.getDirectory();
 		if (!savePlugin(new File(dir,name), data))
 			return false;
-		Menus.updateImageJMenus();
+		menus.updateImageJMenus();
 		return true;
 	}
 	

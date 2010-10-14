@@ -2,6 +2,7 @@ package ij.plugin;
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import java.awt.*;
@@ -47,7 +48,7 @@ public class StackCombiner implements PlugIn {
 		IjxImageStack stack3 = IJ.getFactory().newImageStack(w3, h3, stack1.getColorModel());
 		ImageProcessor ip = stack1.getProcessor(1);
 		ImageProcessor ip1, ip2, ip3;
-		Color background = Toolbar.getBackgroundColor();
+		Color background = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
  		for (int i=1; i<=d3; i++) {
  			IJ.showProgress((double)i/d3);
  			ip3 = ip.createProcessor(w3, h3);
@@ -82,7 +83,7 @@ public class StackCombiner implements PlugIn {
 		IjxImageStack stack3 = IJ.getFactory().newImageStack(w3, h3, stack1.getColorModel());
 		ImageProcessor ip = stack1.getProcessor(1);
 		ImageProcessor ip1, ip2, ip3;
- 		Color background = Toolbar.getBackgroundColor();
+ 		Color background = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getBackgroundColor();
  		for (int i=1; i<=d3; i++) {
  			IJ.showProgress((double)i/d3);
  			ip3 = ip.createProcessor(w3, h3);

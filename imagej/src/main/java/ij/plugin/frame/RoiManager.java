@@ -14,6 +14,7 @@ import ij.plugin.Colors;
 import ij.util.*;
 import ij.macro.*;
 import ij.measure.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.app.IjxApplication;
 import ijx.gui.IjxImageCanvas;
@@ -906,7 +907,7 @@ public class RoiManager extends PlugInFrame implements ActionListener, ItemListe
 		IjxImagePlus imp = WindowManager.getCurrentImage();
 		imp.killRoi();
 		ImageProcessor ip = imp.getProcessor();
-		ip.setColor(Toolbar.getForegroundColor());
+		ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
 		ip.snapshot();
 		Undo.setup(Undo.FILTER, imp);
 		Filler filler = mode==LABEL?new Filler():null;
@@ -922,7 +923,7 @@ public class RoiManager extends PlugInFrame implements ActionListener, ItemListe
             if (slice2>=1 && slice2<=imp.getStackSize()) {
                 imp.setSlice(slice2);
 				ip = imp.getProcessor();
-				ip.setColor(Toolbar.getForegroundColor());
+				ip.setColor(((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor());
 				if (slice2!=slice) Undo.reset();
             }
  			switch (mode) {

@@ -1,4 +1,5 @@
 package ij.plugin;
+import ijx.IjxMenus;
 import ij.*;
 import ij.gui.*;
 import ij.io.*;
@@ -52,30 +53,30 @@ public class Installer implements PlugIn {
 			shortcut = shortcut.replace('f','F');
 		char menu = ' ';
 		if (menuStr.equals(menus[0]))
-			menu = Menus.SHORTCUTS_MENU;
+			menu = IjxMenus.SHORTCUTS_MENU;
 		else if (menuStr.equals(menus[1]))
-			menu = Menus.PLUGINS_MENU;
+			menu = IjxMenus.PLUGINS_MENU;
 		else if (menuStr.equals(menus[2]))
-			menu = Menus.IMPORT_MENU;
+			menu = IjxMenus.IMPORT_MENU;
 		else if (menuStr.equals(menus[3]))
-			menu = Menus.SAVE_AS_MENU;
+			menu = IjxMenus.SAVE_AS_MENU;
 		else if (menuStr.equals(menus[4]))
-			menu = Menus.FILTERS_MENU;
+			menu = IjxMenus.FILTERS_MENU;
 		else if (menuStr.equals(menus[5]))
-			menu = Menus.TOOLS_MENU;
+			menu = IjxMenus.TOOLS_MENU;
 		else if (menuStr.equals(menus[6]))
-			menu = Menus.UTILITIES_MENU;
+			menu = IjxMenus.UTILITIES_MENU;
 		if (!argument.equals(""))
 			plugin += "(\"" + argument +"\")";
 		int err = Menus.installPlugin(plugin,menu,command,shortcut,IJ.getInstance());
 		switch (err) {
-			case Menus.COMMAND_IN_USE:
+			case IjxMenus.COMMAND_IN_USE:
 				IJ.showMessage(TITLE, "The command \""+command+"\" \nis already being used.");
 				return;
-			case Menus.INVALID_SHORTCUT:
+			case IjxMenus.INVALID_SHORTCUT:
 				IJ.showMessage(TITLE, "The shortcut must be a single character or \"F1\"-\"F12\".");
 				return;
-			case Menus.SHORTCUT_IN_USE:
+			case IjxMenus.SHORTCUT_IN_USE:
 				IJ.showMessage("The \""+shortcut+"\" shortcut is already being used.");
 				return;
 			default:
@@ -99,7 +100,7 @@ public class Installer implements PlugIn {
 		catch (Exception e) {}
 		//IJ.write("installAbout: "+plugin+" "+hasShowAboutMethod);
 		if (hasShowAboutMethod)
-			Menus.installPlugin(plugin+"(\"about\")",Menus.ABOUT_MENU,plugin+"...","",IJ.getInstance());
+			Menus.installPlugin(plugin+"(\"about\")",IjxMenus.ABOUT_MENU,plugin+"...","",IJ.getInstance());
 	}
 	
 	String[] getPlugins() {

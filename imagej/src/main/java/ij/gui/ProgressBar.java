@@ -4,7 +4,7 @@ import ijx.gui.IjxProgressBar;
 import ij.IJ;
 import ij.macro.Interpreter;
 import ijx.IjxTopComponent;
-import imagej.swing.TopComponentSwing;
+import implementation.swing.TopComponentSwing;
 import java.awt.*;
 import java.awt.image.*;
 
@@ -119,12 +119,12 @@ public class ProgressBar extends Canvas implements IjxProgressBar {
         this.batchMode = batchMode;
     }
 
-    public void addKeyListener(IjxApplication ijApp) {
-        this.addKeyListener(ijApp);
-    }
-
-    public void addMouseListener(IjxTopComponent aThis) {
-        this.addMouseListener(aThis);
-    }
+//    public void addKeyListener(IjxApplication ijApp) {
+//        this.addKeyListener(ijApp);
+//    }
+//
+//    public void addMouseListener(IjxTopComponent aThis) {
+//        this.addMouseListener(aThis);
+//    }
 
 }

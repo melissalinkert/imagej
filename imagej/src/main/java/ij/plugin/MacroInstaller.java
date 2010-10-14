@@ -1,4 +1,5 @@
 package ij.plugin;
+import ijx.IjxMenus;
 import java.awt.*;
 import java.io.*;
 import java.awt.event.*;
@@ -10,20 +11,26 @@ import ij.util.Tools;
 import ij.io.*;
 import ij.macro.MacroConstants;
 import ij.plugin.frame.*;
+import ijx.CentralLookup;
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 import java.util.*;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 
 /** This plugin implements the Plugins/Macros/Install Macros command. It is also used by the Editor
 	class to install macro in menus and by the ImageJ class to install macros at startup. */
 public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 
-	public static final int MAX_SIZE = 28000, MAX_MACROS=100, XINC=10, YINC=18;
+// @todo - Need to deal with AWT Menus...
+    
+    public static final int MAX_SIZE = 28000, MAX_MACROS=100, XINC=10, YINC=18;
 	public static final char commandPrefix = '^';
 	static final String commandPrefixS = "^";
 	static final int MACROS_MENU_COMMANDS = 6; // number of commands in Plugins>Macros submenu
 	
 	private int[] macroStarts;
 	private String[] macroNames;
-	private MenuBar mb = new MenuBar();
+	private JMenuBar mb = new JMenuBar();
 	private int nMacros;
 	private Program pgm;
 	private boolean firstEvent = true;
@@ -33,7 +40,7 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 	private int toolCount;
 	private String text;
 	private String anonymousName;
-	private Menu macrosMenu;
+	private JMenu macrosMenu;
 	private int autoRunCount, autoRunAndHideCount;
 	private boolean openingStartupMacrosInEditor;
 	
@@ -76,7 +83,8 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 		macroStarts = new int[MAX_MACROS];
 		macroNames = new String[MAX_MACROS];
 		int itemCount = macrosMenu.getItemCount();
-		boolean isPluginsMacrosMenu = macrosMenu==Menus.getMacrosMenu();
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+		boolean isPluginsMacrosMenu = macrosMenu==m.getMacrosMenu();
 		int baseCount =isPluginsMacrosMenu?MACROS_MENU_COMMANDS:Editor.MACROS_MENU_ITEMS;
 		if (itemCount>baseCount) {
 			for (int i=itemCount-1; i>=baseCount; i--)
@@ -100,7 +108,8 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 					macroStarts[count] = i + 2;
 					macroNames[count] = name;
 					if (name.indexOf('-')!=-1 && (name.indexOf("Tool")!=-1||name.indexOf("tool")!=-1)) {
-						Toolbar.getInstance().addMacroTool(name, this, toolCount);
+                        ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).addMacroTool(name, this, toolCount);
+						//Toolbar.getInstance().addMacroTool(name, this, toolCount);
 						toolCount++;
 					} else if (name.startsWith("AutoRun")) {
 						if (autoRunCount==0 && !openingStartupMacrosInEditor) {
@@ -114,7 +123,7 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 						installPopupMenu(name, pgm);
 					else if (!name.endsWith("Tool Selected")){ 
 						addShortcut(name);
-						macrosMenu.add(new MenuItem(name));
+						macrosMenu.add(new JMenuItem(name));
 					}
 					//IJ.log(count+" "+name+" "+macroStarts[count]);
 					count++;
@@ -124,8 +133,8 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 		}
 		nMacros = count;
 		if (toolCount>0) {
-			Toolbar tb = Toolbar.getInstance();
-			if(Toolbar.getToolId()>=Toolbar.SPARE2)
+			IjxToolbar tb = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
+			if(tb.getToolId()>=IjxToolbar.SPARE2)
 				tb.setTool(Toolbar.RECTANGLE);
 			tb.repaint();
 		}
@@ -141,7 +150,7 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 				anonymousName = fileName.substring(0, dotIndex);
 			else
 				anonymousName =fileName;
-			macrosMenu.add(new MenuItem(anonymousName));
+			macrosMenu.add(new JMenuItem(anonymousName));
 			macroNames[0] = anonymousName;
 			nMacros = 1;
 		}
@@ -154,7 +163,9 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 		if (text==null && pgm==null)
 			return 0;
 		this.text = text;
-		macrosMenu = Menus.getMacrosMenu();
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+        // @todo - deal with Swing
+		macrosMenu = (JMenu) m.getMacrosMenu();
 		if (listener!=null)
 			macrosMenu.removeActionListener(listener);
 		macrosMenu.addActionListener(this);
@@ -163,9 +174,19 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
 		return nShortcuts;
 	}
 	
-	public int install(String text, Menu menu) {
+	public int install(String text, JMenu menu) {
 		this.text = text;
 		macrosMenu = menu;
+		install();
+		int count = nShortcuts+toolCount;
+		if (count==0 && nMacros>1)
+			count = nMacros;
+		return count;
+	}
+	public int install(String text, Menu menu) {
+		this.text = text;
+        // @todo -- Haven't dealt with this... macro menu will be missing.
+		//macrosMenu = menu;
 		install();
 		int count = nShortcuts+toolCount;
 		if (count==0 && nMacros>1)
@@ -197,7 +218,10 @@ public class MacroInstaller implements PlugIn, MacroConstants, ActionListener {
         if (h==null) return;
         String[] commands = (String[])h.get(name);
         if (commands==null) return;
-        PopupMenu popup = Menus.getPopupMenu();
+
+        IjxMenus m = CentralLookup.getDefault().lookup(IjxMenus.class);
+        // @todo - Deal with AWT
+        PopupMenu popup = (PopupMenu) m.getPopupMenu();
         if (popup==null) return;
 		popup.removeAll();
         for (int i=0; i<commands.length; i++) {

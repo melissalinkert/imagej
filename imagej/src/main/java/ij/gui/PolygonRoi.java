@@ -3,6 +3,7 @@ import ij.*;
 import ij.process.*;
 import ij.measure.*;
 import ij.plugin.frame.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import java.awt.*;
 import java.awt.geom.*;
@@ -23,6 +24,7 @@ public class PolygonRoi extends Roi {
 	private boolean userCreated;
 
 	long mouseUpTime = 0;
+    IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
 
 	/** Creates a new polygon or polyline ROI from x and y coordinate arrays.
 		Type must be Roi.POLYGON, Roi.FREEROI, Roi.TRACED_ROI, Roi.POLYLINE, Roi.FREELINE or Roi.ANGLE.*/
@@ -60,11 +62,11 @@ public class PolygonRoi extends Roi {
 		yp2 = new int[nPoints];
 		if (type==ANGLE && nPoints==3)
 			getAngleAsString();
-		if (type==POINT && Toolbar.getMultiPointMode()) {
+		if (type==POINT && toolbar.getMultiPointMode()) {
 			Prefs.pointAutoMeasure = false;
 			Prefs.pointAutoNextSlice = false;
 			Prefs.pointAddToManager = false;
-			if (Toolbar.getToolId()==Toolbar.POINT)
+			if (toolbar.getToolId()==IjxToolbar.POINT)
 				Prefs.noPointLabels = false;
 			userCreated = true;
 		}
@@ -88,7 +90,7 @@ public class PolygonRoi extends Roi {
 	/** Starts the process of creating a new user-generated polygon or polyline ROI. */
 	public PolygonRoi(int sx, int sy, IjxImagePlus imp) {
 		super(sx, sy, imp);
-		int tool = Toolbar.getToolId();
+		int tool = toolbar.getToolId();
 		switch (tool) {
 			case Toolbar.POLYGON: type=POLYGON; break;
 			case Toolbar.FREEROI: type=FREEROI; break;
@@ -249,7 +251,7 @@ public class PolygonRoi extends Roi {
 
 	public void handleMouseMove(int ox, int oy) {
 	// Do rubber banding
-		int tool = Toolbar.getToolId();
+		int tool = toolbar.getToolId();
 		if (!(tool==Toolbar.POLYGON || tool==Toolbar.POLYLINE || tool==Toolbar.ANGLE)) {
 			imp.killRoi();
 			imp.draw();

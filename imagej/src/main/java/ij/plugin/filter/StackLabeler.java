@@ -4,6 +4,7 @@ import ij.process.*;
 import ij.gui.*;
 import ij.util.Tools;
 import ij.measure.Measurements;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import java.awt.*;
 
@@ -191,7 +192,7 @@ public class StackLabeler implements ExtendedPlugInFilter, DialogListener {
 		ip.setFont(font);
 		int textWidth = ip.getStringWidth(s);
 		if (color==null) {
-			color = Toolbar.getForegroundColor();
+			color = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class)).getForegroundColor();
 			if ((color.getRGB()&0xffffff)==0) {
 				ip.setRoi(x, y-fontSize, maxWidth+textWidth, fontSize);
 				double mean = ImageStatistics.getStatistics(ip, Measurements.MEAN, null).mean;
