@@ -13,6 +13,7 @@ import ijx.app.IjxApplication;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxStackWindow;
+import javax.swing.ImageIcon;
 
 /** A frame for displaying images. */
 public class ImageWindow extends Frame
@@ -123,7 +124,7 @@ public class ImageWindow extends Frame
             setLocationAndSize(false);
             // @todo Macintosh-related
 //			if (ij!=null && !IJ.isMacintosh()) {
-//				Image img = ij.getIconImage();
+//				Image img = ij.getImageIcon();
 //				if (img!=null)
 //					try {setIconImage(img);} catch (Exception e) {}
 //			}
@@ -773,6 +774,10 @@ public class ImageWindow extends Frame
     }
 
     public void paintMe(Graphics g) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public ImageIcon getImageIcon() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
     /** Overrides the setBounds() method in Component so

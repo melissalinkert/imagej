@@ -5,6 +5,7 @@ import ij.*;
 import ij.plugin.*;
 import ijx.app.IjxApplication;
 import ijx.plugin.frame.IjxPluginFrame;
+import javax.swing.ImageIcon;
 
 /**  This is a closeable window that plugins can extend. */
 public class PlugInFrame extends Frame implements IjxPluginFrame, PlugIn, WindowListener, FocusListener {
@@ -20,9 +21,9 @@ public class PlugInFrame extends Frame implements IjxPluginFrame, PlugIn, Window
  		addFocusListener(this);
 		if (IJ.isLinux()) setBackground(IJ.backgroundColor);
 		if (ij!=null) {
-			Image img = ij.getIconImage();
+			ImageIcon img = ij.getImageIcon();
 			if (img!=null)
-				try {setIconImage(img);} catch (Exception e) {}
+				try {setIconImage(img.getImage());} catch (Exception e) {}
 		}
 	}
 	
@@ -72,5 +73,9 @@ public class PlugInFrame extends Frame implements IjxPluginFrame, PlugIn, Window
 
     public boolean canClose() {
         return true;
+    }
+
+    public ImageIcon getImageIcon() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

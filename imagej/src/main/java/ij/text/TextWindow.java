@@ -11,6 +11,7 @@ import ij.measure.ResultsTable;
 import ij.macro.Interpreter;
 import ijx.app.IjxApplication;
 import ijx.gui.IjxWindow;
+import javax.swing.ImageIcon;
 
 /** Uses a TextPanel to displays text in a window.
 	@see TextPanel
@@ -49,6 +50,7 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 	@param width	the width of the window in pixels
 	@param height	the height of the window in pixels
 	*/
+    // @todo - Swingify...
 	public TextWindow(String title, String headings, String data, int width, int height) {
 		super(title);
 		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
@@ -62,9 +64,9 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 		addKeyListener(textPanel);
 		IjxApplication ij = IJ.getInstance();
 		if (ij!=null) {
-			Image img = ij.getIconImage();
+			ImageIcon img = ij.getImageIcon();
 			if (img!=null)
-				try {setIconImage(img);} catch (Exception e) {}
+				try {setIconImage(img.getImage());} catch (Exception e) {}
 		}
  		addFocusListener(this);
  		addMenuBar();
@@ -322,6 +324,10 @@ public class TextWindow extends Frame implements IjxWindow, ActionListener, Focu
 
     public boolean canClose() {
         throw new UnsupportedOperationException("Not supported yet."); // @todo
+    }
+
+    public ImageIcon getImageIcon() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }

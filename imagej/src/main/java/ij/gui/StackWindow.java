@@ -8,6 +8,7 @@ import ij.*;
 import ijx.IjxImageStack;
 import java.awt.*;
 import java.awt.event.*;
+import javax.swing.ImageIcon;
 
 /** This class is an extended IjxImageWindow used to display image stacks. */
 public class StackWindow extends ImageWindow implements IjxStackWindow {
@@ -377,6 +378,10 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
     }
 
     public void paintMe(Graphics g) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public ImageIcon getImageIcon() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 }
