@@ -5,14 +5,11 @@
 package ijx.sezpoz;
 
 import ij.plugin.PlugIn;
-import ij.plugin.filter.PlugInFilterRunner;
 import ijx.app.Option;
 import ijx.gui.MenuBuilder;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,22 +20,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.ButtonGroup;
-import javax.swing.ButtonModel;
 import javax.swing.ImageIcon;
-import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
 import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JRadioButton;
-import javax.swing.JRadioButtonMenuItem;
 import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 import net.java.sezpoz.Index;
 import net.java.sezpoz.IndexItem;
-import org.pf.joi.Inspector;
+//import org.pf.joi.Inspector;
 
 public class CommandsManager {
     //
@@ -280,7 +270,8 @@ public class CommandsManager {
 
         cl.AddAllItemsToUI();
 
-        Inspector.inspectWait(cl);
+        //Inspector.inspectWait(cl);
+        
 //        System.out.println("Invoking action: radioA");
 //        Action a = cl.getAction("radioA");
 //        a.actionPerformed(null);

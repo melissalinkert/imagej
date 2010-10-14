@@ -28,7 +28,6 @@ import javax.swing.JFrame;
 import javax.swing.JPopupMenu;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
-import org.pushingpixels.substance.api.skin.SubstanceGeminiLookAndFeel;
 
 /**
 This frame is the main ImageJ class.
@@ -252,39 +251,12 @@ public class ImageJX extends IjxAbstractApplication {
     }
 
     private static void setupUI() {
-
-        JFrame.setDefaultLookAndFeelDecorated(true);
-        //UIManager.getSystemLookAndFeelClassName();
-
-//        try {
-//            com.jgoodies.looks.plastic.PlasticLookAndFeel.setPlasticTheme(
-//                new com.jgoodies.looks.plastic.theme.DesertBluer());
-//            //new com.jgoodies.looks.plastic.theme.Silver());
-//            //new com.jgoodies.looks.plastic.theme.SkyBluerTahoma());
-//            //new com.jgoodies.looks.plastic.theme.DesertBlue());
-//            com.jgoodies.looks.plastic.PlasticLookAndFeel.setTabStyle("Metal");
-//            UIManager.setLookAndFeel("com.jgoodies.looks.plastic.Plastic3DLookAndFeel");
-        //UIManager.setLookAndFeel("org.jvnet.substance.skin.SubstanceNebulaLookAndFeel");
-        //UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
-        //UIManager.setLookAndFeel("de.javasoft.plaf.synthetica.SyntheticaStandardLookAndFeel");
-        //UIManager.setLookAndFeel(new InfoNodeLookAndFeel());
-//        } catch (javax.swing.UnsupportedLookAndFeelException use) {
-//            UIManager.getSystemLookAndFeelClassName();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-        try {
-            UIManager.setLookAndFeel(new SubstanceGeminiLookAndFeel());
-            //UIManager.setLookAndFeel("org.jvnet.substance.api.skin.SubstanceGeminiLookAndFeel");
-        } catch (Exception e) {
-            System.out.println("Substance Gemini failed to initialize");
-            e.printStackTrace();
-        }
-        // If Globally using heavyweight components:
-        JPopupMenu.setDefaultLightWeightPopupEnabled(false);
-        ToolTipManager.sharedInstance().setLightWeightPopupEnabled(false);
-        // Use Auditory Queues
-        UIManager.put("AuditoryCues.playList", UIManager.get("AuditoryCues.defaultCueList"));
+//        JFrame.setDefaultLookAndFeelDecorated(true);
+//        // If Globally using heavyweight components:
+//        JPopupMenu.setDefaultLightWeightPopupEnabled(false);
+//        ToolTipManager.sharedInstance().setLightWeightPopupEnabled(false);
+//        // Use Auditory Queues
+//        UIManager.put("AuditoryCues.playList", UIManager.get("AuditoryCues.defaultCueList"));
     }
 //	void configureProxy() {
 //		String server = Prefs.get("proxy.server", null);
