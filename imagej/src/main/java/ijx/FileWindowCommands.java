@@ -78,7 +78,7 @@ public class FileWindowCommands {
 
     //===============================================================
 
-    @ActionIjx(menu = "File", label = "Open...", hotKey = "O")
+    @ActionIjx(menu = "File", label = "Open...", hotKey = "O", position=100)
     public static class OpenAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -93,7 +93,7 @@ public class FileWindowCommands {
         }
     }
 
-    @ActionIjx(menu = "File", label = "Close", hotKey = "W")
+    @ActionIjx(menu = "File", label = "Close", hotKey = "W", position=400)
     public static class CloseAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -101,7 +101,7 @@ public class FileWindowCommands {
         }
     }
 
-    @ActionIjx(menu = "File", label = "Close All")
+    @ActionIjx(menu = "File", label = "Close All", position=500)
     public static class CloseAllAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -109,7 +109,7 @@ public class FileWindowCommands {
         }
     }
 
-    @ActionIjx(menu = "File", label = "Save", hotKey = "S")
+    @ActionIjx(menu = "File", label = "Save", hotKey = "S", position=300)
     public static class SaveAction implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
@@ -140,7 +140,7 @@ public class FileWindowCommands {
         }
     }
 
-    @ActionIjx(menu = "File", label = "Quit")
+    @ActionIjx(menu = "File", label = "Quit", position=9999999)
     public static class QuitAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             IjxApplication ij = IJ.getInstance();

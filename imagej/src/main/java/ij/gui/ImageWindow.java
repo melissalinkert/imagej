@@ -7,9 +7,11 @@ import ij.io.*;
 import ij.measure.*;
 import ij.plugin.frame.*;
 import ij.macro.Interpreter;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 import ijx.gui.IjxImageCanvas;
 import ijx.gui.IjxImageWindow;
 import ijx.gui.IjxStackWindow;
@@ -83,7 +85,7 @@ public class ImageWindow extends Frame
         addFocusListener(this);
         addWindowListener(this);
         addWindowStateListener(this);
-        addKeyListener(ij);
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         setFocusTraversalKeysEnabled(false);
         if (!(this instanceof IjxStackWindow)) {
             addMouseWheelListener(this);
@@ -778,6 +780,14 @@ public class ImageWindow extends Frame
     }
 
     public ImageIcon getImageIcon() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void windowGainedFocus(WindowEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void windowLostFocus(WindowEvent e) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
     /** Overrides the setBounds() method in Component so

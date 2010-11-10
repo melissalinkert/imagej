@@ -36,6 +36,7 @@ public class WindowManager {
     private WindowManager() {
     }
 
+// <editor-fold defaultstate="collapsed" desc=" Setters ">
     /** Makes the image contained in the specified window the active image. */
     public static void setCurrentWindow(IjxImageWindow win) {
         setCurrentWindow(win, false);
@@ -43,9 +44,8 @@ public class WindowManager {
 
     /** Makes the specified image active. */
     public static void setCurrentWindow(IjxImageWindow win, boolean suppressRecording) {
-        if (win == null || win.isClosed() || win.getImagePlus() == null) // deadlock-"wait to lock"
-        {
-            return;
+        if (win == null || win.isClosed() || win.getImagePlus() == null) { // deadlock-"wait to lock"
+           return;
         }
         //IJ.log("setCurrentWindow: "+win.getImagePlus().getTitle()+" ("+(currentWindow!=null?currentWindow.getImagePlus().getTitle():"null") + ")");
         setWindow(win);
@@ -63,12 +63,153 @@ public class WindowManager {
         }
         Undo.reset();
         currentWindow = win;
-        Menus.updateMenus();
+        menus.updateMenus();
         if (!suppressRecording && Recorder.record && !IJ.isMacro()) {
             Recorder.record("selectWindow", win.getImagePlus().getTitle());
         }
     }
 
+    /** Makes the specified image temporarily the active image for this thread.
+     * Call again with a null argument to revert to the previous active image. */
+    public static void setTempCurrentImage(IjxImagePlus img) {
+        //IJ.log("setTempImage: "+(img!=null?img.getTitle():"null ")+Thread.currentThread().hashCode());
+        if (img == null) {
+            tempImageTable.remove(Thread.currentThread());
+        } else {
+            tempImageTable.put(Thread.currentThread(), img);
+        }
+    }
+
+    /** Sets a temporary image for the specified thread. */
+    public static void setTempCurrentImage(Thread thread, IjxImagePlus img) {
+        if (thread == null) {
+            throw new RuntimeException("thread==null");
+        }
+        if (img == null) {
+            tempImageTable.remove(thread);
+        } else {
+            tempImageTable.put(thread, img);
+        }
+    }
+
+        /** The specified frame becomes the front window, the one returned by getFrontWindow(). */
+    public static void setWindow(IjxWindow win) {
+        frontWindow = win;
+        //IJ.log("Set window: "+(win!=null?win.getTitle():"null"));
+        if (IJ.getApplet() != null && win instanceof IjxImageWindow) {
+            currentWindow = (IjxImageWindow) win;
+            tempImageTable.remove(Thread.currentThread());
+            IjxImagePlus current = currentWindow.getImagePlus();
+            if (current != null) {
+                current.setActivated();
+            }
+        }
+    }
+
+    /** Activates the next image window on the window list. */
+    public static void putBehind() {
+        if (IJ.debugMode) {
+            IJ.log("putBehind");
+        }
+        if (imageList.size() < 1 || currentWindow == null) {
+            return;
+        }
+        int index = imageList.indexOf(currentWindow);
+        IjxImageWindow win;
+        int count = 0;
+        do {
+            index--;
+            if (index < 0) {
+                index = imageList.size() - 1;
+            }
+            win = (IjxImageWindow) imageList.elementAt(index);
+            if (++count == imageList.size()) {
+                return;
+            }
+        } while (win instanceof HistogramWindow || win instanceof PlotWindow);
+        setCurrentWindow(win);
+        win.toFront();
+        Menus.updateMenus();
+    }
+
+
+    /** Activates a window selected from the Window menu. */
+
+    public synchronized static void activateWindow(String menuItemLabel, MenuItem item) {
+        //IJ.write("activateWindow: "+menuItemLabel+" "+item);
+        for (int i = 0; i < nonImageList.size(); i++) {
+            IjxWindow win = (IjxWindow) nonImageList.elementAt(i);
+            String title = win.getTitle();
+            if (item == ((Menu) menus.getWindowMenu()).getItem(i + IjxMenus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
+                win.toFront();
+                ((CheckboxMenuItem) item).setState(false);
+                if (Recorder.record && !IJ.isMacro()) {
+                    Recorder.record("selectWindow", title);
+                }
+                return;
+            }
+        }
+        int lastSpace = menuItemLabel.lastIndexOf(' ');
+        if (lastSpace > 0) { // remove image size (e.g., " 90K")
+            menuItemLabel = menuItemLabel.substring(0, lastSpace);
+        }
+        for (int i = 0; i < imageList.size(); i++) {
+            IjxImageWindow win = (IjxImageWindow) imageList.elementAt(i);
+            String title = win.getImagePlus().getTitle();
+            if (menuItemLabel.equals(title)) {
+                setCurrentWindow(win);
+                win.toFront();
+                int index = imageList.indexOf(win);
+                int n = ((Menu) menus.getWindowMenu()).getItemCount();
+                int start = IjxMenus.WINDOW_MENU_ITEMS + menus.getWindowMenuItems2();
+                for (int j = start; j < n; j++) {
+                    MenuItem mi = ((Menu) menus.getWindowMenu()).getItem(j);
+                    ((CheckboxMenuItem) mi).setState((j - start) == index);
+                }
+                break;
+            }
+        }
+    }
+    // @todo -- this is a kludge - I just copied it... GBH
+    public synchronized static void activateWindow(String menuItemLabel, JMenuItem item) {
+        //IJ.write("activateWindow: "+menuItemLabel+" "+item);
+        for (int i = 0; i < nonImageList.size(); i++) {
+            IjxWindow win = (IjxWindow) nonImageList.elementAt(i);
+            String title = win.getTitle();
+            if (item == ((JMenu) menus.getWindowMenu()).getItem(i + IjxMenus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
+                win.toFront();
+                ((JCheckBoxMenuItem) item).setState(false);
+                if (Recorder.record && !IJ.isMacro()) {
+                    Recorder.record("selectWindow", title);
+                }
+                return;
+            }
+        }
+        int lastSpace = menuItemLabel.lastIndexOf(' ');
+        if (lastSpace > 0) { // remove image size (e.g., " 90K")
+            menuItemLabel = menuItemLabel.substring(0, lastSpace);
+        }
+        for (int i = 0; i < imageList.size(); i++) {
+            IjxImageWindow win = (IjxImageWindow) imageList.elementAt(i);
+            String title = win.getImagePlus().getTitle();
+            if (menuItemLabel.equals(title)) {
+                setCurrentWindow(win);
+                win.toFront();
+                int index = imageList.indexOf(win);
+                int n = ((JMenu) menus.getWindowMenu()).getItemCount();
+                int start = IjxMenus.WINDOW_MENU_ITEMS + menus.getWindowMenuItems2();
+                for (int j = start; j < n; j++) {
+                    JMenuItem mi = ((JMenu) menus.getWindowMenu()).getItem(j);
+                    ((JCheckBoxMenuItem) mi).setState((j - start) == index);
+                }
+                break;
+            }
+        }
+    }
+
+    
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Getters... ">
     /** Returns the active IjxImageWindow. */
     public static IjxWindow getCurrentWindow() {
         //if (IJ.debugMode) IJ.write("IjxImageWindow.getCurrentWindow");
@@ -102,28 +243,6 @@ public class WindowManager {
         return null;
     }
 
-    /** Makes the specified image temporarily the active image for this thread.
-     * Call again with a null argument to revert to the previous active image. */
-    public static void setTempCurrentImage(IjxImagePlus img) {
-        //IJ.log("setTempImage: "+(img!=null?img.getTitle():"null ")+Thread.currentThread().hashCode());
-        if (img == null) {
-            tempImageTable.remove(Thread.currentThread());
-        } else {
-            tempImageTable.put(Thread.currentThread(), img);
-        }
-    }
-
-    /** Sets a temporary image for the specified thread. */
-    public static void setTempCurrentImage(Thread thread, IjxImagePlus img) {
-        if (thread == null) {
-            throw new RuntimeException("thread==null");
-        }
-        if (img == null) {
-            tempImageTable.remove(thread);
-        } else {
-            tempImageTable.put(thread, img);
-        }
-    }
 
     /** Returns the active IjxImagePlus. */
     private static IjxImagePlus getActiveImage() {
@@ -138,7 +257,6 @@ public class WindowManager {
             } else {
                 return Interpreter.getLastBatchModeImage();
             }
-
         }
         return null;
     }
@@ -265,6 +383,36 @@ public class WindowManager {
         return null;
     }
 
+        /** Returns the temporary current image for this thread, or null. */
+    public static IjxImagePlus getTempCurrentImage() {
+        return (IjxImagePlus) tempImageTable.get(Thread.currentThread());
+    }
+
+    /** Returns the frame with the specified title or null if a frame with that
+    title is not found. */
+    public static IjxWindow getFrame(String title) {
+        for (int i = 0; i < nonImageList.size(); i++) {
+            IjxWindow frame = (IjxWindow) nonImageList.elementAt(i);
+            if (title.equals(frame.getTitle())) {
+                return frame;
+            }
+            int[] wList = getIDList();
+            int len = wList != null ? wList.length : 0;
+            for (int j = 0; j < len; j++) {
+                IjxImagePlus imp = getImage(wList[j]);
+                if (imp != null) {
+                    if (imp.getTitle().equals(title)) {
+                        return imp.getWindow();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+// </editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc=" Adding Windows ">
     /** Adds the specified window to the Window menu. */
     public synchronized static void addWindow(IjxWindow win) {
         //IJ.write("addWindow: "+win.getTitle());
@@ -303,6 +451,7 @@ public class WindowManager {
         int n = imageList.size();
         for (int i = 0; i < n; i++) {
             IjxImageWindow win = (IjxImageWindow) imageList.elementAt(i);
+            // @todo nullpointer here...
             String name2 = win.getImagePlus().getTitle();
             if (name.equals(name2)) {
                 return true;
@@ -338,6 +487,36 @@ public class WindowManager {
     /** If 'name' is not unique, adds -1, -2, etc. as needed to make it unique. */
     public static String makeUniqueName(String name) {
         return isDuplicateName(name) ? getUniqueName(name) : name;
+    }
+
+// </editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc=" Removing Windows ">
+    /** Closes all windows. Stops and returns false if any image "save changes" dialog is canceled. */
+    public synchronized static boolean closeAllWindows() {
+        while (imageList.size() > 0) {
+            if (!((IjxImageWindow) imageList.elementAt(0)).close()) {
+                return false;
+            }
+            IJ.wait(100);
+        }
+        IjxApplication ij = IJ.getInstance();
+        if (ij != null && ij.quitting() && IJ.getApplet() == null) {
+            return true;
+        }
+        IjxWindow[] list = getNonImageWindows();
+        for (int i = 0; i < list.length; i++) {
+            IjxWindow frame = list[i];
+            if (frame instanceof PlugInFrame) {
+                ((PlugInFrame) frame).close();
+            } else if (frame instanceof TextWindow) {
+                ((TextWindow) frame).close();
+            } else {
+                frame.setVisible(false);
+                frame.dispose();
+            }
+        }
+        return true;
     }
 
     /** Removes the specified window from the Window menu. */
@@ -382,172 +561,7 @@ public class WindowManager {
         }
     }
 
-    /** The specified frame becomes the front window, the one returned by getFrontWindow(). */
-    public static void setWindow(IjxWindow win) {
-        frontWindow = win;
-        //IJ.log("Set window: "+(win!=null?win.getTitle():"null"));
-        if (IJ.getApplet() != null && win instanceof IjxImageWindow) {
-            currentWindow = (IjxImageWindow) win;
-            tempImageTable.remove(Thread.currentThread());
-            IjxImagePlus current = currentWindow.getImagePlus();
-            if (current != null) {
-                current.setActivated();
-            }
-        }
-    }
-
-    /** Closes all windows. Stops and returns false if any image "save changes" dialog is canceled. */
-    public synchronized static boolean closeAllWindows() {
-        while (imageList.size() > 0) {
-            if (!((IjxImageWindow) imageList.elementAt(0)).close()) {
-                return false;
-            }
-            IJ.wait(100);
-        }
-        IjxApplication ij = IJ.getInstance();
-        if (ij != null && ij.quitting() && IJ.getApplet() == null) {
-            return true;
-        }
-        IjxWindow[] list = getNonImageWindows();
-        for (int i = 0; i < list.length; i++) {
-            IjxWindow frame = list[i];
-            if (frame instanceof PlugInFrame) {
-                ((PlugInFrame) frame).close();
-            } else if (frame instanceof TextWindow) {
-                ((TextWindow) frame).close();
-            } else {
-                frame.setVisible(false);
-                frame.dispose();
-            }
-        }
-        return true;
-    }
-
-    /** Activates the next image window on the window list. */
-    public static void putBehind() {
-        if (IJ.debugMode) {
-            IJ.log("putBehind");
-        }
-        if (imageList.size() < 1 || currentWindow == null) {
-            return;
-        }
-        int index = imageList.indexOf(currentWindow);
-        IjxImageWindow win;
-        int count = 0;
-        do {
-            index--;
-            if (index < 0) {
-                index = imageList.size() - 1;
-            }
-            win = (IjxImageWindow) imageList.elementAt(index);
-            if (++count == imageList.size()) {
-                return;
-            }
-        } while (win instanceof HistogramWindow || win instanceof PlotWindow);
-        setCurrentWindow(win);
-        win.toFront();
-        Menus.updateMenus();
-    }
-
-    /** Returns the temporary current image for this thread, or null. */
-    public static IjxImagePlus getTempCurrentImage() {
-        return (IjxImagePlus) tempImageTable.get(Thread.currentThread());
-    }
-
-    /** Returns the frame with the specified title or null if a frame with that 
-    title is not found. */
-    public static IjxWindow getFrame(String title) {
-        for (int i = 0; i < nonImageList.size(); i++) {
-            IjxWindow frame = (IjxWindow) nonImageList.elementAt(i);
-            if (title.equals(frame.getTitle())) {
-                return frame;
-            }
-            int[] wList = getIDList();
-            int len = wList != null ? wList.length : 0;
-            for (int j = 0; j < len; j++) {
-                IjxImagePlus imp = getImage(wList[j]);
-                if (imp != null) {
-                    if (imp.getTitle().equals(title)) {
-                        return imp.getWindow();
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    /** Activates a window selected from the Window menu. */
-    // @todo -- this is a kludge - I just copied it... GBH
-    public synchronized static void activateWindow(String menuItemLabel, MenuItem item) {
-        //IJ.write("activateWindow: "+menuItemLabel+" "+item);
-        for (int i = 0; i < nonImageList.size(); i++) {
-            IjxWindow win = (IjxWindow) nonImageList.elementAt(i);
-            String title = win.getTitle();
-            if (item == ((Menu) menus.getWindowMenu()).getItem(i + IjxMenus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
-                win.toFront();
-                ((CheckboxMenuItem) item).setState(false);
-                if (Recorder.record && !IJ.isMacro()) {
-                    Recorder.record("selectWindow", title);
-                }
-                return;
-            }
-        }
-        int lastSpace = menuItemLabel.lastIndexOf(' ');
-        if (lastSpace > 0) { // remove image size (e.g., " 90K")
-            menuItemLabel = menuItemLabel.substring(0, lastSpace);
-        }
-        for (int i = 0; i < imageList.size(); i++) {
-            IjxImageWindow win = (IjxImageWindow) imageList.elementAt(i);
-            String title = win.getImagePlus().getTitle();
-            if (menuItemLabel.equals(title)) {
-                setCurrentWindow(win);
-                win.toFront();
-                int index = imageList.indexOf(win);
-                int n = ((Menu) menus.getWindowMenu()).getItemCount();
-                int start = IjxMenus.WINDOW_MENU_ITEMS + menus.getWindowMenuItems2();
-                for (int j = start; j < n; j++) {
-                    MenuItem mi = ((Menu) menus.getWindowMenu()).getItem(j);
-                    ((CheckboxMenuItem) mi).setState((j - start) == index);
-                }
-                break;
-            }
-        }
-    }
-    public synchronized static void activateWindow(String menuItemLabel, JMenuItem item) {
-        //IJ.write("activateWindow: "+menuItemLabel+" "+item);
-        for (int i = 0; i < nonImageList.size(); i++) {
-            IjxWindow win = (IjxWindow) nonImageList.elementAt(i);
-            String title = win.getTitle();
-            if (item == ((JMenu) menus.getWindowMenu()).getItem(i + IjxMenus.WINDOW_MENU_ITEMS) || menuItemLabel.equals(title)) {
-                win.toFront();
-                ((JCheckBoxMenuItem) item).setState(false);
-                if (Recorder.record && !IJ.isMacro()) {
-                    Recorder.record("selectWindow", title);
-                }
-                return;
-            }
-        }
-        int lastSpace = menuItemLabel.lastIndexOf(' ');
-        if (lastSpace > 0) { // remove image size (e.g., " 90K")
-            menuItemLabel = menuItemLabel.substring(0, lastSpace);
-        }
-        for (int i = 0; i < imageList.size(); i++) {
-            IjxImageWindow win = (IjxImageWindow) imageList.elementAt(i);
-            String title = win.getImagePlus().getTitle();
-            if (menuItemLabel.equals(title)) {
-                setCurrentWindow(win);
-                win.toFront();
-                int index = imageList.indexOf(win);
-                int n = ((JMenu) menus.getWindowMenu()).getItemCount();
-                int start = IjxMenus.WINDOW_MENU_ITEMS + menus.getWindowMenuItems2();
-                for (int j = start; j < n; j++) {
-                    JMenuItem mi = ((JMenu) menus.getWindowMenu()).getItem(j);
-                    ((JCheckBoxMenuItem) mi).setState((j - start) == index);
-                }
-                break;
-            }
-        }
-    }
+// </editor-fold>
 
     /** Repaints all open image windows. */
     public synchronized static void repaintImageWindows() {
@@ -577,6 +591,7 @@ public class WindowManager {
             IJ.log(" ");
         }
     }
+// <editor-fold defaultstate="collapsed" desc=" Positioning ">
 
     /** Causes the next image to be opened to be centered on the screen
     and displayed without informational text above the image. */
@@ -597,3 +612,5 @@ public class WindowManager {
         return nextLocation;
     }
 }
+
+// </editor-fold>

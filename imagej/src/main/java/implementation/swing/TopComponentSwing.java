@@ -1,30 +1,25 @@
 package implementation.swing;
 
 import ij.IJ;
-import ij.Menus;
 import ij.Prefs;
 import ij.Undo;
 import ij.WindowManager;
 import ij.gui.IjxToolbar;
 import ijx.app.IjxApplication;
-import ij.gui.ProgressBar;
 import ijx.CentralLookup;
 import ijx.IjxTopComponent;
+import ijx.app.KeyboardHandler;
 import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
 import ijx.event.StatusMessage;
-import ijx.util.GraphicsUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
 import java.awt.Image;
-import java.awt.MenuBar;
-import java.awt.Panel;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.dnd.DropTarget;
@@ -35,7 +30,6 @@ import java.awt.image.ImageProducer;
 import java.net.URL;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -68,7 +62,7 @@ public class TopComponentSwing //extends Frame
     }
 
     public void setToolbar(Object toolbar) {
-        ((JToolBar) toolbar).addKeyListener(ijApp);
+        ((JToolBar) toolbar).addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         frame.add((JToolBar) toolbar);
     }
 
@@ -83,7 +77,7 @@ public class TopComponentSwing //extends Frame
         statusLine.addMouseListener(this);
         statusBar.add("Center", statusLine);
         progressBar = IJ.getFactory().newProgressBar(120, 20);
-        ((JProgressBar) progressBar).addKeyListener(ijApp);
+        ((JProgressBar) progressBar).addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         ((JProgressBar) progressBar).addMouseListener(this);
         statusBar.add("East", (JProgressBar) progressBar);
 

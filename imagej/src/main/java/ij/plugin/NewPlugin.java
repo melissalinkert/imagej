@@ -153,6 +153,12 @@ public class NewPlugin implements PlugIn {
 		text += "\n";
 		text += "}\n";
 
+        // @todo: Discover possible Java Editors...
+        // Use @ServiceProvider(service="JavaEditor")
+        // interface JavaEditor {
+        // public class Editor extends PlugInFrame
+        //   implements ActionListener, ItemListener, TextListener, ClipboardOwner, MacroConstants {
+        //}
 		if (IJ.runFijiEditor(pluginName, text))
 			return;
 

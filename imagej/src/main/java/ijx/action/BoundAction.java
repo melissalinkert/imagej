@@ -18,7 +18,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
 package ijx.action;
 
 import java.awt.event.ActionEvent;
@@ -44,8 +43,7 @@ import javax.swing.event.EventListenerList;
  * @author Mark Davidson
  */
 public class BoundAction extends AbstractActionExt {
-    private static final Logger LOG = Logger.getLogger(BoundAction.class
-            .getName());
+    private static final Logger LOG = Logger.getLogger(BoundAction.class.getName());
     // Holds the listeners
     private EventListenerList listeners;
 
@@ -96,15 +94,12 @@ public class BoundAction extends AbstractActionExt {
         if (elems.length == 2) {
             try {
                 Class<?> clz = Class.forName(elems[0]);
-
-                // May throw a security exception in an Applet
-                // context.
+                // May throw a security exception in an Applet context.
                 Object obj = clz.newInstance();
-
                 registerCallback(obj, elems[1]);
             } catch (Exception ex) {
                 LOG.fine("ERROR: setCallback(" + callback
-                                   + ") - " + ex.getMessage());
+                        + ") - " + ex.getMessage());
             }
         }
     }
@@ -128,11 +123,11 @@ public class BoundAction extends AbstractActionExt {
             addItemListener(new BooleanInvocationHandler(handler, method));
         } else {
             // Create a new ActionListener using the dynamic proxy api.
-            addActionListener((ActionListener)EventHandler.create(ActionListener.class,
-                                                                  handler, method));
+            addActionListener((ActionListener) EventHandler.create(ActionListener.class,
+                    handler, method));
         }
     }
-    
+
     /**
      * The callback for the toggle/state changed action that invokes a method 
      * with a boolean argument on a target.
@@ -140,17 +135,13 @@ public class BoundAction extends AbstractActionExt {
      * TODO: should reimplement this class as something that can be persistable.
      */
     private class BooleanInvocationHandler implements ItemListener {
-
         private Statement falseStatement;
         private Statement trueStatement;
 
         public BooleanInvocationHandler(Object target, String methodName) {
             // Create the true and false statements.
-            falseStatement = new Statement(target, methodName, 
-                                           new Object[] { Boolean.FALSE });
-            
-            trueStatement = new Statement(target, methodName, 
-                                          new Object[] { Boolean.TRUE });
+            falseStatement = new Statement(target, methodName, new Object[]{Boolean.FALSE});
+            trueStatement = new Statement(target, methodName, new Object[]{Boolean.TRUE});
         }
 
         public void itemStateChanged(ItemEvent evt) {
@@ -162,18 +153,17 @@ public class BoundAction extends AbstractActionExt {
             } catch (Exception ex) {
                 LOG.log(Level.FINE,
                         "Couldn't execute boolean method via Statement "
-                                + statement, ex);
+                        + statement, ex);
             }
         }
     }
 
     // Listener registration...
-
     private <T extends EventListener> void addListener(Class<T> clz, T listener) {
         if (listeners == null) {
             listeners = new EventListenerList();
         }
-        listeners.add(clz, listener);        
+        listeners.add(clz, listener);
     }
 
     private <T extends EventListener> void removeListener(Class<T> clz, T listener) {
@@ -201,7 +191,7 @@ public class BoundAction extends AbstractActionExt {
     }
 
     public ActionListener[] getActionListeners() {
-        return (ActionListener[])getListeners(ActionListener.class);
+        return (ActionListener[]) getListeners(ActionListener.class);
     }
 
     /**
@@ -216,18 +206,17 @@ public class BoundAction extends AbstractActionExt {
     }
 
     public ItemListener[] getItemListeners() {
-        return (ItemListener[])getListeners(ItemListener.class);
+        return (ItemListener[]) getListeners(ItemListener.class);
     }
 
     // Callbacks...
-
     /**
      * Callback for command actions.
      */
     public void actionPerformed(ActionEvent evt) {
         ActionListener[] alist = getActionListeners();
         if (alist != null) {
-            for (int i = 0 ; i < alist.length; i++) {
+            for (int i = 0; i < alist.length; i++) {
                 alist[i].actionPerformed(evt);
             }
         }
@@ -256,5 +245,4 @@ public class BoundAction extends AbstractActionExt {
             }
         }
     }
-
 }

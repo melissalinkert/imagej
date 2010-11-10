@@ -1,9 +1,6 @@
 package ijx.gui;
 
 import ij.gui.*;
-import ijx.gui.IjxStackWindow;
-import ijx.gui.IjxImageCanvas;
-import ijx.app.IjxApplication;
 import ijx.IjxImagePlus;
 import ij.*;
 import ijx.IjxImageStack;
@@ -29,6 +26,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
 
     public AbstractStackWindow(IjxImagePlus _imp, IjxImageCanvas _ic, Container window) {
         super(_imp, _ic, window);
+        //
         addScrollbars(imp);
         displayWindow.addMouseWheelListener(this);
         if (sliceSelector == null && this.getClass().getName().indexOf("Image5D") != -1) {
@@ -38,20 +36,12 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
         ic = imp.getCanvas();
         if (ic == null) {
             ic = IJ.getFactory().newImageCanvas(imp);
-            //newCanvas = true;
+            // newCanvas = true;
         }
         if (ic != null) {
             ic.setMaxBounds();
         }
-        // @todo also handle JInternalframe
-        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
-            ((Frame) displayWindow).pack();
-            ((Frame) displayWindow).show();
-        }
-        if (displayWindow instanceof JInternalFrame) {
-            ((JInternalFrame) displayWindow).pack();
-            ((JInternalFrame) displayWindow).show();
-        }
+        packAndShow(displayWindow);
         int previousSlice = imp.getCurrentSlice();
         if (previousSlice > 1 && previousSlice <= imp.getStackSize()) {
             imp.setSlice(previousSlice);
@@ -93,7 +83,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
             cSelector = new ScrollbarWithLabel(this, 1, 1, 1, nChannels + 1, 'c');
             displayWindow.add(cSelector);
             if (ij != null) {
-                cSelector.addKeyListener(ij);
+                cSelector.addKeyListener(keyHandler);
             }
             cSelector.addAdjustmentListener(this);
             cSelector.setFocusable(false); // prevents scroll bar from blinking on Windows
@@ -111,7 +101,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
             }
             displayWindow.add(zSelector);
             if (ij != null) {
-                zSelector.addKeyListener(ij);
+                zSelector.addKeyListener(keyHandler);
             }
             zSelector.addAdjustmentListener(this);
             zSelector.setFocusable(false);
@@ -127,7 +117,7 @@ public class AbstractStackWindow extends AbstractImageWindow implements IjxStack
             animationSelector = tSelector = new ScrollbarWithLabel(this, 1, 1, 1, nFrames + 1, 't');
             add(tSelector);
             if (ij != null) {
-                tSelector.addKeyListener(ij);
+                tSelector.addKeyListener(keyHandler);
             }
             tSelector.addAdjustmentListener(this);
             tSelector.setFocusable(false);

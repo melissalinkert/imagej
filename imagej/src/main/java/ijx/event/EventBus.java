@@ -17,7 +17,7 @@ From http://netbeans.dzone.com/news/publish-subscribe-netbeans-pla
         }
     };
 
- Copy/Paste:
+ Copy/Paste this:
  EventBus.getDefault().subscribe(<topic>.class, listener);
 
     private final EventBusListener<Topic> listener = new EventBusListener<Topic>() {

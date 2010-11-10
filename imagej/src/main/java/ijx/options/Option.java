@@ -1,5 +1,5 @@
 
-package ijx.app;
+package ijx.options;
 
 
 import org.openide.util.lookup.ServiceProvider;

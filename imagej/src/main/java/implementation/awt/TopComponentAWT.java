@@ -5,7 +5,6 @@
 package implementation.awt;
 
 import ij.IJ;
-import ij.Menus;
 import ij.Prefs;
 import ij.Undo;
 import ij.WindowManager;
@@ -14,6 +13,7 @@ import ijx.app.IjxApplication;
 import ij.gui.ProgressBar;
 import ijx.CentralLookup;
 import ijx.IjxTopComponent;
+import ijx.app.KeyboardHandler;
 import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
 import ijx.event.StatusMessage;
@@ -27,7 +27,6 @@ import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
 import java.awt.Image;
-import java.awt.Label;
 import java.awt.MenuBar;
 import java.awt.Panel;
 import java.awt.Point;
@@ -68,7 +67,7 @@ public class TopComponentAWT //extends Frame
     }
 
     public void setToolbar(Object toolbar) {
-        ((Canvas) toolbar).addKeyListener(ijApp);
+        ((Canvas) toolbar).addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         frame.add((Canvas) toolbar);
     }
     public void addStatusBar() {
@@ -82,7 +81,7 @@ public class TopComponentAWT //extends Frame
         statusLine.addMouseListener(this);
         statusBar.add("Center", statusLine);
         progressBar = new ProgressBar(120, 20);
-        progressBar.addKeyListener(ijApp);
+        progressBar.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         progressBar.addMouseListener(this);
         statusBar.add("East", progressBar);
         statusBar.setSize(prefSize);

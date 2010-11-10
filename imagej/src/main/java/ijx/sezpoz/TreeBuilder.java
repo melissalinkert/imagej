@@ -5,12 +5,14 @@ import ijx.IjxMenus;
 import ij.Menus;
 import ij.MenusAWT;
 import ij.gui.GUI;
+import ij.plugin.ControlPanel;
 import ij.plugin.PlugIn;
 import ij.util.Java2;
 import ij.util.StringSorter;
 import ijx.CentralLookup;
 import implementation.swing.MenusSwing;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 import java.awt.AWTEventMulticaster;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
@@ -1017,8 +1019,8 @@ class TreePanel implements
         setVisible();
         IjxApplication ij = IJ.getInstance();
         IJ.getTopComponentFrame().addWindowListener(this);
-        pFrame.addKeyListener(ij);
-        pTree.addKeyListener(ij);
+        pFrame.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
+        pTree.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
     }
 
     void addMenu() {

@@ -352,7 +352,7 @@ public class Prefs {
 			int delay = 4000;
 			if (IJ.isVista()) {
 				msg += vistaHint;
-				delay = 4000;
+				delay = 1000;
 			}
 			try {
 				new TextWindow("Error Saving Preferences", msg, 500, 200);

@@ -30,6 +30,7 @@ public class ImageWindowSwing extends JFrame implements IjxImageDisplayWindow {
     }
 
     public void paintComponent(Graphics g) {
+        super.paintComponents(g);
         drawer.paintMe(g);
     }
 }

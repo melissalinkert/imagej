@@ -14,20 +14,23 @@ import java.io.*;
 import ij.util.*;
 import ijx.app.IjxAbstractApplication;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 import ijx.etc.StartupDialog;
-import ijx.event.AppEventType;
 import ijx.event.ApplicationEvent;
 import ijx.event.EventBus;
+import ijx.exec.SwingUtilities;
 import implementation.awt.FactoryAWT;
 import implementation.mdi.FactoryMDI;
+import implementation.mdi.TopComponentMDI;
 import implementation.swing.FactorySwing;
 import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
+import javax.swing.JInternalFrame;
 import javax.swing.JPopupMenu;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 /**
 This frame is the main ImageJ class.
@@ -78,8 +81,8 @@ Example: -run "About ImageJ..."
  */
 public class ImageJX extends IjxAbstractApplication {
     /** SansSerif, 12-point, plain font. */
-
     static String guiMode = null;
+
     /** Creates a new ImageJ frame that runs as an application. */
     public ImageJX() {
         this(null, STANDALONE);
@@ -95,33 +98,64 @@ public class ImageJX extends IjxAbstractApplication {
     version of ImageJ which does not start the SocketListener. */
     public ImageJX(ImageJApplet applet, int mode) {
         //super("ImageJ");
-        System.setProperty("com.apple.macos.useScreenMenuBar","true");
+        // Mac OSX
+        System.setProperty("com.apple.macos.useScreenMenuBar", "true");
+
+
         embedded = applet == null && mode == EMBEDDED;
         this.applet = applet;
         String err1 = Prefs.load(this, applet);
         //
-        if(guiMode.equalsIgnoreCase("AWT")) IJ.setFactory(new FactoryAWT());
-        if(guiMode.equalsIgnoreCase("SDI (Swing)")) IJ.setFactory(new FactorySwing());
-        if(guiMode.equalsIgnoreCase("MDI (Swing)")) IJ.setFactory(new FactoryMDI());
+        if (guiMode == null) {
+            System.exit(999);
+        }
+        if (guiMode.equalsIgnoreCase("AWT")) {
+            IJ.setFactory(new FactoryAWT());
+        }
+        if (guiMode.equalsIgnoreCase("SDI (Swing)")) {
+            IJ.setFactory(new FactorySwing());
+        }
+        if (guiMode.equalsIgnoreCase("MDI (Swing)")) {
+            IJ.setFactory(new FactoryMDI());
+        }
         //
+        // TopComponent...
         IjxTopComponent topComponent = IJ.getFactory().newTopComponent(this, TITLE);
         CentralLookup.getDefault().add(topComponent);
         IJ.init((IjxApplication) this, topComponent, applet);
+        // Menus...
         IjxMenus menus = IJ.getFactory().newMenus(topComponent, this, applet);
         CentralLookup.getDefault().add(menus);
         String err2 = menus.addMenuBar();
         menus.installPopupMenu(this);
-        //
+        // Toolbar...
         IjxToolbar toolbar = IJ.getFactory().newToolBar();
         CentralLookup.getDefault().add(toolbar);
         topComponent.setToolbar(toolbar);
+        // Statusbar...
         topComponent.addStatusBar();
-        topComponent.getFrame().addKeyListener(this);
+        // Keyboard Handler...
+        KeyboardHandler keyHandler = new KeyboardHandler(this);
+        CentralLookup.getDefault().add(keyHandler);
+        topComponent.getFrame().addKeyListener(keyHandler);
+        //
         if (IJ.isLinux()) {
             Color backgroundColor = new Color(240, 240, 240);
             topComponent.setBackground(backgroundColor);
         }
         topComponent.finishAndShow();
+//        try {
+//            JInternalFrame frame = new JInternalFrame("test",
+//                    true, //resizable
+//                    true, //closable
+//                    true, //maximizable
+//                    true);//iconifiable
+//            frame.setBounds(10, 10, 300, 400);
+//            ((TopComponentMDI) topComponent).getDesktop().add(frame);
+//            frame.setVisible(true);
+//            frame.setSelected(true);
+//        } catch (java.beans.PropertyVetoException pve) {
+//        }
         if (err1 != null) {
             IJ.error(err1);
         }
@@ -155,7 +189,7 @@ public class ImageJX extends IjxAbstractApplication {
     }
 
     public static void main(String args[]) {
-        EventBus.getDefault().publish(new ApplicationEvent(AppEventType.STARTING));
+        EventBus.getDefault().publish(new ApplicationEvent(ApplicationEvent.Type.STARTING));
 
         if (System.getProperty("java.version").substring(0, 3).compareTo("1.4") < 0) {
             javax.swing.JOptionPane.showMessageDialog(null, "ImageJ " + VERSION + " requires Java 1.4.1 or later.");
@@ -192,29 +226,41 @@ public class ImageJX extends IjxAbstractApplication {
         if (nArgs > 0 && !noGUI && (mode == STANDALONE) && isRunning(args)) {
             return;
         }
-        try { // For Demo / Testing, Dialog to select GUI mode.
-            java.awt.EventQueue.invokeAndWait(new Runnable() {
-                public void run() {
-                    StartupDialog dialog = new StartupDialog(new javax.swing.JFrame(), "ImageJX Statup", true);
-                    dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-                        public void windowClosing(java.awt.event.WindowEvent e) {
-                            System.exit(0);
-                        }
-                    });
-                    dialog.setVisible(true);
-                    int ret = dialog.getReturnStatus();
-                    guiMode = dialog.getMode();
-                }
-            });
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ImageJX.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InvocationTargetException ex) {
-            Logger.getLogger(ImageJX.class.getName()).log(Level.SEVERE, null, ex);
+        //guiMode = "SDI (Swing)";
+        if (true) { //isSelectModeDialog()
+            try { // For Demo / Testing, Dialog to select GUI mode.
+                java.awt.EventQueue.invokeAndWait(new Runnable() {
+                    public void run() {
+                        StartupDialog dialog = new StartupDialog(new javax.swing.JFrame(), "ImageJX Startup", true);
+                        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                            public void windowClosing(java.awt.event.WindowEvent e) {
+                                System.exit(0);
+                            }
+                        });
+                        dialog.setVisible(true);
+                        int ret = dialog.getReturnStatus();
+                        guiMode = dialog.getMode();
+                    }
+                });
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ImageJX.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InvocationTargetException ex) {
+                Logger.getLogger(ImageJX.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            guiMode = "AWT";
         }
+
         IjxApplication ij = IJ.getInstance();
         if (!noGUI && (ij == null || (ij != null && !IJ.getTopComponentFrame().isShowing()))) {
-            ij = new ImageJX(null, mode);
-            ij.exitWhenQuitting(true);
+            final int mode_ = mode;
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    setupUI();
+                    IjxApplication ij = new ImageJX(null, mode_);
+                    ij.exitWhenQuitting(true);
+                }
+            });
         }
         int macros = 0;
         for (int i = 0; i < nArgs; i++) {
@@ -251,12 +297,34 @@ public class ImageJX extends IjxAbstractApplication {
     }
 
     private static void setupUI() {
-//        JFrame.setDefaultLookAndFeelDecorated(true);
-//        // If Globally using heavyweight components:
-//        JPopupMenu.setDefaultLightWeightPopupEnabled(false);
-//        ToolTipManager.sharedInstance().setLightWeightPopupEnabled(false);
-//        // Use Auditory Queues
-//        UIManager.put("AuditoryCues.playList", UIManager.get("AuditoryCues.defaultCueList"));
+        try {
+            //JFrame.setDefaultLookAndFeelDecorated(true);
+            // If Globally using heavyweight components:
+            JPopupMenu.setDefaultLightWeightPopupEnabled(false);
+            ToolTipManager.sharedInstance().setLightWeightPopupEnabled(false);
+            // Use Auditory Queues
+            UIManager.put("AuditoryCues.playList", UIManager.get("AuditoryCues.defaultCueList"));
+            //UIManager.setLookAndFeel("org.pushingpixels.substance.api.skin.SubstanceGraphiteLookAndFeel");
+            //UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            //UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
+            //UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+
+
+//            // Nimbus
+//            // http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/nimbus.html
+            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                System.out.println(info.getName());
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+
+
     }
 //	void configureProxy() {
 //		String server = Prefs.get("proxy.server", null);

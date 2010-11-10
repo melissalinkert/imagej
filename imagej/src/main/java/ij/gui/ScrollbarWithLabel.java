@@ -1,5 +1,7 @@
 package ij.gui;
 import ij.IJ;
+import ijx.CentralLookup;
+import ijx.app.KeyboardHandler;
 import ijx.gui.IjxStackWindow;
 import java.awt.*;
 import java.awt.event.*;
@@ -27,7 +29,7 @@ public class ScrollbarWithLabel extends Panel implements Adjustable, AdjustmentL
 		add(icon, BorderLayout.WEST);
 		add(bar, BorderLayout.CENTER);
 		bar.addAdjustmentListener(this);
-		addKeyListener(IJ.getInstance()); 
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 	}
 	
 	/* (non-Javadoc)
@@ -148,7 +150,7 @@ public class ScrollbarWithLabel extends Panel implements Adjustable, AdjustmentL
 
 		public Icon(char type) {
 			addMouseListener(this);
-			addKeyListener(IJ.getInstance()); 
+            addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 			setSize(WIDTH, HEIGHT);
 			this.type = type;
 		}

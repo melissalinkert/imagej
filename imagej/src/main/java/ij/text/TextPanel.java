@@ -13,6 +13,8 @@ import ij.measure.ResultsTable;
 import ij.util.Tools;
 import ij.plugin.frame.Recorder;
 import ij.gui.GenericDialog;
+import ijx.CentralLookup;
+import ijx.app.KeyboardHandler;
 
 
 /**
@@ -71,8 +73,8 @@ public class TextPanel extends Panel implements AdjustmentListener,
 		sbVert.setFocusable(false);
 		IjxApplication ij = IJ.getInstance();
 		if (ij!=null) {
-			sbHoriz.addKeyListener(ij);
-			sbVert.addKeyListener(ij);
+			sbHoriz.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
+			sbVert.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		}
 		add("East", sbVert);
 		addPopupMenu();

@@ -32,7 +32,6 @@ import java.awt.Image;
 import java.awt.image.ColorModel;
 import java.util.Map;
 import javax.swing.Action;
-import javax.swing.JFrame;
 import net.java.sezpoz.IndexItem;
 
 /**
@@ -128,38 +127,28 @@ public class FactoryMDI implements IjxFactory {
 
     public IjxImageWindow newImageWindow(String title) {
         AbstractImageWindow internalWindow = new AbstractImageWindow(title, (Container) new ImageWindowMDI());
-        TopComponentMDI top = (TopComponentMDI) CentralLookup.getDefault().lookup(IjxTopComponent.class);
-        top.getDesktop().add(internalWindow.getContainer());
         return internalWindow;
     }
 
     public IjxImageWindow newImageWindow(IjxImagePlus imp) {
         AbstractImageWindow internalWindow = new AbstractImageWindow(imp, (Container) new ImageWindowMDI());
-        TopComponentMDI top = (TopComponentMDI) CentralLookup.getDefault().lookup(IjxTopComponent.class);
-        top.getDesktop().add(internalWindow.getContainer());
         return internalWindow;
     }
 
     public IjxImageWindow newImageWindow(IjxImagePlus imp, IjxImageCanvas ic) {
         AbstractImageWindow internalWindow = new AbstractImageWindow(imp, ic, (Container) new ImageWindowMDI());
-        TopComponentMDI top = (TopComponentMDI) CentralLookup.getDefault().lookup(IjxTopComponent.class);
-        top.getDesktop().add(internalWindow.getContainer());
         return internalWindow;
     }
 
     @Override
     public IjxImageWindow newStackWindow(IjxImagePlus imp) {
         AbstractStackWindow internalWindow = new AbstractStackWindow(imp, (Container) new ImageWindowMDI());
-        TopComponentMDI top = (TopComponentMDI) CentralLookup.getDefault().lookup(IjxTopComponent.class);
-        top.getDesktop().add(internalWindow.getContainer());
         return internalWindow;
     }
 
     @Override
     public IjxImageWindow newStackWindow(IjxImagePlus imp, IjxImageCanvas ic) {
         AbstractStackWindow internalWindow = new AbstractStackWindow(imp, ic, (Container) new ImageWindowMDI());
-        TopComponentMDI top = (TopComponentMDI) CentralLookup.getDefault().lookup(IjxTopComponent.class);
-        top.getDesktop().add(internalWindow.getContainer());
         return internalWindow;
     }
 

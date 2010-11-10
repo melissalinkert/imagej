@@ -20,6 +20,7 @@ public class ImageWindowMDI extends JInternalFrame implements IjxImageDisplayWin
                 true, //closable
                 true, //maximizable
                 true);//iconifiable
+
         //setLocation(xOffset*openFrameCount, yOffset*openFrameCount);
 
     }
@@ -28,17 +29,18 @@ public class ImageWindowMDI extends JInternalFrame implements IjxImageDisplayWin
         this.drawer = _drawer;
     }
 
-    @Override
-    public void update(Graphics g) {
-        paintComponent(g);
-    }
-
-    @Override
-    public void paint(Graphics g) {
-        paintComponent(g);
-    }
-
-    public void paintComponent(Graphics g) {
-        drawer.paintMe(g);
-    }
+//    @Override
+//    public void update(Graphics g) {
+//        paintComponent(g);
+//    }
+//
+//    @Override
+//    public void paint(Graphics g) {
+//        paintComponent(g);
+//    }
+//
+//    public void paintComponent(Graphics g) {
+//        super.paintComponent(g);
+//        drawer.paintMe(g);
+//    }
 }

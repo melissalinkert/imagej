@@ -57,6 +57,7 @@ public class ImagePanelSwing extends JPanel implements IjxImageDisplayPanel {
 
     @Override
     public void paintComponent(Graphics g) {
+        super.paintComponent(g);
         drawer.paintMe(g);
     }
 }

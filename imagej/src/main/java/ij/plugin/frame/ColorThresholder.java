@@ -7,9 +7,11 @@ import java.awt.image.*;
 import java.awt.event.*;
 import ij.measure.*;
 import ij.plugin.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 
 /*	This plugin isolates pixels in an RGB image or stack according to a range of Hue.
 	Original PassBand2 by Bob Dougherty. Some code borrowed from ThresholdAdjuster by Wayne Rasband.
@@ -357,30 +359,30 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		originalB = new Button("Original");
 		originalB.setEnabled(false);
 		originalB.addActionListener(this);
-		originalB.addKeyListener(ij);
+		originalB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(originalB);
 
 		filteredB = new Button("Filtered");
 		filteredB.setEnabled(false);
 		filteredB.addActionListener(this);
-		filteredB.addKeyListener(ij);
+		filteredB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(filteredB);
 
 		stackB = new Button("Stack");
 		stackB.addActionListener(this);
-		stackB.addKeyListener(ij);
+		stackB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(stackB);
 
 
 		macroB = new Button("Macro");
 		macroB.addActionListener(this);
-		macroB.addKeyListener(ij);
+		macroB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(macroB);
 
 
 		helpB = new Button("Help");
 		helpB.addActionListener(this);
-		helpB.addKeyListener(ij);
+		helpB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(helpB);
 
 
@@ -396,7 +398,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 /*
 		newB = new Button("New");
 		newB.addActionListener(this);
-		newB.addKeyListener(ij);
+		newB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(newB);
 
 		c.gridx = 0;
@@ -411,7 +413,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 
 		sampleB = new Button("Sample");
 		sampleB.addActionListener(this);
-		sampleB.addKeyListener(ij);
+		sampleB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panelMode.add(sampleB);
 
 		colourMode = new CheckboxGroup();
@@ -441,7 +443,7 @@ public class ColorThresholder extends PlugInFrame implements PlugIn, Measurement
 		c.insets = new Insets(0, 0, 0, 0);
 		add(panelMode, c);
 
-		addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+		addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));  // ImageJ handles keyboard shortcuts
 		pack();
 		GUI.center(this);
 		setVisible(true);

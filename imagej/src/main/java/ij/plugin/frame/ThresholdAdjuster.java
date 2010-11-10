@@ -8,8 +8,10 @@ import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
 import ij.plugin.filter.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 
 /** Adjusts the lower and upper threshold levels of the active image. This
 	class is multi-threaded to provide a more responsive user interface. */
@@ -93,7 +95,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		c.anchor = GridBagConstraints.CENTER;
 		c.insets = new Insets(10, 10, 0, 10);
 		add(plot, c);
-		plot.addKeyListener(ij);
+		plot.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		
 		// minThreshold slider
 		minSlider = new Scrollbar(Scrollbar.HORIZONTAL, sliderRange/3, 1, 0, sliderRange);
@@ -105,7 +107,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		c.insets = new Insets(5, 10, 0, 0);
 		add(minSlider, c);
 		minSlider.addAdjustmentListener(this);
-		minSlider.addKeyListener(ij);
+		minSlider.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		minSlider.setUnitIncrement(1);
 		minSlider.setFocusable(false);
 		
@@ -127,7 +129,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		c.insets = new Insets(0, 10, 0, 0);
 		add(maxSlider, c);
 		maxSlider.addAdjustmentListener(this);
-		maxSlider.addKeyListener(ij);
+		maxSlider.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		maxSlider.setUnitIncrement(1);
 		maxSlider.setFocusable(false);
 		
@@ -147,14 +149,14 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 			methodChoice.addItem(methodNames[i]);
 		methodChoice.select(method);
 		methodChoice.addItemListener(this);
-		//methodChoice.addKeyListener(ij);
+		//methodChoice.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(methodChoice);
 		modeChoice = new Choice();
 		for (int i=0; i<modes.length; i++)
 			modeChoice.addItem(modes[i]);
 		modeChoice.select(mode);
 		modeChoice.addItemListener(this);
-		//modeChoice.addKeyListener(ij);
+		//modeChoice.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(modeChoice);
 		c.gridx = 0;
 		c.gridy = y++;
@@ -179,19 +181,19 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		panel = new Panel();
 		autoB = new TrimmedButton("Auto",trim);
 		autoB.addActionListener(this);
-		autoB.addKeyListener(ij);
+		autoB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(autoB);
 		applyB = new TrimmedButton("Apply",trim);
 		applyB.addActionListener(this);
-		applyB.addKeyListener(ij);
+		applyB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(applyB);
 		resetB = new TrimmedButton("Reset",trim);
 		resetB.addActionListener(this);
-		resetB.addKeyListener(ij);
+		resetB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(resetB);
 		setB = new TrimmedButton("Set",trim);
 		setB.addActionListener(this);
-		setB.addKeyListener(ij);
+		setB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(setB);
 		c.gridx = 0;
 		c.gridy = y++;
@@ -199,7 +201,7 @@ public class ThresholdAdjuster extends PlugInFrame implements PlugIn, Measuremen
 		c.insets = new Insets(0, 5, 10, 5);
 		add(panel, c);
 		
- 		addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+ 		addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));  // ImageJ handles keyboard shortcuts
 		pack();
 		Point loc = Prefs.getLocation(LOC_KEY);
 		if (loc!=null)

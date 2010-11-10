@@ -13,6 +13,7 @@ import ij.macro.*;
 import ij.*;
 import ij.util.*;
 import ijx.CentralLookup;
+import ijx.app.KeyboardHandler;
 import ijx.gui.IjxStackWindow;
 import java.awt.event.*;
 import java.util.*;
@@ -81,7 +82,7 @@ public class ImageCanvas extends Canvas implements IjxImageCanvas {
         magnification = 1.0;
         addMouseListener(this);
         addMouseMotionListener(this);
-        addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         setFocusTraversalKeysEnabled(false);
     }
 

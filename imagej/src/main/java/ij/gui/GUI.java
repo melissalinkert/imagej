@@ -1,6 +1,8 @@
 package ij.gui;
 import java.awt.*;
 import ij.*;
+import ijx.CentralLookup;
+import ijx.IjxTopComponent;
 import javax.swing.JInternalFrame;
 
 /** This class consists of static GUI utility methods. */
@@ -17,9 +19,10 @@ public class GUI {
 		if (top<0) top = 0;
 		w.setLocation(left, top);
 	}
+
 	public static void center(JInternalFrame w) {
-        // @todo
-		Dimension screen = IJ.getScreenSize();
+        IjxTopComponent topC = CentralLookup.getDefault().lookup(IjxTopComponent.class);
+		Dimension screen = new Dimension((int)  topC.getSize().getWidth(), (int)topC.getSize().getHeight());
 		Dimension window = w.getSize();
 		if (window.width==0)
 			return;

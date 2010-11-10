@@ -60,6 +60,7 @@ import ij.util.Tools;
 import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 import java.awt.BasicStroke;
 import java.awt.Canvas;
 import java.awt.Color;
@@ -143,6 +144,7 @@ public class AbstractImageCanvas
     protected double magnification;
     protected int dstWidth, dstHeight;
     IjxToolbar toolbar = ((IjxToolbar) CentralLookup.getDefault().lookup(IjxToolbar.class));
+    KeyboardHandler keyHandler  = CentralLookup.getDefault().lookup(KeyboardHandler.class);
 
     public AbstractImageCanvas(IjxImagePlus _imp, Component component) {
         this.imp = _imp;
@@ -160,7 +162,7 @@ public class AbstractImageCanvas
         magnification = 1.0;
         panel.addMouseListener(this);
         panel.addMouseMotionListener(this);
-        panel.addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+        panel.addKeyListener(keyHandler);  // ImageJ handles keyboard shortcuts
         panel.setFocusTraversalKeysEnabled(false);
         ((IjxImageDisplayPanel) panel).setDrawingDelegate(this);
     }
@@ -697,7 +699,8 @@ public class AbstractImageCanvas
     public void resizeCanvas(int width, int height) {
         IjxImageWindow win = (IjxImageWindow) imp.getWindow();
         //IJ.log("resizeCanvas: "+srcRect+" "+imageWidth+"  "+imageHeight+" "+width+"  "+height+" "+dstWidth+"  "+dstHeight+" "+win.maxBounds);
-        if (!maxBoundsReset && (width > dstWidth || height > dstHeight) && win != null && win.getMaximumBounds() != null && width != win.getMaximumBounds().width - 10) {
+        if (!maxBoundsReset && (width > dstWidth || height > dstHeight) &&
+                win != null && win.getMaximumBounds() != null && width != win.getMaximumBounds().width - 10) {
             if (resetMaxBoundsCount != 0) {
                 resetMaxBounds(); // Works around problem that prevented window from being larger than maximized size
             }

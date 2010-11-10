@@ -2,11 +2,16 @@ package ij.plugin.frame;
 import ij.*;
 import ij.plugin.*;
 import ij.gui.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
+import ijx.app.KeyboardHandler;
 import java.awt.*;
 import java.awt.event.*;
 
 /** Displays the ImageJ Channels window. */
+/*
+ * This is a singleton...
+ */
 public class Channels extends PlugInFrame implements PlugIn, ItemListener, ActionListener {
 
 	private static String[] modes = {"Composite", "Color", "Grayscale"};
@@ -79,7 +84,7 @@ public class Channels extends PlugInFrame implements PlugIn, ItemListener, Actio
 			addPopupItem(menuItems[i]);
 		add(pm);
 
-		addKeyListener(IJ.getInstance());  // ImageJ handles keyboard shortcuts
+		addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));  // ImageJ handles keyboard shortcuts
 		setResizable(false);
 		pack();
 		if (location==null) {

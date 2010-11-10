@@ -10,8 +10,10 @@ import ij.text.*;
 import ij.macro.*;
 import ij.plugin.MacroInstaller;
 import ij.io.SaveDialog;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 
 /** This is a simple TextArea based editor for editing and compiling plugins. */
 public class Editor extends PlugInFrame implements ActionListener, ItemListener,
@@ -91,7 +93,7 @@ public class Editor extends PlugInFrame implements ActionListener, ItemListener,
 		ta = new TextArea(rows, columns);
 		ta.addTextListener(this);
 		if (IJ.isLinux()) ta.setBackground(Color.white);
- 		addKeyListener(IJ.getInstance());  // ImageJ handles keyboard shortcuts
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		add(ta);
 		pack();
 		if (fontSize<0) fontSize = 0;

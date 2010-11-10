@@ -47,6 +47,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 
 /**
  *
@@ -61,19 +62,16 @@ public class IjxAbstractApplication implements IjxApplication {
     protected Vector classes = new Vector();
     protected boolean exitWhenQuitting;
     protected boolean quitting;
-    protected long keyPressedTime, actionPerformedTime;
-    protected String lastKeyCommand;
-    boolean hotkey;
+    protected long actionPerformedTime;
+    //boolean hotkey;
     protected IjxTopComponent topComponent;
     protected boolean embedded;
     protected static String iconPath;
     protected static boolean prefsLoaded;
     private static IjxImagePlus clipboard;
-
     public static final String TITLE = "ImageJX";
     public static final String VERSION = "0.10a";
     public static final String BUILD = "";
-
 
     /** Returns the internal clipboard or null if the internal clipboard is empty. */
     public IjxImagePlus getClipboard() {
@@ -167,7 +165,7 @@ public class IjxAbstractApplication implements IjxApplication {
 
     /** Starts executing a menu command in a separate thread. */
     public void doCommand(String name) {
-        new Executer(name, null);
+        new Executer(name).run();
     }
 
     public void runFilterPlugIn(Object theFilter, String cmd, String arg) {
@@ -219,13 +217,15 @@ public class IjxAbstractApplication implements IjxApplication {
                 return;
             }
         }
-        hotkey = false;
+        KeyboardHandler keyHandler = CentralLookup.getDefault().lookup(KeyboardHandler.class);
+        keyHandler.setHotkey(false);
         actionPerformedTime = System.currentTimeMillis();
-        long ellapsedTime = actionPerformedTime - keyPressedTime;
-        if (cmd != null && (ellapsedTime >= 200L || !cmd.equals(lastKeyCommand))) {
+        long ellapsedTime = actionPerformedTime
+                - CentralLookup.getDefault().lookup(KeyboardHandler.class).getKeyPressedTime();
+        if (cmd != null && (ellapsedTime >= 200L || !cmd.equals(keyHandler.getLastKeyCommand()))) {
             doCommand(cmd);
         }
-        lastKeyCommand = null;
+        keyHandler.setLastKeyCommand(null);
         if (IJ.debugMode) {
             IJ.log("actionPerformed: time=" + ellapsedTime + ", " + e);
         }
@@ -243,230 +243,23 @@ public class IjxAbstractApplication implements IjxApplication {
             } else {
                 doCommand(cmd);
             }
-        } else if (menus instanceof MenusSwing) {
+        }
+        /*else if (menus instanceof MenusSwing) {
             JMenuItem item = (JMenuItem) e.getSource();
             // if the source of event is the Window menu,
             Object o = item.getParent();
             JComponent parent = (JComponent) item.getParent();
-            String cmd = e.getItem().toString();
+            String cmd = item.getActionCommand();
             // ClassCastException: javax.swing.JPopupMenu cannot be cast to javax.swing.JMenu
-            if (parent == (JMenu)menus.getWindowMenu()) {
+            Object winmenu = menus.getWindowMenu();
+            if ((JPopupMenu)parent == (JPopupMenu) menus.getWindowMenu()) {
                 WindowManager.activateWindow(cmd, item);
             } else {
                 doCommand(cmd);
             }
         }
+    */
 
-    }
-
-    public void keyPressed(KeyEvent e) {
-        int keyCode = e.getKeyCode();
-        IJ.setKeyDown(keyCode);
-        hotkey = false;
-        if (keyCode == e.VK_CONTROL || keyCode == e.VK_SHIFT) {
-            return;
-        }
-        char keyChar = e.getKeyChar();
-        int flags = e.getModifiers();
-        if (IJ.debugMode) {
-            IJ.log("keyPressed: code=" + keyCode + " (" + KeyEvent.getKeyText(keyCode) + "), char=\""
-                    + keyChar + "\" (" + (int) keyChar + "), flags=" + KeyEvent.getKeyModifiersText(flags));
-        }
-        boolean shift = (flags & e.SHIFT_MASK) != 0;
-        boolean control = (flags & e.CTRL_MASK) != 0;
-        boolean alt = (flags & e.ALT_MASK) != 0;
-        boolean meta = (flags & e.META_MASK) != 0;
-        String cmd = "";
-        IjxImagePlus imp = WindowManager.getCurrentImage();
-        boolean isStack = (imp != null) && (imp.getStackSize() > 1);
-        if (imp != null && !control && ((keyChar >= 32 && keyChar <= 255) || keyChar == '\b' || keyChar == '\n')) {
-            Roi roi = imp.getRoi();
-            if (roi instanceof TextRoi) {
-                if ((flags & e.META_MASK) != 0 && IJ.isMacOSX()) {
-                    return;
-                }
-                if (alt) {
-                    switch (keyChar) {
-                        case 'u':
-                        case 'm':
-                            keyChar = IJ.micronSymbol;
-                            break;
-                        case 'A':
-                            keyChar = IJ.angstromSymbol;
-                            break;
-                        default:
-                    }
-                }
-                ((TextRoi) roi).addChar(keyChar);
-                return;
-            }
-        }
-
-        // Handle one character macro shortcuts
-        if (!control && !meta) {
-            Hashtable macroShortcuts = Menus.getMacroShortcuts();
-            if (macroShortcuts.size() > 0) {
-                if (shift) {
-                    cmd = (String) macroShortcuts.get(new Integer(keyCode + 200));
-                } else {
-                    cmd = (String) macroShortcuts.get(new Integer(keyCode));
-                }
-                if (cmd != null) {
-                    //MacroInstaller.runMacroCommand(cmd);
-                    MacroInstaller.runMacroShortcut(cmd);
-                    return;
-                }
-            }
-        }
-
-        if (!Prefs.requireControlKey || control || meta) {
-            Hashtable shortcuts = Menus.getShortcuts();
-            if (shift) {
-                cmd = (String) shortcuts.get(new Integer(keyCode + 200));
-            } else {
-                cmd = (String) shortcuts.get(new Integer(keyCode));
-            }
-        }
-        if (cmd == null) {
-            switch (keyChar) {
-                case '<':
-                    cmd = "Previous Slice [<]";
-                    break;
-
-                case '>':
-                    cmd = "Next Slice [>]";
-                    break;
-
-                case '+':
-                case '=':
-                    cmd = "In";
-                    break;
-
-                case '-':
-                    cmd = "Out";
-                    break;
-
-                case '/':
-                    cmd = "Reslice [/]...";
-                    break;
-
-                default:
-
-            }
-        }
-        if (cmd == null) {
-            switch (keyCode) {
-                case KeyEvent.VK_TAB:
-                    WindowManager.putBehind();
-                    return;
-
-                case KeyEvent.VK_BACK_SPACE:
-                    cmd = "Clear";
-                    hotkey =
-                            true;
-                    break; // delete
-//case KeyEvent.VK_BACK_SLASH: cmd=IJ.altKeyDown()?"Animation Options...":"Start Animation"; break;
-
-                case KeyEvent.VK_EQUALS:
-                    cmd = "In";
-                    break;
-
-                case KeyEvent.VK_MINUS:
-                    cmd = "Out";
-                    break;
-
-                case KeyEvent.VK_SLASH:
-                case 0xbf:
-                    cmd = "Reslice [/]...";
-                    break;
-
-                case KeyEvent.VK_COMMA:
-                case 0xbc:
-                    cmd = "Previous Slice [<]";
-                    break;
-
-                case KeyEvent.VK_PERIOD:
-                case 0xbe:
-                    cmd = "Next Slice [>]";
-                    break;
-
-                case KeyEvent.VK_LEFT:
-                case KeyEvent.VK_RIGHT:
-                case KeyEvent.VK_UP:
-                case KeyEvent.VK_DOWN: // arrow keys
-                    Roi roi = null;
-                    if (imp != null) {
-                        roi = imp.getRoi();
-                    }
-
-                    if (roi == null) {
-                        return;
-                    }
-
-                    if ((flags & KeyEvent.ALT_MASK) != 0) {
-                        roi.nudgeCorner(keyCode);
-                    } else {
-                        roi.nudge(keyCode);
-                    }
-
-                    return;
-                case KeyEvent.VK_ESCAPE:
-                    abortPluginOrMacro(imp);
-                    return;
-
-                case KeyEvent.VK_ENTER:
-                    IJ.getTopComponentFrame().toFront();
-                    return;
-
-                default:
-
-                    break;
-            }
-
-        }
-
-        if (cmd != null && !cmd.equals("")) {
-            if (cmd.equals("Fill")) {
-                hotkey = true;
-            }
-
-            if (cmd.charAt(0) == MacroInstaller.commandPrefix) {
-                MacroInstaller.runMacroShortcut(cmd);
-            } else {
-                doCommand(cmd);
-                keyPressedTime =
-                        System.currentTimeMillis();
-                lastKeyCommand =
-                        cmd;
-            }
-
-        }
-    }
-
-    public void keyTyped(KeyEvent e) {
-        char keyChar = e.getKeyChar();
-        int flags = e.getModifiers();
-        if (IJ.debugMode) {
-            IJ.log("keyTyped: char=\"" + keyChar + "\" (" + (int) keyChar + "), flags= " + Integer.toHexString(
-                    flags) + " (" + KeyEvent.getKeyModifiersText(flags) + ")");
-        }
-
-        if (keyChar == '\\' || keyChar == 171 || keyChar == 223) {
-            if (((flags & Event.ALT_MASK) != 0)) {
-                doCommand("Animation Options...");
-            } else {
-                doCommand("Start Animation [\\]");
-            }
-
-        }
-    }
-
-    public void keyReleased(KeyEvent e) {
-        IJ.setKeyUp(e.getKeyCode());
-    }
-
-    public boolean isHotkey() {
-        return hotkey;
     }
 
     public void abortPluginOrMacro(IjxImagePlus imp) {
@@ -672,7 +465,6 @@ public class IjxAbstractApplication implements IjxApplication {
         }
     }
 
-
     public ImageIcon getImageIcon() {
         URL url = this.getClass().getResource("/microscope.gif");
         if (url == null) {
@@ -696,7 +488,6 @@ public class IjxAbstractApplication implements IjxApplication {
         return config.createCompatibleImage(w, h);
         //Transparency.OPAQUE);
     }
-
 
     public String getVersion() {
         return VERSION;

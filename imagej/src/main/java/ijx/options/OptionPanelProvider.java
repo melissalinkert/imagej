@@ -1,6 +1,7 @@
 
-package ijx.app;
+package ijx.options;
 
+import ijx.options.OptionPanel;
 import java.awt.Component;
 
 /** a provider of an option panel

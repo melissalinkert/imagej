@@ -20,6 +20,7 @@ import ij.measure.Calibration;
 import ij.measure.ResultsTable;
 import ijx.CentralLookup;
 import ijx.ImageJX;
+import ijx.app.KeyboardHandler;
 import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
 import ijx.event.StatusMessage;
@@ -35,52 +36,40 @@ import java.net.*;
 public class IJ {
     public static final String URL = "http://rsb.info.nih.gov/ij";
     public static final int ALL_KEYS = -1;
-    public static boolean debugMode;
-    public static boolean hideProcessStackDialog;
     public static final char micronSymbol = '\u00B5';
     public static final char angstromSymbol = '\u00C5';
     public static final char degreeSymbol = '\u00B0';
+    //
     private static IjxApplication ij;
     private static IjxTopComponent topComponent;
     private static IjxFactory factory;
     private static ImageJApplet applet;
+    private static ClassLoader classLoader;
+    private static Hashtable commandTable;
+    private static Vector eventListeners = new Vector();
+    private static IjxImagePlus clipboard;
     private static IjxProgressBar progressBar;
     private static TextPanel textPanel;
+    private static TextPanel logPanel;
+    // Environment
     private static String osname, osarch;
     private static boolean isMac, isWin, isJava2, isJava14, isJava15, isJava16, isJava17, isLinux, isVista, is64Bit;
+    //
     private static boolean controlDown, altDown, spaceDown, shiftDown;
     private static boolean macroRunning;
     private static Thread previousThread;
-    private static TextPanel logPanel;
     private static boolean checkForDuplicatePlugins = true;
-    private static ClassLoader classLoader;
     private static boolean memMessageDisplayed;
     private static long maxMemory;
     private static boolean escapePressed;
     private static boolean redirectErrorMessages, redirectErrorMessages2;
     private static boolean suppressPluginNotFoundError;
-    private static Hashtable commandTable;
-    private static Vector eventListeners = new Vector();
-    private static IjxImagePlus clipboard;
     private static boolean centerOnScreen;
+    // public static fields
     public static Color backgroundColor = new Color(220, 220, 220); //224,226,235
+    public static boolean debugMode;
+    public static boolean hideProcessStackDialog;
 
-    static {
-        osname = System.getProperty("os.name");
-        isWin = osname.startsWith("Windows");
-        isMac = !isWin && osname.startsWith("Mac");
-        isLinux = osname.startsWith("Linux");
-        isVista = isWin && (osname.indexOf("Vista") != -1 || osname.indexOf(" 7") != -1);
-        String version = System.getProperty("java.version").substring(0, 3);
-        if (version.compareTo("2.9") <= 0) {  // JVM on Sharp Zaurus PDA claims to be "3.1"!
-            isJava2 = version.compareTo("1.1") > 0;
-            isJava14 = version.compareTo("1.3") > 0;
-            isJava15 = version.compareTo("1.4") > 0;
-            isJava16 = version.compareTo("1.5") > 0;
-            isJava17 = version.compareTo("1.6") > 0;
-        }
-    }
-    
     public static void init(IjxApplication imagej, IjxTopComponent tc, ImageJApplet theApplet) {
         if (theApplet == null) {
             System.setSecurityManager(null);
@@ -101,6 +90,12 @@ public class IJ {
 //        m.addMenuBar();
     }
 
+    /**Returns the Applet that created this ImageJ or null if running as an application.*/
+    public static java.applet.Applet getApplet() {
+        return applet;
+    }
+
+// <editor-fold defaultstate="collapsed" desc=" Ijx... ">
     static void cleanup() {
         ij = null;
         applet = null;
@@ -135,6 +130,8 @@ public class IJ {
         IJ.factory = factory;
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Macro Running ">
     /** Runs the macro contained in the string <code>macro</code>.
     Returns any string value returned by the macro, null if the macro
     does not return a value, or "[aborted]" if the macro was aborted
@@ -178,6 +175,19 @@ public class IJ {
         return runMacroFile(name, null);
     }
 
+    /** Returns true if the run(), open() or newImage() method is executing. */
+    public static boolean macroRunning() {
+        return macroRunning;
+    }
+
+    /** Returns true if a macro is running, or if the run(), open()
+    or newImage() method is executing. */
+    public static boolean isMacro() {
+        return macroRunning || Interpreter.getInstance() != null;
+    }
+
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Pluging Running ">
     /** Runs the specified plugin using the specified image. */
     public static Object runPlugIn(IjxImagePlus imp, String className, String arg) {
         if (imp != null) {
@@ -292,26 +302,8 @@ public class IJ {
         return thePlugIn;
     }
 
-    static void wrongType(int capabilities, String cmd) {
-        String s = "\"" + cmd + "\" requires an image of type:\n \n";
-        if ((capabilities & PlugInFilter.DOES_8G) != 0) {
-            s += "    8-bit grayscale\n";
-        }
-        if ((capabilities & PlugInFilter.DOES_8C) != 0) {
-            s += "    8-bit color\n";
-        }
-        if ((capabilities & PlugInFilter.DOES_16) != 0) {
-            s += "    16-bit grayscale\n";
-        }
-        if ((capabilities & PlugInFilter.DOES_32) != 0) {
-            s += "    32-bit (float) grayscale\n";
-        }
-        if ((capabilities & PlugInFilter.DOES_RGB) != 0) {
-            s += "    RGB color\n";
-        }
-        error(s);
-    }
-
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Command Runners ">
     /** Starts executing a menu command in a separete thread and returns immediately. */
     public static void doCommand(String command) {
         if (ij != null) {
@@ -344,7 +336,7 @@ public class IJ {
                 thread.setName("Run$_" + name);
             }
         }
-        command = convert(command);
+        command = convertRenamedCommands(command);
         previousThread = thread;
         macroRunning = true;
         Executer e = new Executer(command);
@@ -355,9 +347,22 @@ public class IJ {
         //IJ.log("run2: "+command+" "+Thread.currentThread().hashCode());
     }
 
+    /** Runs an ImageJ command using the specified image and options. */
+    public static void run(IjxImagePlus imp, String command, String options) {
+        if (imp != null) {
+            IjxImagePlus temp = WindowManager.getTempCurrentImage();
+            WindowManager.setTempCurrentImage(imp);
+            run(command, options);
+            WindowManager.setTempCurrentImage(temp);
+        } else {
+            run(command, options);
+        }
+    }
+
+// </editor-fold>
     /** Converts commands that have been renamed so
     macros using the old names continue to work. */
-    private static String convert(String command) {
+    private static String convertRenamedCommands(String command) {
         if (commandTable == null) {
             commandTable = new Hashtable(23); // initial capacity should be increased as needed
             commandTable.put("New...", "Image...");
@@ -386,53 +391,7 @@ public class IJ {
         }
     }
 
-    /** Runs an ImageJ command using the specified image and options. */
-    public static void run(IjxImagePlus imp, String command, String options) {
-        if (imp != null) {
-            IjxImagePlus temp = WindowManager.getTempCurrentImage();
-            WindowManager.setTempCurrentImage(imp);
-            run(command, options);
-            WindowManager.setTempCurrentImage(temp);
-        } else {
-            run(command, options);
-        }
-    }
-
-    private static void testAbort() {
-        if (Macro.abort) {
-            abort();
-        }
-    }
-
-    /** Returns true if the run(), open() or newImage() method is executing. */
-    public static boolean macroRunning() {
-        return macroRunning;
-    }
-
-    /** Returns true if a macro is running, or if the run(), open()
-    or newImage() method is executing. */
-    public static boolean isMacro() {
-        return macroRunning || Interpreter.getInstance() != null;
-    }
-
-    /**Returns the Applet that created this ImageJ or null if running as an application.*/
-    public static java.applet.Applet getApplet() {
-        return applet;
-    }
-
-    /**Displays a message in the ImageJ status bar.*/
-    public static void showStatus(String s) {
-        if (ij != null) {
-            //topComponent.showStatus(s);
-            EventBus.getDefault().publish(new StatusMessage(s));
-        }
-        IjxImagePlus imp = WindowManager.getCurrentImage();
-        IjxImageCanvas ic = imp != null ? imp.getCanvas() : null;
-        if (ic != null) {
-            ic.setShowCursorStatus(s.length() == 0 ? true : false);
-        }
-    }
-
+// <editor-fold defaultstate="collapsed" desc=" Results / Log Window ">
     /**
      * @deprecated
      * replaced by IJ.log(), ResultsTable.setResult() and TextWindow.append().
@@ -447,15 +406,6 @@ public class IJ {
             textPanel.append(s);
         } else {
             System.out.println(s);
-        }
-    }
-
-    private static void showResults() {
-        TextWindow resultsWindow = new TextWindow("Results", "", 400, 250);
-        textPanel = resultsWindow.getTextPanel();
-        textPanel.setResultsTable(Analyzer.getResultsTable());
-        if (ij != null) {
-            textPanel.addKeyListener(ij);
         }
     }
 
@@ -578,6 +528,28 @@ public class IJ {
         textPanel = tp;
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Errors ">
+    static void wrongType(int capabilities, String cmd) {
+        String s = "\"" + cmd + "\" requires an image of type:\n \n";
+        if ((capabilities & PlugInFilter.DOES_8G) != 0) {
+            s += "    8-bit grayscale\n";
+        }
+        if ((capabilities & PlugInFilter.DOES_8C) != 0) {
+            s += "    8-bit color\n";
+        }
+        if ((capabilities & PlugInFilter.DOES_16) != 0) {
+            s += "    16-bit grayscale\n";
+        }
+        if ((capabilities & PlugInFilter.DOES_32) != 0) {
+            s += "    32-bit (float) grayscale\n";
+        }
+        if ((capabilities & PlugInFilter.DOES_RGB) != 0) {
+            s += "    RGB color\n";
+        }
+        error(s);
+    }
+
     /**Displays a "no images are open" dialog box.*/
     public static void noImage() {
         error("No Image", "There are no images open.");
@@ -604,9 +576,33 @@ public class IJ {
         Macro.abort();
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Status / Progress IO ">
+    /**Displays a message in the ImageJ status bar.*/
+    public static void showStatus(String s) {
+        if (ij != null) {
+            //topComponent.showStatus(s);
+            EventBus.getDefault().publish(new StatusMessage(s));
+        }
+        IjxImagePlus imp = WindowManager.getCurrentImage();
+        IjxImageCanvas ic = imp != null ? imp.getCanvas() : null;
+        if (ic != null) {
+            ic.setShowCursorStatus(s.length() == 0 ? true : false);
+        }
+    }
+
+    private static void showResults() {
+        TextWindow resultsWindow = new TextWindow("Results", "", 400, 250);
+        textPanel = resultsWindow.getTextPanel();
+        textPanel.setResultsTable(Analyzer.getResultsTable());
+        if (ij != null) {
+            textPanel.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
+        }
+    }
+
     /**	Updates the progress bar, where 0<=progress<=1.0. The progress bar is
     not shown in BatchMode and erased if progress>=1.0. The progress bar is
-    updated only if more than 90 ms have passes since the last call. Does nothing 
+    updated only if more than 90 ms have passes since the last call. Does nothing
     if the ImageJ window is not present. */
     public static void showProgress(double progress) {
         if (progressBar != null) {
@@ -616,7 +612,7 @@ public class IJ {
 
     /**	Updates the progress bar, where the length of the bar is set to
     (<code>currentValue+1)/finalValue</code> of the maximum bar length.
-    The bar is erased if <code>currentValue&gt;=finalValue</code>. 
+    The bar is erased if <code>currentValue&gt;=finalValue</code>.
     The bar is updated only if more than 90 ms have passed since the last call.
     Does nothing if the ImageJ window is not present. */
     public static void showProgress(int currentIndex, int finalIndex) {
@@ -665,6 +661,7 @@ public class IJ {
     console if ImageJ is not present. */
     public static void error(String title, String msg) {
         String title2 = title != null ? title : IJ.getInstance().getTitle();
+        System.err.println("IJ Error: " + title + ": " + msg);
         boolean abortMacro = title != null;
         if (redirectErrorMessages || redirectErrorMessages2) {
             IJ.log(title2 + ": " + msg);
@@ -734,42 +731,6 @@ public class IJ {
         java.awt.Toolkit.getDefaultToolkit().beep();
     }
 
-    /**	Runs the garbage collector and returns a string something
-    like "64K of 256MB (25%)" that shows how much of
-    the  available memory is in use. This is the string
-    displayed when the user clicks in the status bar. */
-    public static String freeMemory() {
-        long inUse = currentMemory();
-        String inUseStr = inUse < 10000 * 1024 ? inUse / 1024L + "K" : inUse / 1048576L + "MB";
-        String maxStr = "";
-        long max = maxMemory();
-        if (max > 0L) {
-            double percent = inUse * 100 / max;
-            maxStr = " of " + max / 1048576L + "MB (" + (percent < 1.0 ? "<1" : d2s(percent, 0)) + "%)";
-        }
-        return inUseStr + maxStr;
-    }
-
-    /** Returns the amount of memory currently being used by ImageJ. */
-    public static long currentMemory() {
-        long freeMem = Runtime.getRuntime().freeMemory();
-        long totMem = Runtime.getRuntime().totalMemory();
-        return totMem - freeMem;
-    }
-
-    /** Returns the maximum amount of memory available to ImageJ or
-    zero if ImageJ is unable to determine this limit. */
-    public static long maxMemory() {
-        if (maxMemory == 0L) {
-            Memory mem = new Memory();
-            maxMemory = mem.getMemorySetting();
-            if (maxMemory == 0L) {
-                maxMemory = mem.maxMemory();
-            }
-        }
-        return maxMemory;
-    }
-
     public static void showTime(IjxImagePlus imp, long start, String str) {
         showTime(imp, start, str, 1);
     }
@@ -793,6 +754,8 @@ public class IJ {
         showStatus(str + seconds + " seconds" + str2);
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Formating, decimal ">
     /** Converts a number to a formatted string using
     2 digits to the right of the decimal point. */
     public static String d2s(double n) {
@@ -864,6 +827,43 @@ public class IJ {
         return df[decimalPlaces].format(n);
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Class management ">
+    /** Returns the class loader ImageJ uses to run plugins or the
+    system class loader if Menus.getPlugInsPath() returns null. */
+    public static ClassLoader getClassLoader() {
+        if (classLoader == null) {
+            String pluginsDir = Menus.getPlugInsPath();
+            if (pluginsDir == null) {
+                String home = System.getProperty("plugins.dir");
+                if (home != null) {
+                    if (!home.endsWith(Prefs.separator)) {
+                        home += Prefs.separator;
+                    }
+                    pluginsDir = home + "plugins" + Prefs.separator;
+                    if (!(new File(pluginsDir)).isDirectory()) {
+                        pluginsDir = home;
+                    }
+                }
+            }
+            if (pluginsDir == null) {
+                return IJ.class.getClassLoader();
+            } else {
+                if (MenusAWT.jnlp) {
+                    classLoader = new PluginClassLoader(pluginsDir, true);
+                } else {
+                    classLoader = new PluginClassLoader(pluginsDir);
+                }
+            }
+        }
+        return classLoader;
+    }
+
+    // GBH: made public for Ijx
+    public static void setClassLoader(ClassLoader loader) {
+        classLoader = loader;
+    }
+
     /** Adds the specified class to a Vector to keep it from being garbage
     collected, which would cause the classes static fields to be reset.
     Probably not needed with Java 1.2 or later. */
@@ -873,6 +873,8 @@ public class IJ {
         }
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Keyboard Input ">
     /** Returns true if the space bar is down. */
     public static boolean spaceBarDown() {
         return spaceDown;
@@ -974,6 +976,82 @@ public class IJ {
         shiftDown = e.isShiftDown();
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Environment ">
+    static {
+        osname = System.getProperty("os.name");
+        isWin = osname.startsWith("Windows");
+        isMac = !isWin && osname.startsWith("Mac");
+        isLinux = osname.startsWith("Linux");
+        isVista = isWin && (osname.indexOf("Vista") != -1 || osname.indexOf(" 7") != -1);
+        String version = System.getProperty("java.version").substring(0, 3);
+        if (version.compareTo("2.9") <= 0) {  // JVM on Sharp Zaurus PDA claims to be "3.1"!
+            isJava2 = version.compareTo("1.1") > 0;
+            isJava14 = version.compareTo("1.3") > 0;
+            isJava15 = version.compareTo("1.4") > 0;
+            isJava16 = version.compareTo("1.5") > 0;
+            isJava17 = version.compareTo("1.6") > 0;
+        }
+    }
+
+    /** Returns the size, in pixels, of the primary display. */
+    public static Dimension getScreenSize() {
+        if (isWindows()) // GraphicsEnvironment.getConfigurations is *very* slow on Windows
+        {
+            return Toolkit.getDefaultToolkit().getScreenSize();
+        }
+        if (GraphicsEnvironment.isHeadless()) {
+            return new Dimension(0, 0);
+        }
+        // Can't use Toolkit.getScreenSize() on Linux because it returns
+        // size of all displays rather than just the primary display.
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice[] gd = ge.getScreenDevices();
+        GraphicsConfiguration[] gc = gd[0].getConfigurations();
+        Rectangle bounds = gc[0].getBounds();
+        if (bounds.x == 0 && bounds.y == 0) {
+            return new Dimension(bounds.width, bounds.height);
+        } else {
+            return Toolkit.getDefaultToolkit().getScreenSize();
+        }
+    }
+
+    /**	Runs the garbage collector and returns a string something
+    like "64K of 256MB (25%)" that shows how much of
+    the  available memory is in use. This is the string
+    displayed when the user clicks in the status bar. */
+    public static String freeMemory() {
+        long inUse = currentMemory();
+        String inUseStr = inUse < 10000 * 1024 ? inUse / 1024L + "K" : inUse / 1048576L + "MB";
+        String maxStr = "";
+        long max = maxMemory();
+        if (max > 0L) {
+            double percent = inUse * 100 / max;
+            maxStr = " of " + max / 1048576L + "MB (" + (percent < 1.0 ? "<1" : d2s(percent, 0)) + "%)";
+        }
+        return inUseStr + maxStr;
+    }
+
+    /** Returns the amount of memory currently being used by ImageJ. */
+    public static long currentMemory() {
+        long freeMem = Runtime.getRuntime().freeMemory();
+        long totMem = Runtime.getRuntime().totalMemory();
+        return totMem - freeMem;
+    }
+
+    /** Returns the maximum amount of memory available to ImageJ or
+    zero if ImageJ is unable to determine this limit. */
+    public static long maxMemory() {
+        if (maxMemory == 0L) {
+            Memory mem = new Memory();
+            maxMemory = mem.getMemorySetting();
+            if (maxMemory == 0L) {
+                maxMemory = mem.maxMemory();
+            }
+        }
+        return maxMemory;
+    }
+
     /** Returns true if this machine is a Macintosh. */
     public static boolean isMacintosh() {
         return isMac;
@@ -1042,52 +1120,66 @@ public class IJ {
         return lessThan;
     }
 
-	/** Displays a "Process all images?" dialog. Returns
-		'flags'+PlugInFilter.DOES_STACKS if the user selects "Yes",
-		'flags' if the user selects "No" and PlugInFilter.DONE
-		if the user selects "Cancel".
-	*/
-	public static int setupDialog(IjxImagePlus imp, int flags) {
-		if (imp==null || (ij!=null&&ij.isHotkey()))
-			return flags;
-		int stackSize = imp.getStackSize();
-		if (stackSize>1) {
-			if (imp.isComposite() && ((CompositeImage)imp).getMode()==CompositeImage.COMPOSITE)
-				return flags+PlugInFilter.DOES_STACKS;
-			String macroOptions = Macro.getOptions();
-			if (macroOptions!=null) {
-				if (macroOptions.indexOf("stack ")>=0)
-					return flags+PlugInFilter.DOES_STACKS;
-				else
-					return flags;
-			}
-			if (hideProcessStackDialog)
-				return flags;
-			String note = ((flags&PlugInFilter.NO_CHANGES)==0)?" There is\nno Undo if you select \"Yes\".":"";
- 			YesNoCancelDialog d = new YesNoCancelDialog(getTopComponentFrame(),
-				"Process Stack?", "Process all "+stackSize+" images?"+note);
-			if (d.cancelPressed())
-				return PlugInFilter.DONE;
-			else if (d.yesPressed()) {
-		    	if (imp.getStack().isVirtual()) {
-		    		int size = (stackSize*imp.getWidth()*imp.getHeight()*imp.getBytesPerPixel()+524288)/1048576;
-		    		String msg =
-						"Custom code is required to process this virtual stack\n"+
-						"(e.g., \"Process Virtual Stack\" macro) or it must be\n"+
-						"converted to a normal stack using Image>Duplicate,\n"+
-						"which will require "+size+"MB of additional memory.";
-		    		error(msg);
-					return PlugInFilter.DONE;
-		    	}
-				if (Recorder.record)
-					Recorder.recordOption("stack");
-				return flags+PlugInFilter.DOES_STACKS;
-			}
-			if (Recorder.record)
-				Recorder.recordOption("slice");
-		}
-		return flags;
-	}
+    /** Returns the ImageJ version number as a string. */
+    public static String getVersion() {
+        return IJ.getInstance().getVersion();
+    }
+
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Drawing ">
+    /** Displays a "Process all images?" dialog. Returns
+    'flags'+PlugInFilter.DOES_STACKS if the user selects "Yes",
+    'flags' if the user selects "No" and PlugInFilter.DONE
+    if the user selects "Cancel".
+     */
+    public static int setupDialog(IjxImagePlus imp, int flags) {
+        if (imp == null
+                || (ij != null && CentralLookup.getDefault().lookup(KeyboardHandler.class).isHotkey())) {
+            return flags;
+        }
+        int stackSize = imp.getStackSize();
+        if (stackSize > 1) {
+            if (imp.isComposite() && ((CompositeImage) imp).getMode() == CompositeImage.COMPOSITE) {
+                return flags + PlugInFilter.DOES_STACKS;
+            }
+            String macroOptions = Macro.getOptions();
+            if (macroOptions != null) {
+                if (macroOptions.indexOf("stack ") >= 0) {
+                    return flags + PlugInFilter.DOES_STACKS;
+                } else {
+                    return flags;
+                }
+            }
+            if (hideProcessStackDialog) {
+                return flags;
+            }
+            String note = ((flags & PlugInFilter.NO_CHANGES) == 0) ? " There is\nno Undo if you select \"Yes\"." : "";
+            YesNoCancelDialog d = new YesNoCancelDialog(getTopComponentFrame(),
+                    "Process Stack?", "Process all " + stackSize + " images?" + note);
+            if (d.cancelPressed()) {
+                return PlugInFilter.DONE;
+            } else if (d.yesPressed()) {
+                if (imp.getStack().isVirtual()) {
+                    int size = (stackSize * imp.getWidth() * imp.getHeight() * imp.getBytesPerPixel() + 524288) / 1048576;
+                    String msg =
+                            "Custom code is required to process this virtual stack\n"
+                            + "(e.g., \"Process Virtual Stack\" macro) or it must be\n"
+                            + "converted to a normal stack using Image>Duplicate,\n"
+                            + "which will require " + size + "MB of additional memory.";
+                    error(msg);
+                    return PlugInFilter.DONE;
+                }
+                if (Recorder.record) {
+                    Recorder.recordOption("stack");
+                }
+                return flags + PlugInFilter.DOES_STACKS;
+            }
+            if (Recorder.record) {
+                Recorder.recordOption("slice");
+            }
+        }
+        return flags;
+    }
 
     /** Creates a rectangular selection. Removes any existing
     selection if width or height are less than 1. */
@@ -1138,6 +1230,8 @@ public class IJ {
         getImage().setRoi(new Line(x1, y1, x2, y2));
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Threshold ">
     /** Sets the minimum and maximum displayed pixel values. */
     public static void setMinAndMax(double min, double max) {
         setMinAndMax(min, max, 7);
@@ -1240,6 +1334,28 @@ public class IJ {
         img.updateAndDraw();
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Selection of Image / Slice / Window ">
+    /** Returns a reference to the active image. Displays an error
+    message and aborts the macro if no images are open. */
+    public static IjxImagePlus getImage() {  //ts
+        IjxImagePlus img = WindowManager.getCurrentImage();
+        if (img == null) {
+            IJ.noImage();
+            if (ij == null) {
+                System.exit(0);
+            } else {
+                abort();
+            }
+        }
+        return img;
+    }
+
+    /** Switches to the specified stack slice, where 1<='slice'<=stack-size. */
+    public static void setSlice(int slice) {
+        getImage().setSlice(slice);
+    }
+
     /** For IDs less than zero, activates the image with the specified ID.
     For IDs greater than zero, activates the Nth image. */
     public static void selectWindow(int id) {
@@ -1323,6 +1439,9 @@ public class IJ {
         }
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Color Set/Get (global, ui)">
+// @todo - Add corresponding getColor methods; don't store it in Toolbar.
     /** Sets the foreground color. */
     public static void setForegroundColor(int red, int green, int blue) {
         setColor(red, green, blue, true);
@@ -1364,6 +1483,8 @@ public class IJ {
         }
     }
 
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Tools / Modes">
     /** Switches to the specified tool, where id = Toolbar.RECTANGLE (0),
     Toolbar.OVAL (1), etc. */
     public static void setTool(int id) {
@@ -1464,31 +1585,8 @@ public class IJ {
         Roi.setPasteMode(m);
     }
 
-    /** Returns a reference to the active image. Displays an error
-    message and aborts the macro if no images are open. */
-    public static IjxImagePlus getImage() {  //ts
-        IjxImagePlus img = WindowManager.getCurrentImage();
-        if (img == null) {
-            IJ.noImage();
-            if (ij == null) {
-                System.exit(0);
-            } else {
-                abort();
-            }
-        }
-        return img;
-    }
-
-    /** Switches to the specified stack slice, where 1<='slice'<=stack-size. */
-    public static void setSlice(int slice) {
-        getImage().setSlice(slice);
-    }
-
-    /** Returns the ImageJ version number as a string. */
-    public static String getVersion() {
-        return IJ.getInstance().getVersion();
-    }
-
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" File / Directory Utils ">
     /** Returns the path to the home ("user.home"), startup, ImageJ, plugins, macros,
     luts, temp, current or image directory if <code>TITLE</code> is "home", "startup",
     "imagej", "plugins", "macros", "luts", "temp", "current" or "image", otherwise,
@@ -1555,6 +1653,70 @@ public class IJ {
         return ijdir;
     }
 
+    static String updateExtension(String path, String extension) {
+        if (path == null) {
+            return null;
+        }
+        int dotIndex = path.lastIndexOf(".");
+        int separatorIndex = path.lastIndexOf(File.separator);
+        if (dotIndex >= 0 && dotIndex > separatorIndex && (path.length() - dotIndex) <= 5) {
+            if (dotIndex + 1 < path.length() && Character.isDigit(path.charAt(dotIndex + 1))) {
+                path += extension;
+            } else {
+                path = path.substring(0, dotIndex) + extension;
+            }
+        } else {
+            path += extension;
+        }
+        return path;
+    }
+
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Image create / open / save ">
+    /** Creates a new IjxImagePlus. <code>Type</code> should contain "8-bit", "16-bit", "32-bit" or "RGB".
+    In addition, it can contain "white", "black" or "ramp" (the default is "white"). <code>Width</code>
+    and <code>height</code> specify the width and height of the image in pixels.
+    <code>Depth</code> specifies the number of stack slices. */
+    public static IjxImagePlus createImage(String title, String type, int width, int height, int depth) {
+        type = type.toLowerCase(Locale.US);
+        int bitDepth = 8;
+        if (type.indexOf("16") != -1) {
+            bitDepth = 16;
+        }
+        if (type.indexOf("24") != -1 || type.indexOf("rgb") != -1) {
+            bitDepth = 24;
+        }
+        if (type.indexOf("32") != -1) {
+            bitDepth = 32;
+        }
+        int options = NewImage.FILL_WHITE;
+        if (bitDepth == 16 || bitDepth == 32) {
+            options = NewImage.FILL_BLACK;
+        }
+        if (type.indexOf("white") != -1) {
+            options = NewImage.FILL_WHITE;
+        } else if (type.indexOf("black") != -1) {
+            options = NewImage.FILL_BLACK;
+        } else if (type.indexOf("ramp") != -1) {
+            options = NewImage.FILL_RAMP;
+        }
+        options += NewImage.CHECK_AVAILABLE_MEMORY;
+        return NewImage.createImage(title, width, height, depth, bitDepth, options);
+    }
+
+    /** Opens a new image. <code>Type</code> should contain "8-bit", "16-bit", "32-bit" or "RGB".
+    In addition, it can contain "white", "black" or "ramp" (the default is "white"). <code>Width</code>
+    and <code>height</code> specify the width and height of the image in pixels.
+    <code>Depth</code> specifies the number of stack slices. */
+    public static void newImage(String title, String type, int width, int height, int depth) {
+        IjxImagePlus imp = createImage(title, type, width, height, depth);
+        if (imp != null) {
+            macroRunning = true;
+            imp.show();
+            macroRunning = false;
+        }
+    }
+
     /** Displays a file open dialog box and then opens the tiff, dicom,
     fits, pgm, jpeg, bmp, gif, lut, roi, or text file selected by
     the user. Displays an error message if the selected file is not
@@ -1611,37 +1773,6 @@ public class IJ {
     /** Opens an image using a file open dialog and returns it as an IjxImagePlus object. */
     public static IjxImagePlus openImage() {
         return openImage(null);
-    }
-
-    /** Opens a URL and returns the contents as a string.
-    Returns "<Error: message>" if there an error, including
-    host or file not found. */
-    public static String openUrlAsString(String url) {
-        StringBuffer sb = null;
-        url = url.replaceAll(" ", "%20");
-        try {
-            URL u = new URL(url);
-            URLConnection uc = u.openConnection();
-            long len = uc.getContentLength();
-            if (len > 1048576L) {
-                return "<Error: file is larger than 1MB>";
-            }
-            InputStream in = u.openStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(in));
-            sb = new StringBuffer();
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line + "\n");
-            }
-            in.close();
-        } catch (Exception e) {
-            return ("<Error: " + e + ">");
-        }
-        if (sb != null) {
-            return new String(sb);
-        } else {
-            return "";
-        }
     }
 
     /** Saves the current image, lookup table, selection or text window to the specified file path.
@@ -1747,23 +1878,38 @@ public class IJ {
             run(imp, format, "save=[" + path + "]");
         }
     }
+// </editor-fold>
 
-    static String updateExtension(String path, String extension) {
-        if (path == null) {
-            return null;
-        }
-        int dotIndex = path.lastIndexOf(".");
-        int separatorIndex = path.lastIndexOf(File.separator);
-        if (dotIndex >= 0 && dotIndex > separatorIndex && (path.length() - dotIndex) <= 5) {
-            if (dotIndex + 1 < path.length() && Character.isDigit(path.charAt(dotIndex + 1))) {
-                path += extension;
-            } else {
-                path = path.substring(0, dotIndex) + extension;
+// <editor-fold defaultstate="collapsed" desc=" String/Text File Utils ">
+    /** Opens a URL and returns the contents as a string.
+    Returns "<Error: message>" if there an error, including
+    host or file not found. */
+    public static String openUrlAsString(String url) {
+        StringBuffer sb = null;
+        url = url.replaceAll(" ", "%20");
+        try {
+            URL u = new URL(url);
+            URLConnection uc = u.openConnection();
+            long len = uc.getContentLength();
+            if (len > 1048576L) {
+                return "<Error: file is larger than 1MB>";
             }
-        } else {
-            path += extension;
+            InputStream in = u.openStream();
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            sb = new StringBuffer();
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line + "\n");
+            }
+            in.close();
+        } catch (Exception e) {
+            return ("<Error: " + e + ">");
         }
-        return path;
+        if (sb != null) {
+            return new String(sb);
+        } else {
+            return "";
+        }
     }
 
     /** Saves a string as a file. Displays a file save dialog if
@@ -1838,50 +1984,8 @@ public class IJ {
         return str;
     }
 
-    /** Creates a new IjxImagePlus. <code>Type</code> should contain "8-bit", "16-bit", "32-bit" or "RGB".
-    In addition, it can contain "white", "black" or "ramp" (the default is "white"). <code>Width</code>
-    and <code>height</code> specify the width and height of the image in pixels.
-    <code>Depth</code> specifies the number of stack slices. */
-    public static IjxImagePlus createImage(String title, String type, int width, int height, int depth) {
-        type = type.toLowerCase(Locale.US);
-        int bitDepth = 8;
-        if (type.indexOf("16") != -1) {
-            bitDepth = 16;
-        }
-        if (type.indexOf("24") != -1 || type.indexOf("rgb") != -1) {
-            bitDepth = 24;
-        }
-        if (type.indexOf("32") != -1) {
-            bitDepth = 32;
-        }
-        int options = NewImage.FILL_WHITE;
-        if (bitDepth == 16 || bitDepth == 32) {
-            options = NewImage.FILL_BLACK;
-        }
-        if (type.indexOf("white") != -1) {
-            options = NewImage.FILL_WHITE;
-        } else if (type.indexOf("black") != -1) {
-            options = NewImage.FILL_BLACK;
-        } else if (type.indexOf("ramp") != -1) {
-            options = NewImage.FILL_RAMP;
-        }
-        options += NewImage.CHECK_AVAILABLE_MEMORY;
-        return NewImage.createImage(title, width, height, depth, bitDepth, options);
-    }
-
-    /** Opens a new image. <code>Type</code> should contain "8-bit", "16-bit", "32-bit" or "RGB".
-    In addition, it can contain "white", "black" or "ramp" (the default is "white"). <code>Width</code>
-    and <code>height</code> specify the width and height of the image in pixels.
-    <code>Depth</code> specifies the number of stack slices. */
-    public static void newImage(String title, String type, int width, int height, int depth) {
-        IjxImagePlus imp = createImage(title, type, width, height, depth);
-        if (imp != null) {
-            macroRunning = true;
-            imp.show();
-            macroRunning = false;
-        }
-    }
-
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Abort / Esc ">
     /** Returns true if the <code>Esc</code> key was pressed since the
     last ImageJ command started to execute or since resetEscape() was called. */
     public static boolean escapePressed() {
@@ -1895,6 +1999,20 @@ public class IJ {
         escapePressed = false;
     }
 
+    private static void testAbort() {
+        if (Macro.abort) {
+            abort();
+        }
+    }
+
+    public static void abort() {
+        if (ij != null || Interpreter.isBatchMode()) {
+            throw new RuntimeException(Macro.MACRO_CANCELED);
+        }
+    }
+
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Error & Exception Handling ">
     /** Causes IJ.error() output to be temporarily redirected to the "Log" window. */
     public static void redirectErrorMessages() {
         redirectErrorMessages = true;
@@ -1915,68 +2033,6 @@ public class IJ {
         suppressPluginNotFoundError = true;
     }
 
-    /** Returns the class loader ImageJ uses to run plugins or the
-    system class loader if Menus.getPlugInsPath() returns null. */
-    public static ClassLoader getClassLoader() {
-        if (classLoader == null) {
-            String pluginsDir = Menus.getPlugInsPath();
-            if (pluginsDir == null) {
-                String home = System.getProperty("plugins.dir");
-                if (home != null) {
-                    if (!home.endsWith(Prefs.separator)) {
-                        home += Prefs.separator;
-                    }
-                    pluginsDir = home + "plugins" + Prefs.separator;
-                    if (!(new File(pluginsDir)).isDirectory()) {
-                        pluginsDir = home;
-                    }
-                }
-            }
-            if (pluginsDir == null) {
-                return IJ.class.getClassLoader();
-            } else {
-                if (MenusAWT.jnlp) {
-                    classLoader = new PluginClassLoader(pluginsDir, true);
-                } else {
-                    classLoader = new PluginClassLoader(pluginsDir);
-                }
-            }
-        }
-        return classLoader;
-    }
-
-    /** Returns the size, in pixels, of the primary display. */
-    public static Dimension getScreenSize() {
-        if (isWindows()) // GraphicsEnvironment.getConfigurations is *very* slow on Windows
-        {
-            return Toolkit.getDefaultToolkit().getScreenSize();
-        }
-        if (GraphicsEnvironment.isHeadless()) {
-            return new Dimension(0, 0);
-        }
-        // Can't use Toolkit.getScreenSize() on Linux because it returns
-        // size of all displays rather than just the primary display.
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        GraphicsDevice[] gd = ge.getScreenDevices();
-        GraphicsConfiguration[] gc = gd[0].getConfigurations();
-        Rectangle bounds = gc[0].getBounds();
-        if (bounds.x == 0 && bounds.y == 0) {
-            return new Dimension(bounds.width, bounds.height);
-        } else {
-            return Toolkit.getDefaultToolkit().getScreenSize();
-        }
-    }
-
-    public static void abort() {
-        if (ij != null || Interpreter.isBatchMode()) {
-            throw new RuntimeException(Macro.MACRO_CANCELED);
-        }
-    }
-    // GBH: made public for Ijx
-    public static void setClassLoader(ClassLoader loader) {
-        classLoader = loader;
-    }
-
     /** Displays a stack trace. Use the setExceptionHandler
     method() to override with a custom exception handler. */
     public static void handleException(Throwable e) {
@@ -1987,6 +2043,7 @@ public class IJ {
         CharArrayWriter caw = new CharArrayWriter();
         PrintWriter pw = new PrintWriter(caw);
         e.printStackTrace(pw);
+        e.printStackTrace();
         String s = caw.toString();
         if (getInstance() != null) {
             new TextWindow("Exception", s, 350, 250);
@@ -2006,7 +2063,8 @@ public class IJ {
     }
     static ExceptionHandler exceptionHandler;
 
-
+// </editor-fold>
+// <editor-fold defaultstate="collapsed" desc=" Listeners ">
     public static Vector getListeners() {
         return eventListeners;
     }
@@ -2028,6 +2086,7 @@ public class IJ {
         }
     }
 
+// </editor-fold>
     public static boolean runFijiEditor(String title, String body) {
         try {
             Class clazz = IJ.getClassLoader().loadClass("fiji.scripting.TextEditor");

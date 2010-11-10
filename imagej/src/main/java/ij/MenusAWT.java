@@ -154,7 +154,7 @@ public class MenusAWT implements IjxMenus {
 		getMenu("Image>Stacks>Tools_", true);
 		Menu hyperstacksMenu = getMenu("Image>Hyperstacks", true);
 		image.addSeparator();
-		addPlugInItem(image, "Crop", "ij.plugin.Resizer(\"crop\")", KeyEvent.VK_X, true);
+		addPlugInItem(image, "Crop", "ij.plugin.Resizer(\"cr op\")", KeyEvent.VK_X, true);
 		addPlugInItem(image, "Duplicate...", "ij.plugin.Duplicator", KeyEvent.VK_D, true);
 		addPlugInItem(image, "Rename...", "ij.plugin.SimpleCommands(\"rename\")", 0, false);
 		addPlugInItem(image, "Scale...", "ij.plugin.Scaler", KeyEvent.VK_E, false);
@@ -699,8 +699,7 @@ public class MenusAWT implements IjxMenus {
 				result = new Menu(menuItemName);
 				addPluginSeparatorIfNeeded(parentMenu);
 				if (readFromProps)
-					result = addSubMenu(parentMenu,
-							menuItemName);
+					result = addSubMenu(parentMenu,	menuItemName);
 				else if (parentName.startsWith("Plugins") && menuSeparators != null) {
 					Integer i = (Integer)menuSeparators.get(parentMenu);
 					addItemSorted(parentMenu, result, i.intValue());

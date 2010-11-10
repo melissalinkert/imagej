@@ -8,7 +8,9 @@ import java.io.*;
 import java.util.*;
 import java.lang.reflect.*;
 
-/** Implements the Plugins/Shortcuts/Install... command. */
+/** Implements the Plugins/Shortcuts/Install... command.
+Finds plugin in the plugins dir and any sub-directories (only one-level down)
+ */
 public class Installer implements PlugIn {
 
 	private static String[] menus = {"Shortcuts", "Plugins", "Import", "Save As",

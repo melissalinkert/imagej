@@ -12,6 +12,7 @@ import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseWheelListener;
+import java.awt.event.WindowFocusListener;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
 
@@ -20,7 +21,8 @@ import java.awt.event.WindowStateListener;
  * 
  * Refactored from ImageJ by Grant B. Harris, November 2008, at ImageJ 2008, Luxembourg
  **/
-public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelListener, WindowListener, WindowStateListener {
+public interface IjxImageWindow extends IjxWindow, FocusListener, MouseWheelListener, 
+        WindowListener, WindowFocusListener, WindowStateListener {
 
     int MIN_HEIGHT = 32;
     int MIN_WIDTH = 128;

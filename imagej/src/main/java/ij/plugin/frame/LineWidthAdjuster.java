@@ -5,7 +5,9 @@ import ij.*;
 import ij.plugin.*;
 import ij.gui.*;
 import ij.util.Tools;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
+import ijx.app.KeyboardHandler;
 
 /** Adjusts the width of line selections.  */
 public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
@@ -74,7 +76,7 @@ public class LineWidthAdjuster extends PlugInFrame implements PlugIn,
 		thread = new Thread(this, "LineWidthAdjuster");
 		thread.start();
 		setup();
-		addKeyListener(IJ.getInstance());
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 	}
 	
 	public synchronized void adjustmentValueChanged(AdjustmentEvent e) {

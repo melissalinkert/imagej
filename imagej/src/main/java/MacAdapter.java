@@ -2,6 +2,7 @@ import ij.plugin.*;
 import ij.*;
 import ij.io.*;
 import com.apple.eawt.*;
+import ijx.ImageJX;
 import java.util.Vector;
 
 /**	This Mac specific plugin handles the "About" and "Quit" items in the Apple menu and opens
@@ -16,7 +17,7 @@ public class MacAdapter implements PlugIn, ApplicationListener, Runnable {
 	}
     
 	public void handleAbout(ApplicationEvent event) {
-		IJ.run("About ImageJA...");
+		IJ.run("About " + IJ.getInstance().getTitle() + "...");
 		event.setHandled(true);
 	}
 
@@ -32,7 +33,7 @@ public class MacAdapter implements PlugIn, ApplicationListener, Runnable {
 	}
 
 	public void handleQuit(ApplicationEvent event) {
-		new Executer("Quit", null); // works with the CommandListener
+		new Executer("Quit").run(); // works with the CommandListener
 		//IJ.getInstance().quit();
 	}
   

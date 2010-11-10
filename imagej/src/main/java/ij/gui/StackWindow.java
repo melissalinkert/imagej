@@ -5,7 +5,9 @@ import ijx.gui.IjxImageCanvas;
 import ijx.app.IjxApplication;
 import ijx.IjxImagePlus;
 import ij.*;
+import ijx.CentralLookup;
 import ijx.IjxImageStack;
+import ijx.app.KeyboardHandler;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.ImageIcon;
@@ -80,7 +82,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
             cSelector = new ScrollbarWithLabel(this, 1, 1, 1, nChannels + 1, 'c');
             add(cSelector);
             if (ij != null) {
-                cSelector.addKeyListener(ij);
+                cSelector.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
             }
             cSelector.addAdjustmentListener(this);
             cSelector.setFocusable(false); // prevents scroll bar from blinking on Windows
@@ -98,7 +100,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
             }
             add(zSelector);
             if (ij != null) {
-                zSelector.addKeyListener(ij);
+                zSelector.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
             }
             zSelector.addAdjustmentListener(this);
             zSelector.setFocusable(false);
@@ -114,7 +116,7 @@ public class StackWindow extends ImageWindow implements IjxStackWindow {
             animationSelector = tSelector = new ScrollbarWithLabel(this, 1, 1, 1, nFrames + 1, 't');
             add(tSelector);
             if (ij != null) {
-                tSelector.addKeyListener(ij);
+                tSelector.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
             }
             tSelector.addAdjustmentListener(this);
             tSelector.setFocusable(false);

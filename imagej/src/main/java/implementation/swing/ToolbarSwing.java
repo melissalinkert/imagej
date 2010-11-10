@@ -1374,9 +1374,9 @@ public class ToolbarSwing extends JToolBar implements MouseListener,
 	}
 	
 	public void mouseMoved(MouseEvent e) {
-		int x = e.getX();
-		x=toolID(x/SIZE);
-		showMessage(x);
+//		int x = e.getX();
+//		x=toolID(x/SIZE);
+//		showMessage(x);
 	}
 
 	/** Adds a tool to the toolbar. The 'toolTip' string is displayed in the status bar

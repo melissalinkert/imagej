@@ -5,9 +5,11 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.measure.*;
+import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
 
 /** This plugin implements the Brightness/Contrast, Window/level and
 	Color Balance commands, all in the Image/Adjust sub-menu. It 
@@ -99,7 +101,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		c.insets = new Insets(10, 10, 0, 10);
 		gridbag.setConstraints(plot, c);
 		add(plot);
-		plot.addKeyListener(ij);		
+		plot.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		// min and max labels
 		
 		if (!windowLevel) {
@@ -125,7 +127,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			gridbag.setConstraints(minSlider, c);
 			add(minSlider);
 			minSlider.addAdjustmentListener(this);
-			minSlider.addKeyListener(ij);		
+			minSlider.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 			minSlider.setUnitIncrement(1);
 			minSlider.setFocusable(false); // prevents blinking on Windows
 			addLabel("Minimum", null);
@@ -139,7 +141,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			gridbag.setConstraints(maxSlider, c);
 			add(maxSlider);
 			maxSlider.addAdjustmentListener(this);
-			maxSlider.addKeyListener(ij);		
+			maxSlider.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 			maxSlider.setUnitIncrement(1);
 			maxSlider.setFocusable(false);
 			addLabel("Maximum", null);
@@ -152,7 +154,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		gridbag.setConstraints(brightnessSlider, c);
 		add(brightnessSlider);
 		brightnessSlider.addAdjustmentListener(this);
-		brightnessSlider.addKeyListener(ij);		
+		brightnessSlider.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		brightnessSlider.setUnitIncrement(1);
 		brightnessSlider.setFocusable(false);
 		if (windowLevel)
@@ -168,7 +170,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			gridbag.setConstraints(contrastSlider, c);
 			add(contrastSlider);
 			contrastSlider.addAdjustmentListener(this);
-			contrastSlider.addKeyListener(ij);		
+			contrastSlider.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 			contrastSlider.setUnitIncrement(1);
 			contrastSlider.setFocusable(false);
 			if (windowLevel)
@@ -185,7 +187,7 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 			addBalanceChoices();
 			gridbag.setConstraints(choice, c);
 			choice.addItemListener(this);
-			//choice.addKeyListener(ij);		
+			//choice.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 			add(choice);
 		}
 	
@@ -195,26 +197,26 @@ public class ContrastAdjuster extends PlugInFrame implements Runnable,
 		panel.setLayout(new GridLayout(0,2, 0, 0));
 		autoB = new TrimmedButton("Auto",trim);
 		autoB.addActionListener(this);
-		autoB.addKeyListener(ij);
+		autoB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(autoB);
 		resetB = new TrimmedButton("Reset",trim);
 		resetB.addActionListener(this);
-		resetB.addKeyListener(ij);
+		resetB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(resetB);
 		setB = new TrimmedButton("Set",trim);
 		setB.addActionListener(this);
-		setB.addKeyListener(ij);
+		setB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(setB);
 		applyB = new TrimmedButton("Apply",trim);
 		applyB.addActionListener(this);
-		applyB.addKeyListener(ij);
+		applyB.addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		panel.add(applyB);
 		c.gridy = y++;
 		c.insets = new Insets(8, 5, 10, 5);
 		gridbag.setConstraints(panel, c);
 		add(panel);
 		
- 		addKeyListener(ij);  // ImageJ handles keyboard shortcuts
+ 		addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));  // ImageJ handles keyboard shortcuts
 		pack();
 		Point loc = Prefs.getLocation(LOC_KEY);
 		if (loc!=null)

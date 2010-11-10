@@ -55,7 +55,11 @@ import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;
 import ijx.IjxMenus;
+import ijx.IjxTopComponent;
 import ijx.app.IjxApplication;
+import ijx.app.KeyboardHandler;
+import implementation.mdi.TopComponentMDI;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -104,6 +108,7 @@ public class AbstractImageWindow //extends Frame
     protected IjxImageCanvas ic;
     protected Container displayWindow; // the Window - a Frame, JFrame or JInternalFrame
     //
+    protected KeyboardHandler keyHandler = CentralLookup.getDefault().lookup(KeyboardHandler.class);
     private double initialMagnification = 1;
     private int newWidth, newHeight;
     protected boolean closed;
@@ -140,46 +145,44 @@ public class AbstractImageWindow //extends Frame
         this.displayWindow = window;
         this.imp = _imp;
         this.ic = _ic;
-        if (displayWindow == null) {
-            throw new UnsupportedOperationException("Uh Oh... window is null"); // @todo
+        ij = IJ.getInstance();
+        if (displayWindow == null || imp == null) {
+            throw new UnsupportedOperationException("Uh Oh...window or ImagePlus is null"); // @todo
         }
-        if (imp == null) {
-            throw new UnsupportedOperationException("Uh Oh... ImagePlus is null"); // @todo
-        }
-        //super(imp.getTitle());
-        if (Prefs.blackCanvas && getClass().getName().equals("ij.gui.IjxImageWindow")) {
-            displayWindow.setForeground(Color.white);
-            displayWindow.setBackground(Color.black);
-        } else {
-            displayWindow.setForeground(Color.black);
-            if (IJ.isLinux()) {
-                displayWindow.setBackground(IJ.backgroundColor);
+        this.setTitle(imp.getTitle());
+        IjxImageWindow previousWindow = imp.getWindow();
+        {
+            if (Prefs.blackCanvas && getClass().getName().equals("ij.gui.IjxImageWindow")) {
+                displayWindow.setForeground(Color.white);
+                displayWindow.setBackground(Color.black);
             } else {
-                displayWindow.setBackground(Color.white);
+                displayWindow.setForeground(Color.black);
+                if (IJ.isLinux()) {
+                    displayWindow.setBackground(IJ.backgroundColor);
+                } else {
+                    displayWindow.setBackground(Color.white);
+                }
             }
         }
-
         if (ic == null) {
             ic = IJ.getFactory().newImageCanvas(imp);
             newCanvas = true;
         }
-
-        IjxImageWindow previousWindow = imp.getWindow();
+        // Add the canvas to the window
         displayWindow.add(ic.getCanvas());
-        displayWindow.setLayout(new ImageLayout(ic));
+        //displayWindow.setLayout(new ImageLayout(ic)); //  <<============
+        displayWindow.setLayout(new BorderLayout()); //  <<============
         //
         ((IjxImageDisplayWindow) displayWindow).setDrawingDelegate(this);
         //
         isStackWindow = (IjxStackWindow.class.isAssignableFrom(this.getClass()));
 
-        // @todo need to also support InternalFrameListener
         if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
             setListenersOnWindow(((Frame) displayWindow));
         }
         if (displayWindow instanceof JInternalFrame) {
             setListenersOnInternalWindow(((JInternalFrame) displayWindow));
         }
-
 
         WindowManager.addWindow(this);
         imp.setWindow(this);
@@ -192,8 +195,7 @@ public class AbstractImageWindow //extends Frame
             } else {
                 applet.setImageCanvas((ImageCanvas) ic);
             }
-
-        } else if (previousWindow != null) {
+        } else if (previousWindow != null) { // get pos & location from existing window
             if (newCanvas) {
                 setLocationAndSize(false);
             } else {
@@ -203,16 +205,9 @@ public class AbstractImageWindow //extends Frame
             displayWindow.setLocation(loc.x, loc.y);
             // @todo ... ??
 //            if (!isStackWindow) {
-            //if (!(this instanceof IjxStackWindow)) {
-            if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
-                ((Frame) displayWindow).pack();
-                ((Frame) displayWindow).setVisible(true);
+            if (!(this instanceof IjxStackWindow)) {
+                packAndShow(displayWindow);
             }
-            if (displayWindow instanceof JInternalFrame) {
-                ((JInternalFrame) displayWindow).pack();
-                ((JInternalFrame) displayWindow).setVisible(true);
-            }
-//            }
             boolean unlocked = imp.lockSilently();
             boolean changes = imp.isChanged();
             imp.setChanged(false);
@@ -230,12 +225,13 @@ public class AbstractImageWindow //extends Frame
                 if (img != null) {
                     if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
                         ((Frame) displayWindow).setIconImage(img.getImage());
+                        ((Frame) displayWindow).setTitle(title);
                     }
                 }
                 if (displayWindow instanceof JInternalFrame) {
                     ((JInternalFrame) displayWindow).setFrameIcon(img);
+                    ((JInternalFrame) displayWindow).setTitle(title);
                 }
-
             }
             // @todo  add JInternalFrame handling
             if (WindowManager.isCenterNextImage()) {
@@ -251,20 +247,32 @@ public class AbstractImageWindow //extends Frame
 //                WindowManager.setTempCurrentImage(imp);
 //                Interpreter.addBatchModeImage(imp);
 //            } else {
-//            if (!isStackWindow) {
-            //if (!(this instanceof IjxStackWindow)) {
-            if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
-                ((Frame) displayWindow).pack();
-                ((Frame) displayWindow).setVisible(true);
-
+            if (!(this instanceof IjxStackWindow)) {
+                packAndShow(displayWindow);
             }
-            if (displayWindow instanceof JInternalFrame) {
-                ((JInternalFrame) displayWindow).pack();
-                ((JInternalFrame) displayWindow).setVisible(true);
-            }
-
-            //           }
 //            }
+        }
+    }
+
+    protected void packAndShow(Container displayWindow) {
+        if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+            ((Frame) displayWindow).pack();
+            ((Frame) displayWindow).setVisible(true);
+        }
+        if (displayWindow instanceof JInternalFrame) {
+            JInternalFrame frame = (JInternalFrame) displayWindow;
+            frame.setBounds(10, 10, 300, 200);
+            frame.pack();
+            TopComponentMDI top = (TopComponentMDI) CentralLookup.getDefault().lookup(IjxTopComponent.class);
+            try {
+                top.getDesktop().add(frame);
+                frame.setVisible(true);
+            } catch (Exception e) {
+            }
+            try {
+                frame.setSelected(true);
+            } catch (java.beans.PropertyVetoException pve) {
+            }
         }
     }
 
@@ -301,7 +309,7 @@ public class AbstractImageWindow //extends Frame
             ((Frame) displayWindow).show();
         } else if (displayWindow instanceof JInternalFrame) {
             // swing.JInternalFrame
-            ((JInternalFrame) displayWindow).show();
+            ((JInternalFrame) displayWindow).setVisible(true);
         }
     }
 
@@ -381,7 +389,13 @@ public class AbstractImageWindow //extends Frame
             displayWindow.setSize(Math.min(width, maxWindow.width - x), Math.min(height, screenHeight - y));
             displayWindow.validate();
         } else {
-            pack();
+            if (Frame.class.isAssignableFrom(displayWindow.getClass())) {
+                ((Frame) displayWindow).pack();
+
+            }
+            if (displayWindow instanceof JInternalFrame) {
+                ((JInternalFrame) displayWindow).pack();
+            }
         }
     }
 
@@ -760,11 +774,64 @@ public class AbstractImageWindow //extends Frame
         unzoomWhenMinimizing = true;
     }
 
+    // These are the actual methods invoked by events emitted by JInternalFrames, Windows, FocusManager...
+
+    /*  Regarding FocusGained and WindowsActivated...
+    WindowsActivated window (frame or dialog) — This window is either the focused window,
+    or owns the focused window.  Since 1.4, WindowFocusListener and WindowStateListener are preferred.
+    Note: Not all window managers/native platforms support all window states. The 1.4 java.awt.Toolkit
+    method isFrameStateSupported(int) can be used to determine whether a particular window state is
+    supported by a particular window manager.
+     */
+    public void windowActivatedorGainedFocus(WindowEvent e) {
+        if (IJ.debugMode) {
+            IJ.log("windowActivated: " + imp.getTitle());
+        }
+        //ImageJ ij = IJ.getInstance();
+        IjxApplication ij = IJ.getInstance();
+        boolean quitting = ij != null && ij.quitting();
+        // @todo Deal with Mac Menu issues here
+        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
+            IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
+            IJ.wait(10); // may be needed for Java 1.4 on OS X
+            //setMenuBar(menus.getMenuBar());
+        }
+        if (imp == null) {
+            System.err.println("imp==null in AbstractImageWindow");
+            return;
+        }
+        imp.setActivated(); // notify IjxImagePlus that image has been activated
+        if (!closed && !quitting && !Interpreter.isBatchMode()) {
+            WindowManager.setCurrentWindow(this);
+        }
+        // @todo   Frame?? Ok for now...
+        Frame channels = Channels.getInstance();
+        if (channels != null && imp.isComposite()) {
+            ((Channels) channels).update();
+        }
+    }
+
     /** Has this window been closed? */
     public boolean isClosed() {
         return closed;
     }
 
+    public void windowOrIFrameClosing(WindowEvent e) {
+        //IJ.log("windowClosing: "+imp.getTitle()+" "+closed);
+        if (closed) {
+            return;
+        }
+        if (ij != null) {
+            WindowManager.setCurrentWindow(this);
+            IJ.doCommand("Close");
+        } else {
+            setVisible(false);
+            dispose();
+            WindowManager.removeWindow(this);
+        }
+    }
+
+    // Listeners.................................................................
     public void focusGained(FocusEvent e) {
         //IJ.log("focusGained: "+imp.getTitle());
         if (!Interpreter.isBatchMode() && ij != null && !ij.quitting()) {
@@ -778,9 +845,10 @@ public class AbstractImageWindow //extends Frame
 // <editor-fold defaultstate="collapsed" desc=" WindowListener">
     private void setListenersOnWindow(Frame w) {
         w.addFocusListener(this);
+        w.addWindowFocusListener(this);
         ((Window) w).addWindowListener(this);
         w.addWindowStateListener(this);
-        w.addKeyListener(ij);
+        w.addKeyListener(keyHandler);
         w.setFocusTraversalKeysEnabled(false);
         //if (!(this instanceof IjxStackWindow)) {
         if (!(IjxStackWindow.class.isAssignableFrom(this.getClass()))) {
@@ -789,43 +857,19 @@ public class AbstractImageWindow //extends Frame
         w.setResizable(true);
     }
 
+    public void windowGainedFocus(WindowEvent e) {
+        windowActivatedorGainedFocus(e);
+    }
+
+    public void windowLostFocus(WindowEvent e) {
+    }
+
     public void windowActivated(WindowEvent e) {
-        if (IJ.debugMode) {
-            IJ.log("windowActivated: " + imp.getTitle());
-        }
-        //ImageJ ij = IJ.getInstance();
-        IjxApplication ij = IJ.getInstance();
-        boolean quitting = ij != null && ij.quitting();
-        // @todo Deal with Mac Menu issues here
-        if (IJ.isMacintosh() && ij != null && ij.getApplet() == null && !quitting) {
-            IjxMenus menus = CentralLookup.getDefault().lookup(IjxMenus.class);
-            IJ.wait(10); // may be needed for Java 1.4 on OS X
-            //setMenuBar(menus.getMenuBar());
-        }
-        imp.setActivated(); // notify IjxImagePlus that image has been activated
-        if (!closed && !quitting && !Interpreter.isBatchMode()) {
-            WindowManager.setCurrentWindow(this);
-        }
-        // @todo  Frame??
-        Frame channels = Channels.getInstance();
-        if (channels != null && imp.isComposite()) {
-            ((Channels) channels).update();
-        }
+        windowActivatedorGainedFocus(e);
     }
 
     public void windowClosing(WindowEvent e) {
-        //IJ.log("windowClosing: "+imp.getTitle()+" "+closed);
-        if (closed) {
-            return;
-        }
-        if (ij != null) {
-            WindowManager.setCurrentWindow(this);
-            IJ.doCommand("Close");
-        } else {
-            setVisible(false);
-            dispose();
-            WindowManager.removeWindow(this);
-        }
+        windowOrIFrameClosing(e);
     }
 
     public void windowStateChanged(WindowEvent e) {
@@ -856,12 +900,12 @@ public class AbstractImageWindow //extends Frame
 
 // </editor-fold>
 // <editor-fold defaultstate="collapsed" desc=" InternalFrameListener ">
-    // @todo: implement for internal frame
+    // @todo: !!! Implement for internal frame
     private void setListenersOnInternalWindow(JInternalFrame w) {
         w.addFocusListener(this);
         w.addInternalFrameListener(this);
         //displayWindow.addWindowStateListener(this);
-        w.addKeyListener(ij);
+        w.addKeyListener(keyHandler);
         w.setFocusTraversalKeysEnabled(false);
         if (!(this instanceof IjxStackWindow)) {
             w.addMouseWheelListener(this);
@@ -870,6 +914,18 @@ public class AbstractImageWindow //extends Frame
     }
 
     public void internalFrameClosing(InternalFrameEvent e) {
+        //IJ.log("windowClosing: "+imp.getTitle()+" "+closed);
+        if (closed) {
+            return;
+        }
+        if (ij != null) {
+            WindowManager.setCurrentWindow(this);
+            IJ.doCommand("Close");
+        } else {
+            setVisible(false);
+            dispose();
+            WindowManager.removeWindow(this);
+        }
     }
 
     public void internalFrameClosed(InternalFrameEvent e) {
@@ -885,6 +941,7 @@ public class AbstractImageWindow //extends Frame
     }
 
     public void internalFrameActivated(InternalFrameEvent e) {
+        windowActivatedorGainedFocus(null);
     }
 
     public void internalFrameDeactivated(InternalFrameEvent e) {

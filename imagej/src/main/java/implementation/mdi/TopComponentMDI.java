@@ -9,6 +9,7 @@ import ij.gui.IjxToolbar;
 import ijx.app.IjxApplication;
 import ijx.CentralLookup;
 import ijx.IjxTopComponent;
+import ijx.app.KeyboardHandler;
 import ijx.event.EventBus;
 import ijx.gui.IjxProgressBar;
 import ijx.event.StatusMessage;
@@ -18,7 +19,6 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
-import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -31,7 +31,6 @@ import java.net.URL;
 import javax.swing.ImageIcon;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
-import javax.swing.JInternalFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -43,6 +42,7 @@ import javax.swing.JToolBar;
  */
 public class TopComponentMDI //extends Frame
         implements IjxTopComponent {
+
     private ij.gui.IjxToolbar toolbar;
     private StatusLineSwing statusLine;
     private JPanel statusBar;
@@ -52,13 +52,17 @@ public class TopComponentMDI //extends Frame
     private JFrame frame;
     private JDesktopPane theDesktop;
     private final CentralLookup centralLookup = CentralLookup.getDefault();
-    Dimension prefSize = new Dimension(IjxToolbar.SIZE*IjxToolbar.NUM_BUTTONS, IjxToolbar.SIZE);
+    Dimension prefSize = new Dimension(IjxToolbar.SIZE * IjxToolbar.NUM_BUTTONS, IjxToolbar.SIZE);
+
     public TopComponentMDI(IjxApplication ijApp, String title) {
         frame = new JFrame(title);
 
         theDesktop = new JDesktopPane(); // create desktop pane
+        //theDesktop.setDragMode(JDesktopPane.OUTLINE_DRAG_MODE);
+
         //frame.add(theDesktop, BorderLayout.CENTER); // add desktop pane to frame
         frame.setContentPane(theDesktop);
+        frame.getContentPane().setBackground(Color.gray);
 
         //super("ImageJ");
         this.ijApp = ijApp;
@@ -68,8 +72,9 @@ public class TopComponentMDI //extends Frame
     }
 
     public void setToolbar(Object toolbar) {
-        ((JToolBar) toolbar).addKeyListener(ijApp);
-        frame.add((JToolBar) toolbar, BorderLayout.NORTH);
+        ((JToolBar) toolbar).addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
+        //frame.getContentPane().add((JToolBar) toolbar, BorderLayout.NORTH);
+
     }
 
     public void addStatusBar() {
@@ -83,7 +88,7 @@ public class TopComponentMDI //extends Frame
         statusLine.addMouseListener(this);
         statusBar.add("Center", statusLine);
         progressBar = IJ.getFactory().newProgressBar(120, 20);
-        ((JProgressBar) progressBar).addKeyListener(ijApp);
+        ((JProgressBar) progressBar).addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
         ((JProgressBar) progressBar).addMouseListener(this);
         statusBar.add("East", (JProgressBar) progressBar);
 
@@ -95,8 +100,8 @@ public class TopComponentMDI //extends Frame
     public void finishAndShow() {
         Point loc = getPreferredLocation();
         Dimension tbSize = prefSize;
-        int ijWidth = tbSize.width + 10;
-        int ijHeight = 100;
+        int ijWidth = tbSize.width + 300;
+        int ijHeight = 600;
         getFrame().setCursor(Cursor.getDefaultCursor()); // work-around for JDK 1.1.8 bug
         if (IJ.isWindows()) {
             try {
@@ -105,8 +110,8 @@ public class TopComponentMDI //extends Frame
             }
         }
         getFrame().setBounds(loc.x, loc.y, ijWidth, ijHeight); // needed for pack to work
-        getFrame().setLocation(loc.x, loc.y);
-        getFrame().pack();
+        //getFrame().setLocation(loc.x, loc.y);
+        //getFrame().pack();
         //getFrame().setResizable(!(IJ.isMacintosh() || IJ.isWindows())); // make resizable on Linux
         //if (IJ.isJava15()) {
         //	try {
@@ -304,6 +309,7 @@ public class TopComponentMDI //extends Frame
     public JFrame getFrame() {
         return frame;
     }
+
     public JDesktopPane getDesktop() {
         return theDesktop;
     }

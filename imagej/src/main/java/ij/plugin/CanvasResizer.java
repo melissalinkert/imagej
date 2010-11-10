@@ -1,7 +1,11 @@
 package ij.plugin;
-import ij.*;
-import ij.process.*;
-import ij.gui.*;
+
+import ij.IJ;
+import ij.Prefs;
+import ij.Undo;
+import ij.gui.GenericDialog;
+import ij.gui.IjxToolbar;
+import ij.process.ImageProcessor;
 import ijx.CentralLookup;
 import ijx.IjxImagePlus;
 import ijx.IjxImageStack;

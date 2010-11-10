@@ -45,8 +45,9 @@ public @interface ActionIjx {
 
     String group() default ""; // types: implies that this is a RadioButton, a member of the group
 
-    boolean state() default false; // implies is is a CheckBoxMenuItem, with state specified
-    // ?? or boolean toggle() default false;
+    boolean toggle() default false;
+
+    //String checkBox() default "";  // CheckBoxMenuItem if the string specifies the default state, "true" or "false"
     // Use Action.SELECTED_KEY...
 
     String[] args() default {};

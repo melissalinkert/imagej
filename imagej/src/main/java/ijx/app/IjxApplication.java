@@ -19,7 +19,7 @@ import javax.swing.ImageIcon;
  *
  * @author GBH
  */
-public interface IjxApplication extends Runnable, ActionListener, ItemListener,  KeyListener {
+public interface IjxApplication extends Runnable, ActionListener, ItemListener {
 
     /**
      * Address of socket where Image accepts commands
@@ -42,9 +42,6 @@ public interface IjxApplication extends Runnable, ActionListener, ItemListener, 
      * Handles CheckboxMenuItem state changes.
      */
     void itemStateChanged(ItemEvent e);
-
-    
-    boolean isHotkey();
     
     /**
      * ImageJ calls System.exit() when qutting when 'exitWhenQuitting' is true.

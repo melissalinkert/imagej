@@ -119,7 +119,7 @@ public class CommandTreeTable {
      * Creates the JFrame that will contain everything.
      */
     protected JFrame createFrame() {
-        JFrame retFrame = new JFrame("TreeTable III -- " + path);
+        JFrame retFrame = new JFrame("Commands -- " + path);
 
         retFrame.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent we) {

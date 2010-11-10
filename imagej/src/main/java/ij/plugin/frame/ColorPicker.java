@@ -7,6 +7,7 @@ import java.util.Vector;
 import ij.process.*;
 import ij.gui.*;
 import ijx.CentralLookup;
+import ijx.app.KeyboardHandler;
 
 /** Implements the Image/Color/Color Picker command. */
 public class ColorPicker extends PlugInFrame {
@@ -28,7 +29,7 @@ public class ColorPicker extends PlugInFrame {
         int rows = 20;
         int width = columns*colorWidth;
         int height = rows*colorHeight;
-        addKeyListener(IJ.getInstance());
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		setLayout(new BorderLayout());
         ColorGenerator cg = new ColorGenerator(width, height, new int[width*height]);
         cg.drawColors(colorWidth, colorHeight, columns, rows);
@@ -212,7 +213,7 @@ class ColorCanvas extends Canvas implements MouseListener, MouseMotionListener{
 		this.ip = ip;
 		addMouseListener(this);
  		addMouseMotionListener(this);
-        addKeyListener(IJ.getInstance());
+        addKeyListener(CentralLookup.getDefault().lookup(KeyboardHandler.class));
 		setSize(width, height);
 	}
 	

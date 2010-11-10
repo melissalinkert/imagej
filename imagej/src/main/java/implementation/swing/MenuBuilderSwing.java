@@ -4,18 +4,22 @@ import ijx.gui.MenuBuilder;
 import ijx.sezpoz.ActionIjx;
 import java.awt.Container;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
 import javax.swing.ButtonModel;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButton;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.MenuElement;
 import net.java.sezpoz.IndexItem;
 
@@ -24,17 +28,17 @@ import net.java.sezpoz.IndexItem;
  * @author GBH <imagejdev.org>
  */
 public class MenuBuilderSwing implements MenuBuilder {
+    //
     private Map<String, Action> commands; // commandKey / action
     private Map<String, String> menuCommands; // "menu>submenu" / commandKey
     private Map<String, String> toolbarCommands; // toolbar / commandKey
     private Map<String, IndexItem<ActionIjx, ?>> items;
+    //
+    private Map<String, JMenu> topMenus = new HashMap<String, JMenu>();
+    private JMenuBar bar = new JMenuBar();
+    //
+    private Map<String, ButtonGroup> groups = new HashMap<String, ButtonGroup>();
 
-    Map<String, JMenu> topMenus = new HashMap<String, JMenu>();
-    JMenuBar bar = new JMenuBar();
-
-    public Container getMenubar() {
-        return bar;
-    }
 
     public MenuBuilderSwing(
             Map<String, Action> commands,
@@ -50,7 +54,7 @@ public class MenuBuilderSwing implements MenuBuilder {
 
     public void build() {
         createMenuTree();
-                Iterator it = topMenus.entrySet().iterator();
+        Iterator it = topMenus.entrySet().iterator();
         for (Entry<String, JMenu> e : topMenus.entrySet()) {
             bar.add(e.getValue());
         }
@@ -60,15 +64,27 @@ public class MenuBuilderSwing implements MenuBuilder {
         for (Entry<String, String> e : menuCommands.entrySet()) {
             String commandKey = e.getValue();
             String menuName = e.getKey();
-            // typo of MenuItem to create
-            JMenuItem menuItem = new JMenuItem(commands.get(commandKey));
+            // type of MenuItem to create
+            IndexItem<ActionIjx, ?> item = items.get(commandKey);
+            //
+            JMenuItem menuItem;
+            if (!item.annotation().group().isEmpty()) { // is RadioButton
+                menuItem = new JRadioButtonMenuItem(commands.get(commandKey));
+            } else if (!item.annotation().toggle()) { // is CheckBox
+                menuItem = new JCheckBoxMenuItem(commands.get(commandKey));
+            } else { // is normal menu item
+                menuItem = new JMenuItem(commands.get(commandKey));
+            }
             // @todo
-            // menuItem = new JRadioButtonMenuItem(commands.get(commandKey));
-            // menuItem = new JCheckBoxMenuItem(commands.get(commandKey));
             JMenu menu;
             findOrCreateMenu(menuName);
         }
     }
+
+    enum MenuType {
+        normal, check, radio
+    }
+
     /*
     Convert HashMap to Hashtable
     Hashtable ht = new Hashtable();
@@ -81,32 +97,30 @@ public class MenuBuilderSwing implements MenuBuilder {
     TreePath path = tree.getNextMatch(prefix, startRow, Position.Bias.Forward);
     System.out.println(path);
      */
-
-
     private void findOrCreateMenu(String menuName) {
         JMenu topMenu;
-            if (menuName.contains(">")) {
-                // is a sub-menu
-                String patternStr = ">";
+        if (menuName.contains(">")) {
+            // is a sub-menu
+            String patternStr = ">";
 
-                String[] fields = menuName.split(patternStr);
-                System.out.println(Arrays.toString(fields));
+            String[] fields = menuName.split(patternStr);
+            System.out.println(Arrays.toString(fields));
 
-                topMenu = findOrCreateTopLevelMenu(fields[0]);
-                //topMenu.getSubElements()
+            topMenu = findOrCreateTopLevelMenu(fields[0]);
+            //topMenu.getSubElements()
 
-            } else {
-                // is a top level menu
-                System.out.println(menuName);
-                // find/create top level menu
-                topMenu = findOrCreateTopLevelMenu(menuName);
-            }
+        } else {
+            // is a top level menu
+            System.out.println(menuName);
+            // find/create top level menu
+            topMenu = findOrCreateTopLevelMenu(menuName);
+
+        }
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-        private void findOrCreateMenu(String[] menus) {
-
-        }
+    private void findOrCreateMenu(String[] menus) {
+    }
 
     JMenu findOrCreateTopLevelMenu(String menuName) {
         // MenuElement[] menus = bar.getSubElements();
@@ -117,6 +131,7 @@ public class MenuBuilderSwing implements MenuBuilder {
         }
         return menu;
     }
+
     JMenu findOrCreateSubMenu(String menuName) {
         // MenuElement[] menus = bar.getSubElements();
         JMenu menu = topMenus.get(menuName);
@@ -140,7 +155,10 @@ public class MenuBuilderSwing implements MenuBuilder {
         }
         // create Top Level Menu
         //bar.add(menu);
+        return bar;
+    }
 
+    public Container getMenubar() {
         return bar;
     }
 
@@ -203,5 +221,4 @@ public class MenuBuilderSwing implements MenuBuilder {
     public void setTopMenu(String topMenu) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-
 }
