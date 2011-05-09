@@ -160,7 +160,8 @@ public class LegacyPluginFinder {
 		pe.setPresets(presets);
 
 		// flag legacy plugin with special icon
-		menuPath.getLeaf().setIconPath(LEGACY_PLUGIN_ICON);
+		if (menuPath != null && menuPath.getLeaf() != null)
+			menuPath.getLeaf().setIconPath(LEGACY_PLUGIN_ICON);
 
 		return pe;
 	}
