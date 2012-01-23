@@ -1,5 +1,5 @@
 //
-// PencilTool.java
+// PaintbrushToolConfigPlugin.java
 //
 
 /*
@@ -34,34 +34,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 package imagej.core.tools;
 
-import java.util.concurrent.Future;
-
-import imagej.ImageJ;
-import imagej.ext.module.Module;
-import imagej.ext.module.ModuleService;
+import imagej.ext.plugin.ImageJPlugin;
+import imagej.ext.plugin.Parameter;
 import imagej.ext.plugin.Plugin;
-import imagej.ext.plugin.PluginService;
-import imagej.ext.tool.Tool;
+
 
 /**
  * @author Barry DeZonia
  */
-@Plugin(type = Tool.class, name = "Pencil", description = "Pencil Tool",
-	iconPath = "/icons/tools/pencil.png", priority = PencilTool.PRIORITY)
-public class PencilTool extends AbstractLineTool {
+@Plugin(label="Paintbrush Tool")
+public class PaintBrushToolConfigPlugin implements ImageJPlugin {
 
-	public static final int PRIORITY = -301;
+	@Parameter(required=true)
+	private PaintBrushTool pTool;
+	
+	@Parameter(label = "Brush Width (pixels)",	min = "1", max = "1000000")
+	private long width;
 
 	@Override
-	public void configure() {
-		PluginService pluginService = ImageJ.get(PluginService.class);
-		final ModuleService moduleService = ImageJ.get(ModuleService.class);
-		final Future<Module> future = pluginService.run(PencilToolConfigPlugin.class,this);
-		new Thread() {
-			@Override
-			public void run() {
-				moduleService.waitFor(future);
-			}
-		}.start();
+	public void run() {
+		pTool.setWidth(width);
 	}
 }

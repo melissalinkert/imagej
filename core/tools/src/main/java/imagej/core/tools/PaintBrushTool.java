@@ -34,24 +34,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 package imagej.core.tools;
 
+import java.util.concurrent.Future;
+
+import imagej.ImageJ;
+import imagej.ext.module.Module;
+import imagej.ext.module.ModuleService;
 import imagej.ext.plugin.Plugin;
-import imagej.ext.tool.AbstractTool;
+import imagej.ext.plugin.PluginService;
 import imagej.ext.tool.Tool;
 
 /**
- * TODO
- * 
- * @author Rick Lentz
- * @author Grant Harris
- * @author Curtis Rueden
+ * @author Barry DeZonia
  */
 @Plugin(type = Tool.class, name = "Paintbrush",
 	description = "Paintbrush Tool", iconPath = "/icons/tools/paintbrush.png",
-	priority = PaintBrushTool.PRIORITY, enabled = false)
-public class PaintBrushTool extends AbstractTool {
+	priority = PaintBrushTool.PRIORITY)
+public class PaintBrushTool extends AbstractLineTool {
 
 	public static final int PRIORITY = -300;
 
-	// TODO
-
+	@Override
+	public void configure() {
+		PluginService pluginService = ImageJ.get(PluginService.class);
+		final ModuleService moduleService = ImageJ.get(ModuleService.class);
+		final Future<Module> future = pluginService.run(PaintBrushToolConfigPlugin.class,this);
+		new Thread() {
+			@Override
+			public void run() {
+				moduleService.waitFor(future);
+			}
+		}.start();
+	}
 }
