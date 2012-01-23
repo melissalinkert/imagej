@@ -33,7 +33,6 @@
 			<artifactId>ij-ext</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
 		<dependency>
 			<groupId>${imglib2.groupId}</groupId>
 			<artifactId>imglib2</artifactId>
