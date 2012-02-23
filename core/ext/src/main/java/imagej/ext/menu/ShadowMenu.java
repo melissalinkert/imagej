@@ -92,6 +92,12 @@ public class ShadowMenu implements Comparable<ShadowMenu>,
 	/** Reference to parent node. */
 	private final ShadowMenu parent;
 
+	/**
+	 * Reference to root node (to determine quickly whether two ShadowMenus belong
+	 * to the same menu bar).
+	 */
+	private final ShadowMenu root;
+
 	/** Table of child nodes, keyed by name. */
 	private final Map<String, ShadowMenu> children;
 
@@ -120,6 +126,7 @@ public class ShadowMenu implements Comparable<ShadowMenu>,
 		}
 		this.menuDepth = menuDepth;
 		this.parent = parent;
+		this.root = parent == null ? this : parent.root;
 		children = new HashMap<String, ShadowMenu>();
 	}
 
@@ -159,6 +166,11 @@ public class ShadowMenu implements Comparable<ShadowMenu>,
 	/** Gets this node's parent, or null if it is a root node. */
 	public ShadowMenu getParent() {
 		return parent;
+	}
+
+	/** Gets the associated root node, (== this for a root node). */
+	public ShadowMenu getRoot() {
+		return root;
 	}
 
 	/** Gets this node's children, sorted by weight. */
@@ -471,7 +483,8 @@ public class ShadowMenu implements Comparable<ShadowMenu>,
 		if (existingChild == null) {
 			// create new child and add to table
 			final String menuName = entry.getName();
-			final ShadowMenu newChild = new ShadowMenu(menuService, info, depth, this);
+			final ShadowMenu newChild =
+				new ShadowMenu(menuService, info, depth, this);
 			children.put(menuName, newChild);
 			child = newChild;
 		}
