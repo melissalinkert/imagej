@@ -507,4 +507,8 @@ public class ShadowMenu implements Comparable<ShadowMenu>,
 		return depth == path.size() - 1;
 	}
 
+	public void addMenuUpdateListener(final Object listener) {
+		// add to list of menu update listeners so that they are garbage collected at least when this ShadowMenu gets gc'ed.
+		menuUpdateListeners.add(listener);
+	}
 }
